@@ -1,8 +1,10 @@
 // Vitest global setup.
-// Loads environment variables from .env.local (and other Next.js env files)
-// so that DATABASE_URL and other secrets are available to tests — mirroring
-// how Next.js loads env at runtime. Uses @next/env (a transitive dependency of
-// Next.js) to avoid adding a separate dotenv dependency.
-import { loadEnvConfig } from '@next/env';
+// Loads environment variables from .env.local so DATABASE_URL and other secrets
+// are available to tests.
+//
+// NOTE: we use dotenv here rather than @next/env's loadEnvConfig because Next's
+// loader deliberately SKIPS .env.local when NODE_ENV === 'test' (which vitest
+// sets) — that exclusion would leave DATABASE_URL undefined and break DB tests.
+import { config } from 'dotenv';
 
-loadEnvConfig(process.cwd());
+config({ path: '.env.local' });
