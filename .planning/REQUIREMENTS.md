@@ -92,17 +92,47 @@ Explicitly excluded. Documented to prevent scope creep.
 
 ## Traceability
 
-Which phases cover which requirements. Updated during roadmap creation.
+Which phases cover which requirements.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (to be populated by roadmapper) | — | Pending |
+| AUTH-01 | Phase 1 | Pending |
+| AUTH-02 | Phase 1 | Pending |
+| AUTH-03 | Phase 1 | Pending |
+| AUTH-04 | Phase 1 | Pending |
+| PROJ-01 | Phase 2 | Pending |
+| PROJ-02 | Phase 2 | Pending |
+| PROJ-03 | Phase 2 | Pending |
+| MEM-06 | Phase 2 | Pending |
+| MEM-01 | Phase 3 | Pending |
+| MEM-02 | Phase 3 | Pending |
+| MEM-03 | Phase 3 | Pending |
+| MEM-04 | Phase 3 | Pending |
+| MEM-05 | Phase 3 | Pending |
+| PROJ-04 | Phase 4 | Pending |
+| TKT-01 | Phase 5 | Pending |
+| TKT-02 | Phase 5 | Pending |
+| TKT-03 | Phase 5 | Pending |
+| TKT-04 | Phase 5 | Pending |
+| TKT-05 | Phase 5 | Pending |
+| TKT-06 | Phase 5 | Pending |
+| TKT-07 | Phase 5 | Pending |
+| BOARD-01 | Phase 6 | Pending |
+| BOARD-02 | Phase 6 | Pending |
+| GH-01 | Phase 7 | Pending |
+| GH-02 | Phase 7 | Pending |
+| GH-03 | Phase 8 | Pending |
+| GH-04 | Phase 8 | Pending |
+| GH-05 | Phase 8 | Pending |
+| GH-06 | Phase 8 | Pending |
+| DEPLOY-01 | Phase 9 | Pending |
+| DEPLOY-02 | Phase 9 | Pending |
 
 **Coverage:**
 - v1 requirements: 27 total
-- Mapped to phases: TBD (roadmapper)
-- Unmapped: TBD
+- Mapped to phases: 27
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-06-01*
-*Last updated: 2026-06-01 after initial definition*
+*Last updated: 2026-06-01 — traceability populated by roadmapper*
