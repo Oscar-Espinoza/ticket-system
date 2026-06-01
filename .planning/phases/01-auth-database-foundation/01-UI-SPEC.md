@@ -1,10 +1,11 @@
 ---
 phase: 1
 slug: auth-database-foundation
-status: draft
+status: approved
 shadcn_initialized: false
 preset: new-york
 created: 2026-06-01
+reviewed_at: 2026-06-01
 ---
 
 # Phase 1 — UI Design Contract
