@@ -6,7 +6,9 @@
 //   - Centered Card (max-w-sm), heading "Create account", subheading
 //     "Start managing your tickets".
 //   - "Continue with GitHub" button ABOVE the form behind an "or" separator;
-//     DISABLED in Plan 02 (Plan 03 wires onClick / AUTH-02). Markup is final.
+//     wired in Plan 03 (AUTH-02): onClick calls authClient.signIn.social, which
+//     redirects the browser to GitHub. Per UI-SPEC "OAuth Redirect" the browser
+//     navigates away — no spinner. On failure we show the OAuth failure copy.
 //   - Validate on submit only; inline errors below the field (text-destructive
 //     text-sm); clear a field's error as the user types.
 //   - Duplicate email -> "An account with this email already exists. Sign in
@@ -45,6 +47,20 @@ export function SignupForm() {
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  async function handleGitHubSignIn() {
+    setFormError(null);
+    // OAuth redirects the browser to GitHub. Per UI-SPEC the browser navigates
+    // away (no spinner). We only land back here if signIn.social returns an
+    // error before redirecting — surface the OAuth failure copy in that case.
+    const { error } = await authClient.signIn.social({
+      provider: 'github',
+      callbackURL: '/dashboard',
+    });
+    if (error) {
+      setFormError('GitHub sign-in failed. Try again or use email and password.');
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -95,8 +111,13 @@ export function SignupForm() {
         <CardDescription>Start managing your tickets</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        {/* Plan 03 extension point: enable + wire onClick to GitHub OAuth. */}
-        <Button type="button" variant="default" className="w-full" disabled>
+        {/* GitHub OAuth (AUTH-02). Redirects the browser to GitHub on click. */}
+        <Button
+          type="button"
+          variant="default"
+          className="w-full"
+          onClick={handleGitHubSignIn}
+        >
           <GitBranch />
           Continue with GitHub
         </Button>

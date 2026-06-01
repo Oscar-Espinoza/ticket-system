@@ -14,9 +14,10 @@
 //   - NO `runtime = 'edge'` anywhere in the auth path — Better Auth's password
 //     hashing relies on the Node runtime (bcryptjs is not Edge-safe).
 //
-// GitHub OAuth (socialProviders.github) is intentionally NOT configured here —
-// it is wired in Plan 03 (the "Connect GitHub" / AUTH-02 flow). See the marked
-// extension point below.
+// GitHub OAuth (socialProviders.github) is wired in Plan 03 (AUTH-02) with
+// MINIMAL scopes only (read:user, user:email — D-01). Elevated GitHub scopes
+// (repository write + webhook admin) are deferred to the Phase 7
+// Connect-GitHub flow (D-02) and are explicitly NOT requested here.
 
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
@@ -50,16 +51,20 @@ export const auth = betterAuth({
     enabled: true,
     minPasswordLength: 8, // D-11
   },
-  // ── Plan 03 extension point ─────────────────────────────────────────────
-  // GitHub OAuth is added here in Plan 03 (AUTH-02), e.g.:
-  //   socialProviders: {
-  //     github: {
-  //       clientId: process.env.GITHUB_CLIENT_ID!,
-  //       clientSecret: process.env.GITHUB_CLIENT_SECRET!,
-  //       scope: ['read:user', 'user:email'], // D-01 minimal scopes
-  //     },
-  //   },
-  // Do NOT add it in Plan 02. (No socialProviders.github yet.)
-  // ────────────────────────────────────────────────────────────────────────
+  // GitHub OAuth (AUTH-02). The explicit `scope` array OVERRIDES Better Auth's
+  // default scope list (assumption A4), so the access token carries ONLY
+  // read:user + user:email (D-01 — least privilege). We deliberately do NOT
+  // request repository-write or webhook-admin scopes; those elevated scopes
+  // belong to the Phase 7 Connect-GitHub flow (D-02). The token is stored
+  // plaintext for v1 (D-03 — acceptable while it only grants the two read
+  // scopes above) and is read
+  // exclusively through getGitHubToken() in src/lib/github-token.ts (D-04).
+  socialProviders: {
+    github: {
+      clientId: process.env.GITHUB_CLIENT_ID!,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+      scope: ['read:user', 'user:email'], // D-01 minimal scopes — A4 override
+    },
+  },
   plugins: [nextCookies()],
 });
