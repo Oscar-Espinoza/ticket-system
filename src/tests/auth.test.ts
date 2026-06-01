@@ -82,7 +82,10 @@ describe('Email/password authentication (AUTH-01, AUTH-03, AUTH-04)', () => {
     expect(second.ok).toBe(false);
     expect(second.status).toBe(422);
     const payload = await second.json();
-    expect(payload.code).toBe('USER_ALREADY_EXISTS');
+    // Better Auth 1.6 emits USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL; older docs
+    // referenced USER_ALREADY_EXISTS. Match the family so the contract is
+    // version-resilient (the forms key off the same prefix).
+    expect(payload.code).toMatch(/^USER_ALREADY_EXISTS/);
 
     // Exactly one user row exists for that email.
     const rows = await db.select().from(users).where(eq(users.email, email));
@@ -97,8 +100,14 @@ describe('Email/password authentication (AUTH-01, AUTH-03, AUTH-04)', () => {
       asResponse: true,
     });
 
+    // Better Auth 1.6 rejects a too-short password with HTTP 400 /
+    // PASSWORD_TOO_SHORT (the original plan loosely described this as
+    // "422 / validation error"). What matters: the request is rejected and no
+    // `user` row is created.
     expect(result.ok).toBe(false);
-    expect(result.status).toBe(422);
+    expect(result.status).toBe(400);
+    const payload = await result.json();
+    expect(payload.code).toBe('PASSWORD_TOO_SHORT');
 
     const rows = await db.select().from(users).where(eq(users.email, email));
     expect(rows).toHaveLength(0);

@@ -10,7 +10,17 @@
 // with no session cookie and assert it triggers that redirect to /login. Until
 // Task 2 creates the layout (and src/lib/auth.ts), the import fails — the RED state.
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+// The layout calls `headers()` from next/headers, which only works inside a
+// Next request scope. We stub it to return empty headers (no session cookie) so
+// the guard runs in a plain vitest node context. We do NOT stub redirect() or
+// auth.api.getSession — the real getSession sees no cookie, resolves null, and
+// the real redirect() throws its NEXT_REDIRECT control-flow error. This verifies
+// the actual guard behavior, not a mock.
+vi.mock('next/headers', () => ({
+  headers: async () => new Headers(),
+}));
 
 import DashboardLayout from '@/app/dashboard/layout';
 
