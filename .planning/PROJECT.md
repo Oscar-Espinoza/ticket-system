@@ -52,14 +52,17 @@ A ticket's status stays in sync with real GitHub work — create a branch from a
 - Designed entirely around free tiers: Neon Postgres (512 MB), Vercel Hobby, GitHub OAuth + Webhooks + REST API.
 - Key technical wrinkle: email/password login means a user may have no GitHub token, so GitHub-dependent features (branch creation, webhooks) are gated behind a separate "Connect GitHub" flow.
 - Webhook handlers must read the raw request body before JSON parsing for HMAC-SHA256 signature verification (common Next.js App Router pitfall).
+- Open decision for Phase 2 planning: whether a "project" maps onto a Better Auth Organization (reusing its members/invitations tables) or stays a separate app table alongside the org. The Organization plugin defaults to emailed invitations — we need its invitation to surface as a copy/paste link instead of sending email.
 
 ## Constraints
 
 - **Tech stack**: Next.js 15 App Router + TypeScript — one repo for frontend + API routes, no separate backend.
 - **Database**: Neon Postgres + Drizzle ORM (`neon-http` driver) — serverless-friendly, free tier.
-- **Auth**: Auth.js v5 (NextAuth) with Drizzle adapter — Credentials (email/password via bcryptjs) + GitHub provider, JWT sessions.
-- **Styling**: Tailwind CSS + shadcn/ui components + lucide-react icons.
-- **Board**: @dnd-kit for drag-and-drop.
+- **Auth**: Better Auth 1.6 with Drizzle adapter — email/password + GitHub OAuth; Organization plugin for multi-tenant members + invitations. (Auth.js v5 was the original choice but is now deprecated/security-patch-only.)
+- **DB drivers**: `neon-http` for app queries + `neon-serverless` (WebSocket) for Better Auth's transactional writes. Pin `@neondatabase/serverless@^0.10.4` (v1.0.0 broke `neon-http`).
+- **Styling**: Tailwind CSS v4 + shadcn/ui components + lucide-react icons.
+- **Board**: @dnd-kit/react (0.4.x) for drag-and-drop (not the legacy @dnd-kit/core).
+- **GitHub API**: @octokit/rest v22, instantiated per-request with the user's stored OAuth token.
 - **Budget**: $0 — must stay within free tiers of Neon, Vercel, and GitHub.
 - **GitHub**: branch creation uses each user's own OAuth token (scopes `repo`, `admin:repo_hook`); not a shared PAT.
 
@@ -70,7 +73,9 @@ A ticket's status stays in sync with real GitHub work — create a branch from a
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
 | Multi-tenant (users → projects → members) | User wants a Linear-like team product, not a solo tool | — Pending |
+| Better Auth 1.6 over Auth.js v5 | Auth.js v5 is deprecated/beta-only; Better Auth is maintained and its Organization plugin covers members + invitations | — Pending |
 | Email/password + GitHub OAuth login | Familiar account creation while keeping GitHub for repo features | — Pending |
+| Split Neon drivers + pin serverless@^0.10.4 | neon-http can't do interactive transactions (auth needs them); v1.0.0 broke neon-http with Drizzle | — Pending |
 | Invites via shareable link (no email service) | Stays free-tier; avoids email provider setup | — Pending |
 | Owner + Member roles only | Sufficient guardrails for small teams without permission sprawl | — Pending |
 | Per-project ticket counter via atomic UPDATE…RETURNING | Race-safe identifiers without multi-statement transactions over neon-http | — Pending |
