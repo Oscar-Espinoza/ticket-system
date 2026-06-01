@@ -5,12 +5,12 @@ milestone_name: milestone
 current_phase: 1 — Auth + Database Foundation
 current_plan: None (planning not yet started)
 status: unknown
-last_updated: "2026-06-01T18:39:11.926Z"
+last_updated: "2026-06-01T19:22:45.833Z"
 progress:
   total_phases: 9
   completed_phases: 0
   total_plans: 3
-  completed_plans: 0
+  completed_plans: 2
   percent: 0
 ---
 
@@ -37,13 +37,13 @@ progress:
 **Phase status:** Not started
 
 ```
-Progress: [ 1 ][ 2 ][ 3 ][ 4 ][ 5 ][ 6 ][ 7 ][ 8 ][ 9 ]
+Progress: [███████░░░] 67%
            ^^^
            current
 ```
 
 **Phases complete:** 0 / 9
-**Requirements shipped:** 0 / 27
+**Requirements shipped:** 3 / 27 (AUTH-01, AUTH-03, AUTH-04)
 
 ---
 
@@ -51,10 +51,17 @@ Progress: [ 1 ][ 2 ][ 3 ][ 4 ][ 5 ][ 6 ][ 7 ][ 8 ][ 9 ]
 
 | Metric | Value |
 |--------|-------|
-| Phases planned | 0 / 9 |
+| Phases planned | 1 / 9 |
 | Phases complete | 0 / 9 |
-| Requirements complete | 0 / 27 |
-| Plans complete | 0 / ? |
+| Requirements complete | 3 / 27 |
+| Plans complete | 2 / 3 (Phase 1) |
+
+### Execution log
+
+| Phase-Plan | Duration | Tasks | Files | Result |
+|-----------|----------|-------|-------|--------|
+| 01-01 | — | — | — | Scaffold + DB foundation (complete) |
+| 01-02 | ~11m | 2 | 23 | Email/password auth slice + protected dashboard (complete) |
 
 ---
 
@@ -65,6 +72,10 @@ Progress: [ 1 ][ 2 ][ 3 ][ 4 ][ 5 ][ 6 ][ 7 ][ 8 ][ 9 ]
 | Decision | Phase | Rationale |
 |----------|-------|-----------|
 | Split Neon drivers: neon-http for app, neon-serverless for Better Auth | Phase 1 | neon-http can't do interactive transactions; Better Auth requires them |
+| Server-side layout `getSession` guard as the protected-route boundary (not middleware) | Phase 1 | CVE-2025-29927 lets middleware be bypassed; `dashboard/layout.tsx` is the reusable pattern |
+| Better Auth drizzle adapter gets an explicit singular-keyed `authSchema` alias | Phase 1 | Adapter resolves `schema[modelName]` with singular keys; shared schema keeps plural exports for app code |
+| Pin `kysely@0.28.17` | Phase 1 | kysely 0.29 moved DEFAULT_MIGRATION_* off the package root; @better-auth/kysely-adapter@1.6.13 still imports them from root |
+| shadcn `radix-nova` preset (shadcn 4.x successor to new-york) | Phase 1 | shadcn 4.x replaced named styles with presets; radix-nova matches UI-SPEC (Radix + Lucide + Geist) |
 | Pin `@neondatabase/serverless@^0.10.4` | Phase 1 | v1.0.0 broke drizzle-orm/neon-http (open bug #5208) |
 | `requireProjectMember()` DAL helper as the security boundary | Phase 2 | Middleware is not a security boundary (CVE-2025-29927); DAL enforces per-project auth |
 | Shareable invite link, no email | Phase 3 | Avoids email provider; stays free-tier |
@@ -106,9 +117,11 @@ None.
 
 ## Session Continuity
 
-**To resume work:** Read ROADMAP.md for phase goals and requirements, then run `/gsd:plan-phase 1` to begin planning Phase 1.
+**Last session:** 2026-06-01 — completed Plan 01-02 (email/password auth slice + protected dashboard). Wave 2 of Phase 1 done; Plan 01-03 (GitHub OAuth, AUTH-02) remains.
 
-**Next action:** `/gsd:plan-phase 1`
+**To resume work:** Execute Plan 01-03 (GitHub OAuth) — wire `socialProviders.github` in `auth.ts`, enable the "Continue with GitHub" button, and replace the placeholder dashboard badge with the real connected check.
+
+**Next action:** Execute `.planning/phases/01-auth-database-foundation/01-03-PLAN.md`
 
 ---
 *State initialized: 2026-06-01*

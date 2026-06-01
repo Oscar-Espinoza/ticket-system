@@ -38,16 +38,16 @@
   4. Refreshing the browser while signed in does not redirect to the login page
   5. All DB tables (`users`, `accounts`, `sessions`, `projects`, `project_members`, `invitations`, `tickets`) exist in Neon via Drizzle migrations with the pinned `@neondatabase/serverless@^0.10.4`
 
-**Plans:** 3 plans
+**Plans:** 2/3 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 01-01-PLAN.md — Scaffold Next.js 16, dual Neon drivers, full 7-table schema + applied migration, vitest (Walking Skeleton substrate)
+- [x] 01-01-PLAN.md — Scaffold Next.js 16, dual Neon drivers, full 7-table schema + applied migration, vitest (Walking Skeleton substrate)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 01-02-PLAN.md — Email/password auth slice: signup, login, session, server-guarded dashboard, logout
+- [x] 01-02-PLAN.md — Email/password auth slice: signup, login, session, server-guarded dashboard, logout
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -207,7 +207,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Auth + Database Foundation | 0/3 | Planned | - |
+| 1. Auth + Database Foundation | 2/3 | In Progress|  |
 | 2. Projects + Authorization Layer | 0/? | Not started | - |
 | 3. Membership + Invite Links | 0/? | Not started | - |
 | 4. Project Settings | 0/? | Not started | - |

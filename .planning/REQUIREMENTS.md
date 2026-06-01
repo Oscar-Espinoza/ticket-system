@@ -9,10 +9,10 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Authentication
 
-- [ ] **AUTH-01**: User can create an account with email and password
+- [x] **AUTH-01**: User can create an account with email and password
 - [ ] **AUTH-02**: User can sign in with GitHub OAuth
-- [ ] **AUTH-03**: User can log in with email/password and stay logged in across browser refreshes
-- [ ] **AUTH-04**: User can log out from any page
+- [x] **AUTH-03**: User can log in with email/password and stay logged in across browser refreshes
+- [x] **AUTH-04**: User can log out from any page
 
 ### Projects
 
@@ -96,10 +96,10 @@ Which phases cover which requirements.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUTH-01 | Phase 1 | Pending |
+| AUTH-01 | Phase 1 | Complete |
 | AUTH-02 | Phase 1 | Pending |
-| AUTH-03 | Phase 1 | Pending |
-| AUTH-04 | Phase 1 | Pending |
+| AUTH-03 | Phase 1 | Complete |
+| AUTH-04 | Phase 1 | Complete |
 | PROJ-01 | Phase 2 | Pending |
 | PROJ-02 | Phase 2 | Pending |
 | PROJ-03 | Phase 2 | Pending |
