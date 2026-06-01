@@ -35,7 +35,12 @@
   3. User can log out from any page and their session is cleared
   4. Refreshing the browser while signed in does not redirect to the login page
   5. All DB tables (`users`, `accounts`, `sessions`, `projects`, `project_members`, `invitations`, `tickets`) exist in Neon via Drizzle migrations with the pinned `@neondatabase/serverless@^0.10.4`
-**Plans:** TBD
+**Plans:** 3 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — Scaffold Next.js 16, dual Neon drivers, full 7-table schema + applied migration, vitest (Walking Skeleton substrate)
+- [ ] 01-02-PLAN.md — Email/password auth slice: signup, login, session, server-guarded dashboard, logout
+- [ ] 01-03-PLAN.md — GitHub OAuth slice: minimal-scope sign-in, dashboard connected badge, token accessor seam
 **UI hint**: yes
 
 ---
@@ -166,7 +171,7 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Auth + Database Foundation | 0/? | Not started | - |
+| 1. Auth + Database Foundation | 0/3 | Planned | - |
 | 2. Projects + Authorization Layer | 0/? | Not started | - |
 | 3. Membership + Invite Links | 0/? | Not started | - |
 | 4. Project Settings | 0/? | Not started | - |
