@@ -67,12 +67,14 @@ Exceptions:
 
 All sizes use Geist Sans. No custom font loading needed — Next.js scaffold includes Geist via `next/font`.
 
+Declared weights: **400** (normal) and **600** (semibold). No other weights are used in Phase 1.
+
 | Role | Size | Weight | Line Height | Usage |
 |------|------|--------|-------------|-------|
 | Body | 14px | 400 | 1.5 | Form helper text, status descriptions |
-| Label | 14px | 500 | 1.4 | Form labels, button text |
+| Label | 14px | 600 | 1.4 | Form labels, button text |
 | Heading | 20px | 600 | 1.3 | Page headings (e.g. "Sign in", "Create account") |
-| Display | 28px | 700 | 1.2 | Not used in Phase 1 — reserved for Phase 2+ |
+| Display | 28px | 600 when used | 1.2 | Not used in Phase 1 — reserved for Phase 2+ |
 
 Note: shadcn new-york style ships sensible defaults that match these values for `Input`, `Button`, and `Label` — the executor must not override them.
 
@@ -126,6 +128,8 @@ No third-party registry blocks. All components from shadcn official registry onl
 ## Page Layouts
 
 ### `/login` and `/signup` — Centered Auth Card
+
+Primary focal point: the full-width primary CTA button at the bottom of the auth card.
 
 ```
 ┌─────────────────── viewport (100vh) ────────────────────┐
