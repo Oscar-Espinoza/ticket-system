@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 current_phase: 1 — Auth + Database Foundation
-current_plan: None (planning not yet started)
-status: unknown
-last_updated: "2026-06-01T19:22:45.833Z"
+current_plan: All complete (3/3)
+status: phase_complete
+last_updated: "2026-06-01T19:33:00.000Z"
 progress:
   total_phases: 9
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 3
-  completed_plans: 2
-  percent: 0
+  completed_plans: 3
+  percent: 11
 ---
 
 # Project State: Linear-Clone Ticket System
@@ -32,18 +32,18 @@ progress:
 ## Current Position
 
 **Milestone:** v1
-**Current phase:** 1 — Auth + Database Foundation
-**Current plan:** None (planning not yet started)
-**Phase status:** Not started
+**Current phase:** 1 — Auth + Database Foundation (COMPLETE)
+**Current plan:** All complete (3/3)
+**Phase status:** Complete — ready for Phase 2
 
 ```
-Progress: [███████░░░] 67%
-           ^^^
-           current
+Progress: [ 1 ][ 2 ][ 3 ][ 4 ][ 5 ][ 6 ][ 7 ][ 8 ][ 9 ]
+            ✓   ^^^
+                next
 ```
 
-**Phases complete:** 0 / 9
-**Requirements shipped:** 3 / 27 (AUTH-01, AUTH-03, AUTH-04)
+**Phases complete:** 1 / 9
+**Requirements shipped:** 4 / 27 (AUTH-01, AUTH-02, AUTH-03, AUTH-04)
 
 ---
 
@@ -52,9 +52,9 @@ Progress: [███████░░░] 67%
 | Metric | Value |
 |--------|-------|
 | Phases planned | 1 / 9 |
-| Phases complete | 0 / 9 |
-| Requirements complete | 3 / 27 |
-| Plans complete | 2 / 3 (Phase 1) |
+| Phases complete | 1 / 9 |
+| Requirements complete | 4 / 27 |
+| Plans complete | 3 / 3 (Phase 1) |
 
 ### Execution log
 
@@ -62,6 +62,7 @@ Progress: [███████░░░] 67%
 |-----------|----------|-------|-------|--------|
 | 01-01 | — | — | — | Scaffold + DB foundation (complete) |
 | 01-02 | ~11m | 2 | 23 | Email/password auth slice + protected dashboard (complete) |
+| 01-03 | ~4m | 1 (+1 manual gate) | 6 | GitHub OAuth slice, minimal scopes, token seam (complete) |
 
 ---
 
@@ -90,7 +91,11 @@ Progress: [███████░░░] 67%
 | Question | Phase | Notes |
 |----------|-------|-------|
 | Better Auth Organization plugin vs hand-rolled project tables | Phase 2 | Plugin defaults to emailed invites — need to verify if copy-paste link flow is achievable without email transport |
-| GitHub token encryption at rest | Phase 1 or 7 | Better Auth writes access_token as plaintext; decide during Phase 1 planning whether to accept plaintext for MVP or encrypt with AES-256-GCM |
+
+**Resolved:**
+| Question | Phase | Resolution |
+|----------|-------|------------|
+| GitHub token encryption at rest | Phase 1 | RESOLVED (D-03/D-04): accept plaintext for v1 (token carries only read:user/user:email until Phase 7); all token reads isolated behind `getGitHubToken()` (src/lib/github-token.ts) as the single seam for AES-256-GCM encryption in Phase 7. |
 
 ### Known Pitfalls
 
@@ -111,17 +116,17 @@ None.
 ### Todos
 
 - [ ] Resolve open question: Better Auth Organization plugin vs hand-rolled project tables (before Phase 2 planning)
-- [ ] Decide on GitHub token encryption approach (before Phase 1 or Phase 7 planning)
+- [x] Decide on GitHub token encryption approach — resolved D-03/D-04 (plaintext v1, encrypt in Phase 7 via getGitHubToken seam)
 
 ---
 
 ## Session Continuity
 
-**Last session:** 2026-06-01 — completed Plan 01-02 (email/password auth slice + protected dashboard). Wave 2 of Phase 1 done; Plan 01-03 (GitHub OAuth, AUTH-02) remains.
+**Last session:** 2026-06-01 — completed Plan 01-03 (GitHub OAuth, AUTH-02) and **finished Phase 1**. All 3 plans done, all 4 AUTH requirements shipped, GitHub OAuth smoke test passed. 9/9 tests green, build + lint clean.
 
-**To resume work:** Execute Plan 01-03 (GitHub OAuth) — wire `socialProviders.github` in `auth.ts`, enable the "Continue with GitHub" button, and replace the placeholder dashboard badge with the real connected check.
+**To resume work:** Plan Phase 2 (Projects + membership). Before planning, resolve the open question: Better Auth Organization plugin vs hand-rolled project tables (copy-paste invite link without email transport).
 
-**Next action:** Execute `.planning/phases/01-auth-database-foundation/01-03-PLAN.md`
+**Next action:** `/gsd:plan-phase 2`
 
 ---
 *State initialized: 2026-06-01*
