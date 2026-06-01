@@ -689,22 +689,25 @@ if (error) {
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **`auth.api.listUserAccounts()` server-side signature**
    - What we know: Client-side `authClient.listAccounts()` works; server-side `auth.api.*` endpoints generally accept `{ headers }`.
    - What's unclear: Whether `listUserAccounts` specifically accepts headers param or requires `userId` from the session.
    - Recommendation: During implementation, fall back to direct Drizzle query if the API call fails: `db.select().from(accounts).where(and(eq(accounts.userId, session.user.id), eq(accounts.providerId, 'github')))`.
+   - **RESOLVED:** Plan 01-03 Task 1 specifies both paths — prefer `auth.api.listUserAccounts({ headers: await headers() })`, fall back to the direct Drizzle query above if unavailable server-side. No runtime ambiguity remains for the planner/executor.
 
 2. **drizzle-kit 0.31.x compatibility with drizzle-orm 0.45.x + neon-http**
    - What we know: Both are current versions from the drizzle-team monorepo. drizzle-kit is a CLI dev tool that reads the schema file; it is not involved in runtime queries.
    - What's unclear: Whether the `defineConfig` shape has changed between 0.30.x and 0.31.x.
    - Recommendation: Use `drizzle-kit push` for initial dev setup (fastest feedback loop), then switch to `generate + migrate` before first Vercel deployment.
+   - **RESOLVED:** Plan 01-01 Task 3 commits to the versioned `npx drizzle-kit generate` + `npx drizzle-kit migrate` path (migration files are an explicit success criterion), avoiding the `push`-only flow entirely.
 
 3. **Next.js 16 vs Next.js 15 for scaffolding**
    - What we know: `npx create-next-app@latest` installs Next.js 16.2.6 (as of 2026-06-01). CLAUDE.md specifies "Next.js 15.x (latest)" but registry shows 16.x.
    - What's unclear: Whether the team intends to pin to 15.x or wants current stable.
    - Recommendation: Use `create-next-app@latest` (installs 16.2.6). All patterns in this research apply equally to Next.js 15 and 16 App Router. If the user wants to pin to 15, use `npx create-next-app@15`.
+   - **RESOLVED:** Orchestrator + user explicitly chose Next.js 16.2.6 (`create-next-app@latest`) during plan-phase. Recorded in SKELETON.md and Plan 01-01 Task 1.
 
 ---
 

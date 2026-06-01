@@ -1,8 +1,8 @@
 ---
 phase: 1
 slug: auth-database-foundation
-status: draft
-nyquist_compliant: false
+status: approved
+nyquist_compliant: true
 wave_0_complete: false
 created: 2026-06-01
 ---
@@ -38,11 +38,17 @@ created: 2026-06-01
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| TBD | — | — | AUTH-01..04 | — | populated by planner | unit/integration | `npx vitest run` | ❌ W0 | ⬜ pending |
+| 01-01-T1 | 01-01 | 1 | AUTH-01..04 (scaffold) | T-01-SC | pinned `@neondatabase/serverless@^0.10.4`, no Edge runtime | infra | `npm run build && npm run lint && npx vitest --version` | ❌ W0 | ⬜ pending |
+| 01-01-T2 | 01-01 | 1 | AUTH-01..04 (schema) | T-01-02 / T-01-03 | dual driver (neon-http app + neon-serverless auth), parameterized Drizzle | unit | `npx tsc --noEmit && grep -c "pgTable" src/db/schema.ts` | ❌ W0 | ⬜ pending |
+| 01-01-T3 | 01-01 | 1 | AUTH-04 (migration) | T-01-01 | 7 tables applied to live Neon | manual+CLI | `ls src/db/migrations/*.sql` | ❌ W0 | ⬜ pending |
+| 01-02-T1 | 01-02 | 2 | AUTH-01/03/04 (RED) | — | tests fail before impl exists | integration (RED) | `npx vitest run src/__tests__/auth.test.ts src/__tests__/routing.test.ts; test $? -ne 0` | ❌ W0 | ⬜ pending |
+| 01-02-T2 | 01-02 | 2 | AUTH-01/03/04 (GREEN) | T-01-04/05/06/08 | bcryptjs Node runtime, server-side `getSession` guard (CVE-2025-29927), session-fixation safe | integration (GREEN) | `npx vitest run && npm run build && npm run lint` | ❌ W0 | ⬜ pending |
+| 01-03-T1 | 01-03 | 3 | AUTH-02 (OAuth wiring) | T-01-09/10/12 | minimal OAuth scopes, token never in JWT/client | integration | `npx vitest run && npm run build && npm run lint && grep -L "admin:repo_hook" src/lib/auth.ts` | ❌ W0 | ⬜ pending |
+| 01-03-T2 | 01-03 | 3 | AUTH-02 (smoke) | T-01-11 | end-to-end GitHub sign-in → dashboard | manual | `npm run build` | ❌ W0 | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
-> The planner fills this map per task during PLAN.md generation. The gsd-nyquist-auditor reconciles it after execution.
+> Map populated from plan `<verify>` blocks at plan time. The gsd-nyquist-auditor reconciles `File Exists` and `Status` after execution; `wave_0_complete` flips true once vitest infra (01-01-T1) lands.
 
 ---
 
@@ -77,4 +83,4 @@ created: 2026-06-01
 - [ ] Feedback latency < 30s
 - [ ] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** approved 2026-06-01 (plan-level Nyquist contract satisfied; `wave_0_complete` flips at execution)
