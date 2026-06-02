@@ -121,3 +121,30 @@ export async function requireProjectMember(
   // a text enum, so Drizzle already infers ProjectMembership — no cast needed.
   return membership;
 }
+
+/**
+ * Verifies that `userId` is the *owner* of `projectId`.
+ *
+ * Calls requireProjectMember and reuses the returned `role` (D-14/D-30) — no
+ * second DB query is issued. Throws ProjectAccessError with a descriptive
+ * message when the member exists but holds the 'member' role.
+ *
+ * This is the single owner-only authorization seam for MEM-01 (generateInviteLink),
+ * MEM-05 (removeMember), and any future owner-only actions (D-25, D-30, D-33).
+ *
+ * @param projectId - the project to check ownership for (untrusted input)
+ * @param userId    - the Better Auth user id from the active session
+ * @returns ProjectMembership with role === 'owner'
+ * @throws ProjectAccessError if userId is not a member, or is a member but not owner
+ */
+export async function requireProjectOwner(
+  projectId: string,
+  userId: string,
+): Promise<ProjectMembership> {
+  // requireProjectMember handles falsy-id rejection (WR-01) and non-membership.
+  const membership = await requireProjectMember(projectId, userId);
+  if (membership.role !== 'owner') {
+    throw new ProjectAccessError('Not the project owner');
+  }
+  return membership;
+}
