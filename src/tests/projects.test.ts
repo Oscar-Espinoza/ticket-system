@@ -11,8 +11,41 @@
 //   - Unique IDs per run (never collide on global unique constraints)
 //   - afterEach deletes created rows (FK ON DELETE CASCADE cleans project_member + ticket)
 //   - Direct db.insert(users) for speed; auth flow only when a real session is needed
+//
+// PROJ-01 mocking strategy (Plan 02 deviation — Rule 3 blocker fix):
+//   - next/headers throws outside a Next.js server context; mocked to return empty Headers
+//   - next/cache revalidatePath is a no-op in tests
+//   - @/lib/auth getSession is mocked to return SESSION_USER_ID (a real user row inserted in beforeAll)
+//   - This lets createProject run its full validation + DB logic without a running Next.js server
 
-import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+// Hoist vi.mock calls — Vitest runs these before any imports.
+// These mocks only affect the server action's call to auth.api.getSession and
+// next/headers. The MEM-06 tests call requireProjectMember directly (no session/headers).
+import { vi } from 'vitest';
+
+// SESSION_USER_ID is the user ID the mocked session returns. A real user row
+// with this ID is inserted in the PROJ-01 beforeAll block and cleaned up after.
+const SESSION_USER_ID = `test-proj-session-user-${Date.now()}`;
+
+vi.mock('next/headers', () => ({
+  headers: async () => new Headers(),
+}));
+
+vi.mock('next/cache', () => ({
+  revalidatePath: vi.fn(),
+}));
+
+vi.mock('@/lib/auth', () => ({
+  auth: {
+    api: {
+      getSession: vi.fn().mockResolvedValue({
+        user: { id: SESSION_USER_ID },
+      }),
+    },
+  },
+}));
+
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { eq, inArray } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { users, projects, projectMembers } from '@/db/schema';
@@ -118,12 +151,28 @@ async function insertTestProject(
 // Setup / teardown
 // ---------------------------------------------------------------------------
 
-beforeAll(() => {
+beforeAll(async () => {
   if (!process.env.DATABASE_URL) {
     throw new Error(
       'DATABASE_URL is not set — create .env.local before running project tests.',
     );
   }
+  // Insert the session mock user so createProject's FK on project.ownerId and
+  // project_member.userId resolves to a real row. Tracked by SESSION_USER_ID.
+  const now = new Date();
+  await db.insert(users).values({
+    id: SESSION_USER_ID,
+    name: 'Test Session User (PROJ-01)',
+    email: `session-mock-${SESSION_USER_ID}@example.test`,
+    emailVerified: false,
+    createdAt: now,
+    updatedAt: now,
+  });
+});
+
+afterAll(async () => {
+  // Clean up the session mock user (cascade removes any projects it owns)
+  await db.delete(users).where(eq(users.id, SESSION_USER_ID));
 });
 
 afterEach(async () => {
@@ -230,15 +279,15 @@ describe('PROJ-03: project detail access control', () => {
 });
 
 // ---------------------------------------------------------------------------
-// PROJ-01: createProject action (these will be RED until Plan 02 ships)
+// PROJ-01: createProject action (GREEN after Plan 02 ships)
 // ---------------------------------------------------------------------------
 
 describe('PROJ-01: createProject action', () => {
   it(
     'PROJ-01: createProject inserts both a project row and a project_member row with role "owner" for the creator',
     async () => {
-      // This test is RED until src/app/actions/projects.ts is created in Plan 02.
-      // When green: both a project row and an owner project_member row must exist.
+      // Session is mocked to return SESSION_USER_ID (a real user in beforeAll).
+      // createProject inserts both project + project_member rows atomically.
       const { createProject } = await import('@/app/actions/projects');
       const ticketKey = uniqueKey('CR');
 
@@ -247,9 +296,6 @@ describe('PROJ-01: createProject action', () => {
       formData.set('name', 'Test Project Create');
       formData.set('ticketKey', ticketKey);
 
-      // Note: this test requires a real session which createProject reads via
-      // auth.api.getSession({ headers: await headers() }). In the Wave 0 context
-      // this test will fail because the module doesn't exist yet.
       const result = await createProject({}, formData);
 
       expect(result.success).toBe(true);
@@ -278,7 +324,6 @@ describe('PROJ-01: createProject action', () => {
   it(
     'PROJ-01: createProject with a duplicate ticketKey returns a field-level error on errors.ticketKey (no throw / no crash)',
     async () => {
-      // This test is RED until src/app/actions/projects.ts is created in Plan 02.
       const { createProject } = await import('@/app/actions/projects');
       const ticketKey = uniqueKey('DU');
 
@@ -294,6 +339,14 @@ describe('PROJ-01: createProject action', () => {
       const result1 = await createProject({}, formData1);
       expect(result1.success).toBe(true);
 
+      // Track for cleanup (the successful project)
+      const projectRows = await db
+        .select({ id: projects.id })
+        .from(projects)
+        .where(eq(projects.ticketKey, ticketKey))
+        .limit(1);
+      if (projectRows.length > 0) createdProjectIds.push(projectRows[0].id);
+
       // Second create with same key must return a field error, not throw
       const result2 = await createProject({}, formData2);
       expect(result2.errors?.ticketKey).toBeTruthy();
@@ -304,7 +357,6 @@ describe('PROJ-01: createProject action', () => {
   it(
     'PROJ-01: createProject with an invalid ticketKey (too short, too long, or non-alpha) returns errors.ticketKey and performs NO project insert',
     async () => {
-      // This test is RED until src/app/actions/projects.ts is created in Plan 02.
       const { createProject } = await import('@/app/actions/projects');
       // Tests multiple invalid keys: 'a' (too short), '1' (non-alpha), 'TOOLONGKEY' (too long)
       const invalidKeys = ['a', '1', 'TOOLONGKEY'];
