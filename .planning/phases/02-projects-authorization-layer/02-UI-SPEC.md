@@ -45,6 +45,11 @@ Inherited from Phase 1. Do NOT reinvent or override.
 | Config format | CSS-first (`@theme` in globals.css, no tailwind.config.js) | Tailwind v4 convention |
 | Base color | neutral | `components.json` — locked |
 
+**Preset clarification:** Preset is `radix-nova`, confirmed in `components.json`.
+`01-UI-SPEC.md` records the planned value `new-york`, which predates `shadcn init`
+running; the actual installed preset is `radix-nova`. This spec uses the real
+installed value.
+
 ---
 
 ## Spacing Scale
@@ -59,7 +64,7 @@ Inherited from Phase 1. No new exceptions for Phase 2.
 | lg | 24px | Between card sections, dialog internal padding |
 | xl | 32px | Between the "New project" button row and the card grid |
 | 2xl | 48px | Empty-state panel vertical padding |
-| 3xl | 64px | Not used in Phase 2 |
+| 3xl | 64px | Empty ticket placeholder panel vertical padding (project detail) |
 
 Exceptions:
 - Touch target for "New project" button: minimum 44px height (WCAG 2.5.8)
@@ -70,22 +75,25 @@ Exceptions:
 ## Typography
 
 Inherited from Phase 1. Sizes and weights are additive — the Phase 2 Display
-role (28px) enters use here for the first time (reserved in Phase 1).
+role (28px) enters use here for the first time (reserved in Phase 1). The
+Subheading role (16px/600) is introduced in Phase 2 for section labels and
+empty-state headings that need more visual weight than Body but less than Heading.
 
 All sizes use Geist Sans. Declared weights: **400** (normal) and **600**
 (semibold). No other weights.
 
 | Role | Size | Weight | Line Height | Usage in Phase 2 |
 |------|------|--------|-------------|-------------------|
-| Body | 14px | 400 | 1.5 | Card ticket counts, dialog helper text, empty state body |
-| Label | 14px | 600 | 1.4 | Dialog field labels, card role badge text |
-| Heading | 20px | 600 | 1.3 | "Projects" section heading above the card grid; project detail page header |
+| Body | 14px | 400 | 1.5 | Card ticket counts, dialog helper text, empty state body, back link |
+| Label | 14px | 600 | 1.4 | Dialog field labels, card role badge text, card project name |
+| Subheading | 16px | 600 | 1.4 | "Projects" section heading, empty-state heading "No projects yet", empty-ticket-placeholder heading "No tickets yet" |
+| Heading | 20px | 600 | 1.3 | Project detail page header (project name h1), dialog title |
 | Display | 28px | 600 | 1.2 | Not used in Phase 2 (reserved for Phase 3+) |
 
-Note: Project name on a card uses the Heading size (20px/600) only if the card
-layout has room for prominence. If cards are compact, use Label (14px/600) for
-the name. The executor must choose based on actual card height — see Card Layout
-below.
+Note: Project name on a card uses the Label size (14px/600) so the card remains
+compact. The section heading and empty-state headings use Subheading (16px/600)
+to provide clear separation from 14px/400 body text without reaching Heading
+prominence. Total distinct sizes in use: 14, 16, 20, 28.
 
 ---
 
@@ -100,13 +108,13 @@ Inherited from Phase 1 OKLCH tokens (shadcn radix-nova preset).
 | Accent (10%) | `primary` | "New project" button (primary CTA) only |
 | Destructive | `destructive` | Duplicate ticket-key inline error text |
 | Border | `border` | Card borders, dialog borders, input borders |
-| Muted foreground | `muted-foreground` | Ticket count labels ("open", "resolved"), empty-state body text |
+| Muted foreground | `muted-foreground` | Ticket count labels ("open", "resolved"), empty-state body text, helper text |
 
 **Accent (`primary`) reserved for:**
-- "New project" primary CTA button (dashboard empty state and top of list)
+- "New project" primary CTA button (dashboard header row and empty state panel)
 
 Accent is NOT used for: project cards, badges, ticket count numbers, the
-cancel button in the dialog, the project detail header.
+Discard button in the dialog, the project detail header.
 
 **Role badges on cards:**
 - Owner: `Badge` variant `secondary` — text "Owner"
@@ -136,6 +144,9 @@ No third-party registry blocks. All components from shadcn official registry.
 
 ### Dashboard — Project List (renders into `{children}` seam)
 
+**Primary focal point:** the "New project" button (accent fill, top-right of the
+section header and centered in the empty-state panel).
+
 ```
 ┌──── main content (container mx-auto max-w-4xl px-6 py-8) ────┐
 │                                                                 │
@@ -161,7 +172,7 @@ No third-party registry blocks. All components from shadcn official registry.
 
 - Section header: `flex items-center justify-between mt-8 mb-4` — 32px top
   margin separates from the greeting block above.
-- Section label: `h3` tag, 16px/600 (between Label and Heading roles).
+- Section label: `h3` tag, 16px/600 (Subheading role).
 - "New project" button: shadcn `Button` variant `default` (accent fill).
   Contains `Plus` icon (lucide-react) prepended to text.
 - Cards: `flex flex-col gap-3` vertical stack. Each card is a full-width
@@ -198,7 +209,7 @@ Shown when the user has no projects. Replaces the card list.
 
 - Panel: `flex flex-col items-center justify-center py-12 gap-4` (48px
   vertical padding = 2xl spacing token).
-- Heading: "No projects yet" — 16px/600, `text-foreground`.
+- Heading: "No projects yet" — 16px/600 (Subheading role), `text-foreground`.
 - Body: "Create your first project to get started." — 14px/400,
   `text-muted-foreground`.
 - CTA button: identical to the header row "New project" button — same variant,
@@ -224,13 +235,13 @@ Triggered by either "New project" button. Single-step inline form.
 │  [inline error if duplicate or invalid]                       │
 │                                                               │
 │  ─────────────────────────────────────────────────────────── │
-│                          [Cancel]  [Create project]          │
+│                         [Discard]  [Create project]          │
 └───────────────────────────────────────────────────────────────┘
 ```
 
 - Dialog component: shadcn `Dialog` with `DialogContent`, `DialogHeader`,
   `DialogTitle`, `DialogDescription`, `DialogFooter`.
-- Title: "Create project" — shadcn `DialogTitle` (inherits 20px/600 heading).
+- Title: "Create project" — shadcn `DialogTitle` (inherits 20px/600 Heading role).
 - Description: not rendered visually (set for screen readers only via
   `DialogDescription` with `className="sr-only"`).
 - Max width: `sm:max-w-md` (448px).
@@ -246,7 +257,7 @@ Triggered by either "New project" button. Single-step inline form.
     in `text-destructive text-sm`.
 - Project name input: no special transform. Placeholder: "My project".
 - Footer: `flex justify-end gap-2`.
-  - Cancel: `Button` variant `outline`.
+  - Discard: `Button` variant `outline`. Dismisses the unsaved form.
   - Submit: `Button` variant `default` (accent). Text: "Create project".
   - Submit button shows `Loader2` icon with `animate-spin` during submission,
     disabled during loading. Text changes to "Creating…".
@@ -284,11 +295,11 @@ Triggered by either "New project" button. Single-step inline form.
 - Back link margin: `mb-6` (24px = lg token) separating it from the header.
 - Project header: `flex items-center gap-3 mb-8` (32px below header before
   placeholder).
-  - Name: `h1` tag, 20px/600.
+  - Name: `h1` tag, 20px/600 (Heading role).
   - Ticket key: shadcn `Badge` variant `secondary` with `font-mono`.
 - Empty ticket placeholder panel: shadcn `Card` with `CardContent`, centered
   content, `py-16` (64px = 3xl token).
-  - Heading: "No tickets yet" — 16px/600.
+  - Heading: "No tickets yet" — 16px/600 (Subheading role).
   - Body: "Tickets will appear here once you create them." — 14px/400,
     `text-muted-foreground`.
   - No button. No CTA. (New-ticket deferred to Phase 5 — D-21.)
@@ -311,7 +322,7 @@ Triggered by either "New project" button. Single-step inline form.
 | Ticket key helper text | 2–6 uppercase letters, unique across all projects. |
 | Submit CTA (idle) | Create project |
 | Submit CTA (loading) | Creating… |
-| Cancel button | Cancel |
+| Discard button | Discard |
 
 ### Dashboard Project List
 
@@ -373,7 +384,7 @@ deferred to later phases.
 ### Dialog Open / Close
 
 - Dialog opens on click of either "New project" button.
-- Dialog closes on: (a) successful submit with server revalidation, (b) Cancel
+- Dialog closes on: (a) successful submit with server revalidation, (b) Discard
   button click, (c) clicking the overlay, (d) pressing Escape.
 - Form state resets on close (controlled state or uncontrolled with `key` prop
   reset).
