@@ -72,7 +72,15 @@ export default async function ProjectPage({
     <div className="min-h-screen bg-background">
       <header className="flex h-14 items-center justify-between border-b px-6">
         <span className="text-sm font-semibold">Ticket System</span>
-        <span className="text-sm text-muted-foreground">{session.user.email}</span>
+        <div className="flex items-center gap-4">
+          <Link
+            href={`/dashboard/projects/${id}/members`}
+            className="text-sm text-muted-foreground hover:text-foreground"
+          >
+            Members
+          </Link>
+          <span className="text-sm text-muted-foreground">{session.user.email}</span>
+        </div>
       </header>
 
       <main className="container mx-auto max-w-4xl px-6 py-8">
