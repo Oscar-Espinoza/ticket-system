@@ -709,17 +709,19 @@ Note: The `cast(... as int)` is required because PostgreSQL's `count()` returns 
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Dialog form reset on close**
+1. **Dialog form reset on close** — RESOLVED
    - What we know: The shadcn `Dialog` supports a `key` prop trick to reset form state on close, or the form can use `defaultValue` controlled via state.
    - What's unclear: Whether `useActionState` state persists between open/close cycles if the same component instance is kept mounted.
    - Recommendation: Use a `key={open ? 'open' : 'closed'}` on the form element inside the Dialog, or explicitly reset controlled field state in an `onOpenChange` handler. Either is straightforward. Planner decides.
+   - **RESOLUTION:** Handled in plan 02-02 Task 2 — the dialog resets controlled field state (`setTicketKey('')`) and closes (`setOpen(false)`) in a `useEffect` keyed on `state.success`. No outstanding decision.
 
-2. **`project_member` has no uniqueness constraint on (projectId, userId)**
+2. **`project_member` has no uniqueness constraint on (projectId, userId)** — RESOLVED (deferred to Phase 3)
    - What we know: The schema as written (`schema.ts`) does not have a `unique().on(projectMembers.projectId, projectMembers.userId)` constraint.
    - What's unclear: Whether a duplicate-membership insert could happen (e.g., race condition on two simultaneous creates with the same user+project).
    - Recommendation: For Phase 2 (single create-flow, owner insertion immediately after project insert), this is not a real risk. Flag for Phase 3 when invite acceptance could race with itself.
+   - **RESOLUTION:** Not a Phase 2 risk (single owner insert per create, no concurrent membership path). Deferred to Phase 3 (invite acceptance) per 02-CONTEXT.md `<deferred>`. No Phase 2 plan change required.
 
 ---
 
