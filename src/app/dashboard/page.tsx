@@ -19,6 +19,7 @@ import { CheckCircle, CircleOff } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { LogoutButton } from '@/components/logout-button';
 import { isGitHubConnected } from '@/lib/github-token';
+import { ProjectList } from '@/components/project-list';
 
 function greetingFor(name: string | null | undefined): string {
   if (!name) return 'Welcome back';
@@ -74,6 +75,7 @@ export default async function DashboardPage({
 
         {/* Phase 2 seam: the project list renders here without touching the shell. */}
         {children}
+        <ProjectList />
       </main>
     </div>
   );
