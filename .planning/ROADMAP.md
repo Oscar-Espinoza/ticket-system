@@ -11,7 +11,7 @@
 ## Phases
 
 - [ ] **Phase 1: Auth + Database Foundation** - Working accounts, sessions, and the full DB schema
-- [ ] **Phase 2: Projects + Authorization Layer** - Project creation, listing, and the `requireProjectMember` security primitive
+- [x] **Phase 2: Projects + Authorization Layer** - Project creation, listing, and the `requireProjectMember` security primitive (completed 2026-06-02)
 - [ ] **Phase 3: Membership + Invite Links** - Invite link generation/acceptance and member management
 - [ ] **Phase 4: Project Settings** - Owner can edit project name and link a GitHub repo
 - [ ] **Phase 5: Tickets Core** - Full ticket CRUD with atomic per-project identifiers and ticket detail page
@@ -70,7 +70,7 @@ Plans:
   3. User can open a project and view its ticket list (empty on creation)
   4. Any request to a project the user does not belong to is rejected with a 403 before touching the database
 
-**Plans:** 3/4 plans executed
+**Plans:** 4/4 plans complete
 
 Plans:
 **Wave 1**
@@ -84,7 +84,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2)*
 
-- [ ] 02-03-PLAN.md — Project-list slice: owned-or-member query with open/resolved counts + cards/empty state wired into dashboard (PROJ-02)
+- [x] 02-03-PLAN.md — Project-list slice: owned-or-member query with open/resolved counts + cards/empty state wired into dashboard (PROJ-02)
 **UI hint**: yes
 
 ---
@@ -222,7 +222,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Auth + Database Foundation | 2/3 | In Progress|  |
-| 2. Projects + Authorization Layer | 3/4 | In Progress|  |
+| 2. Projects + Authorization Layer | 4/4 | Complete   | 2026-06-02 |
 | 3. Membership + Invite Links | 0/? | Not started | - |
 | 4. Project Settings | 0/? | Not started | - |
 | 5. Tickets Core | 0/? | Not started | - |
