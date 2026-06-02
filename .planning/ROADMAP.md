@@ -103,12 +103,12 @@ Plans:
   4. Owner can view a list of all project members with their roles displayed
   5. Owner can remove a member from the project; removed member loses access immediately
 
-**Plans:** 4 plans
+**Plans:** 1/4 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 03-01-PLAN.md — Foundation: project_member unique constraint + drizzle-kit push, requireProjectOwner seam, Wave-0 RED test suite (MEM-03)
+- [x] 03-01-PLAN.md — Foundation: project_member unique constraint + drizzle-kit push, requireProjectOwner seam, Wave-0 RED test suite (MEM-03)
 
 **Wave 2** *(blocked on Wave 1)*
 
@@ -237,7 +237,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. Auth + Database Foundation | 2/3 | In Progress|  |
 | 2. Projects + Authorization Layer | 4/4 | Complete   | 2026-06-02 |
-| 3. Membership + Invite Links | 0/4 | Planned | - |
+| 3. Membership + Invite Links | 1/4 | In Progress|  |
 | 4. Project Settings | 0/? | Not started | - |
 | 5. Tickets Core | 0/? | Not started | - |
 | 6. Kanban Board | 0/? | Not started | - |
