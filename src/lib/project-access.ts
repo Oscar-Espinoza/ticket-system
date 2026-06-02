@@ -91,6 +91,13 @@ export async function requireProjectMember(
   projectId: string,
   userId: string,
 ): Promise<ProjectMembership> {
+  // WR-01: defense-in-depth — reject falsy ids explicitly rather than relying
+  // on the membership query returning an empty result. projectId is untrusted
+  // (URL/FormData), and future callers may pass undefined.
+  if (!projectId || !userId) {
+    throw new ProjectAccessError();
+  }
+
   const [membership] = await db
     .select({
       projectId: projectMembers.projectId,
@@ -110,5 +117,7 @@ export async function requireProjectMember(
     throw new ProjectAccessError();
   }
 
-  return membership as ProjectMembership;
+  // IN-02: the select projects exactly {projectId, userId, role} and `role` is
+  // a text enum, so Drizzle already infers ProjectMembership — no cast needed.
+  return membership;
 }

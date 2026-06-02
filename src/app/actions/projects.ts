@@ -43,6 +43,9 @@ export async function createProject(
   const errors: CreateProjectState['errors'] = {};
   if (!name) {
     errors.name = 'Project name is required.';
+  } else if (name.length > 100) {
+    // WR-03: bound the unvalidated text column; keep in sync with the UI.
+    errors.name = 'Project name must be 100 characters or fewer.';
   }
   if (!/^[A-Z]{2,6}$/.test(ticketKey)) {
     errors.ticketKey = 'Key must be 2–6 uppercase letters.';
@@ -82,11 +85,12 @@ export async function createProject(
     // Step 6: Map Postgres unique-violation to a field-level error.
     // NeonDbError carries .code from pg DatabaseError. SQLSTATE 23505 =
     // unique_violation — stable across Postgres versions and locales (T-02-04).
-    if (
-      typeof err === 'object' &&
-      err !== null &&
-      (err as { code?: string }).code === '23505'
-    ) {
+    // WR-02: db.batch may wrap the driver error, so also check one level of
+    // `.cause` rather than assuming `.code` is always top-level.
+    const code =
+      (err as { code?: string })?.code ??
+      (err as { cause?: { code?: string } })?.cause?.code;
+    if (code === '23505') {
       return {
         errors: {
           ticketKey: 'This key is already in use. Choose a different one.',

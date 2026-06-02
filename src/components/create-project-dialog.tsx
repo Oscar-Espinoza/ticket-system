@@ -8,7 +8,7 @@
 // The form uses useActionState with the createProject Server Action so the pending
 // state, field errors, and success handling are fully integrated.
 
-import { useActionState, useState } from 'react';
+import { useActionState, useId, useState } from 'react';
 import { createProject, type CreateProjectState } from '@/app/actions/projects';
 import {
   Dialog,
@@ -28,6 +28,17 @@ const initialState: CreateProjectState = {};
 export function CreateProjectDialog() {
   const [open, setOpen] = useState(false);
   const [ticketKey, setTicketKey] = useState('');
+
+  // IN-03: this dialog mounts more than once per page (section header + empty
+  // state CTA). Derive all field/error ids from a useId() prefix so the two
+  // instances never collide on duplicate DOM ids (which would break
+  // aria-describedby / htmlFor associations for screen readers).
+  const uid = useId();
+  const nameId = `${uid}-name`;
+  const nameErrorId = `${uid}-name-error`;
+  const keyId = `${uid}-key`;
+  const keyErrorId = `${uid}-key-error`;
+  const keyHintId = `${uid}-key-hint`;
 
   // Run success side effects inside the action (not an effect) so they fire on
   // EVERY successful submit. Keying an effect off `state.success` only fired on
@@ -67,16 +78,16 @@ export function CreateProjectDialog() {
           <form action={action} className="flex flex-col gap-4">
             {/* Project name field */}
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="project-name">Project name</Label>
+              <Label htmlFor={nameId}>Project name</Label>
               <Input
-                id="project-name"
+                id={nameId}
                 name="name"
                 placeholder="My project"
                 aria-invalid={state.errors?.name ? true : undefined}
-                aria-describedby={state.errors?.name ? 'name-error' : undefined}
+                aria-describedby={state.errors?.name ? nameErrorId : undefined}
               />
               {state.errors?.name && (
-                <p id="name-error" className="text-destructive text-sm">
+                <p id={nameErrorId} className="text-destructive text-sm">
                   {state.errors.name}
                 </p>
               )}
@@ -84,17 +95,17 @@ export function CreateProjectDialog() {
 
             {/* Ticket key field — controlled input with per-keystroke transform */}
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="ticket-key">Ticket key</Label>
+              <Label htmlFor={keyId}>Ticket key</Label>
               <Input
-                id="ticket-key"
+                id={keyId}
                 name="ticketKey"
                 placeholder="APP"
                 value={ticketKey}
                 aria-invalid={state.errors?.ticketKey ? true : undefined}
                 aria-describedby={
                   state.errors?.ticketKey
-                    ? 'ticketKey-error ticketKey-hint'
-                    : 'ticketKey-hint'
+                    ? `${keyErrorId} ${keyHintId}`
+                    : keyHintId
                 }
                 onChange={(e) => {
                   // D-17: auto-uppercase, strip non-A-Z, cap at 6 chars.
@@ -107,11 +118,11 @@ export function CreateProjectDialog() {
                 }}
               />
               {/* Always-visible helper text (02-UI-SPEC §Copywriting Contract) */}
-              <p id="ticketKey-hint" className="text-muted-foreground text-sm">
+              <p id={keyHintId} className="text-muted-foreground text-sm">
                 2–6 uppercase letters, unique across all projects.
               </p>
               {state.errors?.ticketKey && (
-                <p id="ticketKey-error" className="text-destructive text-sm">
+                <p id={keyErrorId} className="text-destructive text-sm">
                   {state.errors.ticketKey}
                 </p>
               )}

@@ -64,12 +64,20 @@ export async function getProjectsForUser(userId: string) {
 // Server Component
 // ---------------------------------------------------------------------------
 
-export async function ProjectList() {
-  // T-02-08: session is resolved server-side from the request headers.
-  const session = await auth.api.getSession({ headers: await headers() });
-  const user = session?.user;
+export async function ProjectList({ userId }: { userId?: string } = {}) {
+  // IN-01: prefer a userId passed by the parent (which already resolved the
+  // session) to avoid a second getSession() per dashboard request. Falls back
+  // to resolving the session itself so the component stays self-contained.
+  // T-02-08: userId always originates from auth.api.getSession server-side.
+  let resolvedUserId = userId;
+  if (!resolvedUserId) {
+    const session = await auth.api.getSession({ headers: await headers() });
+    resolvedUserId = session?.user?.id;
+  }
 
-  const userProjects = user ? await getProjectsForUser(user.id) : [];
+  const userProjects = resolvedUserId
+    ? await getProjectsForUser(resolvedUserId)
+    : [];
 
   return (
     <div className="mt-8">

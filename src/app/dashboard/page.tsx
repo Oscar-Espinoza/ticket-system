@@ -10,8 +10,8 @@
 // which selects only account.id (never the token), so connection status can
 // never leak the GitHub access token (D-05).
 //
-// No project-list UI is built here — `{children}` renders below the greeting so
-// Phase 2 drops the list in without touching this shell.
+// The project list renders via the directly-mounted <ProjectList /> below
+// (CR-01: this is a page.tsx, which App Router never passes `children`).
 
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
@@ -20,20 +20,9 @@ import { Badge } from '@/components/ui/badge';
 import { LogoutButton } from '@/components/logout-button';
 import { isGitHubConnected } from '@/lib/github-token';
 import { ProjectList } from '@/components/project-list';
+import { DashboardGreeting } from '@/components/dashboard-greeting';
 
-function greetingFor(name: string | null | undefined): string {
-  if (!name) return 'Welcome back';
-  const firstName = name.trim().split(/\s+/)[0];
-  const hour = new Date().getHours();
-  const timeOfDay = hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening';
-  return `Good ${timeOfDay}, ${firstName}`;
-}
-
-export default async function DashboardPage({
-  children,
-}: {
-  children?: React.ReactNode;
-}) {
+export default async function DashboardPage() {
   // Layout already guarded this route; session is guaranteed non-null here, but
   // we re-read it for the user's email/name (server-side, no client exposure).
   const session = await auth.api.getSession({ headers: await headers() });
@@ -55,7 +44,7 @@ export default async function DashboardPage({
       </header>
 
       <main className="container mx-auto max-w-4xl px-6 py-8">
-        <h2 className="text-xl font-semibold">{greetingFor(user?.name)}</h2>
+        <DashboardGreeting name={user?.name} />
 
         <div className="mt-4">
           {/* Real GitHub-connected badge (UI-SPEC). Connected -> secondary +
@@ -73,9 +62,9 @@ export default async function DashboardPage({
           )}
         </div>
 
-        {/* Phase 2 seam: the project list renders here without touching the shell. */}
-        {children}
-        <ProjectList />
+        {/* IN-01: session already resolved above — pass userId so ProjectList
+            doesn't resolve it a second time. */}
+        <ProjectList userId={user?.id} />
       </main>
     </div>
   );
