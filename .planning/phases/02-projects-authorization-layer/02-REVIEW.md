@@ -14,9 +14,10 @@ files_reviewed_list:
   - src/tests/projects.test.ts
 findings:
   critical: 1
-  warning: 5
+  warning: 4
   info: 4
-  total: 10
+  total: 9
+  resolved: 1
 status: issues_found
 ---
 
@@ -102,7 +103,9 @@ if (!name) {
 }
 ```
 
-### WR-04: `set-state-in-effect` lint error is a real React anti-pattern, not just noise
+### WR-04: `set-state-in-effect` lint error is a real React anti-pattern, not just noise — ✅ RESOLVED
+
+**Resolved:** 2026-06-01 in commit `31f929b`. The success side effects (`setOpen(false)`, `setTicketKey('')`) were moved out of the `useEffect([state.success])` and into the `useActionState` action wrapper, so they now run on every successful submit (fixing the repeat-create bug confirmed by manual testing) and the `react-hooks/set-state-in-effect` lint error is cleared. `npm run lint` exits 0; tests remain 18/18.
 
 **File:** `src/components/create-project-dialog.tsx:34-39`
 **Issue:** `npm run lint` reports `react-hooks/set-state-in-effect` here. The effect calls `setOpen(false)` and `setTicketKey('')` in response to `state.success`. This is the documented close-on-success pattern, but it does trigger an extra render cycle on every successful submit and the lint rule flags it because effect-driven setState can cause render thrash and is fragile if `state.success` is not reset (the action returns `{ success: true }` and never clears it, so re-opening the dialog and submitting again with an unchanged success flag will not re-fire the effect — the dependency `[state.success]` stays `true`, so a second successful create will NOT auto-close the dialog). This is a latent correctness bug, not only a lint warning: after the first successful create, `state.success` remains `true`; the effect's dependency does not change on the next success, so the dialog stays open.
