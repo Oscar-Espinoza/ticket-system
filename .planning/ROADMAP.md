@@ -70,12 +70,12 @@ Plans:
   3. User can open a project and view its ticket list (empty on creation)
   4. Any request to a project the user does not belong to is rejected with a 403 before touching the database
 
-**Plans:** 4 plans
+**Plans:** 1/4 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 02-01-PLAN.md — Foundation: requireProjectMember DAL helper + ProjectAccessError, Wave 0 test suite, shadcn dialog install (MEM-06)
+- [x] 02-01-PLAN.md — Foundation: requireProjectMember DAL helper + ProjectAccessError, Wave 0 test suite, shadcn dialog install (MEM-06)
 
 **Wave 2** *(blocked on Wave 1)*
 
@@ -222,7 +222,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Auth + Database Foundation | 2/3 | In Progress|  |
-| 2. Projects + Authorization Layer | 0/? | Not started | - |
+| 2. Projects + Authorization Layer | 1/4 | In Progress|  |
 | 3. Membership + Invite Links | 0/? | Not started | - |
 | 4. Project Settings | 0/? | Not started | - |
 | 5. Tickets Core | 0/? | Not started | - |
