@@ -17,10 +17,9 @@ import { requireProjectMember, ProjectAccessError } from '@/lib/project-access';
 import { db } from '@/lib/db';
 import { projects, projectMembers, invitations, users } from '@/db/schema';
 import { eq } from 'drizzle-orm';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { InvitePanel } from '@/components/invite-panel';
+import { MemberList } from '@/components/member-list';
 
 export default async function MembersPage({
   params,
@@ -62,6 +61,7 @@ export default async function MembersPage({
   //   role:   used for role badge (owner/member)
   const roster = await db
     .select({
+      id: projectMembers.id,      // needed by MemberList → removeMember FormData (memberId)
       userId: projectMembers.userId,
       name: users.name,
       role: projectMembers.role,
@@ -112,25 +112,15 @@ export default async function MembersPage({
         )}
 
         {/* Roster section — visible to all members (MEM-04) */}
+        {/* Remove controls only rendered for owner; server guards all removeMember calls */}
         <section>
           <h2 className="text-base font-semibold mb-4">Team members</h2>
-          <div className="flex flex-col gap-3">
-            {roster.map((member) => (
-              <Card key={member.userId}>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between gap-4">
-                    <span className="text-sm font-medium">{member.name}</span>
-                    {/* Role badge: owner → secondary, member → outline (D-32) */}
-                    {member.role === 'owner' ? (
-                      <Badge variant="secondary">Owner</Badge>
-                    ) : (
-                      <Badge variant="outline">Member</Badge>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <MemberList
+            members={roster}
+            isOwner={membership.role === 'owner'}
+            currentUserId={session.user.id}
+            projectId={id}
+          />
         </section>
       </main>
     </div>
