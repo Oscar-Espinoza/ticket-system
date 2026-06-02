@@ -70,7 +70,21 @@ Plans:
   3. User can open a project and view its ticket list (empty on creation)
   4. Any request to a project the user does not belong to is rejected with a 403 before touching the database
 
-**Plans:** TBD
+**Plans:** 4 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 02-01-PLAN.md — Foundation: requireProjectMember DAL helper + ProjectAccessError, Wave 0 test suite, shadcn dialog install (MEM-06)
+
+**Wave 2** *(blocked on Wave 1)*
+
+- [ ] 02-02-PLAN.md — Create-project slice: useActionState Dialog + createProject Server Action (atomic db.batch, 23505 handling) (PROJ-01)
+- [ ] 02-04-PLAN.md — Project-detail slice: /dashboard/projects/[id] guarded by requireProjectMember → notFound() before any DB read (PROJ-03, MEM-06)
+
+**Wave 3** *(blocked on Wave 2)*
+
+- [ ] 02-03-PLAN.md — Project-list slice: owned-or-member query with open/resolved counts + cards/empty state wired into dashboard (PROJ-02)
 **UI hint**: yes
 
 ---
