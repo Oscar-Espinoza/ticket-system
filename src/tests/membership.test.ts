@@ -521,6 +521,87 @@ describe('MEM-02: joinProject idempotency', () => {
 });
 
 // ---------------------------------------------------------------------------
+// MEM-02: joinProject expired/unknown token (D-28 enumeration-resistance)
+// ---------------------------------------------------------------------------
+
+describe('MEM-02: joinProject expired/unknown token', () => {
+  it(
+    'MEM-02: joinProject returns { error: "invalid" } for an EXPIRED token and inserts no project_member row',
+    async () => {
+      const { joinProject } = await import('@/app/actions/join');
+
+      // Arrange: a project and an invitation that already expired
+      const projectId = await insertTestProject(
+        SESSION_USER_ID,
+        uniqueKey('EX'),
+      );
+      const expiredToken = `test-tok-expired-${Date.now()}`;
+      const expiredInviteId = `test-inv-exp-${Date.now()}`;
+      await db.insert(invitations).values({
+        id: expiredInviteId,
+        projectId,
+        token: expiredToken,
+        // expiresAt is 1 second in the past — already expired
+        expiresAt: new Date(Date.now() - 1000),
+        createdAt: new Date(),
+      });
+      createdInvitationIds.push(expiredInviteId);
+
+      const joinerUserId = await insertTestUser('joiner-exp');
+      const { auth } = await import('@/lib/auth');
+      vi.mocked(auth.api.getSession).mockResolvedValueOnce({
+        user: { id: joinerUserId },
+      } as Awaited<ReturnType<typeof auth.api.getSession>>);
+
+      const formData = new FormData();
+      formData.set('token', expiredToken);
+
+      // Act — must NOT throw NEXT_REDIRECT (returns normally on the invalid path)
+      const result = await joinProject({}, formData);
+
+      // Assert: error returned, no member row inserted
+      expect(result.error).toBe('invalid');
+
+      const memberRows = await db
+        .select()
+        .from(projectMembers)
+        .where(eq(projectMembers.userId, joinerUserId));
+      expect(memberRows).toHaveLength(0);
+    },
+  );
+
+  it(
+    'MEM-02: joinProject returns { error: "invalid" } for an UNKNOWN/garbage token and inserts no project_member row',
+    async () => {
+      const { joinProject } = await import('@/app/actions/join');
+
+      // Arrange: a fresh joiner user; NO invitation row for this token
+      const joinerUserId = await insertTestUser('joiner-unk');
+      const { auth } = await import('@/lib/auth');
+      vi.mocked(auth.api.getSession).mockResolvedValueOnce({
+        user: { id: joinerUserId },
+      } as Awaited<ReturnType<typeof auth.api.getSession>>);
+
+      const formData = new FormData();
+      // Random garbage token — guaranteed not to exist in the DB
+      formData.set('token', `garbage-token-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+
+      // Act — must NOT throw NEXT_REDIRECT
+      const result = await joinProject({}, formData);
+
+      // Assert: error returned, no member row inserted
+      expect(result.error).toBe('invalid');
+
+      const memberRows = await db
+        .select()
+        .from(projectMembers)
+        .where(eq(projectMembers.userId, joinerUserId));
+      expect(memberRows).toHaveLength(0);
+    },
+  );
+});
+
+// ---------------------------------------------------------------------------
 // MEM-05: removeMember action (RED until Plan 04 ships)
 // ---------------------------------------------------------------------------
 
