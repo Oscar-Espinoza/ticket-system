@@ -18,9 +18,10 @@ import { db } from '@/lib/db';
 import { users, projects, projectMembers } from '@/db/schema';
 import { requireProjectMember, ProjectAccessError } from '@/lib/project-access';
 // createProject and getProjectsForUser are created in later plans (Plans 02/03).
-// The suite is intentionally RED until those exports exist.
-import { createProject } from '@/app/actions/projects';
-import { getProjectsForUser } from '@/components/project-list';
+// They are imported dynamically inside the test bodies so their absence causes
+// those specific tests to fail (RED) without preventing the MEM-06 tests from
+// running at all. Static top-level imports would break the entire file at parse
+// time, making it impossible to verify the MEM-06 GREEN state in Plan 01 Task 3.
 
 // ---------------------------------------------------------------------------
 // Per-run tracking for cleanup
@@ -238,7 +239,7 @@ describe('PROJ-01: createProject action', () => {
     async () => {
       // This test is RED until src/app/actions/projects.ts is created in Plan 02.
       // When green: both a project row and an owner project_member row must exist.
-      const ownerEmail = uniqueEmail('creator');
+      const { createProject } = await import('@/app/actions/projects');
       const ticketKey = uniqueKey('CR');
 
       // createProject accepts (prevState, formData); simulate with FormData
@@ -278,6 +279,7 @@ describe('PROJ-01: createProject action', () => {
     'PROJ-01: createProject with a duplicate ticketKey returns a field-level error on errors.ticketKey (no throw / no crash)',
     async () => {
       // This test is RED until src/app/actions/projects.ts is created in Plan 02.
+      const { createProject } = await import('@/app/actions/projects');
       const ticketKey = uniqueKey('DU');
 
       const formData1 = new FormData();
@@ -303,6 +305,7 @@ describe('PROJ-01: createProject action', () => {
     'PROJ-01: createProject with an invalid ticketKey (too short, too long, or non-alpha) returns errors.ticketKey and performs NO project insert',
     async () => {
       // This test is RED until src/app/actions/projects.ts is created in Plan 02.
+      const { createProject } = await import('@/app/actions/projects');
       // Tests multiple invalid keys: 'a' (too short), '1' (non-alpha), 'TOOLONGKEY' (too long)
       const invalidKeys = ['a', '1', 'TOOLONGKEY'];
 
@@ -339,6 +342,7 @@ describe('PROJ-02: getProjectsForUser query', () => {
     'PROJ-02: getProjectsForUser returns a project the user owns AND a project the user is only a member of',
     async () => {
       // This test is RED until src/components/project-list.tsx is created in Plan 03.
+      const { getProjectsForUser } = await import('@/components/project-list');
       const userId = await insertTestUser('list-user-h');
 
       // Create a project they own
@@ -373,6 +377,7 @@ describe('PROJ-02: getProjectsForUser query', () => {
     'PROJ-02: a project with no tickets reports openCount === 0 and resolvedCount === 0 (numbers, not strings)',
     async () => {
       // This test is RED until src/components/project-list.tsx is created in Plan 03.
+      const { getProjectsForUser } = await import('@/components/project-list');
       const userId = await insertTestUser('count-user-j');
       await insertTestProject(userId, uniqueKey('ZR'));
 
