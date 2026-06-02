@@ -12,7 +12,7 @@
 
 - [ ] **Phase 1: Auth + Database Foundation** - Working accounts, sessions, and the full DB schema
 - [x] **Phase 2: Projects + Authorization Layer** - Project creation, listing, and the `requireProjectMember` security primitive (completed 2026-06-02)
-- [ ] **Phase 3: Membership + Invite Links** - Invite link generation/acceptance and member management
+- [x] **Phase 3: Membership + Invite Links** - Invite link generation/acceptance and member management (completed 2026-06-02)
 - [ ] **Phase 4: Project Settings** - Owner can edit project name and link a GitHub repo
 - [ ] **Phase 5: Tickets Core** - Full ticket CRUD with atomic per-project identifiers and ticket detail page
 - [ ] **Phase 6: Kanban Board** - Five-column drag-and-drop board with persisted status changes
@@ -103,7 +103,7 @@ Plans:
   4. Owner can view a list of all project members with their roles displayed
   5. Owner can remove a member from the project; removed member loses access immediately
 
-**Plans:** 3/4 plans executed
+**Plans:** 4/4 plans complete
 
 Plans:
 **Wave 1**
@@ -117,7 +117,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 — shares members page)*
 
-- [ ] 03-04-PLAN.md — Remove-member slice: alert-dialog install + removeMember owner action + MemberList confirm controls (MEM-05)
+- [x] 03-04-PLAN.md — Remove-member slice: alert-dialog install + removeMember owner action + MemberList confirm controls (MEM-05)
 **UI hint**: yes
 
 ---
@@ -237,7 +237,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. Auth + Database Foundation | 2/3 | In Progress|  |
 | 2. Projects + Authorization Layer | 4/4 | Complete   | 2026-06-02 |
-| 3. Membership + Invite Links | 3/4 | In Progress|  |
+| 3. Membership + Invite Links | 4/4 | Complete   | 2026-06-02 |
 | 4. Project Settings | 0/? | Not started | - |
 | 5. Tickets Core | 0/? | Not started | - |
 | 6. Kanban Board | 0/? | Not started | - |
