@@ -16,19 +16,19 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Projects
 
-- [ ] **PROJ-01**: User can create a project with a name and a ticket key (e.g. "APP")
-- [ ] **PROJ-02**: User can view a list of projects they own or are a member of
-- [ ] **PROJ-03**: User can open a project to view its tickets
+- [x] **PROJ-01**: User can create a project with a name and a ticket key (e.g. "APP")
+- [x] **PROJ-02**: User can view a list of projects they own or are a member of
+- [x] **PROJ-03**: User can open a project to view its tickets
 - [ ] **PROJ-04**: Project owner can edit project settings (name, linked GitHub repo)
 
 ### Membership
 
-- [ ] **MEM-01**: Project owner can generate a shareable invite link for a project
-- [ ] **MEM-02**: An invited person can accept an invite link and join the project as a member
-- [ ] **MEM-03**: Project enforces two roles — owner (manage members/project) and member (manage tickets)
-- [ ] **MEM-04**: User can view the list of members in a project
-- [ ] **MEM-05**: Project owner can remove a member from the project
-- [ ] **MEM-06**: Every project-scoped action is authorized against the user's membership (no cross-tenant access)
+- [x] **MEM-01**: Project owner can generate a shareable invite link for a project
+- [ ] **MEM-02**: An invited person can accept an invite link and join the project as a member *(gap: logged-out join path broken — see v1.0-MILESTONE-AUDIT.md)*
+- [x] **MEM-03**: Project enforces two roles — owner (manage members/project) and member (manage tickets)
+- [x] **MEM-04**: User can view the list of members in a project
+- [x] **MEM-05**: Project owner can remove a member from the project
+- [x] **MEM-06**: Every project-scoped action is authorized against the user's membership (no cross-tenant access)
 
 ### Tickets
 
@@ -100,15 +100,15 @@ Which phases cover which requirements.
 | AUTH-02 | Phase 1 | Pending |
 | AUTH-03 | Phase 1 | Complete |
 | AUTH-04 | Phase 1 | Complete |
-| PROJ-01 | Phase 2 | Pending |
-| PROJ-02 | Phase 2 | Pending |
-| PROJ-03 | Phase 2 | Pending |
-| MEM-06 | Phase 2 | Pending |
-| MEM-01 | Phase 3 | Pending |
-| MEM-02 | Phase 3 | Pending |
-| MEM-03 | Phase 3 | Pending |
-| MEM-04 | Phase 3 | Pending |
-| MEM-05 | Phase 3 | Pending |
+| PROJ-01 | Phase 2 | Complete |
+| PROJ-02 | Phase 2 | Complete |
+| PROJ-03 | Phase 2 | Complete |
+| MEM-06 | Phase 2 | Complete |
+| MEM-01 | Phase 3 | Complete |
+| MEM-02 | Phase 3 | Blocked (logged-out join) |
+| MEM-03 | Phase 3 | Complete |
+| MEM-04 | Phase 3 | Complete |
+| MEM-05 | Phase 3 | Complete |
 | PROJ-04 | Phase 4 | Pending |
 | TKT-01 | Phase 5 | Pending |
 | TKT-02 | Phase 5 | Pending |
