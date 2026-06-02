@@ -8,7 +8,7 @@
 // The form uses useActionState with the createProject Server Action so the pending
 // state, field errors, and success handling are fully integrated.
 
-import { useActionState, useEffect, useState } from 'react';
+import { useActionState, useState } from 'react';
 import { createProject, type CreateProjectState } from '@/app/actions/projects';
 import {
   Dialog,
@@ -28,15 +28,22 @@ const initialState: CreateProjectState = {};
 export function CreateProjectDialog() {
   const [open, setOpen] = useState(false);
   const [ticketKey, setTicketKey] = useState('');
-  const [state, action, isPending] = useActionState(createProject, initialState);
 
-  // Close dialog and reset ticket key state when the server confirms success.
-  useEffect(() => {
-    if (state.success) {
-      setOpen(false);
-      setTicketKey('');
-    }
-  }, [state.success]);
+  // Run success side effects inside the action (not an effect) so they fire on
+  // EVERY successful submit. Keying an effect off `state.success` only fired on
+  // the first true (true→true is not a dependency change), so a 2nd create left
+  // the dialog open and the controlled ticketKey populated (02-REVIEW WR-04).
+  const [state, action, isPending] = useActionState(
+    async (prevState: CreateProjectState, formData: FormData) => {
+      const result = await createProject(prevState, formData);
+      if (result.success) {
+        setOpen(false);
+        setTicketKey('');
+      }
+      return result;
+    },
+    initialState,
+  );
 
   return (
     <>
