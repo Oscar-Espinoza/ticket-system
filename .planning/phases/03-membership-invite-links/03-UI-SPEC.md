@@ -1,10 +1,11 @@
 ---
 phase: 3
 slug: membership-invite-links
-status: draft
+status: approved
 shadcn_initialized: true
 preset: radix-nova / neutral / cssVariables
 created: 2026-06-01
+reviewed_at: 2026-06-01
 ---
 
 # Phase 3 — UI Design Contract
