@@ -98,17 +98,24 @@ export const projects = pgTable('project', {
   updatedAt: timestamp('updated_at').notNull(),
 });
 
-export const projectMembers = pgTable('project_member', {
-  id: text('id').primaryKey(),
-  projectId: text('project_id')
-    .notNull()
-    .references(() => projects.id, { onDelete: 'cascade' }),
-  userId: text('user_id')
-    .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  role: text('role', { enum: ['owner', 'member'] }).notNull(),
-  createdAt: timestamp('created_at').notNull(),
-});
+export const projectMembers = pgTable(
+  'project_member',
+  {
+    id: text('id').primaryKey(),
+    projectId: text('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    role: text('role', { enum: ['owner', 'member'] }).notNull(),
+    createdAt: timestamp('created_at').notNull(),
+  },
+  (table) => ({
+    // D-29: race-safe idempotency backstop — concurrent double-join raises 23505.
+    uniqueProjectMember: unique().on(table.projectId, table.userId),
+  }),
+);
 
 export const invitations = pgTable('invitation', {
   id: text('id').primaryKey(),
