@@ -19,7 +19,8 @@ palette/type/motion system.
      `rgba(255,255,255,.06–.08)`, muted fg `#8A8F98`, accent/brand `#5E6AD2`,
      plus a complete light theme with the same semantic names;
    - status color tokens for the five `ticket_status` values (gray/gray/
-     amber/violet/red) — consumed by M4's StatusIcon;
+     amber/blue/violet; matches the actual enum backlog/todo/in_progress/
+     in_review/done) — consumed by M4's StatusIcon;
    - type scale: 13px app base, 11px uppercase section labels, weight 500 for
      headings (replaces 600 semibold);
    - radius: 0.375–0.5rem (from 0.625rem);
@@ -34,6 +35,9 @@ palette/type/motion system.
 6. **Auth pages restyle** (`(auth)/login`, `(auth)/signup`): Linear-style centered
    card on themed background, wordmark/logo above the card, C1 type/radius/motion.
    These pages live outside the shell permanently, so they are fully owned here.
+7. **Invite page** (`invite/[token]`): also public and outside the shell
+   permanently, so it is owned here too — only its C1 deltas (headings at weight
+   500, no `font-semibold`); no structural/behavioral change (D-26…D-28 stay).
 
 ## Out of scope (owner in parentheses)
 

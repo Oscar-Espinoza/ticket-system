@@ -67,14 +67,15 @@ and never implements work owned by a later one.
 
 | Area | Owner |
 |------|-------|
-| `globals.css`, root `layout.tsx` metadata/fonts, `/` route, `(auth)/**` | M1 (value-tune only: M8) |
+| `globals.css`, root `layout.tsx` metadata/fonts, `/` route, `(auth)/**`, `invite/[token]/**` | M1 (value-tune only: M8) |
+| Existing `components/ui/**` shadcn primitives (token-application deltas only: shadow/duration/radius) | M1 (new primitives: M4) |
 | `dashboard/layout.tsx`, new `components/app-shell/**`, per-page hand-rolled headers | M2 (slot-fill only afterwards: M3+) |
 | Command palette, hotkey framework, toasts, theme toggle, avatar menu, theme default flip | M3 |
 | New icon/primitive components, `project-list.tsx` row rendering | M4 |
 | Project page view switcher, issue list, filters, list hotkey registrations | M5 |
 | Board component + Board tab entry | M6 |
 | Issue detail pane + property editors | M7 |
-| Repo-wide audit (motion, focus, skeletons, metadata, dead code) | M8 |
+| Repo-wide audit (motion, focus, skeletons, metadata, dead code), `public/**` scaffold assets (`next.svg`, `vercel.svg`, …) | M8 |
 
 ## Dependencies on the GSD roadmap
 

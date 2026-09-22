@@ -78,7 +78,7 @@ export default async function InvitePage({
         {!isValid && (
           <>
             <CardHeader>
-              <CardTitle className="text-xl font-semibold">
+              <CardTitle className="text-xl font-medium">
                 Invalid invite link
               </CardTitle>
               <CardDescription className="text-sm text-muted-foreground mt-2">
@@ -103,7 +103,7 @@ export default async function InvitePage({
         {isValid && !session?.user && (
           <>
             <CardHeader>
-              <CardTitle className="text-xl font-semibold">
+              <CardTitle className="text-xl font-medium">
                 You&apos;ve been invited
               </CardTitle>
               <CardDescription className="text-sm text-muted-foreground mt-2">
@@ -125,7 +125,7 @@ export default async function InvitePage({
         {isValid && session?.user && (
           <>
             <CardHeader>
-              <CardTitle className="text-xl font-semibold">
+              <CardTitle className="text-xl font-medium">
                 Join {projectName}
               </CardTitle>
               <CardDescription className="text-sm text-muted-foreground mt-2">

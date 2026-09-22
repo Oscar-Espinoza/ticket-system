@@ -4,12 +4,58 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ---------------------------------------------------------------------------
+   C1 design tokens — OWNED BY M1 (docs/mimo-refactor/M1-foundation-tokens.md).
+   Later milestones consume these via utility classes; they never rename or
+   remove token names. M8 may tune values only.
+--------------------------------------------------------------------------- */
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+
+  /* Font fix: next/font exposes --font-geist-sans; the old config pointed
+     --font-sans at itself, which invalidated font-heading and rendered card
+     titles in Times New Roman. */
+  --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
+
+  /* Linear type scale: 11px labels / 13px app base / 14px headings, then a
+     dense upper range. Without these, lg/xl/2xl keep Tailwind's defaults and
+     the scale jumps 11/13/14/18/20/24 — C1 must publish the WHOLE scale. */
+  --text-xs: 0.6875rem;
+  --text-xs--line-height: 1rem;
+  --text-sm: 0.8125rem;
+  --text-sm--line-height: 1.25rem;
+  --text-base: 0.875rem;
+  --text-base--line-height: 1.375rem;
+  --text-lg: 1rem;
+  --text-lg--line-height: 1.5rem;
+  --text-xl: 1.125rem;
+  --text-xl--line-height: 1.5rem;
+  --text-2xl: 1.25rem;
+  --text-2xl--line-height: 1.75rem;
+  --text-3xl: 1.5rem;
+  --text-3xl--line-height: 2rem;
+
+  /* Motion — C1's single duration/easing, wired to Tailwind's defaults so
+     every `transition-*` utility consumes it (no hard-coded duration-* left).
+     Raw tokens --motion-fast/--motion-base/--ease-out-expo live in :root. */
+  --default-transition-duration: var(--motion-base);
+  --default-transition-timing-function: var(--ease-out-expo);
+
+  /* Elevation — publishes the `shadow-popover` utility. Raw value lives in
+     :root so `.dark` can override it (an inline theme value alone could not). */
+  --shadow-popover: var(--shadow-popover);
+
+  /* Status colors — map 1:1 to the ticket_status enum (D-07) */
+  --color-status-backlog: var(--status-backlog);
+  --color-status-todo: var(--status-todo);
+  --color-status-in-progress: var(--status-in-progress);
+  --color-status-in-review: var(--status-in-review);
+  --color-status-done: var(--status-done);
+
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -39,82 +85,124 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Radius: 6px base (Linear corners are 4-6px). C1's published range is
+     0.375–0.5rem, so every step is clamped to 0.5rem — unclamped, xl would be
+     8.4px and 2xl–4xl up to 1.2rem, silently breaking the frozen contract.
+     (Only sm/md/lg/xl are referenced in src/ today.) */
+  --radius-sm: min(calc(var(--radius) * 0.6), 0.5rem);
+  --radius-md: min(calc(var(--radius) * 0.8), 0.5rem);
+  --radius-lg: min(var(--radius), 0.5rem);
+  --radius-xl: min(calc(var(--radius) * 1.4), 0.5rem);
+  --radius-2xl: min(calc(var(--radius) * 1.8), 0.5rem);
+  --radius-3xl: min(calc(var(--radius) * 2.2), 0.5rem);
+  --radius-4xl: min(calc(var(--radius) * 2.6), 0.5rem);
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  /* Light theme — Linear light */
+  --background: #ffffff;
+  --foreground: #08090a;
+  --card: #ffffff;
+  --card-foreground: #08090a;
+  --popover: #ffffff;
+  --popover-foreground: #08090a;
+
+  /* Brand: Linear indigo */
+  --primary: #5e6ad2;
+  --primary-foreground: #ffffff;
+  --ring: #5e6ad2;
+
+  --secondary: #f4f5f8;
+  --secondary-foreground: #08090a;
+  --muted: #f4f5f8;
+  --muted-foreground: #6f6f78;
+  --accent: #f0f1f4;
+  --accent-foreground: #08090a;
+
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --border: rgb(9 9 11 / 9%);
+  --input: rgb(9 9 11 / 12%);
+  --radius: 0.375rem;
+
+  /* ticket_status enum (D-07): backlog, todo, in_progress, in_review, done */
+  --status-backlog: #9da1a8;
+  --status-todo: #747981;
+  --status-in-progress: #e5a100;
+  --status-in-review: #3b82f6;
+  --status-done: #5e6ad2;
+
+  /* Motion — single source for component transitions */
+  --motion-fast: 120ms;
+  --motion-base: 150ms;
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Elevation: floating layers only (dialog/popover). Everything else
+     separates with 1px borders. */
+  --shadow-popover: 0 8px 24px rgb(9 9 11 / 10%), 0 2px 6px rgb(9 9 11 / 6%);
+
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+
+  --sidebar: #f7f7f8;
+  --sidebar-foreground: #08090a;
+  --sidebar-primary: #5e6ad2;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f0f1f4;
+  --sidebar-accent-foreground: #08090a;
+  --sidebar-border: rgb(9 9 11 / 9%);
+  --sidebar-ring: #5e6ad2;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  /* Dark theme — Linear dark (dark-first; M3 flips the default) */
+  --background: #08090a;
+  --foreground: #f7f8f8;
+  --card: #101011;
+  --card-foreground: #f7f8f8;
+  --popover: #1c1c1e;
+  --popover-foreground: #f7f8f8;
+
+  --primary: #5e6ad2;
+  --primary-foreground: #ffffff;
+  --ring: #5e6ad2;
+
+  --secondary: rgb(255 255 255 / 6%);
+  --secondary-foreground: #f7f8f8;
+  --muted: rgb(255 255 255 / 6%);
+  --muted-foreground: #8a8f98;
+  --accent: rgb(255 255 255 / 8%);
+  --accent-foreground: #f7f8f8;
+
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --border: rgb(255 255 255 / 8%);
+  --input: rgb(255 255 255 / 12%);
+
+  --status-backlog: #6e747c;
+  --status-todo: #c7cacf;
+  --status-in-progress: #f2c94c;
+  --status-in-review: #60a5fa;
+  --status-done: #717ce3;
+
+  --shadow-popover: 0 12px 32px rgb(0 0 0 / 45%), 0 2px 8px rgb(0 0 0 / 30%);
+
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+
+  --sidebar: #0d0e0f;
+  --sidebar-foreground: #f7f8f8;
+  --sidebar-primary: #5e6ad2;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: rgb(255 255 255 / 8%);
+  --sidebar-accent-foreground: #f7f8f8;
+  --sidebar-border: rgb(255 255 255 / 8%);
+  --sidebar-ring: #5e6ad2;
 }
 
 @layer base {
@@ -123,6 +211,9 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* C1 app base = 13px (literal: @theme inline does not emit --text-* to
+       :root, so var(--text-sm) would not resolve here). */
+    font-size: 0.8125rem;
   }
   html {
     @apply font-sans;

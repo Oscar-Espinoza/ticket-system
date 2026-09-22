@@ -11,7 +11,9 @@ skeletons, empty states — and a dense project list that uses it.
    through a single barrel):
    - `StatusIcon`: five variants mapping 1:1 to the `ticket_status` enum —
      Backlog (dotted ring), Todo (ring), In Progress (amber partial arc, accepts
-     `percent`), Done (violet filled + check), Canceled (red slash). Inline SVG,
+     `percent`), In Review (blue circle-dot), Done (violet filled + check).
+     The enum is backlog/todo/in_progress/in_review/done (no "canceled").
+     Inline SVG,
      `currentColor`-aware, 14/16px sizes.
    - `PriorityIcon`: none/low/medium/high bars + urgent dot (for M5's list).
    - `LabelChip`: colored dot + text, C1-based neutrals (data-driven color prop).
