@@ -1,8 +1,9 @@
 // Server Component: project list for the authenticated user.
 //
 // Renders inside the dashboard `{children}` seam (no full-page wrapper).
-// Shows: section header + "New project" CTA, then either a card-per-project or
-// the "No projects yet" empty state with a second CTA.
+// Shows: section header + "New project" CTA, then either dense ~36px project
+// rows (M4 — name, mono key chip, role chip, tabular counts, hover accent,
+// full-row focus ring, chevron on hover) or the C4 EmptyState with a CTA.
 //
 // Authorization: The INNER JOIN on project_member restricts rows to projects
 // where the viewer has a membership row (owner OR member). No cross-tenant
@@ -14,13 +15,13 @@
 import Link from 'next/link';
 import { headers } from 'next/headers';
 import { sql, eq } from 'drizzle-orm';
+import { ChevronRight, FolderPlus } from 'lucide-react';
 
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { projects, projectMembers, tickets } from '@/db/schema';
 import { CreateProjectDialog } from '@/components/create-project-dialog';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { EmptyState, LabelChip } from '@/components/ui-icons';
 
 // ---------------------------------------------------------------------------
 // Query
@@ -88,45 +89,48 @@ export async function ProjectList({ userId }: { userId?: string } = {}) {
       </div>
 
       {userProjects.length === 0 ? (
-        /* Empty state */
-        <div className="flex flex-col items-center justify-center py-12 gap-4">
-          <p className="text-base font-semibold text-foreground">No projects yet</p>
-          <p className="text-sm text-muted-foreground">
-            Create your first project to get started.
-          </p>
-          <CreateProjectDialog />
-        </div>
+        /* C4 empty state (M4 acceptance: no ad-hoc empty markup) */
+        <EmptyState
+          icon={<FolderPlus />}
+          title="No projects yet"
+          description="Create your first project to get started."
+          action={<CreateProjectDialog />}
+        />
       ) : (
-        /* Project card list — newest first */
-        <div className="flex flex-col gap-3">
+        /* Dense project rows — newest first (M4: ~36px each) */
+        <ul className="flex flex-col">
           {userProjects.map((p) => (
-            <Link key={p.id} href={`/dashboard/projects/${p.id}`}>
-              <Card className="cursor-pointer hover:bg-accent/50 transition-colors">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between gap-4">
-                    {/* Left: name + key badge + role badge */}
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold">{p.name}</span>
-                      <Badge variant="secondary" className="font-mono">
-                        {p.ticketKey}
-                      </Badge>
-                      {p.role === 'owner' ? (
-                        <Badge variant="secondary">Owner</Badge>
-                      ) : (
-                        <Badge variant="outline">Member</Badge>
-                      )}
-                    </div>
+            <li key={p.id}>
+              <Link
+                href={`/dashboard/projects/${p.id}`}
+                className="group flex h-9 items-center gap-3 rounded-md px-2 transition-colors hover:bg-accent/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset focus-visible:outline-none"
+              >
+                {/* Left: name + mono key chip + role chip */}
+                <div className="flex min-w-0 items-center gap-2">
+                  <span className="truncate text-sm font-medium">{p.name}</span>
+                  <LabelChip dot={false} className="shrink-0 font-mono">
+                    {p.ticketKey}
+                  </LabelChip>
+                  <LabelChip
+                    color={p.role === 'owner' ? 'primary' : 'default'}
+                    className="shrink-0"
+                  >
+                    {p.role === 'owner' ? 'Owner' : 'Member'}
+                  </LabelChip>
+                </div>
 
-                    {/* Right: ticket counts */}
-                    <span className="text-sm text-muted-foreground whitespace-nowrap">
-                      {p.openCount} open · {p.resolvedCount} resolved
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
+                {/* Right: tabular ticket counts + hover chevron */}
+                <span className="ml-auto shrink-0 text-xs tabular-nums whitespace-nowrap text-muted-foreground">
+                  {p.openCount} open · {p.resolvedCount} resolved
+                </span>
+                <ChevronRight
+                  aria-hidden="true"
+                  className="size-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+                />
+              </Link>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
     </div>
   );

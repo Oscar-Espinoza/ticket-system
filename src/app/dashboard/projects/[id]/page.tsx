@@ -29,7 +29,7 @@ import { db } from '@/lib/db';
 import { projects } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { LabelChip } from '@/components/ui-icons';
 
 export default async function ProjectPage({
   params,
@@ -94,12 +94,12 @@ export default async function ProjectPage({
         </Link>
       </div>
 
-      {/* Project header — name (h1, 20px/600) + ticket-key badge (font-mono, secondary) */}
+      {/* Project header — name (h1, 20px/600) + ticket-key chip (font-mono, C4 LabelChip) */}
       <div className="flex items-center gap-3 mb-8">
         <h1 className="text-xl font-semibold">{project.name}</h1>
-        <Badge variant="secondary" className="font-mono">
+        <LabelChip dot={false} className="font-mono">
           {project.ticketKey}
-        </Badge>
+        </LabelChip>
       </div>
 
       {/* Empty ticket-list placeholder — no New-ticket button (D-21) */}

@@ -32,7 +32,8 @@ export function DashboardGreeting({ name }: { name: string | null | undefined })
   const greeting = period ? `Good ${period}` : 'Welcome back';
 
   return (
-    <h2 className="text-xl font-semibold">
+    // M4: settle at C1 weight 500 (the scale's heading weight) — no 600.
+    <h2 className="text-xl font-medium">
       {firstName ? `${greeting}, ${firstName}` : greeting}
     </h2>
   );

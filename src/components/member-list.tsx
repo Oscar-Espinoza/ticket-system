@@ -19,7 +19,7 @@
 import { useState, useTransition } from 'react';
 import { UserMinus } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { LabelChip } from '@/components/ui-icons';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -123,9 +123,9 @@ function MemberRow({
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold">{member.name}</span>
             {member.role === 'owner' ? (
-              <Badge variant="secondary">Owner</Badge>
+              <LabelChip color="primary">Owner</LabelChip>
             ) : (
-              <Badge variant="outline">Member</Badge>
+              <LabelChip>Member</LabelChip>
             )}
           </div>
 

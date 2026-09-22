@@ -20,10 +20,10 @@
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { CheckCircle, CircleOff } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { isGitHubConnected } from '@/lib/github-token';
 import { ProjectList } from '@/components/project-list';
 import { DashboardGreeting } from '@/components/dashboard-greeting';
+import { LabelChip } from '@/components/ui-icons';
 
 export default async function DashboardPage() {
   // Layout already guarded this route; session is guaranteed non-null here, but
@@ -43,18 +43,18 @@ export default async function DashboardPage() {
       <DashboardGreeting name={user?.name} />
 
       <div className="mt-4">
-        {/* Real GitHub-connected badge (UI-SPEC). Connected -> secondary +
-            CheckCircle; not connected -> outline + CircleOff. */}
+        {/* GitHub connection chip (M4: C4 LabelChip, C1 scale). Connected ->
+            primary + CheckCircle; not connected -> neutral + CircleOff. */}
         {githubConnected ? (
-          <Badge variant="secondary">
-            <CheckCircle />
+          <LabelChip color="primary" dot={false}>
+            <CheckCircle className="size-3 text-primary" />
             GitHub connected
-          </Badge>
+          </LabelChip>
         ) : (
-          <Badge variant="outline">
-            <CircleOff />
+          <LabelChip dot={false}>
+            <CircleOff className="size-3" />
             GitHub not connected
-          </Badge>
+          </LabelChip>
         )}
       </div>
 
