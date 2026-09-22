@@ -7,6 +7,9 @@
 // — gating is ALSO enforced server-side in generateInviteLink via requireProjectOwner (D-25).
 //
 // Roster SELECT selects userId, name, role so Plan 04 can wire removeMember(projectId, row.userId).
+//
+// M2: content-only — the hand-rolled top nav (wordmark + email) moved into the
+// AppShell; this page renders no <header>/<main> of its own.
 
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
@@ -84,45 +87,39 @@ export default async function MembersPage({
     ? `${process.env.NEXT_PUBLIC_APP_URL}/invite/${invitation.token}`
     : null;
 
+  // M2 content-only fragment — the AppShell owns the header and content area.
   return (
-    <div className="min-h-screen bg-background">
-      <header className="flex h-14 items-center justify-between border-b px-6">
-        <span className="text-sm font-semibold">Ticket System</span>
-        <span className="text-sm text-muted-foreground">{session.user.email}</span>
-      </header>
+    <>
+      {/* Back link to project */}
+      <Link
+        href={`/dashboard/projects/${id}`}
+        className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1 mb-6"
+      >
+        <ChevronLeft className="h-4 w-4" />
+        Back to project
+      </Link>
 
-      <main className="container mx-auto max-w-4xl px-6 py-8">
-        {/* Back link to project detail */}
-        <Link
-          href={`/dashboard/projects/${id}`}
-          className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1 mb-6"
-        >
-          <ChevronLeft className="h-4 w-4" />
-          Back to project
-        </Link>
+      <h1 className="text-xl font-semibold mb-8">Members</h1>
 
-        <h1 className="text-xl font-semibold mb-8">Members</h1>
+      {/* Invite panel — owner-only (D-25, D-32) */}
+      {membership.role === 'owner' && (
+        <>
+          <InvitePanel projectId={id} inviteUrl={existingUrl} />
+          <Separator className="my-6" />
+        </>
+      )}
 
-        {/* Invite panel — owner-only (D-25, D-32) */}
-        {membership.role === 'owner' && (
-          <>
-            <InvitePanel projectId={id} inviteUrl={existingUrl} />
-            <Separator className="my-6" />
-          </>
-        )}
-
-        {/* Roster section — visible to all members (MEM-04) */}
-        {/* Remove controls only rendered for owner; server guards all removeMember calls */}
-        <section>
-          <h2 className="text-base font-semibold mb-4">Team members</h2>
-          <MemberList
-            members={roster}
-            isOwner={membership.role === 'owner'}
-            currentUserId={session.user.id}
-            projectId={id}
-          />
-        </section>
-      </main>
-    </div>
+      {/* Roster section — visible to all members (MEM-04) */}
+      {/* Remove controls only rendered for owner; server guards all removeMember calls */}
+      <section>
+        <h2 className="text-base font-semibold mb-4">Team members</h2>
+        <MemberList
+          members={roster}
+          isOwner={membership.role === 'owner'}
+          currentUserId={session.user.id}
+          projectId={id}
+        />
+      </section>
+    </>
   );
 }

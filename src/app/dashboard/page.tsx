@@ -1,8 +1,12 @@
 // Minimal authenticated dashboard (D-09) — the Phase 2 project-list seam.
 //
-// Shows: top nav (app name + user email + logout), a time-of-day greeting, and
-// a GitHub-connected status badge derived from the account table at render time
-// (D-05 — never from the session JWT). Plan 03 wired the real check.
+// Shows: a time-of-day greeting and a GitHub-connected status badge derived
+// from the account table at render time (D-05 — never from the session JWT).
+// Plan 03 wired the real check.
+//
+// M2: this page is CONTENT-ONLY. The old hand-rolled top nav (app name +
+// user email + logout) moved verbatim into the AppShell sidebar footer; the
+// shell (dashboard/layout.tsx) owns all chrome.
 //
 // RESEARCH Pattern 5 prefers auth.api.listUserAccounts({ headers }); Open
 // Question 1 flagged that its server-side signature was uncertain (A2). We use
@@ -17,7 +21,6 @@ import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { CheckCircle, CircleOff } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { LogoutButton } from '@/components/logout-button';
 import { isGitHubConnected } from '@/lib/github-token';
 import { ProjectList } from '@/components/project-list';
 import { DashboardGreeting } from '@/components/dashboard-greeting';
@@ -33,39 +36,31 @@ export default async function DashboardPage() {
   // token never reaches this page.
   const githubConnected = user ? await isGitHubConnected(user.id) : false;
 
+  // M2 content-only: no <header>, no page-level <main> — the AppShell owns
+  // both (exactly one header app-wide, full-width content area).
   return (
-    <div className="min-h-screen bg-background">
-      <header className="flex h-14 items-center justify-between border-b px-6">
-        <span className="text-sm font-semibold">Ticket System</span>
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-muted-foreground">{user?.email}</span>
-          <LogoutButton />
-        </div>
-      </header>
+    <>
+      <DashboardGreeting name={user?.name} />
 
-      <main className="container mx-auto max-w-4xl px-6 py-8">
-        <DashboardGreeting name={user?.name} />
+      <div className="mt-4">
+        {/* Real GitHub-connected badge (UI-SPEC). Connected -> secondary +
+            CheckCircle; not connected -> outline + CircleOff. */}
+        {githubConnected ? (
+          <Badge variant="secondary">
+            <CheckCircle />
+            GitHub connected
+          </Badge>
+        ) : (
+          <Badge variant="outline">
+            <CircleOff />
+            GitHub not connected
+          </Badge>
+        )}
+      </div>
 
-        <div className="mt-4">
-          {/* Real GitHub-connected badge (UI-SPEC). Connected -> secondary +
-              CheckCircle; not connected -> outline + CircleOff. */}
-          {githubConnected ? (
-            <Badge variant="secondary">
-              <CheckCircle />
-              GitHub connected
-            </Badge>
-          ) : (
-            <Badge variant="outline">
-              <CircleOff />
-              GitHub not connected
-            </Badge>
-          )}
-        </div>
-
-        {/* IN-01: session already resolved above — pass userId so ProjectList
-            doesn't resolve it a second time. */}
-        <ProjectList userId={user?.id} />
-      </main>
-    </div>
+      {/* IN-01: session already resolved above — pass userId so ProjectList
+          doesn't resolve it a second time. */}
+      <ProjectList userId={user?.id} />
+    </>
   );
 }

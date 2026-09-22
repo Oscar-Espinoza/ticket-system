@@ -10,6 +10,10 @@
 // ticket-list placeholder. No New-ticket button is rendered (D-21 — deferred
 // to Phase 5; ship no non-functional controls).
 //
+// M2: content-only — the hand-rolled top nav (wordmark, Members link, email)
+// moved into the AppShell; the Members link now lives in the content area next
+// to the back-link (a MOVE, not a redesign — visual redesign is M4's job).
+//
 // Security note: this check lives in the Server Component, not middleware.
 // CVE-2025-29927 lets an attacker spoof the x-middleware-subrequest header to
 // bypass middleware checks — server-side session + DAL authorization cannot be
@@ -68,49 +72,45 @@ export default async function ProjectPage({
 
   // Step 5: Render — header + empty ticket-list placeholder.
   // No New-ticket button or CTA (D-21 — deferred to Phase 5).
+  // M2: content-only fragment — chrome (wordmark, email) lives in the AppShell;
+  // no page-level <header>/<main> remains.
   return (
-    <div className="min-h-screen bg-background">
-      <header className="flex h-14 items-center justify-between border-b px-6">
-        <span className="text-sm font-semibold">Ticket System</span>
-        <div className="flex items-center gap-4">
-          <Link
-            href={`/dashboard/projects/${id}/members`}
-            className="text-sm text-muted-foreground hover:text-foreground"
-          >
-            Members
-          </Link>
-          <span className="text-sm text-muted-foreground">{session.user.email}</span>
-        </div>
-      </header>
-
-      <main className="container mx-auto max-w-4xl px-6 py-8">
-        {/* Back link — always navigates to /dashboard (standard Link, no JS history manipulation) */}
+    <>
+      {/* Navigation row — back-link (left) + Members link (right, moved here
+          verbatim from the deleted top nav) */}
+      <div className="mb-6 flex items-center justify-between gap-4">
         <Link
           href="/dashboard"
-          className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1 mb-6"
+          className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1"
         >
           <ChevronLeft className="h-4 w-4" />
           Back to projects
         </Link>
+        <Link
+          href={`/dashboard/projects/${id}/members`}
+          className="text-sm text-muted-foreground hover:text-foreground"
+        >
+          Members
+        </Link>
+      </div>
 
-        {/* Project header — name (h1, 20px/600) + ticket-key badge (font-mono, secondary) */}
-        <div className="flex items-center gap-3 mb-8">
-          <h1 className="text-xl font-semibold">{project.name}</h1>
-          <Badge variant="secondary" className="font-mono">
-            {project.ticketKey}
-          </Badge>
-        </div>
+      {/* Project header — name (h1, 20px/600) + ticket-key badge (font-mono, secondary) */}
+      <div className="flex items-center gap-3 mb-8">
+        <h1 className="text-xl font-semibold">{project.name}</h1>
+        <Badge variant="secondary" className="font-mono">
+          {project.ticketKey}
+        </Badge>
+      </div>
 
-        {/* Empty ticket-list placeholder — no New-ticket button (D-21) */}
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <h2 className="text-base font-semibold">No tickets yet</h2>
-            <p className="text-sm text-muted-foreground mt-2">
-              Tickets will appear here once you create them.
-            </p>
-          </CardContent>
-        </Card>
-      </main>
-    </div>
+      {/* Empty ticket-list placeholder — no New-ticket button (D-21) */}
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center py-16">
+          <h2 className="text-base font-semibold">No tickets yet</h2>
+          <p className="text-sm text-muted-foreground mt-2">
+            Tickets will appear here once you create them.
+          </p>
+        </CardContent>
+      </Card>
+    </>
   );
 }
