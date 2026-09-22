@@ -8,16 +8,18 @@
 // per the M2 spec) feeds BOTH the sidebar project list and the breadcrumb's
 // id→name map, so the sidebar can never disagree with the main list.
 //
-// C2 slots:
-//   - sidebarFooter: ships with the EXISTING logout control moved verbatim
-//     from the old page headers. M3 replaces it with the avatar menu by
-//     passing a node from dashboard/layout.tsx — AppShell internals are then
-//     off-limits (M2 "Allowed future touches").
-//   - topbarRight: ships empty; M3 mounts the command-palette trigger here.
+// C2 slots (filled by dashboard/layout.tsx):
+//   - sidebarFooter: M3 replaced the footer default (raw email + logout
+//     button) wholesale with the avatar UserMenu — the old fallback was
+//     DELETED, not hidden (M3 acceptance), which is why there is no
+//     `?? default` here anymore; this is the slot default itself, the one
+//     AppShell edit M3's "diff touches slots" allows.
+//   - topbarRight: M3's TopbarChrome (palette trigger + palette + overlay +
+//     hotkeys + Toaster).
+// Later milestones pass/extend slot content only — never frame internals.
 
 import type { ReactNode } from 'react';
 
-import { LogoutButton } from '@/components/logout-button';
 import { getProjectsForUser } from '@/components/project-list';
 import { ShellFrame } from './shell-frame';
 
@@ -31,9 +33,13 @@ export interface AppShellProps {
   /** Session user resolved by the layout's guard (server-side, no re-fetch). */
   user: AppShellUser;
   children: React.ReactNode;
-  /** C2 composition slot — defaults to the moved logout control. */
+  /**
+   * C2 composition slot — NO default: the layout always fills it (M3's
+   * avatar menu). Rendering an empty slot must not resurrect the old
+   * standalone logout control ("deleted, not hidden").
+   */
   sidebarFooter?: ReactNode;
-  /** C2 composition slot — ships empty (M3 fills it). */
+  /** C2 composition slot — M3's TopbarChrome fills it. */
   topbarRight?: ReactNode;
 }
 
@@ -48,27 +54,10 @@ export async function AppShell({
   return (
     <ShellFrame
       projects={projects.map((p) => ({ id: p.id, name: p.name }))}
-      sidebarFooter={sidebarFooter ?? <DefaultSidebarFooter email={user.email} />}
+      sidebarFooter={sidebarFooter}
       topbarRight={topbarRight}
     >
       {children}
     </ShellFrame>
-  );
-}
-
-// The logout control MOVED VERBATIM (same component, unchanged) from the three
-// hand-rolled page headers that M2 deletes; only its position changed.
-function DefaultSidebarFooter({ email }: { email?: string | null }) {
-  return (
-    <div className="flex flex-col gap-1">
-      {email && (
-        <span className="truncate px-2 text-xs text-muted-foreground">
-          {email}
-        </span>
-      )}
-      <div className="flex">
-        <LogoutButton />
-      </div>
-    </div>
   );
 }

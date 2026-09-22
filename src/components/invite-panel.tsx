@@ -6,15 +6,18 @@
 //   - When inviteUrl is set: read-only URL input + Copy button + Regenerate button
 //   - When inviteUrl is null: Generate invite link button (primary)
 //
-// Copy uses navigator.clipboard.writeText with a select() fallback and a
-// "Copied!" feedback label for 2000ms. Regenerate/Generate calls generateInviteLink
+// Copy uses navigator.clipboard.writeText with a select() fallback; M3 replaced
+// the old inline "Copied!" 2s flash with a sonner toast. Generate/Regenerate
+// success also toasts (M3 scope 3); the inline feedback state is gone.
+// Regenerate/Generate calls generateInviteLink
 // via useActionState (so the pending state drives the Loader2 spinner).
 //
 // The URL arrives as a prop from the server component (never read from env here).
 // After a successful generate/regenerate, revalidatePath in the action re-renders
 // the page so inviteUrl stays fresh without manual state sync.
 
-import { useActionState, useRef, useState } from 'react';
+import { useActionState, useRef } from 'react';
+import { toast } from 'sonner';
 import { generateInviteLink, type GenerateInviteState } from '@/app/actions/invite';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -32,10 +35,25 @@ export function InvitePanel({
   inviteUrl: string | null;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [copied, setCopied] = useState(false);
 
   const [state, formAction, isPending] = useActionState(
-    generateInviteLink,
+    async (
+      prevState: GenerateInviteState | Record<string, never>,
+      formData: FormData,
+    ) => {
+      const result = await generateInviteLink(prevState, formData);
+      // Success side effect inside the action (same pattern as
+      // CreateProjectDialog): fires on EVERY successful submit — first
+      // generation vs. regeneration get distinct copy.
+      if (result.url) {
+        toast.success(
+          (prevState as GenerateInviteState).url
+            ? 'Invite link regenerated'
+            : 'Invite link created',
+        );
+      }
+      return result;
+    },
     initialState,
   );
 
@@ -47,12 +65,12 @@ export function InvitePanel({
     if (!displayUrl) return;
     try {
       await navigator.clipboard.writeText(displayUrl);
+      toast.success('Invite link copied');
     } catch {
       // Fallback: select the input text so the user can copy manually
       inputRef.current?.select();
+      toast.error('Copy failed — link selected, press Ctrl+C');
     }
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   }
 
   return (
@@ -89,7 +107,7 @@ export function InvitePanel({
                   onClick={handleCopy}
                 >
                   <Copy className="mr-2 h-4 w-4" />
-                  {copied ? 'Copied!' : 'Copy'}
+                  Copy
                 </Button>
 
                 {/* Regenerate button — submits the form to replace the token */}

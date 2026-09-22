@@ -7,8 +7,15 @@
 //       capped at 6 chars. Validation (2-char minimum, uniqueness) happens on submit.
 // The form uses useActionState with the createProject Server Action so the pending
 // state, field errors, and success handling are fully integrated.
+//
+// M3: optional controlled mode — TopbarChrome mounts its own instance
+// (open/onOpenChange + hideTrigger) for the palette's "New project" command
+// and the `C` hotkey. Controlled and uncontrolled instances never share state,
+// so the IN-03 multi-instance page mounts stay independent (no double dialog).
+// Success also fires a sonner toast (M3 scope 3).
 
 import { useActionState, useId, useState } from 'react';
+import { toast } from 'sonner';
 import { createProject, type CreateProjectState } from '@/app/actions/projects';
 import {
   Dialog,
@@ -25,9 +32,26 @@ import { Loader2, Plus } from 'lucide-react';
 
 const initialState: CreateProjectState = {};
 
-export function CreateProjectDialog() {
-  const [open, setOpen] = useState(false);
+export function CreateProjectDialog({
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
+  hideTrigger = false,
+}: {
+  /** Controlled open state (palette/`C` instance); omit for local state. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /** Hide the "New project" trigger button (the palette is the trigger). */
+  hideTrigger?: boolean;
+}) {
+  const [internalOpen, setInternalOpen] = useState(false);
   const [ticketKey, setTicketKey] = useState('');
+
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = (next: boolean) => {
+    if (!isControlled) setInternalOpen(next);
+    controlledOnOpenChange?.(next);
+  };
 
   // IN-03: this dialog mounts more than once per page (section header + empty
   // state CTA). Derive all field/error ids from a useId() prefix so the two
@@ -50,6 +74,7 @@ export function CreateProjectDialog() {
       if (result.success) {
         setOpen(false);
         setTicketKey('');
+        toast.success('Project created');
       }
       return result;
     },
@@ -58,11 +83,14 @@ export function CreateProjectDialog() {
 
   return (
     <>
-      {/* Trigger button — shown in the dashboard section header and empty state */}
-      <Button onClick={() => setOpen(true)}>
-        <Plus className="mr-2 h-4 w-4" />
-        New project
-      </Button>
+      {/* Trigger button — shown in the dashboard section header and empty
+          state; hidden for the palette-owned instance (hideTrigger) */}
+      {!hideTrigger && (
+        <Button onClick={() => setOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          New project
+        </Button>
+      )}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-md">
