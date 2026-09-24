@@ -14,7 +14,7 @@
 - [x] **Phase 2: Projects + Authorization Layer** - Project creation, listing, and the `requireProjectMember` security primitive (completed 2026-06-02)
 - [ ] **Phase 3: Membership + Invite Links** - Invite link generation/acceptance and member management (4/4 plans built; verification found 1 gap — MEM-02 logged-out join path)
 - [ ] **Phase 4: Project Settings** - Owner can edit project name and link a GitHub repo
-- [ ] **Phase 5: Tickets Core** - Full ticket CRUD with atomic per-project identifiers and ticket detail page
+- [x] **Phase 5: Tickets Core** - Full ticket CRUD with atomic per-project identifiers and ticket detail page
 - [x] **Phase 6: Kanban Board** - Five-column drag-and-drop board with persisted status changes
 - [ ] **Phase 7: Connect GitHub + Branch Creation** - GitHub OAuth link flow and creating branches from tickets
 - [ ] **Phase 8: Webhook Registration + Status Sync** - Per-project webhook registration and PR-driven ticket transitions
@@ -239,7 +239,7 @@ Plans:
 | 2. Projects + Authorization Layer | 4/4 | Complete   | 2026-06-02 |
 | 3. Membership + Invite Links | 4/4 | Gaps Found | - |
 | 4. Project Settings | 0/? | Not started | - |
-| 5. Tickets Core | DAL + actions | In Progress (TKT-01…06 done; TKT-07 detail via MIMO M7) | - |
+| 5. Tickets Core | DAL + actions + MIMO M5/M7 UI | Complete | 2026-09-24 |
 | 6. Kanban Board | via MIMO M6 | Complete | 2026-09-24 |
 | 7. Connect GitHub + Branch Creation | 0/? | Not started | - |
 | 8. Webhook Registration + Status Sync | 0/? | Not started | - |

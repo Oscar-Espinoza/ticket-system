@@ -49,14 +49,14 @@ right with editable properties — no full-page navigation on desktop.
 
 ## Acceptance criteria
 
-- [ ] `npm run lint` and `npm test` pass.
-- [ ] Opening/closing the pane never triggers a full page load; deep-linkable URL
+- [x] `npm run lint` and `npm test` pass.
+- [x] Opening/closing the pane never triggers a full page load; deep-linkable URL
       (issue key in search param) restores the open pane.
-- [ ] Every property edit persists after reload; failures toast + revert.
-- [ ] Keyboard: `Enter` opens focused row, `Esc` closes and focus returns to the
+- [x] Every property edit persists after reload; failures toast + revert.
+- [x] Keyboard: `Enter` opens focused row, `Esc` closes and focus returns to the
       row/card that opened it.
-- [ ] No comments UI, no placeholder timeline, no disabled rich-text controls.
-- [ ] Narrow viewport: sheet presentation, no horizontal overflow.
+- [x] No comments UI, no placeholder timeline, no disabled rich-text controls.
+- [x] Narrow viewport: sheet presentation, no horizontal overflow.
 
 ## Verification
 

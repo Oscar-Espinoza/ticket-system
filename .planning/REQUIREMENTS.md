@@ -38,7 +38,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **TKT-04**: User can delete a ticket
 - [x] **TKT-05**: User can assign a ticket to a project member
 - [x] **TKT-06**: User can change a ticket's status (backlog, todo, in_progress, in_review, done)
-- [ ] **TKT-07**: User can open a ticket detail page showing its full information
+- [x] **TKT-07**: User can open a ticket detail page showing its full information
 
 ### Board
 
@@ -116,7 +116,7 @@ Which phases cover which requirements.
 | TKT-04 | Phase 5 | Complete |
 | TKT-05 | Phase 5 | Complete |
 | TKT-06 | Phase 5 | Complete |
-| TKT-07 | Phase 5 | Pending |
+| TKT-07 | Phase 5 | Complete |
 | BOARD-01 | Phase 6 | Complete |
 | BOARD-02 | Phase 6 | Complete |
 | GH-01 | Phase 7 | Pending |

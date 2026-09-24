@@ -7,7 +7,7 @@ import Link from 'next/link';
 
 import { getSession } from '@/lib/session';
 import { requireProjectMember, ProjectAccessError } from '@/lib/project-access';
-import { getProjectMemberOptions, getProjectTickets } from '@/lib/tickets';
+import { getProjectMemberOptions, getProjectTickets, getTicketByNumber } from '@/lib/tickets';
 import { VIEW_COOKIE, parseIssueFilters } from '@/lib/issue-model';
 import { getProjectsForUser } from '@/components/project-list';
 import { IssuesView } from '@/components/issues/issues-view';
@@ -34,7 +34,8 @@ export default async function ProjectPage({
     throw err;
   }
 
-  const filters = parseIssueFilters(await searchParams);
+  const query = await searchParams;
+  const filters = parseIssueFilters(query);
   const [userProjects, issues, members] = await Promise.all([
     getProjectsForUser(session.user.id),
     getProjectTickets(id, filters),
@@ -43,6 +44,16 @@ export default async function ProjectPage({
   const project = userProjects.find((p) => p.id === id);
   if (!project) notFound();
   const defaultView = (await cookies()).get(VIEW_COOKIE)?.value;
+
+  // A deep-linked issue may be hidden by the active filters; load it directly.
+  const issueKey = typeof query.issue === 'string' ? query.issue : null;
+  const issueNumber = issueKey?.startsWith(`${project.ticketKey}-`)
+    ? Number(issueKey.slice(project.ticketKey.length + 1))
+    : NaN;
+  const linkedIssue =
+    Number.isInteger(issueNumber) && !issues.some((i) => i.key === issueKey)
+      ? await getTicketByNumber(id, issueNumber)
+      : null;
 
   return (
     <div className="flex min-h-full flex-col">
@@ -66,6 +77,7 @@ export default async function ProjectPage({
         filters={filters}
         totalCount={project.openCount + project.resolvedCount}
         defaultView={defaultView}
+        linkedIssue={linkedIssue}
       />
     </div>
   );
