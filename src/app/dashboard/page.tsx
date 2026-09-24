@@ -17,8 +17,7 @@
 // The project list renders via the directly-mounted <ProjectList /> below
 // (CR-01: this is a page.tsx, which App Router never passes `children`).
 
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
+import { getSession } from '@/lib/session';
 import { CheckCircle, CircleOff } from 'lucide-react';
 import { isGitHubConnected } from '@/lib/github-token';
 import { ProjectList } from '@/components/project-list';
@@ -28,7 +27,7 @@ import { LabelChip } from '@/components/ui-icons';
 export default async function DashboardPage() {
   // Layout already guarded this route; session is guaranteed non-null here, but
   // we re-read it for the user's email/name (server-side, no client exposure).
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getSession();
   const user = session?.user;
 
   // D-05: connection status is derived from the account table at render time,

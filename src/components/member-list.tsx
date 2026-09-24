@@ -121,7 +121,7 @@ function MemberRow({
         <div className="flex items-center justify-between gap-4">
           {/* Left: name + role badge */}
           <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold">{member.name}</span>
+            <span className="text-sm font-medium">{member.name}</span>
             {member.role === 'owner' ? (
               <LabelChip color="primary">Owner</LabelChip>
             ) : (

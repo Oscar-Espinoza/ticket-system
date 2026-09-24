@@ -21,9 +21,8 @@
 
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
-import { headers } from 'next/headers';
 import { ChevronLeft } from 'lucide-react';
-import { auth } from '@/lib/auth';
+import { getSession } from '@/lib/session';
 import { requireProjectMember, ProjectAccessError } from '@/lib/project-access';
 import { db } from '@/lib/db';
 import { projects } from '@/db/schema';
@@ -40,7 +39,7 @@ export default async function ProjectPage({
   const { id } = await params;
 
   // Step 2: Resolve session — redirect unauthenticated users to /login.
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getSession();
   if (!session?.user) {
     redirect('/login');
   }
@@ -96,7 +95,7 @@ export default async function ProjectPage({
 
       {/* Project header — name (h1, 20px/600) + ticket-key chip (font-mono, C4 LabelChip) */}
       <div className="flex items-center gap-3 mb-8">
-        <h1 className="text-xl font-semibold">{project.name}</h1>
+        <h1 className="text-xl font-medium">{project.name}</h1>
         <LabelChip dot={false} className="font-mono">
           {project.ticketKey}
         </LabelChip>
@@ -105,7 +104,7 @@ export default async function ProjectPage({
       {/* Empty ticket-list placeholder — no New-ticket button (D-21) */}
       <Card>
         <CardContent className="flex flex-col items-center justify-center py-16">
-          <h2 className="text-base font-semibold">No tickets yet</h2>
+          <h2 className="text-base font-medium">No tickets yet</h2>
           <p className="text-sm text-muted-foreground mt-2">
             Tickets will appear here once you create them.
           </p>

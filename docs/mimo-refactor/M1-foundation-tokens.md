@@ -59,14 +59,14 @@ palette/type/motion system.
 
 ## Acceptance criteria
 
-- [ ] `npm run lint` and `npm test` pass.
-- [ ] Card titles render in Geist, not serif (verified via `/login` computed style
+- [x] `npm run lint` and `npm test` pass.
+- [x] Card titles render in Geist, not serif (verified via `/login` computed style
       or screenshot).
-- [ ] `/` redirects to `/dashboard`; unauthenticated `/dashboard` lands on `/login`.
-- [ ] `<title>` no longer contains "Create Next App".
-- [ ] Both themes render complete (no unstyled/harsh-white flashes): verified by
+- [x] `/` redirects to `/dashboard`; unauthenticated `/dashboard` lands on `/login`.
+- [x] `<title>` no longer contains "Create Next App".
+- [x] Both themes render complete (no unstyled/harsh-white flashes): verified by
       toggling the `class="dark"` attribute manually (toggle ships in M3).
-- [ ] Auth pages use only C1 tokens (no hard-coded hex/gray-* utilities).
+- [x] Auth pages use only C1 tokens (no hard-coded hex/gray-* utilities).
 
 ## Verification
 

@@ -13,9 +13,8 @@
 
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
-import { headers } from 'next/headers';
 import { ChevronLeft } from 'lucide-react';
-import { auth } from '@/lib/auth';
+import { getSession } from '@/lib/session';
 import { requireProjectMember, ProjectAccessError } from '@/lib/project-access';
 import { db } from '@/lib/db';
 import { projects, projectMembers, invitations, users } from '@/db/schema';
@@ -33,7 +32,7 @@ export default async function MembersPage({
   const { id } = await params;
 
   // Step 2: Resolve session — redirect unauthenticated users to /login.
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getSession();
   if (!session?.user) {
     redirect('/login');
   }
@@ -99,7 +98,7 @@ export default async function MembersPage({
         Back to project
       </Link>
 
-      <h1 className="text-xl font-semibold mb-8">Members</h1>
+      <h1 className="text-xl font-medium mb-8">Members</h1>
 
       {/* Invite panel — owner-only (D-25, D-32) */}
       {membership.role === 'owner' && (
@@ -112,7 +111,7 @@ export default async function MembersPage({
       {/* Roster section — visible to all members (MEM-04) */}
       {/* Remove controls only rendered for owner; server guards all removeMember calls */}
       <section>
-        <h2 className="text-base font-semibold mb-4">Team members</h2>
+        <h2 className="text-base font-medium mb-4">Team members</h2>
         <MemberList
           members={roster}
           isOwner={membership.role === 'owner'}

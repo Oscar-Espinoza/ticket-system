@@ -41,16 +41,10 @@ export function InvitePanel({
       prevState: GenerateInviteState | Record<string, never>,
       formData: FormData,
     ) => {
+      const hadUrl = Boolean((prevState as GenerateInviteState).url ?? inviteUrl);
       const result = await generateInviteLink(prevState, formData);
-      // Success side effect inside the action (same pattern as
-      // CreateProjectDialog): fires on EVERY successful submit — first
-      // generation vs. regeneration get distinct copy.
       if (result.url) {
-        toast.success(
-          (prevState as GenerateInviteState).url
-            ? 'Invite link regenerated'
-            : 'Invite link created',
-        );
+        toast.success(hadUrl ? 'Invite link regenerated' : 'Invite link created');
       }
       return result;
     },
@@ -69,7 +63,7 @@ export function InvitePanel({
     } catch {
       // Fallback: select the input text so the user can copy manually
       inputRef.current?.select();
-      toast.error('Copy failed — link selected, press Ctrl+C');
+      toast.error('Copy failed — the link is selected, copy it manually');
     }
   }
 

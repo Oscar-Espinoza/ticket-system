@@ -50,15 +50,15 @@ content-only; all chrome lives in exactly one place.
 
 ## Acceptance criteria
 
-- [ ] `npm run lint` and `npm test` pass.
-- [ ] Exactly one `<header>`-equivalent exists app-wide (the AppShell topbar);
+- [x] `npm run lint` and `npm test` pass.
+- [x] Exactly one `<header>`-equivalent exists app-wide (the AppShell topbar);
       zero duplicated `h-14` headers remain.
-- [ ] `/dashboard`, `/dashboard/projects/[id]`, `.../members` all render inside the
+- [x] `/dashboard`, `/dashboard/projects/[id]`, `.../members` all render inside the
       shell; sidebar project list matches the main list's data (same query).
-- [ ] Logout still works (moved, not rewritten).
-- [ ] Auth guard behavior unchanged: unauthenticated `/dashboard` still redirects
+- [x] Logout still works (moved, not rewritten).
+- [x] Auth guard behavior unchanged: unauthenticated `/dashboard` still redirects
       to `/login` (covered by existing routing tests).
-- [ ] Keyboard: sidebar links reachable by Tab with visible focus (C1 focus ring).
+- [x] Keyboard: sidebar links reachable by Tab with visible focus (C1 focus ring).
 
 ## Verification
 

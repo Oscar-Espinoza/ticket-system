@@ -145,13 +145,3 @@ export function StatusIcon({
     </svg>
   );
 }
-
-// Type/value merge — M4 acceptance requires `StatusIcon['status']` to be
-// *literally* the enum type. A function declaration alone has no `status`
-// member in the type space; merging this interface makes the indexed access
-// resolve, while `ComponentProps<typeof StatusIcon>['status']` (the usual
-// form) resolves to the same type via the parameter above. Both forms were
-// compile-time-proven equal to TicketStatus during M4 development.
-export interface StatusIcon {
-  status: TicketStatus;
-}

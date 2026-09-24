@@ -50,14 +50,14 @@ existing C2 slots with zero layout changes.
 
 ## Acceptance criteria
 
-- [ ] `npm run lint` and `npm test` pass.
-- [ ] `⌘K` opens palette from any dashboard route; `Esc` closes; focus returns to
+- [x] `npm run lint` and `npm test` pass.
+- [x] `⌘K` opens palette from any dashboard route; `Esc` closes; focus returns to
       the trigger.
-- [ ] `?` shows an overlay listing ONLY currently-registered shortcuts.
-- [ ] Invite copy shows a toast (no inline "Copied!" label remains).
-- [ ] Fresh visit defaults to dark; toggle persists across reloads.
-- [ ] Logout reachable only through the avatar menu (old button deleted, not hidden).
-- [ ] No layout/CSS-structure changes vs M2 (diff touches slots + new files only).
+- [x] `?` shows an overlay listing ONLY currently-registered shortcuts.
+- [x] Invite copy shows a toast (no inline "Copied!" label remains).
+- [x] Fresh visit defaults to dark; toggle persists across reloads.
+- [x] Logout reachable only through the avatar menu (old button deleted, not hidden).
+- [x] No layout/CSS-structure changes vs M2 (diff touches slots + new files only).
 
 ## Verification
 

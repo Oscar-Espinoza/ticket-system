@@ -1,7 +1,7 @@
 # MIMO Refactor — Linear-style UI overhaul
 
-Status: PLANNING ONLY — no implementation yet.
-Branch: `refactor/linear-ui` (created at plan time, `main` untouched).
+Status: M1–M4 shipped; GSD Phase 5 (tickets core) is built ahead of M5, then M5–M8.
+Branch: `refactor/linear-ui`, fast-forwarded into `main` after each milestone.
 Execution will go through the GSD workflow required by CLAUDE.md; this directory is
 the source plan each phase/plan derives from.
 
@@ -103,6 +103,19 @@ and never implements work owned by a later one.
   plan is the input artifact.
 - Keep the security model intact: server-side session guard stays in
   `dashboard/layout.tsx`, `requireProjectMember()` before every project-scoped read.
+
+## Plan amendments (2026-09-24)
+
+1. **Priority and labels are out of scope.** The `ticket` table has no priority or
+   label columns and no milestone owns a schema change, so M5–M7 omit them (D-21: no
+   dead UI). `PriorityIcon` stays in C4 for a future phase; `LabelChip` is used only
+   for existing domain chips (keys, roles, GitHub status).
+2. **Status-menu hotkey is `s` everywhere.** M5's `x` clashed with M7's `X`-to-close,
+   and Linear uses `S` for status. The detail pane closes with `Esc` (and its close
+   button) only.
+3. **GSD Phase 5 lands first.** The M5 blocker is resolved by building Phase 5
+   (ticket DAL + server actions, `src/lib/tickets.ts`, `src/app/actions/tickets.ts`)
+   as its own commit before M5; M5–M7 still contain no DAL code.
 
 ## Known foundation bugs (evidence from plan-time review)
 

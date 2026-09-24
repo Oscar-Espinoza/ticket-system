@@ -51,15 +51,15 @@ skeletons, empty states — and a dense project list that uses it.
 
 ## Acceptance criteria
 
-- [ ] `npm run lint` and `npm test` pass.
-- [ ] All five StatusIcon variants render correctly in isolation (temporary
+- [x] `npm run lint` and `npm test` pass.
+- [x] All five StatusIcon variants render correctly in isolation (temporary
       throwaway showcase page during dev, removed before commit) and match enum
       values via type check — `StatusIcon['status']` is literally the enum type.
-- [ ] `/dashboard` project list: card layout fully gone; rows keyboard-focusable,
+- [x] `/dashboard` project list: card layout fully gone; rows keyboard-focusable,
       hover/focus states visible in both themes.
-- [ ] No default shadcn `Badge` visible anywhere in shipped routes.
-- [ ] Empty state renders `EmptyState` (no "No projects yet" ad-hoc markup).
-- [ ] Skeletons demonstrably used wherever a list suspends (add to project list
+- [x] No default shadcn `Badge` visible anywhere in shipped routes.
+- [x] Empty state renders `EmptyState` (no "No projects yet" ad-hoc markup).
+- [x] Skeletons demonstrably used wherever a list suspends (add to project list
       loading path if none exists).
 
 ## Verification

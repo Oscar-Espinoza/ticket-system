@@ -12,12 +12,12 @@
 // T-02-08: userId always comes from auth.api.getSession({ headers }) server-side.
 // T-02-09: cast(count(...) as int) ensures numeric openCount/resolvedCount.
 
+import { cache } from 'react';
 import Link from 'next/link';
-import { headers } from 'next/headers';
 import { sql, eq } from 'drizzle-orm';
 import { ChevronRight, FolderPlus } from 'lucide-react';
 
-import { auth } from '@/lib/auth';
+import { getSession } from '@/lib/session';
 import { db } from '@/lib/db';
 import { projects, projectMembers, tickets } from '@/db/schema';
 import { CreateProjectDialog } from '@/components/create-project-dialog';
@@ -34,8 +34,8 @@ import { EmptyState, LabelChip } from '@/components/ui-icons';
  * The INNER JOIN on project_member is the authorization filter — no project
  * without a membership row for this userId can appear in the result set.
  */
-export async function getProjectsForUser(userId: string) {
-  return db
+export const getProjectsForUser = cache(async (userId: string) =>
+  db
     .select({
       id: projects.id,
       name: projects.name,
@@ -58,8 +58,8 @@ export async function getProjectsForUser(userId: string) {
       projects.createdAt,
       projectMembers.role,
     )
-    .orderBy(sql`${projects.createdAt} desc`);
-}
+    .orderBy(sql`${projects.createdAt} desc`),
+);
 
 // ---------------------------------------------------------------------------
 // Server Component
@@ -72,7 +72,7 @@ export async function ProjectList({ userId }: { userId?: string } = {}) {
   // T-02-08: userId always originates from auth.api.getSession server-side.
   let resolvedUserId = userId;
   if (!resolvedUserId) {
-    const session = await auth.api.getSession({ headers: await headers() });
+    const session = await getSession();
     resolvedUserId = session?.user?.id;
   }
 
@@ -84,7 +84,7 @@ export async function ProjectList({ userId }: { userId?: string } = {}) {
     <div className="mt-8">
       {/* Section header — always visible regardless of empty state */}
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-base font-semibold">Projects</h3>
+        <h3 className="text-base font-medium">Projects</h3>
         <CreateProjectDialog />
       </div>
 

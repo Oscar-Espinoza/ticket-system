@@ -16,7 +16,7 @@ right with editable properties — no full-page navigation on desktop.
 2. **Detail pane content**:
    - Editable title (inline, Enter/blur to save via Phase 5 update action);
    - description editor (plain textarea at C1 type scale — no rich text);
-   - properties editor (status, priority, assignee, labels): Radix selects built
+   - properties editor (status, assignee — priority/labels omitted, README amendment 1): Radix selects built
      on C4 (`StatusIcon` inside the status select trigger);
    - key + created/updated metadata, GitHub state line **only if** Phase 7/8 data
      exists (D-21: otherwise omit the row entirely).
@@ -25,10 +25,10 @@ right with editable properties — no full-page navigation on desktop.
    Comments/activity require a schema migration and are explicitly OUT — recorded
    in README as a future M9, not part of this plan.
 4. **Selection wiring**: `Enter` (M5's deferred binding) and card click (M6)
-   open the pane via the additive `onSelect` props granted in M5/M6; `Esc`/`X`
-   close and return focus to the invoking row/card (focus restoration is part of
+   open the pane via the additive `onSelect` props granted in M5/M6; `Esc`
+   closes it and returns focus to the invoking row/card (focus restoration is part of
    the contract, verified in M8).
-5. **Hotkeys** (C3): `Enter` open, `Esc`/`X` close, `S` status menu — registered
+5. **Hotkeys** (C3): `Enter` open, `Esc` close, `S` status menu — registered
    scoped to a row being focused.
 
 ## Out of scope (owner in parentheses)

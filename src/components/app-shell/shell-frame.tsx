@@ -64,6 +64,7 @@ export function ShellFrame({
       {/* Sidebar — ~220px, Linear-style (C1 sidebar tokens) */}
       {!collapsed && (
         <aside
+          id="app-sidebar"
           data-app-sidebar
           className="flex w-[220px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar"
         >
@@ -75,6 +76,8 @@ export function ShellFrame({
               variant="ghost"
               size="icon-sm"
               aria-label="Collapse sidebar"
+              aria-expanded="true"
+              aria-controls="app-sidebar"
               onClick={() => setCollapsed(true)}
             >
               <PanelLeft />
@@ -144,6 +147,7 @@ export function ShellFrame({
               variant="ghost"
               size="icon-sm"
               aria-label="Expand sidebar"
+              aria-expanded="false"
               onClick={() => setCollapsed(false)}
             >
               <PanelLeft />

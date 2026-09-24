@@ -12,8 +12,8 @@ list-scoped keyboard navigation, and a view switcher that M6 extends.
 ## Scope
 
 1. **Ticket read path UI** (`dashboard/projects/[id]/page.tsx` content area):
-   - Issue rows: `StatusIcon` + mono key (`FOO-12`) + title + `LabelChip`s +
-     `Avatar` + relative date — all composed from C4, laid out at M4 density.
+   - Issue rows: `StatusIcon` + mono key (`FOO-12`) + title + `Avatar` +
+     relative date (labels omitted — README amendment 1) — all composed from C4, laid out at M4 density.
    - Grouped by status with sticky group headers (icon + name + count).
    - Loading: `Skeleton` row list; no tickets: `EmptyState` with create CTA.
 2. **View switcher**: segmented List/Board control above the list. M5 ships the
@@ -28,8 +28,7 @@ list-scoped keyboard navigation, and a view switcher that M6 extends.
 5. **List hotkeys** (registered through C3 only): `j`/`k` row cursor, `Enter` open
    (opens detail — M7; until M7 lands, Enter navigates to the row's anchor/no-op
    is NOT acceptable, therefore Enter binding ships in M7 together with the
-   detail pane), `x` toggle status menu — only if the Phase 5 update action
-   exists; otherwise the row's status menu is mouse-only until M7 wires it.
+   detail pane), `s` opens the focused row's status menu (README amendment 2).
 
 ## Data dependency (explicit)
 
