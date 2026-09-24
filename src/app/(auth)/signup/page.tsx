@@ -3,11 +3,14 @@
 // Already-authenticated users are redirected to /dashboard; otherwise the
 // client signup form renders.
 
+import type { Metadata } from 'next';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { SignupForm } from './signup-form';
 import { Wordmark } from '@/components/wordmark';
+
+export const metadata: Metadata = { title: 'Sign up' };
 
 export default async function SignupPage() {
   const session = await auth.api.getSession({ headers: await headers() });

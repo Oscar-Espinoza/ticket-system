@@ -6,11 +6,8 @@
 //   - When inviteUrl is set: read-only URL input + Copy button + Regenerate button
 //   - When inviteUrl is null: Generate invite link button (primary)
 //
-// Copy uses navigator.clipboard.writeText with a select() fallback; M3 replaced
-// the old inline "Copied!" 2s flash with a sonner toast. Generate/Regenerate
-// success also toasts (M3 scope 3); the inline feedback state is gone.
-// Regenerate/Generate calls generateInviteLink
-// via useActionState (so the pending state drives the Loader2 spinner).
+// Copy uses navigator.clipboard.writeText with a select() fallback; results
+// toast. Generate/Regenerate call generateInviteLink via useActionState.
 //
 // The URL arrives as a prop from the server component (never read from env here).
 // After a successful generate/regenerate, revalidatePath in the action re-renders

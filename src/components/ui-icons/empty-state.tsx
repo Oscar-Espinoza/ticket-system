@@ -1,10 +1,3 @@
-// EmptyState — C4 primitive (M4 scope item 1). Icon + title + description +
-// CTA slot, replacing ad-hoc empty markup ("no 'No projects yet' ad-hoc
-// markup" is an M4 acceptance criterion).
-//
-// The title sits at the C1 heading scale (text-base / 14px, font-medium —
-// the same 500 weight the dashboard greeting settles at in M4).
-
 import type { ComponentPropsWithoutRef, ReactNode } from 'react';
 
 import { cn } from '@/lib/utils';

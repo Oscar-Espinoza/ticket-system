@@ -1,6 +1,3 @@
-// Shared app wordmark — M1 ships it on the auth pages; M2's sidebar workspace
-// header consumes the same component (see docs/mimo-refactor/README.md C-refs).
-
 export function Wordmark() {
   return (
     <span className="inline-flex items-center gap-2.5">

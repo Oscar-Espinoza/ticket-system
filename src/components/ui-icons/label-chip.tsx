@@ -1,11 +1,4 @@
-// LabelChip — C4 primitive (M4 scope item 1). The domain replacement for
-// shadcn `Badge`: a colored dot + text at the C1 label scale (11px), on the
-// C1 secondary surface. `color` is data-driven and every value maps to a C1
-// token — the five ticket_status colors plus primary/destructive/default
-// give M5's labels a complete palette without inventing hues.
-//
-// Used for: GitHub-connected status, Owner/Member roles, ticket-key chips
-// (pass `dot={false} className="font-mono"` for keys).
+// Domain chip (replaces shadcn Badge); every color maps to a C1 token.
 
 import type { ComponentPropsWithoutRef } from 'react';
 

@@ -130,7 +130,7 @@ export default function Board({
     >
       <div
         data-board
-        className="-mx-6 flex flex-1 overflow-x-auto px-6 pb-4"
+        className="-mx-4 flex flex-1 overflow-x-auto px-4 pb-4 sm:-mx-6 sm:px-6"
         style={{ gap: COLUMN_GAP }}
       >
         {groups.map((group) => (

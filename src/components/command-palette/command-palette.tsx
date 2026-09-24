@@ -1,17 +1,5 @@
 'use client';
 
-// Command palette — M3 scope 1 (docs/mimo-refactor/M3-interaction-layer.md).
-//
-// Renders two sources of commands, both scoped to what exists today:
-//   - built-ins: passed in by TopbarChrome (projects from the layout query,
-//     contextual Members, New project, theme, logout);
-//   - extensions: the C3 palette registry (lib/palette-commands.ts) — M5 adds
-//     "New issue" there, never here.
-//
-// Opened by the topbar trigger, ⌘K/Ctrl+K or `/`; Esc closes (radix Dialog)
-// and focus returns to the trigger (TopbarChrome focuses it before opening,
-// which is what radix restores on close).
-
 import { useSyncExternalStore } from 'react';
 
 import {

@@ -12,6 +12,7 @@
 // D-28: invalid/expired token returns 200 with a generic message — next/navigation not-found
 //       is intentionally avoided (it would confirm token existence, leaking info).
 
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { headers } from 'next/headers';
 import { auth } from '@/lib/auth';
@@ -27,6 +28,8 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { JoinProjectButton } from '@/components/join-project-button';
+
+export const metadata: Metadata = { title: 'Join project' };
 
 export default async function InvitePage({
   params,
@@ -72,7 +75,7 @@ export default async function InvitePage({
 
   // Step 5: Centered card layout (UI-SPEC, 03-PATTERNS.md).
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
+    <div className="flex min-h-screen items-center justify-center px-4">
       <Card className="w-full max-w-md">
         {/* State C — Invalid / expired / unknown token (D-28) */}
         {!isValid && (

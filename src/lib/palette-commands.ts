@@ -1,11 +1,4 @@
-// Palette command registry — C3's command half
-// (docs/mimo-refactor/M3-interaction-layer.md).
-//
-// The palette's built-in commands (projects, members, new project, theme,
-// logout) are computed in TopbarChrome and passed as props; this registry is
-// the EXTENSION POINT: M5 adds "New issue" (and later commands) by calling
-// registerPaletteCommands() from its own components — never by editing the
-// palette's internals (M3 "Allowed future touches").
+// Extension point for context-specific palette commands (built-ins are passed as props).
 
 export interface PaletteCommand {
   /** Unique — re-registering the same id replaces it (idempotent HMR). */

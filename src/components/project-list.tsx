@@ -1,9 +1,8 @@
 // Server Component: project list for the authenticated user.
 //
 // Renders inside the dashboard `{children}` seam (no full-page wrapper).
-// Shows: section header + "New project" CTA, then either dense ~36px project
-// rows (M4 — name, mono key chip, role chip, tabular counts, hover accent,
-// full-row focus ring, chevron on hover) or the C4 EmptyState with a CTA.
+// Shows: section header + "New project" CTA, then dense project rows or an
+// EmptyState with a CTA.
 //
 // Authorization: The INNER JOIN on project_member restricts rows to projects
 // where the viewer has a membership row (owner OR member). No cross-tenant
@@ -89,7 +88,6 @@ export async function ProjectList({ userId }: { userId?: string } = {}) {
       </div>
 
       {userProjects.length === 0 ? (
-        /* C4 empty state (M4 acceptance: no ad-hoc empty markup) */
         <EmptyState
           icon={<FolderPlus />}
           title="No projects yet"
@@ -97,7 +95,6 @@ export async function ProjectList({ userId }: { userId?: string } = {}) {
           action={<CreateProjectDialog />}
         />
       ) : (
-        /* Dense project rows — newest first (M4: ~36px each) */
         <ul className="flex flex-col">
           {userProjects.map((p) => (
             <li key={p.id}>

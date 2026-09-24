@@ -1,6 +1,7 @@
 // Project issues page. Authorization runs before any project-scoped read;
 // ProjectAccessError maps to notFound() so outsiders can't probe project ids (D-15).
 
+import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
@@ -12,6 +13,17 @@ import { VIEW_COOKIE, parseIssueFilters } from '@/lib/issue-model';
 import { getProjectsForUser } from '@/components/project-list';
 import { IssuesView } from '@/components/issues/issues-view';
 import { LabelChip } from '@/components/ui-icons';
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const [{ id }, session] = await Promise.all([params, getSession()]);
+  const userProjects = session?.user ? await getProjectsForUser(session.user.id) : [];
+  const project = userProjects.find((p) => p.id === id);
+  return { title: project ? project.name : 'Project not found' };
+}
 
 export default async function ProjectPage({
   params,

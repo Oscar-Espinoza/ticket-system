@@ -1,19 +1,4 @@
-// StatusIcon — C4 primitive (M4 scope item 1; docs/mimo-refactor/M4-visual-system.md).
-//
-// Five variants map 1:1 to the `ticket_status` DB enum (D-07 — backlog, todo,
-// in_progress, in_review, done; there is no "canceled"). The status type is
-// DERIVED from the drizzle enum via a type-only import, so this module has zero
-// runtime dependency on the schema, and every `Record<TicketStatus, …>` below
-// fails to compile if the enum ever gains a value — prop type and enum cannot
-// drift apart.
-//
-// Inline SVG, `currentColor`-aware: all shapes stroke/fill currentColor, and the
-// variant's C1 status token (`text-status-*`) supplies the default color.
-// Callers override the color by passing `text-*` in `className` (tailwind-merge
-// resolves the conflict, caller wins).
-//
-// The `percent` prop is only consumed by the `in_progress` arc (0–100, default
-// 40); it is ignored by the other variants.
+// Status glyphs; the prop type is the ticket_status DB enum, so they can't drift apart.
 
 import type { ComponentPropsWithoutRef } from 'react';
 

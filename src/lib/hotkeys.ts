@@ -1,24 +1,4 @@
-// Hotkey registry — **C3** (docs/mimo-refactor/M3-interaction-layer.md).
-//
-// The app's ONLY global keydown listener. M3 registers the global keys
-// (⌘K/Ctrl+K, `/`, `?`, `C`); M5–M7 register their SCOPED keys (j/k, status
-// keys, …) through registerHotkeys() from their own components — they never
-// add their own window listeners (M3 "Allowed future touches").
-//
-// Design: a module-level singleton + useSyncExternalStore snapshots. No React
-// context/provider is needed, so the C2 shell stays frozen — TopbarChrome
-// (mounted via the topbarRight slot) installs the listener with the first
-// registration, and every registration returns an idempotent cleanup for
-// component unmount.
-//
-// Matching rules:
-//   - single-key combos only (letters compared case-insensitively, so `c`
-//     also matches Shift+C — the doc writes the key as `C`);
-//   - `mod: true` matches ⌘ OR Ctrl; without it, no ctrl/meta/alt allowed
-//     (Shift is ignored so `?` on US layouts matches);
-//   - non-modifier keys are suppressed while an input/textarea/contenteditable
-//     has focus (unless allowInInput) or a dialog/menu layer is open;
-//   - every match calls preventDefault (e.g. `/` never types into the page).
+// The app's only global keydown listener; the `?` overlay lists exactly what is registered.
 
 export interface Hotkey {
   /** Single key — KeyboardEvent.key, letters matched case-insensitively. */
@@ -112,7 +92,7 @@ function isEditable(target: EventTarget | null): boolean {
 // Esc/typeahead handling), not to the registry.
 function hasOpenLayer(): boolean {
   return !!document.querySelector(
-    '[role="dialog"], [data-radix-popper-content-wrapper]',
+    '[role="dialog"][data-state="open"], [role="alertdialog"][data-state="open"], [data-radix-popper-content-wrapper]',
   );
 }
 

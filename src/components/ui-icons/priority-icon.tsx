@@ -1,13 +1,3 @@
-// PriorityIcon — C4 primitive (M4 scope item 1; ships with no consumer until
-// M5's issue list — C4 mandates the primitive now so M5 composes, never
-// restyles).
-//
-// Three ascending bars (signal-style): `none` renders all bars ghosted,
-// `low`/`medium`/`high` fill 1/2/3 bars respectively, `urgent` renders a
-// filled dot (default destructive red per C1). Everything is
-// `currentColor`-aware — the default color comes from the variant map below
-// and callers override via `className`.
-
 import type { ComponentPropsWithoutRef } from 'react';
 
 import { cn } from '@/lib/utils';

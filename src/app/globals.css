@@ -5,9 +5,9 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ---------------------------------------------------------------------------
-   C1 design tokens — OWNED BY M1 (docs/mimo-refactor/M1-foundation-tokens.md).
+   C1 design tokens (docs/mimo-refactor/M1-foundation-tokens.md).
    Later milestones consume these via utility classes; they never rename or
-   remove token names. M8 may tune values only.
+   remove token names; values may be tuned.
 --------------------------------------------------------------------------- */
 
 @theme inline {
@@ -158,7 +158,7 @@
 }
 
 .dark {
-  /* Dark theme — Linear dark (dark-first; M3 flips the default) */
+  /* Dark theme — Linear dark (the default theme) */
   --background: #08090a;
   --foreground: #f7f8f8;
   --card: #101011;
@@ -217,5 +217,18 @@
   }
   html {
     @apply font-sans;
+  }
+}
+
+/* Reduced motion: collapse every animation/transition (tw-animate dialogs,
+   sheets and menus included) rather than auditing each utility. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

@@ -1,16 +1,5 @@
 'use client';
 
-// Topbar breadcrumb — derived from the route (C2; M2 scope item 1).
-//
-// Layouts do not re-render on navigation and cannot read the pathname, so this
-// lives in a client component using usePathname() (Next.js docs). The id→name
-// map comes from the AppShell's single getProjectsForUser() query — the same
-// data the sidebar renders — so the crumb always matches the project list.
-//
-//   /dashboard                          → Projects
-//   /dashboard/projects/[id]            → Projects / <project name>
-//   /dashboard/projects/[id]/members    → Projects / <project name> / Members
-
 import { Fragment } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -40,9 +29,7 @@ export function Breadcrumb({ projects }: { projects: BreadcrumbProject[] }) {
   if (segments[1] === 'projects' && segments[2]) {
     const project = projects.find((p) => p.id === segments[2]);
     crumbs.push({
-      // Fallback to the raw id if the project is not in the map (e.g. it was
-      // deleted in another tab) — the crumb never renders empty.
-      label: project?.name ?? segments[2],
+      label: project?.name ?? 'Unknown project',
       href: `/dashboard/projects/${segments[2]}`,
     });
   }
@@ -71,7 +58,7 @@ export function Breadcrumb({ projects }: { projects: BreadcrumbProject[] }) {
             {crumb.href && !last ? (
               <Link
                 href={crumb.href}
-                className="truncate text-muted-foreground transition-colors hover:text-foreground"
+                className="truncate rounded text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
               >
                 {crumb.label}
               </Link>

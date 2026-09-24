@@ -1,21 +1,5 @@
 'use client';
 
-// TopbarChrome — the `topbarRight` C2 slot node (M3 scope 1+2).
-//
-// One client component owns the whole interaction layer chrome so the C2
-// shell stays frozen (M3 acceptance: "diff touches slots + new files only"):
-//   - the palette trigger button (rendered into topbarRight by the layout);
-//   - the CommandPalette itself and the `?` HotkeyOverlay;
-//   - the global hotkey registrations (⌘K/Ctrl+K, `/`, `?`, `C`) — they go
-//     through the C3 registry, which owns the app's only keydown listener;
-//   - sonner's <Toaster> (toasts fire on every dashboard route; the layout
-//     persists across client navigations, so it mounts exactly once).
-//
-// Focus return: ⌘K and `/` focus the trigger BEFORE opening the palette, and
-// every close path restores focus to the trigger explicitly (radix's
-// CommandDialog has no DialogTrigger, so its own closeAutoFocus lands on
-// <body>) — M3 acceptance.
-
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
@@ -40,7 +24,7 @@ const subscribeNothing = () => () => {};
 export function TopbarChrome({ projects }: { projects: TopbarProject[] }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { theme, setTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
   const { logout } = useLogout();
 
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -58,11 +42,7 @@ export function TopbarChrome({ projects }: { projects: TopbarProject[] }) {
     () => false,
   );
 
-  // Focus returns to the trigger on close (M3 acceptance): radix's
-  // CommandDialog has NO DialogTrigger, so its closeAutoFocus would land on
-  // <body>. Restore explicitly on the next tick — after radix has processed
-  // the close; the content's later unmount never steals focus from an
-  // element outside its scope.
+  // CommandDialog has no DialogTrigger, so radix would restore focus to <body>.
   const handlePaletteOpenChange = useCallback((next: boolean) => {
     paletteOpenRef.current = next;
     setPaletteOpen(next);
@@ -76,10 +56,7 @@ export function TopbarChrome({ projects }: { projects: TopbarProject[] }) {
     }
   }, []);
 
-  // M3's global keys — registered once; handlers read paletteOpenRef (never
-  // stale) and only touch stable refs/setters, so the closure is safe.
-  // M5–M7 add scoped keys through this same registry from their own
-  // components (C3), never their own listeners.
+  // Registered once: handlers only touch refs and stable setters.
   useEffect(
     () =>
       registerHotkeys([
@@ -115,8 +92,6 @@ export function TopbarChrome({ projects }: { projects: TopbarProject[] }) {
     [handlePaletteOpenChange],
   );
 
-  // Built-in palette commands — scoped to what exists (M3 scope 1). The
-  // contextual Members entry appears only on a project route.
   const segments = pathname.split('/').filter(Boolean);
   const currentProjectId =
     segments[0] === 'dashboard' && segments[1] === 'projects'
@@ -125,7 +100,7 @@ export function TopbarChrome({ projects }: { projects: TopbarProject[] }) {
   const currentProject = currentProjectId
     ? projects.find((p) => p.id === currentProjectId)
     : undefined;
-  const dark = theme === 'dark';
+  const dark = resolvedTheme === 'dark';
 
   const commands: PaletteCommand[] = [
     ...projects.map((project) => ({

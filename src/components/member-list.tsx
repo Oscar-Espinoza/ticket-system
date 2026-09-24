@@ -2,7 +2,7 @@
 
 // MemberList — client component rendering the project member roster.
 //
-// Renders each member as a Card row with name + role Badge. When isOwner is true
+// Renders each member as a dense row with name + role chip. When isOwner is true
 // and the row is neither the current user nor an owner row, a Remove button
 // (AlertDialog confirm) is shown. Clicking Remove calls removeMember via
 // startTransition and disables the button while pending.
@@ -16,9 +16,9 @@
 // D-33: self-remove and owner-row removal are also rejected server-side.
 // D-34: AlertDialog semantics match a destructive irreversible action (role="alertdialog").
 
-import { useState, useTransition } from 'react';
+import { useTransition } from 'react';
+import { toast } from 'sonner';
 import { UserMinus } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
 import { LabelChip } from '@/components/ui-icons';
 import { Button } from '@/components/ui/button';
 import {
@@ -63,7 +63,7 @@ export function MemberList({
   projectId,
 }: MemberListProps) {
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col">
       {members.map((member) => (
         <MemberRow
           key={member.id}
@@ -93,7 +93,6 @@ function MemberRow({
   projectId: string;
 }) {
   const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
 
   // Show Remove control only when:
   //   1. Viewing user is owner
@@ -103,76 +102,60 @@ function MemberRow({
     isOwner && member.role !== 'owner' && member.userId !== currentUserId;
 
   function handleRemove() {
-    setError(null);
     startTransition(async () => {
       const formData = new FormData();
       formData.set('projectId', projectId);
       formData.set('memberId', member.id);
       const result = await removeMember({}, formData);
       if (result.errors?.server) {
-        setError('Failed to remove member. Please try again.');
+        toast.error('Failed to remove member. Please try again.');
+      } else {
+        toast.success(`${member.name} was removed`);
       }
     });
   }
 
   return (
-    <Card>
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between gap-4">
-          {/* Left: name + role badge */}
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium">{member.name}</span>
-            {member.role === 'owner' ? (
-              <LabelChip color="primary">Owner</LabelChip>
-            ) : (
-              <LabelChip>Member</LabelChip>
-            )}
-          </div>
+    <div className="flex h-10 items-center justify-between gap-4 rounded-md px-2 transition-colors hover:bg-accent/40">
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-medium">{member.name}</span>
+        {member.role === 'owner' ? (
+          <LabelChip color="primary">Owner</LabelChip>
+        ) : (
+          <LabelChip>Member</LabelChip>
+        )}
+      </div>
 
-          {/* Right: Remove control (owner-only, non-self, non-owner rows) */}
-          {showRemove && (
-            <div className="flex flex-col items-end gap-1">
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="text-destructive hover:text-destructive"
-                    size="sm"
-                    disabled={isPending}
-                  >
-                    <UserMinus className="h-4 w-4" />
-                    Remove
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Remove member?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      <strong>{member.name}</strong> will immediately lose
-                      access to this project. This cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={handleRemove}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      disabled={isPending}
-                    >
-                      Remove member
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-
-              {/* Inline error — only rendered on action failure */}
-              {error && (
-                <p className="text-sm text-destructive">{error}</p>
-              )}
-            </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+      {showRemove && (
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              variant="ghost"
+              className="text-destructive hover:text-destructive"
+              size="sm"
+              disabled={isPending}
+            >
+              <UserMinus className="h-4 w-4" />
+              Remove
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Remove member?</AlertDialogTitle>
+              <AlertDialogDescription>
+                <strong>{member.name}</strong> will immediately lose access to this
+                project. This cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction variant="destructive" onClick={handleRemove} disabled={isPending}>
+                Remove member
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+    </div>
   );
 }

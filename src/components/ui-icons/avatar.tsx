@@ -1,11 +1,3 @@
-// Avatar — C4 primitive (M4 scope item 1; composed by M5–M7). Wraps the
-// shadcn/radix avatar primitives from ui/avatar: GitHub image when present,
-// deterministic initials fallback otherwise (same-name → same-letters, no
-// random hue — C1 neutrals only). Sizes are the C4 contract: 20 or 24 px.
-//
-// Note: user-menu.tsx keeps its own inline avatar logic (M3-owned file) —
-// deduplicating it against this primitive is explicitly out of M4 scope.
-
 import { cn } from '@/lib/utils';
 import {
   Avatar as AvatarRoot,

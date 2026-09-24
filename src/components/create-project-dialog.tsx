@@ -7,12 +7,6 @@
 //       capped at 6 chars. Validation (2-char minimum, uniqueness) happens on submit.
 // The form uses useActionState with the createProject Server Action so the pending
 // state, field errors, and success handling are fully integrated.
-//
-// M3: optional controlled mode — TopbarChrome mounts its own instance
-// (open/onOpenChange + hideTrigger) for the palette's "New project" command
-// and the `C` hotkey. Controlled and uncontrolled instances never share state,
-// so the IN-03 multi-instance page mounts stay independent (no double dialog).
-// Success also fires a sonner toast (M3 scope 3).
 
 import { useActionState, useId, useState } from 'react';
 import { toast } from 'sonner';

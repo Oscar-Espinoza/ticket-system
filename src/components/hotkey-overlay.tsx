@@ -1,12 +1,5 @@
 'use client';
 
-// Shortcut overlay — `?` in the hotkey framework (M3 scope 2, C3).
-//
-// Renders a live snapshot of the hotkey registry: ONLY currently-registered
-// shortcuts appear. When M5–M7 unmount their scoped registrations (or never
-// register them), their rows are absent — there is no static list here.
-// Esc closes (radix Dialog).
-
 import { useSyncExternalStore } from 'react';
 
 import {

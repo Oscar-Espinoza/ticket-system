@@ -63,11 +63,7 @@ import {
 import { eq, inArray } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { users, projects, projectMembers, invitations } from '@/db/schema';
-import {
-  requireProjectOwner,
-  requireProjectMember,
-  ProjectAccessError,
-} from '@/lib/project-access';
+import { requireProjectOwner, ProjectAccessError } from '@/lib/project-access';
 
 // ---------------------------------------------------------------------------
 // Per-run tracking for cleanup

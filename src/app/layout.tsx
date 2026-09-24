@@ -20,6 +20,12 @@ export const metadata: Metadata = {
   },
   description:
     "A Linear-style ticket tracker whose status stays in sync with GitHub work.",
+  openGraph: {
+    title: "Ticket System",
+    description:
+      "A Linear-style ticket tracker whose status stays in sync with GitHub work.",
+    type: "website",
+  },
 };
 
 export default function RootLayout({

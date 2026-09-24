@@ -1,10 +1,5 @@
 'use client';
 
-// Shared sign-out flow — the logic MOVED VERBATIM from the old LogoutButton
-// (M3 deletes that button; the avatar menu and the palette's "Log out"
-// command both go through this hook). Single click, no confirmation dialog
-// (logout is low-stakes; UI-SPEC Destructive Actions).
-
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 

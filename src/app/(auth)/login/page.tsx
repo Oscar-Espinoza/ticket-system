@@ -3,11 +3,14 @@
 // If a session already exists, bounce the user to /dashboard so signed-in users
 // never see the auth pages. Otherwise render the client form.
 
+import type { Metadata } from 'next';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { LoginForm } from './login-form';
 import { Wordmark } from '@/components/wordmark';
+
+export const metadata: Metadata = { title: 'Log in' };
 
 export default async function LoginPage() {
   const session = await auth.api.getSession({ headers: await headers() });

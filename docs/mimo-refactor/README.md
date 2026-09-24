@@ -1,6 +1,6 @@
 # MIMO Refactor — Linear-style UI overhaul
 
-Status: M1–M4 shipped; GSD Phase 5 (tickets core) is built ahead of M5, then M5–M8.
+Status: COMPLETE — M1–M8 shipped (plus GSD Phase 5 tickets core, built ahead of M5).
 Branch: `refactor/linear-ui`, fast-forwarded into `main` after each milestone.
 Execution will go through the GSD workflow required by CLAUDE.md; this directory is
 the source plan each phase/plan derives from.
@@ -117,7 +117,47 @@ and never implements work owned by a later one.
    (ticket DAL + server actions, `src/lib/tickets.ts`, `src/app/actions/tickets.ts`)
    as its own commit before M5; M5–M7 still contain no DAL code.
 
-## Known foundation bugs (evidence from plan-time review)
+## Final gallery (M8)
+
+Before shots are the `M0-before-*`, `M2-before-*`, `M3-before-*` and `M4-before-*`
+files in `evidence/`. After shots per route:
+
+| Route | Dark | Light |
+|-------|------|-------|
+| `/login`, `/signup` (unchanged since M1) | `M1-after-login-dark.png`, `M1-after-signup-dark.png` | `M1-after-login-light.png`, `M1-after-signup-light.png` |
+| `/dashboard` | `M8-final-dashboard-dark.png` | `M8-final-dashboard-light.png` |
+| Project — list | `M5-after-list-dark.png` | `M5-after-list-light.png` |
+| Project — board | `M6-after-board-dark.png` | `M6-after-board-light.png` |
+| Project — detail pane | `M7-after-pane-list-dark.png`, `M7-after-pane-board-dark.png` | `M8-final-pane-light.png` |
+| Narrow viewport — detail sheet | `M7-after-sheet-narrow-dark.png` | — |
+| Members | `M8-final-members-dark.png` | `M8-final-members-light.png` |
+| Command palette | `M8-final-palette-dark.png`, `M3-after-palette.png` | — |
+
+## Final notes (M8)
+
+- Library versions: `@dnd-kit/react`/`@dnd-kit/helpers` pinned to 0.4.x per the
+  project stack constraint (0.5.0 exists).
+- Bundle: the board (dnd-kit, ~33 KB gzip) is lazy-loaded with `next/dynamic` and
+  is not part of the project page's initial JS (~103 KB gzip across its 9 entry
+  chunks). All client chunks total ~337 KB gzip.
+- Known limitation: a collapsed sidebar is restored from localStorage after
+  hydration, so collapsed users see a one-frame expanded sidebar on hard reload.
+- Keyboard walkthrough (M8, browser-verified): Tab order and focus rings on the
+  project page, palette, `?` overlay, create issue, move issue (board keyboard
+  drag), edit status/assignee/title, pane open/close with focus return. Invite
+  copy, theme toggle and logout were verified in M3 and not re-run here (logout
+  would end the dev session). Issue deletion was exercised up to the confirm
+  dialog in the browser; the delete action itself is covered by
+  `src/tests/tickets.test.ts`.
+- Hard-coded scrim colors (`bg-black/…` behind dialogs/sheet/mobile sidebar) are
+  the only non-token colors left, by design.
+
+## Known foundation bugs (evidence from plan-time review) — all fixed
+
+Verified in M8: Geist renders everywhere (no serif), `.dark` is applied by
+next-themes (dark default), `/` redirects to `/dashboard`, no "Create Next App"
+string remains.
+
 
 - `globals.css`: `--font-sans: var(--font-sans)` self-reference; Geist exposes
   `--font-geist-sans`, never mapped → headings render in Times New Roman (visible in

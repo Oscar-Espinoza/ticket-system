@@ -1,13 +1,3 @@
-// Dashboard loading UI (M4 skeleton path — docs/mimo-refactor/M4-visual-system.md).
-//
-// Next.js convention: this file wraps `page.tsx` in a Suspense boundary inside
-// the dashboard layout (the shell chrome stays interactive while data streams).
-// It mirrors the loaded structure — greeting line, GitHub chip, section header
-// + CTA, then one C4 Skeleton per project row — so the swap is jitter-free.
-//
-// Shimmer/motion comes entirely from the C4 Skeleton primitive (co-located CSS
-// module; prefers-reduced-motion aware). globals.css (C1) is untouched.
-
 import { Skeleton } from '@/components/ui-icons';
 
 export default function DashboardLoading() {

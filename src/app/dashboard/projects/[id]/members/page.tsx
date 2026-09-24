@@ -7,10 +7,8 @@
 // — gating is ALSO enforced server-side in generateInviteLink via requireProjectOwner (D-25).
 //
 // Roster SELECT selects userId, name, role so Plan 04 can wire removeMember(projectId, row.userId).
-//
-// M2: content-only — the hand-rolled top nav (wordmark + email) moved into the
-// AppShell; this page renders no <header>/<main> of its own.
 
+import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronLeft } from 'lucide-react';
@@ -20,8 +18,20 @@ import { db } from '@/lib/db';
 import { projects, projectMembers, invitations, users } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { Separator } from '@/components/ui/separator';
+import { getProjectsForUser } from '@/components/project-list';
 import { InvitePanel } from '@/components/invite-panel';
 import { MemberList } from '@/components/member-list';
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const [{ id }, session] = await Promise.all([params, getSession()]);
+  const userProjects = session?.user ? await getProjectsForUser(session.user.id) : [];
+  const project = userProjects.find((p) => p.id === id);
+  return { title: project ? `Members · ${project.name}` : 'Project not found' };
+}
 
 export default async function MembersPage({
   params,
@@ -86,13 +96,12 @@ export default async function MembersPage({
     ? `${process.env.NEXT_PUBLIC_APP_URL}/invite/${invitation.token}`
     : null;
 
-  // M2 content-only fragment — the AppShell owns the header and content area.
   return (
     <>
       {/* Back link to project */}
       <Link
         href={`/dashboard/projects/${id}`}
-        className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1 mb-6"
+        className="mb-6 flex w-fit items-center gap-1 rounded text-sm text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
       >
         <ChevronLeft className="h-4 w-4" />
         Back to project

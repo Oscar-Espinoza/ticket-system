@@ -1,9 +1,4 @@
-// C4 barrel — the single export surface for the M4 visual primitives
-// (docs/mimo-refactor/M4-visual-system.md, scope item 1).
-//
-// Contract note: after M4 ships this file is ADDITIVE-ONLY (M4 "Allowed
-// future touches" — later milestones may add exports, never rename or
-// remove existing ones; the component APIs themselves are frozen).
+// C4 primitives — additive exports only (docs/mimo-refactor/README.md).
 
 export { StatusIcon } from './status-icon';
 export type { StatusIconProps, TicketStatus } from './status-icon';

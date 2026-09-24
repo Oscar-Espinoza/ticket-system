@@ -45,15 +45,15 @@ allowed to defer, and produce the before/after evidence that the refactor is don
 
 ## Acceptance criteria (refactor done when all pass)
 
-- [ ] `npm run lint`, `npm test`, `npm run build` all pass.
-- [ ] Route × theme screenshot gallery complete (M0 vs final).
-- [ ] Keyboard-only traversal of every route completes all primary flows
+- [x] `npm run lint`, `npm test`, `npm run build` all pass.
+- [x] Route × theme screenshot gallery complete (M0 vs final).
+- [x] Keyboard-only traversal of every route completes all primary flows
       (create project, create issue, move issue, edit properties, invite copy,
       theme toggle, logout) with visible focus throughout.
-- [ ] `prefers-reduced-motion` respected; no ad-hoc animation values remain.
-- [ ] Grep-clean: no scaffold strings, no `min-h-screen bg-background` per-page
+- [x] `prefers-reduced-motion` respected; no ad-hoc animation values remain.
+- [x] Grep-clean: no scaffold strings, no `min-h-screen bg-background` per-page
       wrappers, no duplicated headers, no hard-coded colors outside C1 tokens.
-- [ ] README's "Known foundation bugs" section verified fixed (font, dark mode,
+- [x] README's "Known foundation bugs" section verified fixed (font, dark mode,
       stock home page).
 
 ## Verification

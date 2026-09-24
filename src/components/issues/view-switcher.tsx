@@ -14,7 +14,7 @@ export function ViewSwitcher({
 }) {
   return (
     <div
-      role="radiogroup"
+      role="group"
       aria-label="View"
       className="inline-flex h-7 items-center rounded-md border border-border p-0.5"
     >
@@ -25,8 +25,7 @@ export function ViewSwitcher({
           <button
             key={view.id}
             type="button"
-            role="radio"
-            aria-checked={selected}
+            aria-pressed={selected}
             onClick={() => onChange(view.id)}
             className={cn(
               'inline-flex h-full items-center gap-1.5 rounded px-2 text-xs font-medium outline-none transition-colors',
