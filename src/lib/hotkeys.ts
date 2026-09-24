@@ -33,7 +33,9 @@ export interface Hotkey {
   allowInInput?: boolean;
   /** Extra guard — when it returns false the key passes through untouched. */
   when?: (event: KeyboardEvent) => boolean;
-  handler: (event: KeyboardEvent) => void;
+  /** Listed in the `?` overlay only; another component handles the key. */
+  passive?: boolean;
+  handler?: (event: KeyboardEvent) => void;
 }
 
 interface RegisteredHotkey extends Hotkey {
@@ -126,6 +128,7 @@ function matches(hotkey: Hotkey, event: KeyboardEvent): boolean {
 function onKeyDown(event: KeyboardEvent) {
   if (event.defaultPrevented) return;
   for (const hotkey of entries) {
+    if (hotkey.passive || !hotkey.handler) continue;
     if (!matches(hotkey, event)) continue;
     if (isEditable(event.target) && !hotkey.allowInInput) continue;
     if (!hotkey.mod && !hotkey.allowInInput && hasOpenLayer()) continue;

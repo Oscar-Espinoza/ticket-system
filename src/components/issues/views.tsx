@@ -1,7 +1,10 @@
 'use client';
 
 import type { ComponentType } from 'react';
-import { List, type LucideIcon } from 'lucide-react';
+import dynamic from 'next/dynamic';
+import { Kanban, List, type LucideIcon } from 'lucide-react';
+
+import { Skeleton } from '@/components/ui-icons';
 
 import type { IssueGroup, IssueRow, TicketStatus } from '@/lib/issue-model';
 import { IssueList } from './issue-list';
@@ -33,8 +36,19 @@ function ListView({ groups, mutations, selectedId, onSelect }: IssueViewProps) {
   );
 }
 
+const BoardView = dynamic(() => import('@/components/board/board'), {
+  loading: () => (
+    <div className="flex gap-3">
+      {Array.from({ length: 5 }, (_, i) => (
+        <Skeleton key={i} variant="card" className="h-64 w-[272px] shrink-0" />
+      ))}
+    </div>
+  ),
+});
+
 // View registry: the switcher renders one entry per definition; later views
 // register by appending here.
 export const ISSUE_VIEWS: IssueViewDefinition[] = [
   { id: 'list', label: 'List', icon: List, component: ListView },
+  { id: 'board', label: 'Board', icon: Kanban, component: BoardView },
 ];

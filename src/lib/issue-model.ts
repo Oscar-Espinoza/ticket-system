@@ -52,6 +52,8 @@ export function groupByStatus(issues: IssueRow[]): IssueGroup[] {
 
 export const UNASSIGNED = 'unassigned';
 
+export const VIEW_COOKIE = 'issues-view';
+
 export interface IssueFilters {
   statuses: TicketStatus[];
   /** A member's user id, UNASSIGNED, or null for "anyone". */

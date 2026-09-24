@@ -42,12 +42,12 @@ the same C5 data the list uses.
 
 ## Acceptance criteria
 
-- [ ] `npm run lint` and `npm test` pass.
-- [ ] Drag a card between columns: status persists after reload (server confirmed);
+- [x] `npm run lint` and `npm test` pass.
+- [x] Drag a card between columns: status persists after reload (server confirmed);
       failed update rolls back with a toast.
-- [ ] Keyboard-only drag works end-to-end (documented in `?` overlay).
-- [ ] List and Board render identical data for the same filter state.
-- [ ] Switcher remembers List/Board across navigation within the session (URL
+- [x] Keyboard-only drag works end-to-end (documented in `?` overlay).
+- [x] List and Board render identical data for the same filter state.
+- [x] Switcher remembers List/Board across navigation within the session (URL
       param wins on shared links).
 
 ## Verification

@@ -51,8 +51,15 @@ export function useIssueMutations(
       apply(patch);
       try {
         const result = await action();
-        if (!result.ok) toast.error(result.error);
-        else onSuccess?.();
+        if (!result.ok) {
+          toast.error(
+            result.error === 'Forbidden'
+              ? 'You no longer have access to this project.'
+              : result.error,
+          );
+        } else {
+          onSuccess?.();
+        }
       } catch {
         toast.error('Something went wrong — the change was not saved.');
       }

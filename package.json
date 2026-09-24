@@ -11,6 +11,8 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@dnd-kit/helpers": "^0.4.0",
+    "@dnd-kit/react": "^0.4.0",
     "@neondatabase/serverless": "^0.10.4",
     "bcryptjs": "^3.0.3",
     "better-auth": "^1.6.13",

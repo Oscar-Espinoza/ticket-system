@@ -1,13 +1,14 @@
 // Project issues page. Authorization runs before any project-scoped read;
 // ProjectAccessError maps to notFound() so outsiders can't probe project ids (D-15).
 
+import { cookies } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 
 import { getSession } from '@/lib/session';
 import { requireProjectMember, ProjectAccessError } from '@/lib/project-access';
 import { getProjectMemberOptions, getProjectTickets } from '@/lib/tickets';
-import { parseIssueFilters } from '@/lib/issue-model';
+import { VIEW_COOKIE, parseIssueFilters } from '@/lib/issue-model';
 import { getProjectsForUser } from '@/components/project-list';
 import { IssuesView } from '@/components/issues/issues-view';
 import { LabelChip } from '@/components/ui-icons';
@@ -41,6 +42,7 @@ export default async function ProjectPage({
   ]);
   const project = userProjects.find((p) => p.id === id);
   if (!project) notFound();
+  const defaultView = (await cookies()).get(VIEW_COOKIE)?.value;
 
   return (
     <div className="flex min-h-full flex-col">
@@ -63,6 +65,7 @@ export default async function ProjectPage({
         members={members}
         filters={filters}
         totalCount={project.openCount + project.resolvedCount}
+        defaultView={defaultView}
       />
     </div>
   );

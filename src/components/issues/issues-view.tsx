@@ -9,6 +9,7 @@ import { EmptyState } from '@/components/ui-icons';
 import { registerPaletteCommands } from '@/lib/palette-commands';
 import {
   STATUS_ORDER,
+  VIEW_COOKIE,
   groupByStatus,
   type IssueAssignee,
   type IssueFilters as Filters,
@@ -27,12 +28,15 @@ export function IssuesView({
   members,
   filters,
   totalCount,
+  defaultView,
 }: {
   projectId: string;
   issues: IssueRow[];
   members: IssueAssignee[];
   filters: Filters;
   totalCount: number;
+  /** Last view chosen this browser session; a `view` URL param wins. */
+  defaultView?: string;
 }) {
   const mutations = useIssueMutations(projectId, issues);
   const searchParams = useSearchParams();
@@ -61,7 +65,14 @@ export function IssuesView({
   );
 
   const view =
-    ISSUE_VIEWS.find((v) => v.id === searchParams.get('view')) ?? ISSUE_VIEWS[0];
+    ISSUE_VIEWS.find((v) => v.id === (searchParams.get('view') ?? defaultView)) ??
+    ISSUE_VIEWS[0];
+
+  const switchView = (id: string) => {
+    // Session cookie: remembered across navigation until the browser closes.
+    document.cookie = `${VIEW_COOKIE}=${id}; path=/; samesite=lax`;
+    setParams({ view: id });
+  };
   const View = view.component;
 
   const visible = filters.statuses.length ? filters.statuses : STATUS_ORDER;
@@ -76,7 +87,7 @@ export function IssuesView({
         <ViewSwitcher
           views={ISSUE_VIEWS}
           current={view.id}
-          onChange={(id) => setParams({ view: id === ISSUE_VIEWS[0].id ? null : id })}
+          onChange={switchView}
         />
         <IssueFilters filters={filters} members={members} />
         <Button size="sm" className="ml-auto" onClick={() => openCreate()}>

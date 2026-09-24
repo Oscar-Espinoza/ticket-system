@@ -42,8 +42,8 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Board
 
-- [ ] **BOARD-01**: User can view project tickets on a kanban board with one column per status
-- [ ] **BOARD-02**: User can drag a ticket card between columns to change its status, with the change persisted
+- [x] **BOARD-01**: User can view project tickets on a kanban board with one column per status
+- [x] **BOARD-02**: User can drag a ticket card between columns to change its status, with the change persisted
 
 ### GitHub Integration
 
@@ -117,8 +117,8 @@ Which phases cover which requirements.
 | TKT-05 | Phase 5 | Complete |
 | TKT-06 | Phase 5 | Complete |
 | TKT-07 | Phase 5 | Pending |
-| BOARD-01 | Phase 6 | Pending |
-| BOARD-02 | Phase 6 | Pending |
+| BOARD-01 | Phase 6 | Complete |
+| BOARD-02 | Phase 6 | Complete |
 | GH-01 | Phase 7 | Pending |
 | GH-02 | Phase 7 | Pending |
 | GH-03 | Phase 8 | Pending |
