@@ -95,7 +95,9 @@ export async function createTicket(input: {
   if (!isTicketStatus(status)) return { ok: false, error: 'Invalid status.' };
 
   const id = crypto.randomUUID();
-  const now = new Date();
+  // ISO string, not Date: raw sql params skip Drizzle's column mapping and the
+  // driver would serialize a Date in server-local time.
+  const now = new Date().toISOString();
 
   // One statement: the UPDATE row-locks the project, so concurrent creates get
   // distinct numbers; unique(project_id, ticket_number) is the backstop.

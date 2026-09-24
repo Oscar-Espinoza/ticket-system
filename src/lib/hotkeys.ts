@@ -31,6 +31,8 @@ export interface Hotkey {
   scope?: string;
   /** Fire even while a text field has focus (⌘K). */
   allowInInput?: boolean;
+  /** Extra guard — when it returns false the key passes through untouched. */
+  when?: (event: KeyboardEvent) => boolean;
   handler: (event: KeyboardEvent) => void;
 }
 
@@ -127,6 +129,7 @@ function onKeyDown(event: KeyboardEvent) {
     if (!matches(hotkey, event)) continue;
     if (isEditable(event.target) && !hotkey.allowInInput) continue;
     if (!hotkey.mod && !hotkey.allowInInput && hasOpenLayer()) continue;
+    if (hotkey.when && !hotkey.when(event)) continue;
     event.preventDefault();
     hotkey.handler(event);
   }

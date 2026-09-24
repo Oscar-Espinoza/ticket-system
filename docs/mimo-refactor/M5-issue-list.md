@@ -58,13 +58,13 @@ list-scoped keyboard navigation, and a view switcher that M6 extends.
 
 ## Acceptance criteria
 
-- [ ] `npm run lint` and `npm test` pass.
-- [ ] `/dashboard/projects/[id]` shows issues grouped by all five statuses with
+- [x] `npm run lint` and `npm test` pass.
+- [x] `/dashboard/projects/[id]` shows issues grouped by all five statuses with
       correct icons; filters reflected in the URL and restorable on reload.
-- [ ] `j`/`k` move the row cursor with visible focus; `?` overlay lists them.
-- [ ] New-issue dialog creates a row without full-page reload (toast confirms).
-- [ ] Empty project shows `EmptyState`, not an empty table.
-- [ ] No board UI, no detail UI, no DAL code exists after M5 (scope check).
+- [x] `j`/`k` move the row cursor with visible focus; `?` overlay lists them.
+- [x] New-issue dialog creates a row without full-page reload (toast confirms).
+- [x] Empty project shows `EmptyState`, not an empty table.
+- [x] No board UI, no detail UI, no DAL code exists after M5 (scope check).
 
 ## Verification
 

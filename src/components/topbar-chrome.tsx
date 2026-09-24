@@ -66,7 +66,14 @@ export function TopbarChrome({ projects }: { projects: TopbarProject[] }) {
   const handlePaletteOpenChange = useCallback((next: boolean) => {
     paletteOpenRef.current = next;
     setPaletteOpen(next);
-    if (!next) setTimeout(() => triggerRef.current?.focus(), 0);
+    if (!next) {
+      setTimeout(() => {
+        // A command may have opened another dialog; it owns focus then.
+        if (!document.querySelector('[role="dialog"][data-state="open"]')) {
+          triggerRef.current?.focus();
+        }
+      }, 0);
+    }
   }, []);
 
   // M3's global keys — registered once; handlers read paletteOpenRef (never

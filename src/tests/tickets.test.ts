@@ -142,6 +142,7 @@ describe('TKT-01/02: create with per-project identifiers', () => {
     expect(a.status).toBe('backlog');
     expect(a.assignee).toBeNull();
     expect(a.title).toBe('First');
+    expect(Math.abs(new Date(a.createdAt).getTime() - Date.now())).toBeLessThan(60_000);
   });
 
   it('assigns unique numbers under concurrent creation', async () => {
