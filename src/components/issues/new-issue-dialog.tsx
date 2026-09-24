@@ -1,10 +1,7 @@
 'use client';
 
-import { useId, useState, useTransition } from 'react';
-import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { useId, useState } from 'react';
 
-import { createTicket } from '@/app/actions/tickets';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -19,42 +16,44 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { StatusIcon } from '@/components/ui-icons';
 import { STATUS_LABEL, type TicketStatus } from '@/lib/issue-model';
+import type { IssueMutations } from './use-issue-mutations';
 
+// The dialog closes on submit and the issue appears optimistically; on failure
+// it reopens with the draft (this component stays mounted, so state survives).
 export function NewIssueDialog({
-  projectId,
   open,
   onOpenChange,
   status = 'backlog',
+  onCreate,
 }: {
-  projectId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   status?: TicketStatus;
+  onCreate: IssueMutations['create'];
 }) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
   const uid = useId();
-
-  function reset() {
-    setTitle('');
-    setDescription('');
-    setError(null);
-  }
 
   function submit(event: React.FormEvent) {
     event.preventDefault();
-    startTransition(async () => {
-      const result = await createTicket({ projectId, title, description, status });
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
-      reset();
-      onOpenChange(false);
-      toast.success(result.ticket ? `Created ${result.ticket.key}` : 'Issue created');
-    });
+    if (!title.trim()) return;
+    setError(null);
+    onOpenChange(false);
+    onCreate(
+      { title, description, status },
+      {
+        onSuccess: () => {
+          setTitle('');
+          setDescription('');
+        },
+        onError: (message) => {
+          setError(message);
+          onOpenChange(true);
+        },
+      },
+    );
   }
 
   return (
@@ -107,8 +106,7 @@ export function NewIssueDialog({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={pending || !title.trim()}>
-              {pending && <Loader2 className="animate-spin" />}
+            <Button type="submit" disabled={!title.trim()}>
               Create issue
             </Button>
           </DialogFooter>

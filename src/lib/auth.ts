@@ -66,5 +66,12 @@ export const auth = betterAuth({
       scope: ['read:user', 'user:email'], // D-01 minimal scopes — A4 override
     },
   },
+  // Signed session snapshot in a cookie saves a DB lookup per request. Trade-off:
+  // a revoked session stays valid up to maxAge; project membership is still
+  // checked against the DB on every request. 1.6.x falls back to the DB when the
+  // cache is stale (the old RSC-null bug, 01-RESEARCH Pitfall 6).
+  session: {
+    cookieCache: { enabled: true, maxAge: 5 * 60 },
+  },
   plugins: [nextCookies()],
 });

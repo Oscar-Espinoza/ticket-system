@@ -27,8 +27,9 @@
 //   - .limit(1)
 //   - null guard → throw instead of returning null (D-14 on success: return row)
 
+import { cache } from 'react';
 import { db } from '@/lib/db';
-import { projectMembers } from '@/db/schema';
+import { projectMembers, projects } from '@/db/schema';
 import { and, eq } from 'drizzle-orm';
 
 // ---------------------------------------------------------------------------
@@ -148,3 +149,33 @@ export async function requireProjectOwner(
   }
   return membership;
 }
+
+/**
+ * The project as seen by one member, or null when `userId` is not a member.
+ *
+ * The inner join on project_member is the authorization filter (same pattern
+ * as getProjectsForUser, T-02-07), so membership and project data arrive in a
+ * single round trip. Memoized per request for pages + generateMetadata.
+ */
+export const getMemberProject = cache(
+  async (projectId: string, userId: string) => {
+    if (!projectId || !userId) return null;
+    const [row] = await db
+      .select({
+        id: projects.id,
+        name: projects.name,
+        ticketKey: projects.ticketKey,
+        role: projectMembers.role,
+      })
+      .from(projectMembers)
+      .innerJoin(projects, eq(projectMembers.projectId, projects.id))
+      .where(
+        and(
+          eq(projectMembers.projectId, projectId),
+          eq(projectMembers.userId, userId),
+        ),
+      )
+      .limit(1);
+    return row ?? null;
+  },
+);

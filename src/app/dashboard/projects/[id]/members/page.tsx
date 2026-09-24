@@ -1,24 +1,20 @@
 // Members page — MEM-04, MEM-01 (owner-only invite panel)
 //
-// Security: requireProjectMember runs BEFORE any project-scoped DB read.
-// A ProjectAccessError maps to notFound() so the page returns a 404 and does
-// NOT confirm a project's existence to outsiders (enumeration-resistant, D-15,
-// T-03-06). The invite panel and controls only render when membership.role === 'owner'
-// — gating is ALSO enforced server-side in generateInviteLink via requireProjectOwner (D-25).
-//
-// Roster SELECT selects userId, name, role so Plan 04 can wire removeMember(projectId, row.userId).
+// Security: getMemberProject (membership inner join) runs before any other
+// project-scoped read; non-members get notFound() so outsiders can't probe
+// project ids (D-15, T-03-06). The invite panel only renders for owners, and
+// generateInviteLink re-checks ownership server-side (D-25).
 
 import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronLeft } from 'lucide-react';
 import { getSession } from '@/lib/session';
-import { requireProjectMember, ProjectAccessError } from '@/lib/project-access';
+import { getMemberProject } from '@/lib/project-access';
 import { db } from '@/lib/db';
-import { projects, projectMembers, invitations, users } from '@/db/schema';
+import { projectMembers, invitations, users } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { Separator } from '@/components/ui/separator';
-import { getProjectsForUser } from '@/components/project-list';
 import { InvitePanel } from '@/components/invite-panel';
 import { MemberList } from '@/components/member-list';
 
@@ -28,8 +24,7 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const [{ id }, session] = await Promise.all([params, getSession()]);
-  const userProjects = session?.user ? await getProjectsForUser(session.user.id) : [];
-  const project = userProjects.find((p) => p.id === id);
+  const project = session?.user ? await getMemberProject(id, session.user.id) : null;
   return { title: project ? `Members · ${project.name}` : 'Project not found' };
 }
 
@@ -38,56 +33,36 @@ export default async function MembersPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  // Step 1: Resolve async params (Next.js 15 — params is a Promise).
-  const { id } = await params;
-
-  // Step 2: Resolve session — redirect unauthenticated users to /login.
-  const session = await getSession();
+  const [{ id }, session] = await Promise.all([params, getSession()]);
   if (!session?.user) {
     redirect('/login');
   }
 
-  // Step 3: Authorization FIRST — requireProjectMember runs BEFORE any project
-  // SELECT. On ProjectAccessError map to notFound() (404, enumeration-resistant,
-  // D-15, T-03-06). Re-throw anything else — never swallow unexpected errors.
-  let membership: Awaited<ReturnType<typeof requireProjectMember>>;
-  try {
-    membership = await requireProjectMember(id, session.user.id);
-  } catch (err) {
-    if (err instanceof ProjectAccessError) notFound();
-    throw err; // REQUIRED: re-throw non-domain errors
-  }
-
-  // Step 4: Project SELECT — only runs after membership is confirmed.
-  const [project] = await db
-    .select({ id: projects.id, name: projects.name })
-    .from(projects)
-    .where(eq(projects.id, id))
-    .limit(1);
-
+  const project = await getMemberProject(id, session.user.id);
   if (!project) notFound();
+  const isOwner = project.role === 'owner';
 
-  // Step 5: Roster SELECT — all three columns required:
-  //   userId: needed for Plan 04 removeMember(projectId, row.userId)
-  //   name:   displayed in the roster
-  //   role:   used for role badge (owner/member)
-  const roster = await db
-    .select({
-      id: projectMembers.id,      // needed by MemberList → removeMember FormData (memberId)
-      userId: projectMembers.userId,
-      name: users.name,
-      role: projectMembers.role,
-    })
-    .from(projectMembers)
-    .innerJoin(users, eq(projectMembers.userId, users.id))
-    .where(eq(projectMembers.projectId, id));
-
-  // Step 6: Load current invitation row (if any) for the invite panel.
-  const [invitation] = await db
-    .select({ token: invitations.token })
-    .from(invitations)
-    .where(eq(invitations.projectId, id))
-    .limit(1);
+  const [roster, invitation] = await Promise.all([
+    db
+      .select({
+        id: projectMembers.id, // MemberList → removeMember FormData (memberId)
+        userId: projectMembers.userId,
+        name: users.name,
+        role: projectMembers.role,
+      })
+      .from(projectMembers)
+      .innerJoin(users, eq(projectMembers.userId, users.id))
+      .where(eq(projectMembers.projectId, id)),
+    // Only owners see the invite panel.
+    isOwner
+      ? db
+          .select({ token: invitations.token })
+          .from(invitations)
+          .where(eq(invitations.projectId, id))
+          .limit(1)
+          .then(([row]) => row ?? null)
+      : null,
+  ]);
 
   // Compute the absolute invite URL from the stored token (D-25).
   // The URL is derived server-side and passed to InvitePanel as a prop
@@ -110,7 +85,7 @@ export default async function MembersPage({
       <h1 className="text-xl font-medium mb-8">Members</h1>
 
       {/* Invite panel — owner-only (D-25, D-32) */}
-      {membership.role === 'owner' && (
+      {isOwner && (
         <>
           <InvitePanel projectId={id} inviteUrl={existingUrl} />
           <Separator className="my-6" />
@@ -123,7 +98,7 @@ export default async function MembersPage({
         <h2 className="text-base font-medium mb-4">Team members</h2>
         <MemberList
           members={roster}
-          isOwner={membership.role === 'owner'}
+          isOwner={isOwner}
           currentUserId={session.user.id}
           projectId={id}
         />

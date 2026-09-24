@@ -83,6 +83,8 @@ Progress: [ 1 ][ 2 ][ 3 ][ 4 ][ 5 ][ 6 ][ 7 ][ 8 ][ 9 ]
 | Pin `@neondatabase/serverless@^0.10.4` | Phase 1 | v1.0.0 broke drizzle-orm/neon-http (open bug #5208) |
 | `requireProjectMember()` DAL helper as the security boundary | Phase 2 | Middleware is not a security boundary (CVE-2025-29927); DAL enforces per-project auth |
 | Shareable invite link, no email | Phase 3 | Avoids email provider; stays free-tier |
+| Better Auth session cookie cache ON (5 min) | Perf (2026-09-24) | Saves a DB round trip per request; revoked sessions stay valid ≤5 min. 1.6.13 falls back to the DB when the cache is stale (Pitfall 6 null-session bug no longer reproduces — verified with a 10 s maxAge). Project membership is still checked per request |
+| Project page loads all tickets once; list/board/filters/pane are client-side (history API) | Perf (2026-09-24) | Instant view/filter switches; fine at small-team scale. `getProjectView` batches project+tickets+members in one self-authorizing round trip |
 | Atomic `UPDATE...RETURNING` for ticket counter | Phase 5 | Race-safe per-project identifiers without multi-statement transactions |
 | Per-user GitHub OAuth token for branch creation (never in session JWT) | Phase 7 | Correct multi-tenant attribution; token fetched from accounts table at action time |
 | Raw body read before HMAC verification in webhook handler | Phase 8 | `request.json()` consumes the body stream; re-serializing breaks the hash |

@@ -17,7 +17,7 @@ import type { Metadata } from 'next';
 import { getSession } from '@/lib/session';
 import { CheckCircle, CircleOff } from 'lucide-react';
 import { isGitHubConnected } from '@/lib/github-token';
-import { ProjectList } from '@/components/project-list';
+import { ProjectList, getProjectsForUser } from '@/components/project-list';
 import { DashboardGreeting } from '@/components/dashboard-greeting';
 import { LabelChip } from '@/components/ui-icons';
 
@@ -32,7 +32,11 @@ export default async function DashboardPage() {
   // D-05: connection status is derived from the account table at render time,
   // never from the session. isGitHubConnected selects only account.id — the
   // token never reaches this page.
-  const githubConnected = user ? await isGitHubConnected(user.id) : false;
+  // Warms the cached project query in parallel so <ProjectList> doesn't wait
+  // behind the GitHub check.
+  const [githubConnected] = user
+    ? await Promise.all([isGitHubConnected(user.id), getProjectsForUser(user.id)])
+    : [false];
 
   return (
     <>

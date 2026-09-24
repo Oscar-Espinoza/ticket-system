@@ -35,8 +35,9 @@ import {
   setTicketStatus,
   updateTicket,
 } from '@/app/actions/tickets';
-import { getProjectTickets } from '@/lib/tickets';
-import { STATUS_ORDER, UNASSIGNED, type TicketStatus } from '@/lib/issue-model';
+import { getProjectView } from '@/lib/tickets';
+import { STATUS_ORDER, UNASSIGNED, filterIssues, type TicketStatus } from '@/lib/issue-model';
+import { getMemberProject } from '@/lib/project-access';
 
 const RUN = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 const userIds: string[] = [];
@@ -124,6 +125,12 @@ afterAll(async () => {
 beforeEach(async () => {
   session.userId = owner;
 });
+
+async function issuesOf(projectId: string) {
+  const view = await getProjectView(projectId, owner);
+  if (!view) throw new Error('owner should see the project');
+  return view.issues;
+}
 
 async function create(title = 'An issue', projectId = project.id) {
   const result = await createTicket({ projectId, title });
@@ -221,7 +228,7 @@ describe('TKT-05: assign', () => {
     expect(
       await assignTicket({ projectId: project.id, id: t.id, assigneeId: member }),
     ).toEqual({ ok: true });
-    const [assigned] = await getProjectTickets(project.id, {
+    const [assigned] = filterIssues(await issuesOf(project.id), {
       statuses: [],
       assignee: member,
     });
@@ -230,7 +237,7 @@ describe('TKT-05: assign', () => {
     expect(
       await assignTicket({ projectId: project.id, id: t.id, assigneeId: null }),
     ).toEqual({ ok: true });
-    const unassigned = await getProjectTickets(project.id, {
+    const unassigned = filterIssues(await issuesOf(project.id), {
       statuses: [],
       assignee: UNASSIGNED,
     });
@@ -274,7 +281,7 @@ describe('TKT-06: status', () => {
   it('filters by status', async () => {
     const t = await create();
     await setTicketStatus({ projectId: project.id, id: t.id, status: 'in_progress' });
-    const rows = await getProjectTickets(project.id, {
+    const rows = filterIssues(await issuesOf(project.id), {
       statuses: ['in_progress'],
       assignee: null,
     });
@@ -307,6 +314,26 @@ describe('authorization', () => {
       ok: false,
       error: 'Not authenticated',
     });
+  });
+
+  it('getMemberProject returns the project and role only for members', async () => {
+    expect(await getMemberProject(project.id, member)).toMatchObject({
+      id: project.id,
+      ticketKey: project.ticketKey,
+      role: 'member',
+    });
+    expect(await getMemberProject(project.id, owner)).toMatchObject({ role: 'owner' });
+    expect(await getMemberProject(project.id, outsider)).toBeNull();
+    expect(await getMemberProject('', owner)).toBeNull();
+  });
+
+  it('getProjectView returns nothing to non-members', async () => {
+    await create('Visible to members only');
+    expect(await getProjectView(project.id, outsider)).toBeNull();
+    const view = await getProjectView(project.id, member);
+    expect(view?.project.role).toBe('member');
+    expect(view?.issues.length).toBeGreaterThan(0);
+    expect(view?.members.map((m) => m.id).sort()).toEqual([member, owner].sort());
   });
 
   it('lets a regular member create tickets', async () => {

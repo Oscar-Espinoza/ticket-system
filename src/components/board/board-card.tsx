@@ -5,6 +5,7 @@ import { useDraggable } from '@dnd-kit/react';
 import { Avatar, StatusIcon } from '@/components/ui-icons';
 import { STATUS_LABEL, type IssueRow } from '@/lib/issue-model';
 import { cn } from '@/lib/utils';
+import { isPendingIssue } from '@/components/issues/use-issue-mutations';
 
 export function BoardCardContent({
   issue,
@@ -50,6 +51,7 @@ export function BoardCard({
     id: issue.id,
     type: 'issue',
     data: { status: issue.status },
+    disabled: isPendingIssue(issue),
   });
 
   return (

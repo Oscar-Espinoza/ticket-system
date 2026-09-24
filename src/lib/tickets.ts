@@ -1,16 +1,13 @@
-// Ticket read DAL (GSD Phase 5). Callers must run requireProjectMember(projectId)
-// first — these functions trust projectId.
+// Ticket read DAL (GSD Phase 5). getProjectView authorizes itself; getTicketById
+// trusts projectId, so callers must check membership first.
 
-import { and, desc, eq, inArray, isNull, type SQL } from 'drizzle-orm';
+import { cache } from 'react';
+import { and, desc, eq, exists, sql, type SQL } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 
 import { db } from '@/lib/db';
 import { projectMembers, projects, tickets, users } from '@/db/schema';
-import {
-  UNASSIGNED,
-  type IssueAssignee,
-  type IssueFilters,
-  type IssueRow,
-} from '@/lib/issue-model';
+import type { IssueRow } from '@/lib/issue-model';
 
 const issueColumns = {
   id: tickets.id,
@@ -72,26 +69,6 @@ function selectIssues(where: SQL | undefined) {
     .where(where);
 }
 
-export async function getProjectTickets(
-  projectId: string,
-  filters: IssueFilters = { statuses: [], assignee: null },
-): Promise<IssueRow[]> {
-  const conditions: SQL[] = [eq(tickets.projectId, projectId)];
-  if (filters.statuses.length > 0) {
-    conditions.push(inArray(tickets.status, filters.statuses));
-  }
-  if (filters.assignee === UNASSIGNED) {
-    conditions.push(isNull(tickets.assigneeId));
-  } else if (filters.assignee) {
-    conditions.push(eq(tickets.assigneeId, filters.assignee));
-  }
-
-  const rows = await selectIssues(and(...conditions)).orderBy(
-    desc(tickets.ticketNumber),
-  );
-  return rows.map(toIssueRow);
-}
-
 export async function getTicketById(
   projectId: string,
   ticketId: string,
@@ -102,26 +79,50 @@ export async function getTicketById(
   return row ? toIssueRow(row) : null;
 }
 
-export async function getTicketByNumber(
-  projectId: string,
-  ticketNumber: number,
-): Promise<IssueRow | null> {
-  const [row] = await selectIssues(
-    and(
-      eq(tickets.projectId, projectId),
-      eq(tickets.ticketNumber, ticketNumber),
-    ),
-  ).limit(1);
-  return row ? toIssueRow(row) : null;
-}
+/**
+ * Everything the project page needs, in ONE round trip (neon-http batch).
+ *
+ * Each query authorizes itself: the project row is inner-joined on the
+ * viewer's membership, and tickets/members are gated by an EXISTS on it — so a
+ * non-member reads nothing (the getProjectsForUser pattern, T-02-07). Returns
+ * null for non-members. Memoized per request for the page + generateMetadata.
+ */
+export const getProjectView = cache(async (projectId: string, userId: string) => {
+  if (!projectId || !userId) return null;
+  const viewer = alias(projectMembers, 'viewer');
+  const isMember = exists(
+    db
+      .select({ one: sql`1` })
+      .from(viewer)
+      .where(and(eq(viewer.projectId, projectId), eq(viewer.userId, userId))),
+  );
 
-export async function getProjectMemberOptions(
-  projectId: string,
-): Promise<IssueAssignee[]> {
-  return db
-    .select({ id: users.id, name: users.name, image: users.image })
-    .from(projectMembers)
-    .innerJoin(users, eq(projectMembers.userId, users.id))
-    .where(eq(projectMembers.projectId, projectId))
-    .orderBy(users.name);
-}
+  const [projectRows, ticketRows, members] = await db.batch([
+    db
+      .select({
+        id: projects.id,
+        name: projects.name,
+        ticketKey: projects.ticketKey,
+        role: projectMembers.role,
+      })
+      .from(projectMembers)
+      .innerJoin(projects, eq(projectMembers.projectId, projects.id))
+      .where(
+        and(eq(projectMembers.projectId, projectId), eq(projectMembers.userId, userId)),
+      )
+      .limit(1),
+    selectIssues(and(eq(tickets.projectId, projectId), isMember)).orderBy(
+      desc(tickets.ticketNumber),
+    ),
+    db
+      .select({ id: users.id, name: users.name, image: users.image })
+      .from(projectMembers)
+      .innerJoin(users, eq(projectMembers.userId, users.id))
+      .where(and(eq(projectMembers.projectId, projectId), isMember))
+      .orderBy(users.name),
+  ]);
+
+  const [project] = projectRows;
+  if (!project) return null;
+  return { project, issues: ticketRows.map(toIssueRow), members };
+});

@@ -11,43 +11,35 @@ import { registerPaletteCommands } from '@/lib/palette-commands';
 import {
   STATUS_ORDER,
   VIEW_COOKIE,
+  filterIssues,
   groupByStatus,
   type IssueAssignee,
-  type IssueFilters as Filters,
   type IssueRow,
   type TicketStatus,
 } from '@/lib/issue-model';
-import { IssueFilters, useSetSearchParams } from './issue-filters';
+import { IssueFilters, applyFilters, setSearchParams, useIssueFilters } from './issue-filters';
 import { NewIssueDialog } from './new-issue-dialog';
-import { useIssueMutations } from './use-issue-mutations';
+import { isPendingIssue, useIssueMutations } from './use-issue-mutations';
 import { ViewSwitcher } from './view-switcher';
-import { ISSUE_VIEWS } from './views';
+import { ISSUE_VIEWS, preloadViews } from './views';
 
 export function IssuesView({
   projectId,
+  ticketKey,
   issues,
   members,
-  filters,
-  totalCount,
   defaultView,
-  linkedIssue,
 }: {
   projectId: string;
+  ticketKey: string;
   issues: IssueRow[];
   members: IssueAssignee[];
-  filters: Filters;
-  totalCount: number;
   /** Last view chosen this browser session; a `view` URL param wins. */
   defaultView?: string;
-  /** Deep-linked issue that the current filters exclude from `issues`. */
-  linkedIssue?: IssueRow | null;
 }) {
-  const mutations = useIssueMutations(
-    projectId,
-    linkedIssue ? [...issues, linkedIssue] : issues,
-  );
+  const mutations = useIssueMutations(projectId, ticketKey, issues);
   const searchParams = useSearchParams();
-  const setParams = useSetSearchParams();
+  const filters = useIssueFilters();
   const [create, setCreate] = useState<{ open: boolean; status: TicketStatus }>({
     open: false,
     status: 'backlog',
@@ -71,6 +63,16 @@ export function IssuesView({
     [],
   );
 
+  // Fetch the other views' code while idle so the first switch doesn't wait on it.
+  useEffect(() => {
+    if ('requestIdleCallback' in window) {
+      const id = window.requestIdleCallback(preloadViews);
+      return () => window.cancelIdleCallback(id);
+    }
+    const id = setTimeout(preloadViews, 1500);
+    return () => clearTimeout(id);
+  }, []);
+
   const view =
     ISSUE_VIEWS.find((v) => v.id === (searchParams.get('view') ?? defaultView)) ??
     ISSUE_VIEWS[0];
@@ -78,12 +80,12 @@ export function IssuesView({
   const switchView = (id: string) => {
     // Session cookie: remembered across navigation until the browser closes.
     document.cookie = `${VIEW_COOKIE}=${id}; path=/; samesite=lax`;
-    setParams({ view: id });
+    setSearchParams({ view: id });
   };
   const View = view.component;
 
   const visible = filters.statuses.length ? filters.statuses : STATUS_ORDER;
-  const listed = mutations.issues.filter((i) => i.id !== linkedIssue?.id);
+  const listed = filterIssues(mutations.issues, filters);
   const groups = groupByStatus(listed).filter((g) => visible.includes(g.status));
   const filtered = filters.statuses.length > 0 || filters.assignee !== null;
 
@@ -93,22 +95,14 @@ export function IssuesView({
     : null;
   const openerId = useRef<string | null>(null);
 
-  // Native history updates sync with useSearchParams without a server round trip.
-  const setIssueParam = (key: string | null) => {
-    const params = new URLSearchParams(window.location.search);
-    if (key) params.set('issue', key);
-    else params.delete('issue');
-    const query = params.toString();
-    window.history.replaceState(null, '', query ? `?${query}` : window.location.pathname);
-  };
-
   const selectIssue = (issue: IssueRow) => {
+    if (isPendingIssue(issue)) return;
     openerId.current = issue.id;
-    setIssueParam(issue.key);
+    setSearchParams({ issue: issue.key });
   };
 
   const closeIssue = () => {
-    setIssueParam(null);
+    setSearchParams({ issue: null });
     const id = openerId.current ?? selected?.id;
     requestAnimationFrame(() => {
       document
@@ -118,7 +112,7 @@ export function IssuesView({
   };
 
   let body: React.ReactNode;
-  if (totalCount === 0 && !filtered) {
+  if (mutations.issues.length === 0 && !filtered) {
     body = (
       <EmptyState
         icon={<ListTodo />}
@@ -142,7 +136,7 @@ export function IssuesView({
           <Button
             size="sm"
             variant="outline"
-            onClick={() => setParams({ status: null, assignee: null })}
+            onClick={() => applyFilters({ statuses: [], assignee: null })}
           >
             Clear filters
           </Button>
@@ -165,7 +159,7 @@ export function IssuesView({
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <ViewSwitcher views={ISSUE_VIEWS} current={view.id} onChange={switchView} />
-        <IssueFilters filters={filters} members={members} />
+        <IssueFilters members={members} />
         <Button size="sm" className="ml-auto" onClick={() => openCreate()}>
           <Plus />
           New issue
@@ -185,10 +179,10 @@ export function IssuesView({
       </div>
 
       <NewIssueDialog
-        projectId={projectId}
         open={create.open}
         status={create.status}
         onOpenChange={(open) => setCreate((c) => ({ ...c, open }))}
+        onCreate={mutations.create}
       />
     </div>
   );

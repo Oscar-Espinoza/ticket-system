@@ -1,7 +1,6 @@
 'use client';
 
-import { useOptimistic, useTransition } from 'react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { ChevronDown, X } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -19,6 +18,7 @@ import {
   STATUS_LABEL,
   STATUS_ORDER,
   UNASSIGNED,
+  parseIssueFilters,
   type IssueAssignee,
   type IssueFilters as Filters,
   type TicketStatus,
@@ -26,48 +26,41 @@ import {
 
 const ANYONE = '__anyone';
 
-export function useSetSearchParams() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-
-  return (changes: Record<string, string | null>) => {
-    const next = new URLSearchParams(searchParams.toString());
-    for (const [key, value] of Object.entries(changes)) {
-      if (value) next.set(key, value);
-      else next.delete(key);
-    }
-    const query = next.toString();
-    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
-  };
+// Native history updates sync with useSearchParams without a server request —
+// view, filter and pane state are all client-side.
+export function setSearchParams(changes: Record<string, string | null>) {
+  const params = new URLSearchParams(window.location.search);
+  for (const [key, value] of Object.entries(changes)) {
+    if (value) params.set(key, value);
+    else params.delete(key);
+  }
+  const query = params.toString();
+  window.history.replaceState(null, '', query ? `?${query}` : window.location.pathname);
 }
 
-export function IssueFilters({
-  filters: serverFilters,
-  members,
-}: {
-  filters: Filters;
-  members: IssueAssignee[];
-}) {
-  const setParams = useSetSearchParams();
-  // Rapid toggles must build on the pending selection, not the last server render.
-  const [filters, setOptimisticFilters] = useOptimistic(serverFilters);
-  const [, startTransition] = useTransition();
+export function useIssueFilters(): Filters {
+  const searchParams = useSearchParams();
+  return parseIssueFilters({
+    status: searchParams.get('status') ?? undefined,
+    assignee: searchParams.get('assignee') ?? undefined,
+  });
+}
 
-  const apply = (next: Filters) =>
-    startTransition(() => {
-      setOptimisticFilters(next);
-      setParams({
-        status: next.statuses.length ? next.statuses.join(',') : null,
-        assignee: next.assignee,
-      });
-    });
+export function applyFilters(next: Filters) {
+  setSearchParams({
+    status: next.statuses.length ? next.statuses.join(',') : null,
+    assignee: next.assignee,
+  });
+}
+
+export function IssueFilters({ members }: { members: IssueAssignee[] }) {
+  const filters = useIssueFilters();
 
   const toggleStatus = (status: TicketStatus, checked: boolean) => {
     const next = checked
       ? [...filters.statuses, status]
       : filters.statuses.filter((s) => s !== status);
-    apply({ ...filters, statuses: STATUS_ORDER.filter((s) => next.includes(s)) });
+    applyFilters({ ...filters, statuses: STATUS_ORDER.filter((s) => next.includes(s)) });
   };
 
   const assigneeLabel =
@@ -125,7 +118,7 @@ export function IssueFilters({
           <DropdownMenuRadioGroup
             value={filters.assignee ?? ANYONE}
             onValueChange={(value) =>
-              apply({ ...filters, assignee: value === ANYONE ? null : value })
+              applyFilters({ ...filters, assignee: value === ANYONE ? null : value })
             }
           >
             <DropdownMenuRadioItem value={ANYONE}>Anyone</DropdownMenuRadioItem>
@@ -145,7 +138,7 @@ export function IssueFilters({
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => apply({ statuses: [], assignee: null })}
+          onClick={() => applyFilters({ statuses: [], assignee: null })}
           className="text-muted-foreground"
         >
           <X />

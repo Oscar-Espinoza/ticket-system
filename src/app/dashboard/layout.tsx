@@ -6,8 +6,8 @@
 //
 // `auth.api.getSession` reads the session cookie from the incoming request
 // headers. If there is no valid session we redirect to /login; otherwise we
-// render the protected children. No cookie cache is enabled (auth.ts), so a
-// signed-in refresh resolves a real session and never bounces to /login.
+// render the protected children. The session cookie cache (auth.ts) falls back
+// to the DB when stale, so a signed-in refresh never bounces to /login.
 
 import { getSession } from '@/lib/session';
 import { getProjectsForUser } from '@/components/project-list';

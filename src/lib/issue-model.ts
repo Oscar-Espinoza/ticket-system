@@ -76,3 +76,14 @@ export function parseIssueFilters(params: {
   const assignee = first(params.assignee)?.trim() || null;
   return { statuses: [...new Set(statuses)], assignee };
 }
+
+export function filterIssues(issues: IssueRow[], filters: IssueFilters): IssueRow[] {
+  return issues.filter(
+    (issue) =>
+      (filters.statuses.length === 0 || filters.statuses.includes(issue.status)) &&
+      (filters.assignee === null ||
+        (filters.assignee === UNASSIGNED
+          ? issue.assignee === null
+          : issue.assignee?.id === filters.assignee)),
+  );
+}

@@ -36,7 +36,13 @@ function ListView({ groups, mutations, selectedId, onSelect }: IssueViewProps) {
   );
 }
 
-const BoardView = dynamic(() => import('@/components/board/board'), {
+const loadBoard = () => import('@/components/board/board');
+
+export function preloadViews() {
+  void loadBoard();
+}
+
+const BoardView = dynamic(loadBoard, {
   loading: () => (
     <div className="flex gap-3">
       {Array.from({ length: 5 }, (_, i) => (

@@ -149,6 +149,10 @@ files in `evidence/`. After shots per route:
   would end the dev session). Issue deletion was exercised up to the confirm
   dialog in the browser; the delete action itself is covered by
   `src/tests/tickets.test.ts`.
+- Performance pass (post-M8): view, filter and detail-pane state are client-side
+  (native history API, no server round trip); the project page loads all of a
+  project's tickets in one batched query, so very large projects would need
+  pagination later. Issue creation is optimistic.
 - Hard-coded scrim colors (`bg-black/…` behind dialogs/sheet/mobile sidebar) are
   the only non-token colors left, by design.
 
