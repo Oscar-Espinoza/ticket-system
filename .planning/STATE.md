@@ -65,6 +65,7 @@ Progress: [ 1 ][ 2 ][ 3 ][ 4 ][ 5 ][ 6 ][ 7 ][ 8 ][ 9 ]
 | 01-01 | — | — | — | Scaffold + DB foundation (complete) |
 | 01-02 | ~11m | 2 | 23 | Email/password auth slice + protected dashboard (complete) |
 | 01-03 | ~4m | 1 (+1 manual gate) | 6 | GitHub OAuth slice, minimal scopes, token seam (complete) |
+| 05 (direct, no GSD cmds) | — | 1 | 4 | Tickets core: `src/lib/tickets.ts` DAL, `src/app/actions/tickets.ts`, C5 model `src/lib/issue-model.ts`, 15 integration tests (TKT-01…06). UI ships with MIMO M5–M7 (2026-09-24) |
 
 ---
 

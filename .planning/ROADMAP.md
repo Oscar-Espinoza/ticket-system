@@ -239,7 +239,7 @@ Plans:
 | 2. Projects + Authorization Layer | 4/4 | Complete   | 2026-06-02 |
 | 3. Membership + Invite Links | 4/4 | Gaps Found | - |
 | 4. Project Settings | 0/? | Not started | - |
-| 5. Tickets Core | 0/? | Not started | - |
+| 5. Tickets Core | DAL + actions | In Progress (TKT-01…06 done; TKT-07 detail via MIMO M7) | - |
 | 6. Kanban Board | 0/? | Not started | - |
 | 7. Connect GitHub + Branch Creation | 0/? | Not started | - |
 | 8. Webhook Registration + Status Sync | 0/? | Not started | - |

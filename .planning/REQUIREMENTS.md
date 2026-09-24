@@ -32,12 +32,12 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Tickets
 
-- [ ] **TKT-01**: User can create a ticket with a title and description in a project
-- [ ] **TKT-02**: New ticket receives a unique per-project identifier (e.g. "APP-42") from an atomic counter
-- [ ] **TKT-03**: User can edit a ticket's title and description
-- [ ] **TKT-04**: User can delete a ticket
-- [ ] **TKT-05**: User can assign a ticket to a project member
-- [ ] **TKT-06**: User can change a ticket's status (backlog, todo, in_progress, in_review, done)
+- [x] **TKT-01**: User can create a ticket with a title and description in a project
+- [x] **TKT-02**: New ticket receives a unique per-project identifier (e.g. "APP-42") from an atomic counter
+- [x] **TKT-03**: User can edit a ticket's title and description
+- [x] **TKT-04**: User can delete a ticket
+- [x] **TKT-05**: User can assign a ticket to a project member
+- [x] **TKT-06**: User can change a ticket's status (backlog, todo, in_progress, in_review, done)
 - [ ] **TKT-07**: User can open a ticket detail page showing its full information
 
 ### Board
@@ -110,12 +110,12 @@ Which phases cover which requirements.
 | MEM-04 | Phase 3 | Complete |
 | MEM-05 | Phase 3 | Complete |
 | PROJ-04 | Phase 4 | Pending |
-| TKT-01 | Phase 5 | Pending |
-| TKT-02 | Phase 5 | Pending |
-| TKT-03 | Phase 5 | Pending |
-| TKT-04 | Phase 5 | Pending |
-| TKT-05 | Phase 5 | Pending |
-| TKT-06 | Phase 5 | Pending |
+| TKT-01 | Phase 5 | Complete |
+| TKT-02 | Phase 5 | Complete |
+| TKT-03 | Phase 5 | Complete |
+| TKT-04 | Phase 5 | Complete |
+| TKT-05 | Phase 5 | Complete |
+| TKT-06 | Phase 5 | Complete |
 | TKT-07 | Phase 5 | Pending |
 | BOARD-01 | Phase 6 | Pending |
 | BOARD-02 | Phase 6 | Pending |
