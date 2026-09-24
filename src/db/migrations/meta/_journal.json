@@ -15,6 +15,27 @@
       "when": 1780371023363,
       "tag": "0001_uneven_thaddeus_ross",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790291682779,
+      "tag": "0002_linear_parity",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790291690314,
+      "tag": "0003_seed_workflow_states",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790291707203,
+      "tag": "0004_drop_legacy_status",
+      "breakpoints": true
     }
   ]
 }
