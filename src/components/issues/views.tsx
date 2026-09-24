@@ -5,17 +5,20 @@ import dynamic from 'next/dynamic';
 import { Kanban, List, type LucideIcon } from 'lucide-react';
 
 import { Skeleton } from '@/components/ui-icons';
-
-import type { IssueGroup, IssueRow, TicketStatus } from '@/lib/issue-model';
+import type { IssueGroup } from '@/lib/issue-grouping';
+import type { IssuePatch, IssueRow } from '@/lib/issue-model';
+import { useDisplayOptions } from './display-options';
 import { IssueList } from './issue-list';
 import type { IssueMutations } from './use-issue-mutations';
 
 export interface IssueViewProps {
+  /** Every group, empty ones included — each view decides what to hide. */
   groups: IssueGroup[];
   mutations: IssueMutations;
   selectedId: string | null;
   onSelect?: (issue: IssueRow) => void;
-  onCreate: (status: TicketStatus) => void;
+  /** Open "New issue" pre-filled with a group's patch (null = project defaults). */
+  onCreate: (patch: IssuePatch | null) => void;
 }
 
 export interface IssueViewDefinition {
@@ -25,13 +28,15 @@ export interface IssueViewDefinition {
   component: ComponentType<IssueViewProps>;
 }
 
-function ListView({ groups, mutations, selectedId, onSelect }: IssueViewProps) {
+function ListView({ groups, mutations, selectedId, onSelect, onCreate }: IssueViewProps) {
+  const [{ showEmptyGroups }] = useDisplayOptions();
   return (
     <IssueList
-      groups={groups}
+      groups={showEmptyGroups ? groups : groups.filter((g) => g.issues.length > 0)}
       mutations={mutations}
       selectedId={selectedId}
       onSelect={onSelect}
+      onCreate={onCreate}
     />
   );
 }
@@ -53,7 +58,7 @@ const BoardView = dynamic(loadBoard, {
 });
 
 // View registry: the switcher renders one entry per definition; later views
-// register by appending here.
+// (table, calendar — B5) register by appending here.
 export const ISSUE_VIEWS: IssueViewDefinition[] = [
   { id: 'list', label: 'List', icon: List, component: ListView },
   { id: 'board', label: 'Board', icon: Kanban, component: BoardView },

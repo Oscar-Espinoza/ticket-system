@@ -1,76 +1,116 @@
 'use client';
 
-import { useRef, useState } from 'react';
-import { GitBranch, MoreHorizontal, Trash2, UserRound, X } from 'lucide-react';
+// Issue detail — rendered in the list's side pane ('pane') and on the
+// permalink page ('page', B6). The header, properties panel and sections host
+// slot components owned by Wave B agents; this host's layout is frozen.
 
-import { Button } from '@/components/ui/button';
+import type { ComponentProps, ReactNode } from 'react';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+  Archive,
+  ArchiveRestore,
+  CalendarDays,
+  GitBranch,
+  Hash,
+  Link2,
+  MoreHorizontal,
+  Tag,
+  Trash2,
+  Triangle,
+  UserRound,
+  X,
+} from 'lucide-react';
+import { toast } from 'sonner';
+
+import {
+  AssigneePicker,
+  DueDatePicker,
+  EstimatePicker,
+  LabelPicker,
+  PriorityPicker,
+  StatePicker,
+} from '@/components/issue-pickers';
+import { DueDateChip, LabelChips } from '@/components/issues/issue-properties';
+import type { IssueMutations } from '@/components/issues/use-issue-mutations';
+import { useProjectData, useProjectPermission } from '@/components/project/project-data';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Textarea } from '@/components/ui/textarea';
-import { Avatar, StatusIcon } from '@/components/ui-icons';
-import { IssueStatusMenu } from '@/components/issues/issue-status-menu';
-import type { IssueMutations } from '@/components/issues/use-issue-mutations';
-import { STATUS_LABEL, type IssueAssignee, type IssueRow } from '@/lib/issue-model';
+import { Avatar, PriorityIcon, StateIcon } from '@/components/ui-icons';
+import { formatEstimate } from '@/lib/estimates';
+import { issueUrl } from '@/lib/issue-links';
+import { PRIORITY_LABEL, type IssueRow } from '@/lib/issue-model';
+import { cn } from '@/lib/utils';
+import { PropertyRow } from './property-row';
+import { useDraft } from './use-draft';
+import { DescriptionEditor } from './slots/description-editor';
+import { HeaderFavorite } from './slots/header-favorite';
+import { HeaderGithub } from './slots/header-github';
+import { HeaderPresence } from './slots/header-presence';
+import { HeaderRemind } from './slots/header-remind';
+import { HeaderSubscribe } from './slots/header-subscribe';
+import { MenuExtraItems } from './slots/menu-extra-items';
+import { PropertyCycle } from './slots/property-cycle';
+import { PropertyEpic } from './slots/property-epic';
+import { PropertyParent } from './slots/property-parent';
+import { SectionActivity } from './slots/section-activity';
+import { SectionAttachments } from './slots/section-attachments';
+import { SectionPullRequests } from './slots/section-pull-requests';
+import { SectionRelations } from './slots/section-relations';
+import { SectionSubIssues } from './slots/section-sub-issues';
 
-const UNASSIGNED_VALUE = '__unassigned';
 const dateFormat = new Intl.DateTimeFormat('en', {
   dateStyle: 'medium',
   timeStyle: 'short',
 });
 
-// Local draft that resets whenever the saved value changes (including an
-// optimistic rollback), without an effect.
-function useDraft(saved: string) {
-  const [draft, setDraft] = useState(saved);
-  const [base, setBase] = useState(saved);
-  if (saved !== base) {
-    setBase(saved);
-    setDraft(saved);
-  }
-  return [draft, setDraft] as const;
+/** Ghost property button; trigger props (ref, onClick, aria-*) come via asChild. */
+function PropertyButton({ className, ...props }: ComponentProps<typeof Button>) {
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      className={cn('-ml-2 max-w-full gap-2 font-normal', className)}
+      {...props}
+    />
+  );
 }
 
-function PropertyRow({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex min-h-8 items-center gap-3">
-      <span className="w-20 shrink-0 text-xs text-muted-foreground">{label}</span>
-      <div className="min-w-0 flex-1">{children}</div>
-    </div>
-  );
+function Muted({ children }: { children: ReactNode }) {
+  return <span className="text-muted-foreground">{children}</span>;
+}
+
+async function copy(text: string, what: string) {
+  try {
+    await navigator.clipboard.writeText(text);
+    toast.success(`Copied ${what}`);
+  } catch {
+    toast.error('Could not copy to the clipboard.');
+  }
 }
 
 export function IssueDetail({
   issue,
-  members,
   mutations,
+  variant = 'pane',
   onClose,
 }: {
   issue: IssueRow;
-  members: IssueAssignee[];
   mutations: IssueMutations;
-  onClose: () => void;
+  /** 'pane' = narrow single column; 'page' = content + properties sidebar. */
+  variant?: 'pane' | 'page';
+  /** Shows the close button and runs after archive / trash. */
+  onClose?: () => void;
 }) {
+  const { project } = useProjectData();
+  const canWrite = useProjectPermission('write');
   const [title, setTitle] = useDraft(issue.title);
-  const [description, setDescription] = useDraft(issue.description ?? '');
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const actionsRef = useRef<HTMLButtonElement>(null);
+  const update = (patch: Parameters<IssueMutations['update']>[1]) => mutations.update(issue, patch);
 
   const saveTitle = () => {
     const next = title.trim();
@@ -78,186 +118,300 @@ export function IssueDetail({
       setTitle(issue.title);
       return;
     }
-    if (next !== issue.title) mutations.update(issue, { title: next });
+    if (next !== issue.title) update({ title: next });
   };
 
-  const saveDescription = () => {
-    const next = description.trim();
-    if (next !== (issue.description ?? '')) {
-      mutations.update(issue, { description: next || null });
-    }
-  };
-
-  return (
-    <div className="flex h-full flex-col gap-5">
-      <div className="flex items-center gap-2">
-        <span className="font-mono text-xs text-muted-foreground">{issue.key}</span>
-        <div className="ml-auto flex items-center gap-1">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                ref={actionsRef}
-                variant="ghost"
-                size="icon-sm"
-                aria-label="Issue actions"
-              >
-                <MoreHorizontal />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                variant="destructive"
-                onSelect={() => setConfirmDelete(true)}
-              >
-                <Trash2 />
-                Delete issue
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+  const header = (
+    <div className="flex items-center gap-2">
+      <span className="font-mono text-xs text-muted-foreground">{issue.key}</span>
+      <div className="ml-auto flex items-center gap-1">
+        <HeaderPresence issue={issue} mutations={mutations} />
+        <HeaderFavorite issue={issue} mutations={mutations} />
+        <HeaderSubscribe issue={issue} mutations={mutations} />
+        <HeaderRemind issue={issue} mutations={mutations} />
+        <HeaderGithub issue={issue} mutations={mutations} />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon-sm" aria-label="Issue actions">
+              <MoreHorizontal />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-52">
+            <DropdownMenuItem onSelect={() => copy(issueUrl(project.id, issue.key), 'link')}>
+              <Link2 />
+              Copy link
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => copy(issue.key, issue.key)}>
+              <Hash />
+              Copy ID
+            </DropdownMenuItem>
+            <MenuExtraItems issue={issue} mutations={mutations} />
+            {canWrite && (
+              <>
+                <DropdownMenuSeparator />
+                {issue.archivedAt || issue.deletedAt ? (
+                  <DropdownMenuItem onSelect={() => mutations.restore(issue)}>
+                    <ArchiveRestore />
+                    Restore
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem onSelect={() => mutations.archive(issue, onClose)}>
+                    <Archive />
+                    Archive
+                  </DropdownMenuItem>
+                )}
+                {!issue.deletedAt && (
+                  <DropdownMenuItem
+                    variant="destructive"
+                    onSelect={() => mutations.remove(issue, onClose)}
+                  >
+                    <Trash2 />
+                    Move to trash
+                  </DropdownMenuItem>
+                )}
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+        {onClose && (
           <Button variant="ghost" size="icon-sm" aria-label="Close issue" onClick={onClose}>
             <X />
           </Button>
+        )}
+      </div>
+    </div>
+  );
+
+  const banner = (issue.archivedAt || issue.deletedAt) && (
+    <div className="flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
+      {issue.deletedAt ? <Trash2 className="size-4" /> : <Archive className="size-4" />}
+      <span>{issue.deletedAt ? 'This issue is in the trash.' : 'This issue is archived.'}</span>
+      {canWrite && (
+        <Button size="xs" variant="outline" className="ml-auto" onClick={() => mutations.restore(issue)}>
+          Restore
+        </Button>
+      )}
+    </div>
+  );
+
+  const titleField = (
+    <Textarea
+      aria-label="Title"
+      value={title}
+      maxLength={200}
+      rows={1}
+      readOnly={!canWrite}
+      onChange={(e) => setTitle(e.target.value)}
+      onBlur={saveTitle}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          e.currentTarget.blur();
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          setTitle(issue.title);
+          e.currentTarget.blur();
+        }
+      }}
+      className="min-h-0 resize-none border-transparent bg-transparent px-1 py-0.5 text-lg font-medium shadow-none hover:border-border dark:bg-transparent"
+    />
+  );
+
+  // Read-only roles (guests) see the same buttons, disabled, without pickers.
+  const picker = (trigger: ReactNode, wrap: (trigger: ReactNode) => ReactNode) =>
+    canWrite ? wrap(trigger) : trigger;
+
+  const properties = (
+    <div className="flex flex-col gap-1">
+      <PropertyRow label="Status">
+        {picker(
+          <PropertyButton disabled={!canWrite}>
+            <StateIcon state={issue.state} size={14} />
+            <span className="truncate">{issue.state.name}</span>
+          </PropertyButton>,
+          (trigger) => (
+            <StatePicker value={issue.stateId} onChange={(stateId) => update({ stateId })}>
+              {trigger}
+            </StatePicker>
+          ),
+        )}
+      </PropertyRow>
+
+      <PropertyRow label="Priority">
+        {picker(
+          <PropertyButton disabled={!canWrite}>
+            <PriorityIcon priority={issue.priority} size={14} />
+            {issue.priority === 'none' ? <Muted>Set priority</Muted> : PRIORITY_LABEL[issue.priority]}
+          </PropertyButton>,
+          (trigger) => (
+            <PriorityPicker value={issue.priority} onChange={(priority) => update({ priority })}>
+              {trigger}
+            </PriorityPicker>
+          ),
+        )}
+      </PropertyRow>
+
+      <PropertyRow label="Assignee">
+        {picker(
+          <PropertyButton disabled={!canWrite}>
+            {issue.assignee ? (
+              <>
+                <Avatar name={issue.assignee.name} src={issue.assignee.image} size={20} />
+                <span className="truncate">{issue.assignee.name}</span>
+              </>
+            ) : (
+              <>
+                <UserRound className="text-muted-foreground" />
+                <Muted>Unassigned</Muted>
+              </>
+            )}
+          </PropertyButton>,
+          (trigger) => (
+            <AssigneePicker
+              value={issue.assignee?.id ?? null}
+              onChange={(assigneeId) => update({ assigneeId })}
+            >
+              {trigger}
+            </AssigneePicker>
+          ),
+        )}
+      </PropertyRow>
+
+      <PropertyRow label="Labels">
+        {picker(
+          <PropertyButton disabled={!canWrite} className="h-auto min-h-7 py-1">
+            {issue.labels.length > 0 ? (
+              <LabelChips labels={issue.labels} max={6} className="flex-wrap" />
+            ) : (
+              <>
+                <Tag className="text-muted-foreground" />
+                <Muted>Add label</Muted>
+              </>
+            )}
+          </PropertyButton>,
+          (trigger) => (
+            <LabelPicker
+              value={issue.labels.map((l) => l.id)}
+              onChange={(labelIds) => update({ labelIds })}
+            >
+              {trigger}
+            </LabelPicker>
+          ),
+        )}
+      </PropertyRow>
+
+      {project.estimateScale !== 'none' && (
+        <PropertyRow label="Estimate">
+          {picker(
+            <PropertyButton disabled={!canWrite}>
+              <Triangle className="text-muted-foreground" />
+              {issue.estimate === null ? (
+                <Muted>Set estimate</Muted>
+              ) : (
+                formatEstimate(project.estimateScale, issue.estimate)
+              )}
+            </PropertyButton>,
+            (trigger) => (
+              <EstimatePicker value={issue.estimate} onChange={(estimate) => update({ estimate })}>
+                {trigger}
+              </EstimatePicker>
+            ),
+          )}
+        </PropertyRow>
+      )}
+
+      <PropertyRow label="Due date">
+        {picker(
+          <PropertyButton disabled={!canWrite}>
+            {issue.dueDate ? (
+              <DueDateChip dueDate={issue.dueDate} stateType={issue.state.type} className="border-0 px-0" />
+            ) : (
+              <>
+                <CalendarDays className="text-muted-foreground" />
+                <Muted>Set due date</Muted>
+              </>
+            )}
+          </PropertyButton>,
+          (trigger) => (
+            <DueDatePicker value={issue.dueDate} onChange={(dueDate) => update({ dueDate })}>
+              {trigger}
+            </DueDatePicker>
+          ),
+        )}
+      </PropertyRow>
+
+      <PropertyParent issue={issue} mutations={mutations} />
+      <PropertyCycle issue={issue} mutations={mutations} />
+      <PropertyEpic issue={issue} mutations={mutations} />
+
+      {issue.githubBranch && (
+        <PropertyRow label="Branch">
+          <span className="flex items-center gap-1.5 truncate font-mono text-xs">
+            <GitBranch className="size-3.5 shrink-0 text-muted-foreground" />
+            {issue.githubBranch}
+          </span>
+        </PropertyRow>
+      )}
+
+      <PropertyRow label="Created by">
+        {issue.creator ? (
+          <span className="flex items-center gap-2 text-xs">
+            <Avatar name={issue.creator.name} src={issue.creator.image} size={20} />
+            <span className="truncate">{issue.creator.name}</span>
+          </span>
+        ) : (
+          <span className="text-xs text-muted-foreground">—</span>
+        )}
+      </PropertyRow>
+      <PropertyRow label="Created">
+        <span className="text-xs" suppressHydrationWarning>
+          {dateFormat.format(new Date(issue.createdAt))}
+        </span>
+      </PropertyRow>
+      <PropertyRow label="Updated">
+        <span className="text-xs" suppressHydrationWarning>
+          {dateFormat.format(new Date(issue.updatedAt))}
+        </span>
+      </PropertyRow>
+    </div>
+  );
+
+  const sections = (
+    <>
+      <DescriptionEditor issue={issue} mutations={mutations} readOnly={!canWrite} />
+      <SectionSubIssues issue={issue} mutations={mutations} />
+      <SectionRelations issue={issue} mutations={mutations} />
+      <SectionAttachments issue={issue} mutations={mutations} />
+      <SectionPullRequests issue={issue} mutations={mutations} />
+      <SectionActivity issue={issue} mutations={mutations} />
+    </>
+  );
+
+  if (variant === 'page') {
+    return (
+      <div className="flex flex-col gap-5">
+        {header}
+        {banner}
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_280px]">
+          <div className="flex min-w-0 flex-col gap-5">
+            {titleField}
+            {sections}
+          </div>
+          <aside aria-label="Properties" className="lg:border-l lg:border-border lg:pl-6">
+            {properties}
+          </aside>
         </div>
       </div>
+    );
+  }
 
-      <Textarea
-        aria-label="Title"
-        value={title}
-        maxLength={200}
-        rows={1}
-        onChange={(e) => setTitle(e.target.value)}
-        onBlur={saveTitle}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            e.currentTarget.blur();
-          } else if (e.key === 'Escape') {
-            e.preventDefault();
-            setTitle(issue.title);
-            e.currentTarget.blur();
-          }
-        }}
-        className="min-h-0 resize-none border-transparent bg-transparent px-1 py-0.5 text-lg font-medium shadow-none hover:border-border dark:bg-transparent"
-      />
-
-      <div className="flex flex-col gap-1 border-y border-border py-3">
-        <PropertyRow label="Status">
-          <IssueStatusMenu
-            status={issue.status}
-            onChange={(status) => mutations.setStatus(issue, status)}
-          >
-            <Button variant="ghost" size="sm" className="-ml-2 gap-2 font-normal">
-              <StatusIcon status={issue.status} size={14} />
-              {STATUS_LABEL[issue.status]}
-            </Button>
-          </IssueStatusMenu>
-        </PropertyRow>
-
-        <PropertyRow label="Assignee">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="-ml-2 gap-2 font-normal">
-                {issue.assignee ? (
-                  <>
-                    <Avatar name={issue.assignee.name} src={issue.assignee.image} size={20} />
-                    <span className="truncate">{issue.assignee.name}</span>
-                  </>
-                ) : (
-                  <>
-                    <UserRound className="text-muted-foreground" />
-                    <span className="text-muted-foreground">Unassigned</span>
-                  </>
-                )}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-52">
-              <DropdownMenuRadioGroup
-                value={issue.assignee?.id ?? UNASSIGNED_VALUE}
-                onValueChange={(value) =>
-                  mutations.assign(
-                    issue,
-                    value === UNASSIGNED_VALUE
-                      ? null
-                      : (members.find((m) => m.id === value) ?? null),
-                  )
-                }
-              >
-                <DropdownMenuRadioItem value={UNASSIGNED_VALUE}>
-                  Unassigned
-                </DropdownMenuRadioItem>
-                {members.length > 0 && <DropdownMenuSeparator />}
-                {members.map((member) => (
-                  <DropdownMenuRadioItem key={member.id} value={member.id}>
-                    <Avatar name={member.name} src={member.image} size={20} />
-                    <span className="truncate">{member.name}</span>
-                  </DropdownMenuRadioItem>
-                ))}
-              </DropdownMenuRadioGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </PropertyRow>
-
-        {issue.githubBranch && (
-          <PropertyRow label="Branch">
-            <span className="flex items-center gap-1.5 truncate font-mono text-xs">
-              <GitBranch className="size-3.5 shrink-0 text-muted-foreground" />
-              {issue.githubBranch}
-            </span>
-          </PropertyRow>
-        )}
-
-        <PropertyRow label="Created">
-          <span className="text-xs" suppressHydrationWarning>
-            {dateFormat.format(new Date(issue.createdAt))}
-          </span>
-        </PropertyRow>
-        <PropertyRow label="Updated">
-          <span className="text-xs" suppressHydrationWarning>
-            {dateFormat.format(new Date(issue.updatedAt))}
-          </span>
-        </PropertyRow>
-      </div>
-
-      <Textarea
-        aria-label="Description"
-        value={description}
-        placeholder="Add a description…"
-        maxLength={10_000}
-        onChange={(e) => setDescription(e.target.value)}
-        onBlur={saveDescription}
-        onKeyDown={(e) => {
-          if (e.key === 'Escape') {
-            e.preventDefault();
-            e.currentTarget.blur();
-          }
-        }}
-        className="min-h-32 resize-none border-transparent bg-transparent px-1 shadow-none hover:border-border dark:bg-transparent"
-      />
-
-      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
-        <AlertDialogContent
-          onCloseAutoFocus={(event) => {
-            event.preventDefault();
-            actionsRef.current?.focus();
-          }}
-        >
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete {issue.key}?</AlertDialogTitle>
-            <AlertDialogDescription>
-              “{issue.title}” will be permanently deleted.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              variant="destructive"
-              onClick={() => mutations.remove(issue, onClose)}
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+  return (
+    <div className="flex h-full flex-col gap-5">
+      {header}
+      {banner}
+      {titleField}
+      <div className="border-y border-border py-3">{properties}</div>
+      {sections}
     </div>
   );
 }

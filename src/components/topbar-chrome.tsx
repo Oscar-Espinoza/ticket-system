@@ -13,6 +13,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { useLogout } from '@/hooks/use-logout';
 import { registerHotkeys } from '@/lib/hotkeys';
 import type { PaletteCommand } from '@/lib/palette-commands';
+import { projectHref } from '@/components/app-shell/routes';
 
 export interface TopbarProject {
   id: string;
@@ -20,6 +21,26 @@ export interface TopbarProject {
 }
 
 const subscribeNothing = () => () => {};
+
+// Linear-style "g then x" navigation. Second keys and their destinations.
+const GO_TO: { key: string; label: string; href: string }[] = [
+  { key: 'i', label: 'Inbox', href: '/dashboard/inbox' },
+  { key: 'm', label: 'My issues', href: '/dashboard/my-issues' },
+  { key: 'v', label: 'Views', href: '/dashboard/views' },
+  { key: 'd', label: 'Drafts', href: '/dashboard/drafts' },
+  { key: 's', label: 'Settings', href: '/dashboard/settings' },
+  { key: 'p', label: 'Projects', href: '/dashboard' },
+];
+const SEQUENCE_MS = 1000;
+
+const PROJECT_GO_TO = [
+  { segment: '', label: 'Issues' },
+  { segment: 'triage', label: 'Triage' },
+  { segment: 'cycles', label: 'Cycles' },
+  { segment: 'epics', label: 'Epics' },
+  { segment: 'settings/members', label: 'Members' },
+  { segment: 'settings', label: 'Settings' },
+];
 
 export function TopbarChrome({ projects }: { projects: TopbarProject[] }) {
   const router = useRouter();
@@ -55,6 +76,46 @@ export function TopbarChrome({ projects }: { projects: TopbarProject[] }) {
       }, 0);
     }
   }, []);
+
+  // `g` arms a one-shot capture listener: capture on window runs before the
+  // registry's bubble listener, and preventDefault() makes the registry skip
+  // the second key, so list-scoped single keys (e.g. `m`) don't also fire.
+  useEffect(() => {
+    let disarm: (() => void) | null = null;
+    const arm = () => {
+      disarm?.();
+      const timer = window.setTimeout(() => disarm?.(), SEQUENCE_MS);
+      const onKey = (event: KeyboardEvent) => {
+        if (['Shift', 'Control', 'Alt', 'Meta'].includes(event.key)) return;
+        disarm?.();
+        if (event.metaKey || event.ctrlKey || event.altKey) return;
+        const target = GO_TO.find((t) => t.key === event.key.toLowerCase());
+        if (!target) return;
+        event.preventDefault();
+        event.stopPropagation();
+        router.push(target.href);
+      };
+      window.addEventListener('keydown', onKey, { capture: true });
+      disarm = () => {
+        window.clearTimeout(timer);
+        window.removeEventListener('keydown', onKey, { capture: true });
+        disarm = null;
+      };
+    };
+    const unregister = registerHotkeys([
+      { key: 'g', description: 'Go to… (then a key below)', scope: 'Navigation', handler: arm },
+      ...GO_TO.map((t) => ({
+        key: `G ${t.key.toUpperCase()}`,
+        description: `Go to ${t.label.toLowerCase()}`,
+        scope: 'Navigation',
+        passive: true,
+      })),
+    ]);
+    return () => {
+      disarm?.();
+      unregister();
+    };
+  }, [router]);
 
   // Registered once: handlers only touch refs and stable setters.
   useEffect(
@@ -110,17 +171,35 @@ export function TopbarChrome({ projects }: { projects: TopbarProject[] }) {
       keywords: ['project', 'go to'],
       run: () => router.push(`/dashboard/projects/${project.id}`),
     })),
+    ...GO_TO.map((t) => ({
+      id: `goto-${t.key}`,
+      label: `Go to ${t.label.toLowerCase()}`,
+      section: 'Navigation',
+      keywords: ['go to', 'navigate', t.label.toLowerCase()],
+      run: () => router.push(t.href),
+    })),
+    {
+      id: 'goto-search',
+      label: 'Go to search',
+      section: 'Navigation',
+      keywords: ['find', 'full-text'],
+      run: () => router.push('/dashboard/search'),
+    },
+    {
+      id: 'goto-appearance',
+      label: 'Appearance settings',
+      section: 'Navigation',
+      keywords: ['theme', 'density', 'compact'],
+      run: () => router.push('/dashboard/settings/appearance'),
+    },
     ...(currentProject
-      ? [
-          {
-            id: `members-${currentProject.id}`,
-            label: `Members — ${currentProject.name}`,
-            section: 'Projects',
-            keywords: ['members', 'team'],
-            run: () =>
-              router.push(`/dashboard/projects/${currentProject.id}/members`),
-          },
-        ]
+      ? PROJECT_GO_TO.map((page) => ({
+          id: `project-${page.segment || 'issues'}-${currentProject.id}`,
+          label: `${page.label} — ${currentProject.name}`,
+          section: 'Current project',
+          keywords: ['project', page.label.toLowerCase()],
+          run: () => router.push(projectHref(currentProject.id, page.segment)),
+        }))
       : []),
     {
       id: 'new-project',

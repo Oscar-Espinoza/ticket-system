@@ -1,8 +1,9 @@
 import type { ComponentPropsWithoutRef } from 'react';
 
 import { cn } from '@/lib/utils';
+import { PRIORITY_LABEL, type Priority } from '@/lib/issue-model';
 
-export type Priority = 'none' | 'low' | 'medium' | 'high' | 'urgent';
+export type { Priority };
 
 type GlyphProps = Omit<ComponentPropsWithoutRef<'svg'>, 'size' | 'children'>;
 
@@ -69,7 +70,7 @@ export function PriorityIcon({
       viewBox="0 0 16 16"
       fill="none"
       role="img"
-      aria-label={`${priority[0].toUpperCase()}${priority.slice(1)} priority`}
+      aria-label={priority === 'none' ? PRIORITY_LABEL.none : `${PRIORITY_LABEL[priority]} priority`}
       className={cn('shrink-0', PRIORITY_CLASS[priority], className)}
       {...rest}
     >

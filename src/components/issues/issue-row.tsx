@@ -1,39 +1,47 @@
 'use client';
 
-import type { Ref } from 'react';
+import type { ComponentProps, Ref } from 'react';
+import { UserRound } from 'lucide-react';
 
-import { Avatar, StatusIcon } from '@/components/ui-icons';
-import { STATUS_LABEL, type IssueRow as Issue, type TicketStatus } from '@/lib/issue-model';
+import { AssigneePicker, PriorityPicker, StatePicker } from '@/components/issue-pickers';
+import { useProjectData, useProjectPermission } from '@/components/project/project-data';
+import { Avatar, PriorityIcon, StateIcon } from '@/components/ui-icons';
+import { PRIORITY_LABEL, type IssuePatch, type IssueRow as Issue } from '@/lib/issue-model';
 import { cn } from '@/lib/utils';
-import { IssueStatusMenu } from './issue-status-menu';
+import { useDisplayOptions } from './display-options';
+import { DueDateChip, EstimateChip, LabelChips, relativeTime } from './issue-properties';
 
-const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
-  ['year', 31_536_000],
-  ['month', 2_592_000],
-  ['week', 604_800],
-  ['day', 86_400],
-  ['hour', 3_600],
-  ['minute', 60],
-];
-const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto', style: 'short' });
-
-export function relativeTime(date: Date, now = Date.now()): string {
-  const seconds = (new Date(date).getTime() - now) / 1000;
-  for (const [unit, size] of UNITS) {
-    if (Math.abs(seconds) >= size) return rtf.format(Math.round(seconds / size), unit);
-  }
-  return 'just now';
-}
+export { relativeTime };
 
 export interface IssueRowProps {
   issue: Issue;
   active: boolean;
+  /** Controlled status picker (the list's `s` hotkey opens it). */
   statusMenuOpen: boolean;
   onStatusMenuOpenChange: (open: boolean) => void;
-  onStatusChange: (status: TicketStatus) => void;
+  onUpdate: (patch: IssuePatch) => void;
   onFocus: () => void;
   onSelect?: () => void;
   ref?: Ref<HTMLDivElement>;
+}
+
+// Icon buttons inside the row: out of the tab order (the row is the stop) and
+// they don't open the issue when clicked. Trigger props (ref, onClick, aria-*)
+// arrive via the picker's asChild and are forwarded.
+function RowButton({ label, onClick, ...rest }: ComponentProps<'button'> & { label: string }) {
+  return (
+    <button
+      type="button"
+      tabIndex={-1}
+      aria-label={label}
+      className="-m-1 flex shrink-0 rounded p-1 outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
+      {...rest}
+      onClick={(event) => {
+        event.stopPropagation();
+        onClick?.(event);
+      }}
+    />
+  );
 }
 
 export function IssueRow({
@@ -41,18 +49,28 @@ export function IssueRow({
   active,
   statusMenuOpen,
   onStatusMenuOpenChange,
-  onStatusChange,
+  onUpdate,
   onFocus,
   onSelect,
   ref,
 }: IssueRowProps) {
+  const { project } = useProjectData();
+  const canWrite = useProjectPermission('write');
+  const [{ properties: show }] = useDisplayOptions();
+
+  // Pickers hand focus back to the row, not their trigger, so j/k keep working.
+  const refocusRow = (event: Event) => {
+    event.preventDefault();
+    document.querySelector<HTMLElement>(`[data-issue-row="${issue.id}"]`)?.focus();
+  };
+
   return (
     <div
       ref={ref}
       tabIndex={0}
       data-issue-row={issue.id}
       data-active={active}
-      aria-label={`${issue.key} ${issue.title}, ${STATUS_LABEL[issue.status]}`}
+      aria-label={`${issue.key} ${issue.title}, ${issue.state.name}`}
       aria-current={active ? 'true' : undefined}
       onFocus={onFocus}
       onClick={onSelect}
@@ -63,50 +81,86 @@ export function IssueRow({
         onSelect && 'cursor-pointer',
       )}
     >
-      <IssueStatusMenu
-        status={issue.status}
-        onChange={onStatusChange}
-        open={statusMenuOpen}
-        onOpenChange={onStatusMenuOpenChange}
-        onCloseAutoFocus={(event) => {
-          event.preventDefault();
-          document
-            .querySelector<HTMLElement>(`[data-issue-row="${issue.id}"]`)
-            ?.focus();
-        }}
-      >
-        <button
-          type="button"
-          tabIndex={-1}
-          aria-label={`Change status (${STATUS_LABEL[issue.status]})`}
-          onClick={(event) => event.stopPropagation()}
-          className="-m-1 flex rounded p-1 outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
+      {show.priority && !canWrite && <PriorityIcon priority={issue.priority} size={14} />}
+      {show.priority && canWrite && (
+        <PriorityPicker
+          value={issue.priority}
+          onChange={(priority) => onUpdate({ priority })}
+          onCloseAutoFocus={refocusRow}
         >
-          <StatusIcon status={issue.status} size={14} />
-        </button>
-      </IssueStatusMenu>
+          <RowButton label={`Change priority (${PRIORITY_LABEL[issue.priority]})`}>
+            <PriorityIcon priority={issue.priority} size={14} />
+          </RowButton>
+        </PriorityPicker>
+      )}
 
-      <span className="w-16 shrink-0 font-mono text-xs text-muted-foreground">
-        {issue.key}
-      </span>
+      {show.id && (
+        <span className="w-16 shrink-0 font-mono text-xs text-muted-foreground">{issue.key}</span>
+      )}
+
+      {show.status && !canWrite && <StateIcon state={issue.state} size={14} />}
+      {show.status && canWrite && (
+        <StatePicker
+          value={issue.stateId}
+          onChange={(stateId) => onUpdate({ stateId })}
+          open={statusMenuOpen}
+          onOpenChange={onStatusMenuOpenChange}
+          onCloseAutoFocus={refocusRow}
+        >
+          <RowButton label={`Change status (${issue.state.name})`}>
+            <StateIcon state={issue.state} size={14} />
+          </RowButton>
+        </StatePicker>
+      )}
+
       <span className="min-w-0 flex-1 truncate">{issue.title}</span>
 
-      {issue.assignee && (
-        <Avatar
-          name={issue.assignee.name}
-          src={issue.assignee.image}
-          size={20}
-          className="shrink-0"
-        />
+      {show.labels && <LabelChips labels={issue.labels} className="hidden md:flex" />}
+      {show.estimate && <EstimateChip scale={project.estimateScale} value={issue.estimate} />}
+      {show.dueDate && <DueDateChip dueDate={issue.dueDate} stateType={issue.state.type} />}
+
+      {show.assignee && !canWrite && issue.assignee && (
+        <Avatar name={issue.assignee.name} src={issue.assignee.image} size={20} className="shrink-0" />
       )}
-      <time
-        dateTime={new Date(issue.createdAt).toISOString()}
-        title={new Date(issue.createdAt).toLocaleString()}
-        suppressHydrationWarning
-        className="w-16 shrink-0 text-right text-xs tabular-nums text-muted-foreground"
-      >
-        {relativeTime(issue.createdAt)}
-      </time>
+      {show.assignee && canWrite && (
+        <AssigneePicker
+          value={issue.assignee?.id ?? null}
+          onChange={(assigneeId) => onUpdate({ assigneeId })}
+          align="end"
+          onCloseAutoFocus={refocusRow}
+        >
+          <RowButton
+            label={issue.assignee ? `Assigned to ${issue.assignee.name}` : 'Assign'}
+          >
+            {issue.assignee ? (
+              <Avatar name={issue.assignee.name} src={issue.assignee.image} size={20} />
+            ) : (
+              <UserRound className="size-5 p-0.5 text-muted-foreground/60" />
+            )}
+          </RowButton>
+        </AssigneePicker>
+      )}
+
+      {show.created && (
+        <time
+          dateTime={new Date(issue.createdAt).toISOString()}
+          title={`Created ${new Date(issue.createdAt).toLocaleString()}`}
+          suppressHydrationWarning
+          className="hidden w-16 shrink-0 text-right text-xs tabular-nums text-muted-foreground sm:block"
+        >
+          {relativeTime(issue.createdAt)}
+        </time>
+      )}
+      {show.updated && (
+        <time
+          dateTime={new Date(issue.updatedAt).toISOString()}
+          title={`Updated ${new Date(issue.updatedAt).toLocaleString()}`}
+          suppressHydrationWarning
+          className="hidden w-16 shrink-0 text-right text-xs tabular-nums text-muted-foreground sm:block"
+        >
+          {relativeTime(issue.updatedAt)}
+        </time>
+      )}
     </div>
   );
 }

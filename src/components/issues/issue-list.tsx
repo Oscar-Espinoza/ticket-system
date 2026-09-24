@@ -1,10 +1,13 @@
 'use client';
 
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
+import { Plus } from 'lucide-react';
 
-import { StatusIcon } from '@/components/ui-icons';
+import { Button } from '@/components/ui/button';
+import { StateIcon } from '@/components/ui-icons';
 import { registerHotkeys } from '@/lib/hotkeys';
-import type { IssueGroup, IssueRow as Issue } from '@/lib/issue-model';
+import type { IssueGroup } from '@/lib/issue-grouping';
+import type { IssuePatch, IssueRow as Issue } from '@/lib/issue-model';
 import { IssueRow } from './issue-row';
 import type { IssueMutations } from './use-issue-mutations';
 
@@ -13,11 +16,14 @@ export function IssueList({
   mutations,
   selectedId,
   onSelect,
+  onCreate,
 }: {
   groups: IssueGroup[];
   mutations: IssueMutations;
   selectedId?: string | null;
   onSelect?: (issue: Issue) => void;
+  /** Group header "+" — receives the group's patch. */
+  onCreate?: (patch: IssuePatch | null) => void;
 }) {
   const [cursorId, setCursorId] = useState<string | null>(null);
   const [statusMenuFor, setStatusMenuFor] = useState<string | null>(null);
@@ -88,15 +94,28 @@ export function IssueList({
   return (
     <div data-issue-list className="flex flex-col">
       {groups.map((group) => (
-        <section key={group.status} aria-labelledby={`group-${group.status}`}>
-          <h2
-            id={`group-${group.status}`}
-            className="sticky top-0 z-10 -mx-2 flex h-8 items-center gap-2 border-b border-border bg-background px-4 text-xs font-medium text-muted-foreground"
-          >
-            <StatusIcon status={group.status} size={14} />
-            <span className="text-foreground">{group.label}</span>
-            <span className="tabular-nums">{group.issues.length}</span>
-          </h2>
+        <section key={group.id} aria-labelledby={`group-${group.id}`}>
+          {group.kind !== 'none' && (
+            <h2
+              id={`group-${group.id}`}
+              className="group/header sticky top-0 z-10 -mx-2 flex h-8 items-center gap-2 border-b border-border bg-background px-4 text-xs font-medium text-muted-foreground"
+            >
+              {group.state && <StateIcon state={group.state} size={14} />}
+              <span className="text-foreground">{group.label}</span>
+              <span className="tabular-nums">{group.issues.length}</span>
+              {onCreate && group.patch && (
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  className="ml-auto opacity-0 group-hover/header:opacity-100 focus-visible:opacity-100"
+                  aria-label={`New ${group.label} issue`}
+                  onClick={() => onCreate(group.patch)}
+                >
+                  <Plus />
+                </Button>
+              )}
+            </h2>
+          )}
           {group.issues.length > 0 && (
             <ul className="flex flex-col py-1">
               {group.issues.map((issue) => (
@@ -109,10 +128,8 @@ export function IssueList({
                     issue={issue}
                     active={issue.id === selectedId}
                     statusMenuOpen={statusMenuFor === issue.id}
-                    onStatusMenuOpenChange={(open) =>
-                      setStatusMenuFor(open ? issue.id : null)
-                    }
-                    onStatusChange={(status) => mutations.setStatus(issue, status)}
+                    onStatusMenuOpenChange={(open) => setStatusMenuFor(open ? issue.id : null)}
+                    onUpdate={(patch) => mutations.update(issue, patch)}
                     onFocus={() => setCursorId(issue.id)}
                     onSelect={onSelect ? () => onSelect(issue) : undefined}
                   />

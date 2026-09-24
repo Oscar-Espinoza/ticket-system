@@ -1,7 +1,7 @@
 // C4 primitives — additive exports only (docs/mimo-refactor/README.md).
 
-export { StatusIcon } from './status-icon';
-export type { StatusIconProps, TicketStatus } from './status-icon';
+export { StatusIcon, StateIcon } from './status-icon';
+export type { StatusIconProps, StateIconProps } from './status-icon';
 
 export { PriorityIcon } from './priority-icon';
 export type { PriorityIconProps, Priority } from './priority-icon';

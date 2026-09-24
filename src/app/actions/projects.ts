@@ -9,12 +9,14 @@
 // D-16: create via Dialog, not a /projects/new route.
 // D-17: ticketKey must match /^[A-Z]{2,6}$/ server-side; client transform is UX only.
 // D-18: atomic insert via db.batch — no sequential awaits (no ownerless-project window).
+// The default workflow states are seeded in the same batch (no stateless project).
 
 import { headers } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { projects, projectMembers } from '@/db/schema';
+import { projects, projectMembers, workflowStates } from '@/db/schema';
+import { workflowStateInserts } from '@/lib/workflow-server';
 
 export type CreateProjectState = {
   errors?: {
@@ -80,6 +82,7 @@ export async function createProject(
         role: 'owner',
         createdAt: now,
       }),
+      db.insert(workflowStates).values(workflowStateInserts(projectId, now)),
     ]);
   } catch (err: unknown) {
     // Step 6: Map Postgres unique-violation to a field-level error.

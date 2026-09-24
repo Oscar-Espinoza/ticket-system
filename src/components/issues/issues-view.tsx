@@ -5,63 +5,66 @@ import { useSearchParams } from 'next/navigation';
 import { ListTodo, Plus, SearchX } from 'lucide-react';
 
 import { IssueDetailPane } from '@/components/issue-detail/issue-detail-pane';
+import { useProjectData, useProjectPermission } from '@/components/project/project-data';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui-icons';
 import { registerPaletteCommands } from '@/lib/palette-commands';
+import { groupIssues } from '@/lib/issue-grouping';
 import {
-  STATUS_ORDER,
   VIEW_COOKIE,
   filterIssues,
-  groupByStatus,
-  type IssueAssignee,
+  hasActiveFilters,
+  type IssuePatch,
   type IssueRow,
-  type TicketStatus,
 } from '@/lib/issue-model';
-import { IssueFilters, applyFilters, setSearchParams, useIssueFilters } from './issue-filters';
+import { useDisplayOptions } from './display-options';
+import { IssueFilters, clearFilters, setSearchParams, useIssueFilters } from './issue-filters';
 import { NewIssueDialog } from './new-issue-dialog';
+import { BulkBar } from './slots/bulk-bar';
+import { IssueShortcuts } from './slots/issue-shortcuts';
+import { ListOverlay } from './slots/list-overlay';
+import { ToolbarExtra } from './slots/toolbar-extra';
 import { isPendingIssue, useIssueMutations } from './use-issue-mutations';
 import { ViewSwitcher } from './view-switcher';
 import { ISSUE_VIEWS, preloadViews } from './views';
 
 export function IssuesView({
-  projectId,
-  ticketKey,
   issues,
-  members,
   defaultView,
 }: {
-  projectId: string;
-  ticketKey: string;
+  /** Server issues (the project's active issues). Everything else comes from context. */
   issues: IssueRow[];
-  members: IssueAssignee[];
   /** Last view chosen this browser session; a `view` URL param wins. */
   defaultView?: string;
 }) {
-  const mutations = useIssueMutations(projectId, ticketKey, issues);
+  const data = useProjectData();
+  const canWrite = useProjectPermission('write');
+  const [display] = useDisplayOptions();
+  const mutations = useIssueMutations(issues);
   const searchParams = useSearchParams();
   const filters = useIssueFilters();
-  const [create, setCreate] = useState<{ open: boolean; status: TicketStatus }>({
+  // A fresh `defaults` object per open resets the dialog's properties.
+  const [create, setCreate] = useState<{ open: boolean; defaults: IssuePatch }>({
     open: false,
-    status: 'backlog',
+    defaults: {},
   });
 
-  const openCreate = (status: TicketStatus = 'backlog') =>
-    setCreate({ open: true, status });
+  const openCreate = (patch: IssuePatch | null = null) =>
+    setCreate({ open: true, defaults: { ...patch } });
   const onPaletteCreate = useEffectEvent(() => openCreate());
 
-  useEffect(
-    () =>
-      registerPaletteCommands([
-        {
-          id: 'new-issue',
-          label: 'New issue',
-          section: 'Issues',
-          keywords: ['create', 'ticket'],
-          run: () => onPaletteCreate(),
-        },
-      ]),
-    [],
-  );
+  useEffect(() => {
+    if (!canWrite) return;
+    return registerPaletteCommands([
+      {
+        id: 'new-issue',
+        label: 'New issue',
+        section: 'Issues',
+        keywords: ['create', 'ticket'],
+        run: () => onPaletteCreate(),
+      },
+    ]);
+  }, [canWrite]);
 
   // Fetch the other views' code while idle so the first switch doesn't wait on it.
   useEffect(() => {
@@ -84,10 +87,14 @@ export function IssuesView({
   };
   const View = view.component;
 
-  const visible = filters.statuses.length ? filters.statuses : STATUS_ORDER;
-  const listed = filterIssues(mutations.issues, filters);
-  const groups = groupByStatus(listed).filter((g) => visible.includes(g.status));
-  const filtered = filters.statuses.length > 0 || filters.assignee !== null;
+  const filtered = hasActiveFilters(filters);
+  let listed = filterIssues(mutations.issues, filters);
+  if (!display.showSubIssues) listed = listed.filter((issue) => issue.parentId === null);
+  let groups = groupIssues(listed, display.groupBy, data);
+  // A status filter also limits the state groups (columns) shown.
+  if (filters.stateIds.length > 0) {
+    groups = groups.filter((g) => g.kind !== 'state' || filters.stateIds.includes(g.id));
+  }
 
   const selectedKey = searchParams.get('issue');
   const selected = selectedKey
@@ -119,10 +126,12 @@ export function IssuesView({
         title="No issues yet"
         description="Create the first issue for this project."
         action={
-          <Button size="sm" onClick={() => openCreate()}>
-            <Plus />
-            New issue
-          </Button>
+          canWrite ? (
+            <Button size="sm" onClick={() => openCreate()}>
+              <Plus />
+              New issue
+            </Button>
+          ) : undefined
         }
       />
     );
@@ -133,11 +142,7 @@ export function IssuesView({
         title="No matching issues"
         description="No issues match the current filters."
         action={
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => applyFilters({ statuses: [], assignee: null })}
-          >
+          <Button size="sm" variant="outline" onClick={clearFilters}>
             Clear filters
           </Button>
         }
@@ -159,28 +164,32 @@ export function IssuesView({
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <ViewSwitcher views={ISSUE_VIEWS} current={view.id} onChange={switchView} />
-        <IssueFilters members={members} />
-        <Button size="sm" className="ml-auto" onClick={() => openCreate()}>
-          <Plus />
-          New issue
-        </Button>
+        <IssueFilters />
+        <div className="ml-auto flex items-center gap-2">
+          <ToolbarExtra issues={listed} />
+          {canWrite && (
+            <Button size="sm" onClick={() => openCreate()}>
+              <Plus />
+              New issue
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="flex min-h-0 flex-1">
         <div className="flex min-w-0 flex-1 flex-col">{body}</div>
         {selected && (
-          <IssueDetailPane
-            issue={selected}
-            members={members}
-            mutations={mutations}
-            onClose={closeIssue}
-          />
+          <IssueDetailPane issue={selected} mutations={mutations} onClose={closeIssue} />
         )}
       </div>
 
+      <IssueShortcuts issues={listed} mutations={mutations} selectedIssue={selected} />
+      <ListOverlay issues={listed} onOpen={selectIssue} />
+      <BulkBar issues={listed} mutations={mutations} />
+
       <NewIssueDialog
         open={create.open}
-        status={create.status}
+        defaults={create.defaults}
         onOpenChange={(open) => setCreate((c) => ({ ...c, open }))}
         onCreate={mutations.create}
       />

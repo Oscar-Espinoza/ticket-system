@@ -11,9 +11,9 @@ import {
 import { Plus } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { StatusIcon } from '@/components/ui-icons';
+import { StateIcon } from '@/components/ui-icons';
 import { registerHotkeys } from '@/lib/hotkeys';
-import { isTicketStatus, type IssueGroup } from '@/lib/issue-model';
+import type { IssueGroup } from '@/lib/issue-grouping';
 import { cn } from '@/lib/utils';
 import type { IssueViewProps } from '@/components/issues/views';
 import { BoardCard, BoardCardContent } from './board-card';
@@ -51,20 +51,21 @@ function BoardColumn({
   onCreate: IssueViewProps['onCreate'];
 }) {
   const { ref, isDropTarget } = useDroppable({
-    id: group.status,
+    id: group.id,
     type: 'column',
     accept: 'issue',
+    disabled: group.patch === null,
   });
 
   return (
     <section
-      aria-labelledby={`column-${group.status}`}
+      aria-labelledby={`column-${group.id}`}
       className="flex shrink-0 flex-col"
       style={{ width: COLUMN_WIDTH }}
     >
       <header className="mb-2 flex h-8 items-center gap-2 px-1 text-xs font-medium">
-        <StatusIcon status={group.status} size={14} />
-        <h2 id={`column-${group.status}`} className="text-foreground">
+        {group.state && <StateIcon state={group.state} size={14} />}
+        <h2 id={`column-${group.id}`} className="truncate text-foreground">
           {group.label}
         </h2>
         <span className="tabular-nums text-muted-foreground">{group.issues.length}</span>
@@ -73,14 +74,14 @@ function BoardColumn({
           size="icon-xs"
           className="ml-auto"
           aria-label={`New ${group.label} issue`}
-          onClick={() => onCreate(group.status)}
+          onClick={() => onCreate(group.patch)}
         >
           <Plus />
         </Button>
       </header>
       <div
         ref={ref}
-        data-board-column={group.status}
+        data-board-column={group.id}
         className={cn(
           'flex min-h-32 flex-1 flex-col gap-1.5 rounded-lg p-1.5 transition-colors',
           'bg-muted/40',
@@ -123,9 +124,10 @@ export default function Board({
       onDragEnd={(event) => {
         if (event.canceled) return;
         const { source, target } = event.operation;
-        const status = target?.id;
+        const group = groups.find((g) => g.id === target?.id);
         const issue = mutations.issues.find((i) => i.id === source?.id);
-        if (issue && isTicketStatus(status)) mutations.setStatus(issue, status);
+        // Columns carry the patch that puts an issue in them (e.g. { stateId }).
+        if (issue && group?.patch) mutations.update(issue, group.patch);
       }}
     >
       <div
@@ -135,7 +137,7 @@ export default function Board({
       >
         {groups.map((group) => (
           <BoardColumn
-            key={group.status}
+            key={group.id}
             group={group}
             selectedId={selectedId}
             onSelect={onSelect}

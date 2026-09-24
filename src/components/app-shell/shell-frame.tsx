@@ -1,35 +1,29 @@
 'use client';
 
-import { useState, useSyncExternalStore } from 'react';
-import Link from 'next/link';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { usePathname } from 'next/navigation';
-import { PanelLeft } from 'lucide-react';
+import { FilePen, Inbox, Layers, PanelLeft, Search, Target } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Wordmark } from '@/components/wordmark';
+import { readDensity } from '@/lib/density';
 import { cn } from '@/lib/utils';
 import { Breadcrumb } from './breadcrumb';
+import { SidebarLink } from './sidebar-nav';
+import { SidebarProjects, type SidebarProject } from './sidebar-projects';
 
-export interface ShellProject {
-  id: string;
-  name: string;
-}
+export type ShellProject = SidebarProject;
 
 export interface ShellFrameProps {
   projects: ShellProject[];
   sidebarFooter: React.ReactNode;
   topbarRight: React.ReactNode;
+  /** Slot nodes rendered server-side by AppShell (see ./slots). */
+  inboxBadge?: React.ReactNode;
+  favorites?: React.ReactNode;
+  workspaces?: React.ReactNode;
   children: React.ReactNode;
 }
-
-const PRIMARY_NAV = [{ label: 'Projects', href: '/dashboard' }] as const;
-
-const navIdle = 'text-sidebar-foreground hover:bg-sidebar-accent/60';
-const navActive = 'bg-sidebar-accent font-medium text-sidebar-accent-foreground';
-const navLinkClass = cn(
-  'flex items-center rounded-md px-2 py-1.5 text-sm outline-none',
-  'transition-colors focus-visible:ring-3 focus-visible:ring-ring/50',
-);
 
 const COLLAPSED_KEY = 'sidebar-collapsed';
 const NARROW_QUERY = '(max-width: 767px)';
@@ -69,6 +63,9 @@ export function ShellFrame({
   projects,
   sidebarFooter,
   topbarRight,
+  inboxBadge,
+  favorites,
+  workspaces,
   children,
 }: ShellFrameProps) {
   const pathname = usePathname();
@@ -82,21 +79,17 @@ export function ShellFrame({
   // it stays open only for the path it was opened on.
   const [overlayPath, setOverlayPath] = useState<string | null>(null);
 
+  // AppShell's inline script covers full page loads; this covers arriving via
+  // client navigation (e.g. after login), where inline scripts don't run.
+  useEffect(() => {
+    if (readDensity() === 'compact') document.documentElement.dataset.density = 'compact';
+  }, []);
+
   const open = narrow ? overlayPath === pathname : !storedCollapsed;
   const setOpen = (next: boolean) => {
     if (narrow) setOverlayPath(next ? pathname : null);
     else writeCollapsed(!next);
   };
-
-  const navLink = (href: string, label: string, active: boolean, indent = false) => (
-    <Link
-      href={href}
-      aria-current={active ? 'page' : undefined}
-      className={cn(navLinkClass, indent && 'pl-4', active ? navActive : navIdle)}
-    >
-      <span className="truncate">{label}</span>
-    </Link>
-  );
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -112,8 +105,9 @@ export function ShellFrame({
           id="app-sidebar"
           data-app-sidebar
           className={cn(
-            'flex w-[220px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar',
-            narrow && 'fixed inset-y-0 left-0 z-40 shadow-popover',
+            'flex w-[240px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar',
+            // Pinned to the viewport so a long project list scrolls on its own.
+            narrow ? 'fixed inset-y-0 left-0 z-40 shadow-popover' : 'sticky top-0 h-screen',
           )}
         >
           {/* A div, not <header>: the topbar is the app's only header landmark. */}
@@ -132,29 +126,22 @@ export function ShellFrame({
           </div>
 
           <nav aria-label="Primary" className="flex-1 overflow-y-auto p-2">
-            {PRIMARY_NAV.map((item) => (
-              <div key={item.href}>
-                {navLink(item.href, item.label, pathname === item.href)}
-              </div>
-            ))}
+            <div className="flex flex-col gap-px">
+              <SidebarLink href="/dashboard/search" label="Search" icon={<Search />} />
+              <SidebarLink
+                href="/dashboard/inbox"
+                label="Inbox"
+                icon={<Inbox />}
+                trailing={inboxBadge}
+              />
+              <SidebarLink href="/dashboard/my-issues" label="My issues" icon={<Target />} />
+              <SidebarLink href="/dashboard/views" label="Views" icon={<Layers />} />
+              <SidebarLink href="/dashboard/drafts" label="Drafts" icon={<FilePen />} />
+            </div>
 
-            {projects.length > 0 && (
-              <ul className="mt-1 space-y-0.5">
-                {projects.map((p) => {
-                  const href = `/dashboard/projects/${p.id}`;
-                  return (
-                    <li key={p.id}>
-                      {navLink(
-                        href,
-                        p.name,
-                        pathname === href || pathname.startsWith(`${href}/`),
-                        true,
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
+            {favorites}
+            {workspaces}
+            <SidebarProjects projects={projects} />
           </nav>
 
           <div className="border-t border-sidebar-border p-2">{sidebarFooter}</div>

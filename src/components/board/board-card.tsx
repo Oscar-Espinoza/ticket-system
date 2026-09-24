@@ -2,10 +2,13 @@
 
 import { useDraggable } from '@dnd-kit/react';
 
-import { Avatar, StatusIcon } from '@/components/ui-icons';
-import { STATUS_LABEL, type IssueRow } from '@/lib/issue-model';
-import { cn } from '@/lib/utils';
+import { useDisplayOptions } from '@/components/issues/display-options';
+import { DueDateChip, EstimateChip, LabelChips } from '@/components/issues/issue-properties';
 import { isPendingIssue } from '@/components/issues/use-issue-mutations';
+import { useProjectData } from '@/components/project/project-data';
+import { Avatar, PriorityIcon, StateIcon } from '@/components/ui-icons';
+import type { IssueRow } from '@/lib/issue-model';
+import { cn } from '@/lib/utils';
 
 export function BoardCardContent({
   issue,
@@ -14,6 +17,14 @@ export function BoardCardContent({
   issue: IssueRow;
   className?: string;
 }) {
+  const { project } = useProjectData();
+  const [{ properties: show }] = useDisplayOptions();
+  const footer =
+    (show.priority && issue.priority !== 'none') ||
+    (show.labels && issue.labels.length > 0) ||
+    (show.estimate && issue.estimate !== null && project.estimateScale !== 'none') ||
+    (show.dueDate && issue.dueDate !== null);
+
   return (
     <div
       className={cn(
@@ -22,9 +33,9 @@ export function BoardCardContent({
       )}
     >
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <StatusIcon status={issue.status} size={14} />
-        <span className="font-mono">{issue.key}</span>
-        {issue.assignee && (
+        {show.status && <StateIcon state={issue.state} size={14} />}
+        {show.id && <span className="font-mono">{issue.key}</span>}
+        {show.assignee && issue.assignee && (
           <Avatar
             name={issue.assignee.name}
             src={issue.assignee.image}
@@ -34,6 +45,18 @@ export function BoardCardContent({
         )}
       </div>
       <p className="line-clamp-2 text-card-foreground">{issue.title}</p>
+      {footer && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          {show.priority && issue.priority !== 'none' && (
+            <span className="inline-flex h-5 items-center rounded border border-border px-1">
+              <PriorityIcon priority={issue.priority} size={14} />
+            </span>
+          )}
+          {show.estimate && <EstimateChip scale={project.estimateScale} value={issue.estimate} />}
+          {show.dueDate && <DueDateChip dueDate={issue.dueDate} stateType={issue.state.type} />}
+          {show.labels && <LabelChips labels={issue.labels} max={2} />}
+        </div>
+      )}
     </div>
   );
 }
@@ -50,7 +73,7 @@ export function BoardCard({
   const { ref, isDragSource } = useDraggable({
     id: issue.id,
     type: 'issue',
-    data: { status: issue.status },
+    data: { stateId: issue.stateId },
     disabled: isPendingIssue(issue),
   });
 
@@ -59,7 +82,7 @@ export function BoardCard({
       ref={ref}
       tabIndex={0}
       data-board-card={issue.id}
-      aria-label={`${issue.key} ${issue.title}, ${STATUS_LABEL[issue.status]}. Press Space to move.`}
+      aria-label={`${issue.key} ${issue.title}, ${issue.state.name}. Press Space to move.`}
       aria-current={active ? 'true' : undefined}
       onClick={onSelect}
       onKeyDown={(event) => {

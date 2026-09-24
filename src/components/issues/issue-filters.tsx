@@ -13,15 +13,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Avatar, StatusIcon } from '@/components/ui-icons';
+import { Avatar, StateIcon } from '@/components/ui-icons';
+import { useProjectData } from '@/components/project/project-data';
 import {
-  STATUS_LABEL,
-  STATUS_ORDER,
+  EMPTY_FILTERS,
   UNASSIGNED,
+  hasActiveFilters,
   parseIssueFilters,
-  type IssueAssignee,
+  serializeIssueFilters,
   type IssueFilters as Filters,
-  type TicketStatus,
 } from '@/lib/issue-model';
 
 const ANYONE = '__anyone';
@@ -40,47 +40,47 @@ export function setSearchParams(changes: Record<string, string | null>) {
 
 export function useIssueFilters(): Filters {
   const searchParams = useSearchParams();
-  return parseIssueFilters({
-    status: searchParams.get('status') ?? undefined,
-    assignee: searchParams.get('assignee') ?? undefined,
-  });
+  return parseIssueFilters(Object.fromEntries(searchParams.entries()));
 }
 
 export function applyFilters(next: Filters) {
-  setSearchParams({
-    status: next.statuses.length ? next.statuses.join(',') : null,
-    assignee: next.assignee,
-  });
+  setSearchParams(serializeIssueFilters(next));
 }
 
-export function IssueFilters({ members }: { members: IssueAssignee[] }) {
+export function clearFilters() {
+  applyFilters(EMPTY_FILTERS);
+}
+
+export function IssueFilters() {
+  const { states, members } = useProjectData();
   const filters = useIssueFilters();
 
-  const toggleStatus = (status: TicketStatus, checked: boolean) => {
+  const toggleState = (stateId: string, checked: boolean) => {
     const next = checked
-      ? [...filters.statuses, status]
-      : filters.statuses.filter((s) => s !== status);
-    applyFilters({ ...filters, statuses: STATUS_ORDER.filter((s) => next.includes(s)) });
+      ? [...filters.stateIds, stateId]
+      : filters.stateIds.filter((id) => id !== stateId);
+    // Keep workflow order so the URL is stable.
+    applyFilters({ ...filters, stateIds: states.map((s) => s.id).filter((id) => next.includes(id)) });
   };
 
+  const selectedStates = states.filter((s) => filters.stateIds.includes(s.id));
   const assigneeLabel =
     filters.assignee === UNASSIGNED
       ? 'Unassigned'
       : (members.find((m) => m.id === filters.assignee)?.name ?? 'Assignee');
   const statusLabel =
-    filters.statuses.length === 1
-      ? STATUS_LABEL[filters.statuses[0]]
-      : filters.statuses.length > 1
-        ? `${filters.statuses.length} statuses`
+    selectedStates.length === 1
+      ? selectedStates[0].name
+      : selectedStates.length > 1
+        ? `${selectedStates.length} statuses`
         : 'Status';
-  const active = filters.statuses.length > 0 || filters.assignee !== null;
 
   return (
     <div className="flex items-center gap-1.5">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
-            variant={filters.statuses.length ? 'secondary' : 'ghost'}
+            variant={selectedStates.length ? 'secondary' : 'ghost'}
             size="sm"
             aria-label="Filter by status"
           >
@@ -88,16 +88,16 @@ export function IssueFilters({ members }: { members: IssueAssignee[] }) {
             <ChevronDown />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-44">
-          {STATUS_ORDER.map((status) => (
+        <DropdownMenuContent align="start" className="w-48">
+          {states.map((state) => (
             <DropdownMenuCheckboxItem
-              key={status}
-              checked={filters.statuses.includes(status)}
-              onCheckedChange={(checked) => toggleStatus(status, checked === true)}
+              key={state.id}
+              checked={filters.stateIds.includes(state.id)}
+              onCheckedChange={(checked) => toggleState(state.id, checked === true)}
               onSelect={(event) => event.preventDefault()}
             >
-              <StatusIcon status={status} size={14} />
-              {STATUS_LABEL[status]}
+              <StateIcon state={state} size={14} />
+              {state.name}
             </DropdownMenuCheckboxItem>
           ))}
         </DropdownMenuContent>
@@ -134,13 +134,8 @@ export function IssueFilters({ members }: { members: IssueAssignee[] }) {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {active && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => applyFilters({ statuses: [], assignee: null })}
-          className="text-muted-foreground"
-        >
+      {hasActiveFilters(filters) && (
+        <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground">
           <X />
           Clear
         </Button>

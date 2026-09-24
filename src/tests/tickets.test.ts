@@ -27,17 +27,18 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { eq, inArray } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
-import { projectMembers, projects, tickets, users } from '@/db/schema';
+import { projectMembers, projects, tickets, users, workflowStates } from '@/db/schema';
 import {
-  assignTicket,
   createTicket,
   deleteTicket,
-  setTicketStatus,
-  updateTicket,
+  restoreIssue,
+  updateIssue,
 } from '@/app/actions/tickets';
-import { getProjectView } from '@/lib/tickets';
-import { STATUS_ORDER, UNASSIGNED, filterIssues, type TicketStatus } from '@/lib/issue-model';
+import { getProjectIssues } from '@/lib/tickets';
+import { getProjectData } from '@/lib/project-data';
+import { UNASSIGNED, filterIssues } from '@/lib/issue-model';
 import { getMemberProject } from '@/lib/project-access';
+import { workflowStateInserts } from '@/lib/workflow-server';
 
 const RUN = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 const userIds: string[] = [];
@@ -67,7 +68,9 @@ function uniqueKey(): string {
   return `T${letters.slice(0, 5)}`;
 }
 
-async function insertProject(ownerId: string, memberIds: string[] = []) {
+type TestProject = { id: string; ticketKey: string; states: Record<string, string> };
+
+async function insertProject(ownerId: string, memberIds: string[] = []): Promise<TestProject> {
   const id = `test-tkt-proj-${RUN}-${projectIds.length}`;
   const ticketKey = uniqueKey();
   const now = new Date();
@@ -80,6 +83,9 @@ async function insertProject(ownerId: string, memberIds: string[] = []) {
     createdAt: now,
     updatedAt: now,
   });
+  projectIds.push(id);
+  const stateRows = workflowStateInserts(id, now);
+  await db.insert(workflowStates).values(stateRows);
   await db.insert(projectMembers).values(
     [
       { userId: ownerId, role: 'owner' as const },
@@ -92,15 +98,18 @@ async function insertProject(ownerId: string, memberIds: string[] = []) {
       createdAt: now,
     })),
   );
-  projectIds.push(id);
-  return { id, ticketKey };
+  return {
+    id,
+    ticketKey,
+    states: Object.fromEntries(stateRows.map((s) => [s.name, s.id!])),
+  };
 }
 
 let owner: string;
 let member: string;
 let outsider: string;
-let project: { id: string; ticketKey: string };
-let otherProject: { id: string; ticketKey: string };
+let project: TestProject;
+let otherProject: TestProject;
 
 beforeAll(async () => {
   if (!process.env.DATABASE_URL) {
@@ -127,9 +136,7 @@ beforeEach(async () => {
 });
 
 async function issuesOf(projectId: string) {
-  const view = await getProjectView(projectId, owner);
-  if (!view) throw new Error('owner should see the project');
-  return view.issues;
+  return getProjectIssues(projectId, owner);
 }
 
 async function create(title = 'An issue', projectId = project.id) {
@@ -146,8 +153,10 @@ describe('TKT-01/02: create with per-project identifiers', () => {
     const b = await create('Second');
     expect(b.number).toBe(a.number + 1);
     expect(a.key).toBe(`${project.ticketKey}-${a.number}`);
-    expect(a.status).toBe('backlog');
+    expect(a.state.name).toBe('Backlog');
+    expect(a.priority).toBe('none');
     expect(a.assignee).toBeNull();
+    expect(a.creator?.id).toBe(owner);
     expect(a.title).toBe('First');
     expect(Math.abs(new Date(a.createdAt).getTime() - Date.now())).toBeLessThan(60_000);
   });
@@ -163,17 +172,18 @@ describe('TKT-01/02: create with per-project identifiers', () => {
     expect(new Set(numbers).size).toBe(10);
   });
 
-  it('accepts an initial status and trims the title', async () => {
+  it('accepts an initial state and trims the title', async () => {
     const result = await createTicket({
       projectId: project.id,
       title: '  Board card  ',
-      status: 'in_review',
+      stateId: project.states['In Review'],
     });
-    expect(result.ok && result.ticket?.status).toBe('in_review');
+    expect(result.ok && result.ticket?.state.name).toBe('In Review');
+    expect(result.ok && result.ticket?.startedAt).toBeTruthy();
     expect(result.ok && result.ticket?.title).toBe('Board card');
   });
 
-  it('rejects empty and oversized titles', async () => {
+  it('rejects empty and oversized titles and foreign states', async () => {
     expect(await createTicket({ projectId: project.id, title: '   ' })).toMatchObject({
       ok: false,
       field: 'title',
@@ -181,30 +191,40 @@ describe('TKT-01/02: create with per-project identifiers', () => {
     expect(
       await createTicket({ projectId: project.id, title: 'x'.repeat(201) }),
     ).toMatchObject({ ok: false, field: 'title' });
+    expect(
+      await createTicket({
+        projectId: project.id,
+        title: 'Foreign state',
+        stateId: otherProject.states.Todo,
+      }),
+    ).toMatchObject({ ok: false, field: 'stateId' });
   });
 });
 
-describe('TKT-03/04: edit and delete', () => {
+describe('TKT-03/04: edit, trash and restore', () => {
   it('updates title and description', async () => {
     const t = await create();
     expect(
-      await updateTicket({
+      await updateIssue({
         projectId: project.id,
         id: t.id,
-        title: 'Renamed',
-        description: 'Details',
+        patch: { title: 'Renamed', description: 'Details' },
       }),
-    ).toEqual({ ok: true });
+    ).toMatchObject({ ok: true });
     const [row] = await db.select().from(tickets).where(eq(tickets.id, t.id));
     expect(row.title).toBe('Renamed');
     expect(row.description).toBe('Details');
   });
 
-  it('deletes a ticket', async () => {
+  it('moves a ticket to the trash and restores it', async () => {
     const t = await create();
-    expect(await deleteTicket({ projectId: project.id, id: t.id })).toEqual({ ok: true });
-    const rows = await db.select().from(tickets).where(eq(tickets.id, t.id));
-    expect(rows).toHaveLength(0);
+    expect(await deleteTicket({ projectId: project.id, id: t.id })).toMatchObject({ ok: true });
+    const [trashed] = await db.select().from(tickets).where(eq(tickets.id, t.id));
+    expect(trashed.deletedAt).not.toBeNull();
+    expect((await issuesOf(project.id)).map((i) => i.id)).not.toContain(t.id);
+
+    expect(await restoreIssue({ projectId: project.id, id: t.id })).toMatchObject({ ok: true });
+    expect((await issuesOf(project.id)).map((i) => i.id)).toContain(t.id);
   });
 
   it('never touches a ticket through another project id', async () => {
@@ -212,13 +232,14 @@ describe('TKT-03/04: edit and delete', () => {
     const foreign = await create('Foreign', otherProject.id);
     session.userId = owner;
     expect(
-      await updateTicket({ projectId: project.id, id: foreign.id, title: 'Hijack' }),
+      await updateIssue({ projectId: project.id, id: foreign.id, patch: { title: 'Hijack' } }),
     ).toMatchObject({ ok: false, error: 'Issue not found.' });
     expect(await deleteTicket({ projectId: project.id, id: foreign.id })).toMatchObject({
       ok: false,
     });
     const [row] = await db.select().from(tickets).where(eq(tickets.id, foreign.id));
     expect(row.title).toBe('Foreign');
+    expect(row.deletedAt).toBeNull();
   });
 });
 
@@ -226,19 +247,19 @@ describe('TKT-05: assign', () => {
   it('assigns to a project member and unassigns', async () => {
     const t = await create();
     expect(
-      await assignTicket({ projectId: project.id, id: t.id, assigneeId: member }),
-    ).toEqual({ ok: true });
+      await updateIssue({ projectId: project.id, id: t.id, patch: { assigneeId: member } }),
+    ).toMatchObject({ ok: true });
     const [assigned] = filterIssues(await issuesOf(project.id), {
-      statuses: [],
+      stateIds: [],
       assignee: member,
     });
     expect(assigned.assignee?.id).toBe(member);
 
     expect(
-      await assignTicket({ projectId: project.id, id: t.id, assigneeId: null }),
-    ).toEqual({ ok: true });
+      await updateIssue({ projectId: project.id, id: t.id, patch: { assigneeId: null } }),
+    ).toMatchObject({ ok: true });
     const unassigned = filterIssues(await issuesOf(project.id), {
-      statuses: [],
+      stateIds: [],
       assignee: UNASSIGNED,
     });
     expect(unassigned.map((i) => i.id)).toContain(t.id);
@@ -247,45 +268,46 @@ describe('TKT-05: assign', () => {
   it('rejects a non-member assignee', async () => {
     const t = await create();
     expect(
-      await assignTicket({ projectId: project.id, id: t.id, assigneeId: outsider }),
+      await updateIssue({ projectId: project.id, id: t.id, patch: { assigneeId: outsider } }),
     ).toMatchObject({ ok: false, error: 'Assignee must be a project member.' });
   });
 });
 
-describe('TKT-06: status', () => {
-  it('moves through all five statuses', async () => {
+describe('TKT-06: workflow states', () => {
+  it('moves through every state', async () => {
     const t = await create();
-    for (const status of STATUS_ORDER) {
-      expect(await setTicketStatus({ projectId: project.id, id: t.id, status })).toEqual({
-        ok: true,
-      });
+    for (const stateId of Object.values(project.states)) {
+      expect(
+        await updateIssue({ projectId: project.id, id: t.id, patch: { stateId } }),
+      ).toMatchObject({ ok: true });
       const [row] = await db
-        .select({ status: tickets.status })
+        .select({ stateId: tickets.stateId })
         .from(tickets)
         .where(eq(tickets.id, t.id));
-      expect(row.status).toBe(status);
+      expect(row.stateId).toBe(stateId);
     }
   });
 
-  it('rejects an unknown status', async () => {
+  it("rejects another project's state", async () => {
     const t = await create();
     expect(
-      await setTicketStatus({
+      await updateIssue({
         projectId: project.id,
         id: t.id,
-        status: 'canceled' as TicketStatus,
+        patch: { stateId: otherProject.states.Done },
       }),
-    ).toMatchObject({ ok: false, error: 'Invalid status.' });
+    ).toMatchObject({ ok: false, error: 'Invalid state.' });
   });
 
-  it('filters by status', async () => {
+  it('filters by state', async () => {
     const t = await create();
-    await setTicketStatus({ projectId: project.id, id: t.id, status: 'in_progress' });
+    const inProgress = project.states['In Progress'];
+    await updateIssue({ projectId: project.id, id: t.id, patch: { stateId: inProgress } });
     const rows = filterIssues(await issuesOf(project.id), {
-      statuses: ['in_progress'],
+      stateIds: [inProgress],
       assignee: null,
     });
-    expect(rows.every((r) => r.status === 'in_progress')).toBe(true);
+    expect(rows.every((r) => r.stateId === inProgress)).toBe(true);
     expect(rows.map((r) => r.id)).toContain(t.id);
   });
 });
@@ -296,15 +318,19 @@ describe('authorization', () => {
     session.userId = outsider;
     const forbidden = { ok: false, error: 'Forbidden' };
     expect(await createTicket({ projectId: project.id, title: 'x' })).toEqual(forbidden);
-    expect(await updateTicket({ projectId: project.id, id: t.id, title: 'x' })).toEqual(
-      forbidden,
-    );
+    expect(
+      await updateIssue({ projectId: project.id, id: t.id, patch: { title: 'x' } }),
+    ).toEqual(forbidden);
     expect(await deleteTicket({ projectId: project.id, id: t.id })).toEqual(forbidden);
     expect(
-      await assignTicket({ projectId: project.id, id: t.id, assigneeId: outsider }),
+      await updateIssue({ projectId: project.id, id: t.id, patch: { assigneeId: outsider } }),
     ).toEqual(forbidden);
     expect(
-      await setTicketStatus({ projectId: project.id, id: t.id, status: 'done' }),
+      await updateIssue({
+        projectId: project.id,
+        id: t.id,
+        patch: { stateId: project.states.Done },
+      }),
     ).toEqual(forbidden);
   });
 
@@ -327,13 +353,15 @@ describe('authorization', () => {
     expect(await getMemberProject('', owner)).toBeNull();
   });
 
-  it('getProjectView returns nothing to non-members', async () => {
+  it('project data and issues are hidden from non-members', async () => {
     await create('Visible to members only');
-    expect(await getProjectView(project.id, outsider)).toBeNull();
-    const view = await getProjectView(project.id, member);
-    expect(view?.project.role).toBe('member');
-    expect(view?.issues.length).toBeGreaterThan(0);
-    expect(view?.members.map((m) => m.id).sort()).toEqual([member, owner].sort());
+    expect(await getProjectData(project.id, outsider)).toBeNull();
+    expect(await getProjectIssues(project.id, outsider)).toEqual([]);
+    const data = await getProjectData(project.id, member);
+    expect(data?.project.role).toBe('member');
+    expect(data?.states.map((s) => s.name)).toContain('Duplicate');
+    expect(data?.members.map((m) => m.id).sort()).toEqual([member, owner].sort());
+    expect((await getProjectIssues(project.id, member)).length).toBeGreaterThan(0);
   });
 
   it('lets a regular member create tickets', async () => {

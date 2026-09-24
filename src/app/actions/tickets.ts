@@ -1,224 +1,123 @@
 'use server';
 
-// Ticket mutations (GSD Phase 5: TKT-01…06). Every action resolves the session,
-// runs requireProjectMember BEFORE touching ticket rows, and scopes each write by
-// (ticket id, project id) so a ticket id from another project matches nothing.
+// Issue server actions: authorize (session + membership + role level) → the
+// issue service (validation, write, activity/events) → revalidate. The service
+// scopes every write by (issue id, project id) and checks every referenced id
+// belongs to the project, so ids from another project match nothing.
 
-import { headers } from 'next/headers';
 import { revalidatePath } from 'next/cache';
-import { and, eq, sql } from 'drizzle-orm';
 
-import { auth } from '@/lib/auth';
-import { db } from '@/lib/db';
-import { projects, tickets } from '@/db/schema';
-import { requireProjectMember, ProjectAccessError } from '@/lib/project-access';
-import { getTicketById } from '@/lib/tickets';
-import { isTicketStatus, type IssueRow, type TicketStatus } from '@/lib/issue-model';
+import { authorizeProjectAction } from '@/lib/action-auth';
+import * as issues from '@/lib/issue-service';
+import type { IssueField, IssuePatch, IssueRow } from '@/lib/issue-model';
 
 export type TicketActionResult =
   | { ok: true; ticket?: IssueRow }
-  | { ok: false; error: string; field?: 'title' | 'description' };
+  | { ok: false; error: string; field?: IssueField };
 
-const TITLE_MAX = 200;
-const DESCRIPTION_MAX = 10_000;
+export type BulkTicketActionResult =
+  | { ok: true; tickets: IssueRow[] }
+  | { ok: false; error: string; field?: IssueField };
 
-type Authorized = { ok: true; userId: string } | { ok: false; error: string };
-
-async function authorize(projectId: unknown): Promise<Authorized> {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session?.user) return { ok: false, error: 'Not authenticated' };
-  if (typeof projectId !== 'string' || !projectId) {
-    return { ok: false, error: 'Forbidden' };
-  }
-  try {
-    await requireProjectMember(projectId, session.user.id);
-  } catch (err) {
-    if (err instanceof ProjectAccessError) return { ok: false, error: 'Forbidden' };
-    throw err;
-  }
-  return { ok: true, userId: session.user.id };
-}
+export type CreateTicketInput = issues.CreateIssueInput & { projectId: string };
 
 function revalidateProject(projectId: string) {
-  revalidatePath(`/dashboard/projects/${projectId}`);
-  // Project list open/resolved counts.
+  // 'layout': every page under the project (issues, views, cycles, …).
+  revalidatePath(`/dashboard/projects/${projectId}`, 'layout');
+  // Sidebar / project list open-resolved counts.
   revalidatePath('/dashboard');
 }
 
-function validateTitle(title: unknown): string | TicketActionResult {
-  const value = typeof title === 'string' ? title.trim() : '';
-  if (!value) return { ok: false, error: 'Title is required.', field: 'title' };
-  if (value.length > TITLE_MAX) {
-    return {
-      ok: false,
-      error: `Title must be ${TITLE_MAX} characters or fewer.`,
-      field: 'title',
-    };
-  }
-  return value;
+function toResult(result: issues.IssueResult | issues.PurgeResult): TicketActionResult {
+  if (!result.ok) return result;
+  return 'issue' in result ? { ok: true, ticket: result.issue } : { ok: true };
 }
 
-function validateDescription(
-  description: unknown,
-): string | null | TicketActionResult {
-  if (description == null) return null;
-  if (typeof description !== 'string') {
-    return { ok: false, error: 'Invalid description.', field: 'description' };
-  }
-  const value = description.trim();
-  if (value.length > DESCRIPTION_MAX) {
-    return {
-      ok: false,
-      error: `Description must be ${DESCRIPTION_MAX} characters or fewer.`,
-      field: 'description',
-    };
-  }
-  return value || null;
-}
-
-const NOT_FOUND: TicketActionResult = { ok: false, error: 'Issue not found.' };
-
-export async function createTicket(input: {
-  projectId: string;
-  title: string;
-  description?: string | null;
-  status?: TicketStatus;
-}): Promise<TicketActionResult> {
-  const authz = await authorize(input.projectId);
+export async function createTicket(input: CreateTicketInput): Promise<TicketActionResult> {
+  const authz = await authorizeProjectAction(input?.projectId, 'write');
   if (!authz.ok) return authz;
-
-  const title = validateTitle(input.title);
-  if (typeof title !== 'string') return title;
-  const description = validateDescription(input.description);
-  if (description !== null && typeof description !== 'string') return description;
-  const status = input.status ?? 'backlog';
-  if (!isTicketStatus(status)) return { ok: false, error: 'Invalid status.' };
-
-  const id = crypto.randomUUID();
-  // ISO string, not Date: raw sql params skip Drizzle's column mapping and the
-  // driver would serialize a Date in server-local time.
-  const now = new Date().toISOString();
-
-  // One statement: the UPDATE row-locks the project, so concurrent creates get
-  // distinct numbers; unique(project_id, ticket_number) is the backstop.
-  const result = await db.execute(sql`
-    with counter as (
-      update ${projects}
-      set ticket_counter = ticket_counter + 1
-      where id = ${input.projectId}
-      returning ticket_counter
-    )
-    insert into ${tickets}
-      (id, project_id, ticket_number, title, description, status, created_at, updated_at)
-    select ${id}, ${input.projectId}, counter.ticket_counter, ${title},
-      ${description}, ${status}::ticket_status, ${now}, ${now}
-    from counter
-    returning id
-  `);
-  if (result.rows.length === 0) return { ok: false, error: 'Project not found.' };
-
-  revalidateProject(input.projectId);
-  const ticket = await getTicketById(input.projectId, id);
-  return { ok: true, ticket: ticket ?? undefined };
+  const { projectId, ...fields } = input;
+  const result = await issues.createIssue({ userId: authz.userId }, projectId, fields);
+  if (result.ok) revalidateProject(projectId);
+  return toResult(result);
 }
 
-export async function updateTicket(input: {
+export async function updateIssue(input: {
   projectId: string;
   id: string;
-  title?: string;
-  description?: string | null;
+  patch: IssuePatch;
 }): Promise<TicketActionResult> {
-  const authz = await authorize(input.projectId);
+  const authz = await authorizeProjectAction(input?.projectId, 'write');
   if (!authz.ok) return authz;
-
-  const changes: { title?: string; description?: string | null; updatedAt: Date } = {
-    updatedAt: new Date(),
-  };
-  if (input.title !== undefined) {
-    const title = validateTitle(input.title);
-    if (typeof title !== 'string') return title;
-    changes.title = title;
-  }
-  if (input.description !== undefined) {
-    const description = validateDescription(input.description);
-    if (description !== null && typeof description !== 'string') return description;
-    changes.description = description;
-  }
-
-  const updated = await db
-    .update(tickets)
-    .set(changes)
-    .where(and(eq(tickets.id, input.id), eq(tickets.projectId, input.projectId)))
-    .returning({ id: tickets.id });
-  if (updated.length === 0) return NOT_FOUND;
-
-  revalidateProject(input.projectId);
-  return { ok: true };
+  const result = await issues.updateIssueFields(
+    { userId: authz.userId },
+    input.projectId,
+    input.id,
+    input.patch,
+  );
+  if (result.ok) revalidateProject(input.projectId);
+  return toResult(result);
 }
 
-export async function deleteTicket(input: {
+export async function bulkUpdateIssues(input: {
   projectId: string;
-  id: string;
-}): Promise<TicketActionResult> {
-  const authz = await authorize(input.projectId);
+  ids: string[];
+  patch: IssuePatch;
+}): Promise<BulkTicketActionResult> {
+  const authz = await authorizeProjectAction(input?.projectId, 'write');
   if (!authz.ok) return authz;
-
-  const deleted = await db
-    .delete(tickets)
-    .where(and(eq(tickets.id, input.id), eq(tickets.projectId, input.projectId)))
-    .returning({ id: tickets.id });
-  if (deleted.length === 0) return NOT_FOUND;
-
+  const result = await issues.bulkUpdate(
+    { userId: authz.userId },
+    input.projectId,
+    input.ids,
+    input.patch,
+  );
+  if (!result.ok) return result;
   revalidateProject(input.projectId);
-  return { ok: true };
+  return { ok: true, tickets: result.issues };
 }
 
-export async function assignTicket(input: {
-  projectId: string;
-  id: string;
-  assigneeId: string | null;
-}): Promise<TicketActionResult> {
-  const authz = await authorize(input.projectId);
+type IssueRef = { projectId: string; id: string };
+
+export async function archiveIssue(input: IssueRef): Promise<TicketActionResult> {
+  const authz = await authorizeProjectAction(input?.projectId, 'write');
   if (!authz.ok) return authz;
-
-  if (input.assigneeId !== null) {
-    try {
-      await requireProjectMember(input.projectId, input.assigneeId);
-    } catch (err) {
-      if (err instanceof ProjectAccessError) {
-        return { ok: false, error: 'Assignee must be a project member.' };
-      }
-      throw err;
-    }
-  }
-
-  const updated = await db
-    .update(tickets)
-    .set({ assigneeId: input.assigneeId, updatedAt: new Date() })
-    .where(and(eq(tickets.id, input.id), eq(tickets.projectId, input.projectId)))
-    .returning({ id: tickets.id });
-  if (updated.length === 0) return NOT_FOUND;
-
-  revalidateProject(input.projectId);
-  return { ok: true };
+  const result = await issues.archive({ userId: authz.userId }, input.projectId, input.id);
+  if (result.ok) revalidateProject(input.projectId);
+  return toResult(result);
 }
 
-export async function setTicketStatus(input: {
-  projectId: string;
-  id: string;
-  status: TicketStatus;
-}): Promise<TicketActionResult> {
-  const authz = await authorize(input.projectId);
+export async function unarchiveIssue(input: IssueRef): Promise<TicketActionResult> {
+  const authz = await authorizeProjectAction(input?.projectId, 'write');
   if (!authz.ok) return authz;
-  if (!isTicketStatus(input.status)) return { ok: false, error: 'Invalid status.' };
+  const result = await issues.unarchive({ userId: authz.userId }, input.projectId, input.id);
+  if (result.ok) revalidateProject(input.projectId);
+  return toResult(result);
+}
 
-  const updated = await db
-    .update(tickets)
-    .set({ status: input.status, updatedAt: new Date() })
-    .where(and(eq(tickets.id, input.id), eq(tickets.projectId, input.projectId)))
-    .returning({ id: tickets.id });
-  if (updated.length === 0) return NOT_FOUND;
+/** Soft delete: moves the issue to the trash (restorable). */
+export async function deleteTicket(input: IssueRef): Promise<TicketActionResult> {
+  const authz = await authorizeProjectAction(input?.projectId, 'write');
+  if (!authz.ok) return authz;
+  const result = await issues.softDelete({ userId: authz.userId }, input.projectId, input.id);
+  if (result.ok) revalidateProject(input.projectId);
+  return toResult(result);
+}
 
-  revalidateProject(input.projectId);
-  return { ok: true };
+/** Out of the trash and/or archive, back into the active list. */
+export async function restoreIssue(input: IssueRef): Promise<TicketActionResult> {
+  const authz = await authorizeProjectAction(input?.projectId, 'write');
+  if (!authz.ok) return authz;
+  const result = await issues.restore({ userId: authz.userId }, input.projectId, input.id);
+  if (result.ok) revalidateProject(input.projectId);
+  return toResult(result);
+}
+
+/** Permanent delete — project admins only. */
+export async function purgeIssue(input: IssueRef): Promise<TicketActionResult> {
+  const authz = await authorizeProjectAction(input?.projectId, 'admin');
+  if (!authz.ok) return authz;
+  const result = await issues.purge({ userId: authz.userId }, input.projectId, input.id);
+  if (result.ok) revalidateProject(input.projectId);
+  return toResult(result);
 }

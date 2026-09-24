@@ -29,6 +29,7 @@
 
 import { cache } from 'react';
 import { db } from '@/lib/db';
+import type { ProjectRole } from '@/lib/roles';
 import { projectMembers, projects } from '@/db/schema';
 import { and, eq } from 'drizzle-orm';
 
@@ -44,7 +45,7 @@ import { and, eq } from 'drizzle-orm';
 export type ProjectMembership = {
   projectId: string;
   userId: string;
-  role: 'owner' | 'member';
+  role: ProjectRole;
 };
 
 // ---------------------------------------------------------------------------

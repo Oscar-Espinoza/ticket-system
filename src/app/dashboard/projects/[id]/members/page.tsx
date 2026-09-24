@@ -1,108 +1,14 @@
-// Members page — MEM-04, MEM-01 (owner-only invite panel)
-//
-// Security: getMemberProject (membership inner join) runs before any other
-// project-scoped read; non-members get notFound() so outsiders can't probe
-// project ids (D-15, T-03-06). The invite panel only renders for owners, and
-// generateInviteLink re-checks ownership server-side (D-25).
+// Members moved under project settings; keep old links working.
 
-import type { Metadata } from 'next';
-import { notFound, redirect } from 'next/navigation';
-import Link from 'next/link';
-import { ChevronLeft } from 'lucide-react';
-import { getSession } from '@/lib/session';
-import { getMemberProject } from '@/lib/project-access';
-import { db } from '@/lib/db';
-import { projectMembers, invitations, users } from '@/db/schema';
-import { eq } from 'drizzle-orm';
-import { Separator } from '@/components/ui/separator';
-import { InvitePanel } from '@/components/invite-panel';
-import { MemberList } from '@/components/member-list';
+import { redirect } from 'next/navigation';
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}): Promise<Metadata> {
-  const [{ id }, session] = await Promise.all([params, getSession()]);
-  const project = session?.user ? await getMemberProject(id, session.user.id) : null;
-  return { title: project ? `Members · ${project.name}` : 'Project not found' };
-}
+import { projectHref } from '@/components/app-shell/routes';
 
-export default async function MembersPage({
+export default async function MembersRedirect({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const [{ id }, session] = await Promise.all([params, getSession()]);
-  if (!session?.user) {
-    redirect('/login');
-  }
-
-  const project = await getMemberProject(id, session.user.id);
-  if (!project) notFound();
-  const isOwner = project.role === 'owner';
-
-  const [roster, invitation] = await Promise.all([
-    db
-      .select({
-        id: projectMembers.id, // MemberList → removeMember FormData (memberId)
-        userId: projectMembers.userId,
-        name: users.name,
-        role: projectMembers.role,
-      })
-      .from(projectMembers)
-      .innerJoin(users, eq(projectMembers.userId, users.id))
-      .where(eq(projectMembers.projectId, id)),
-    // Only owners see the invite panel.
-    isOwner
-      ? db
-          .select({ token: invitations.token })
-          .from(invitations)
-          .where(eq(invitations.projectId, id))
-          .limit(1)
-          .then(([row]) => row ?? null)
-      : null,
-  ]);
-
-  // Compute the absolute invite URL from the stored token (D-25).
-  // The URL is derived server-side and passed to InvitePanel as a prop
-  // so the client component never reads NEXT_PUBLIC_APP_URL itself.
-  const existingUrl = invitation
-    ? `${process.env.NEXT_PUBLIC_APP_URL}/invite/${invitation.token}`
-    : null;
-
-  return (
-    <>
-      {/* Back link to project */}
-      <Link
-        href={`/dashboard/projects/${id}`}
-        className="mb-6 flex w-fit items-center gap-1 rounded text-sm text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        <ChevronLeft className="h-4 w-4" />
-        Back to project
-      </Link>
-
-      <h1 className="text-xl font-medium mb-8">Members</h1>
-
-      {/* Invite panel — owner-only (D-25, D-32) */}
-      {isOwner && (
-        <>
-          <InvitePanel projectId={id} inviteUrl={existingUrl} />
-          <Separator className="my-6" />
-        </>
-      )}
-
-      {/* Roster section — visible to all members (MEM-04) */}
-      {/* Remove controls only rendered for owner; server guards all removeMember calls */}
-      <section>
-        <h2 className="text-base font-medium mb-4">Team members</h2>
-        <MemberList
-          members={roster}
-          isOwner={isOwner}
-          currentUserId={session.user.id}
-          projectId={id}
-        />
-      </section>
-    </>
-  );
+  const { id } = await params;
+  redirect(projectHref(id, 'settings/members'));
 }

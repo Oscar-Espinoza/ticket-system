@@ -9,7 +9,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { registerHotkeys } from '@/lib/hotkeys';
-import type { IssueAssignee, IssueRow } from '@/lib/issue-model';
+import type { IssueRow } from '@/lib/issue-model';
 import type { IssueMutations } from '@/components/issues/use-issue-mutations';
 import { IssueDetail } from './issue-detail';
 
@@ -31,12 +31,10 @@ export function useIsDesktop() {
 
 export function IssueDetailPane({
   issue,
-  members,
   mutations,
   onClose,
 }: {
   issue: IssueRow;
-  members: IssueAssignee[];
   mutations: IssueMutations;
   onClose: () => void;
 }) {
@@ -56,8 +54,8 @@ export function IssueDetailPane({
     <IssueDetail
       key={issue.id}
       issue={issue}
-      members={members}
       mutations={mutations}
+      variant="pane"
       onClose={onClose}
     />
   );

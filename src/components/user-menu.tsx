@@ -1,7 +1,8 @@
 'use client';
 
+import Link from 'next/link';
 import { useTheme } from 'next-themes';
-import { Loader2, LogOut, Moon, Sun } from 'lucide-react';
+import { Loader2, LogOut, Moon, Settings, Sun, UserRound } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -53,10 +54,23 @@ export function UserMenu({
           </span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link href="/dashboard/settings/profile">
+            <UserRound />
+            Profile
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/dashboard/settings">
+            <Settings />
+            Settings
+          </Link>
+        </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => setTheme(dark ? 'light' : 'dark')}>
           {dark ? <Sun /> : <Moon />}
           {dark ? 'Light mode' : 'Dark mode'}
         </DropdownMenuItem>
+        <DropdownMenuSeparator />
         <DropdownMenuItem
           onSelect={() => {
             void logout();
