@@ -50,7 +50,7 @@ export function ProjectTabs({ projectId }: { projectId: string }) {
     <nav
       aria-label="Project"
       data-project-tabs
-      className="mb-4 flex items-center gap-1 overflow-x-auto border-b border-border"
+      className="mb-4 flex items-center gap-1 overflow-x-auto overflow-y-hidden border-b border-border"
     >
       {TABS.map((tab) => {
         const active = tab.segment === activeTab;

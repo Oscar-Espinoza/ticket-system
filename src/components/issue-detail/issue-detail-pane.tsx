@@ -65,7 +65,7 @@ export function IssueDetailPane({
       <aside
         aria-label={`Issue ${issue.key}`}
         data-issue-pane={issue.id}
-        className="sticky top-0 ml-6 max-h-[calc(100vh-3.5rem)] w-[380px] shrink-0 self-start overflow-y-auto border-l border-border pl-6"
+        className="sticky top-0 ml-6 max-h-[calc(100vh-3.5rem)] w-[380px] shrink-0 self-start overflow-y-auto overflow-x-hidden border-l border-border pl-6"
       >
         {detail}
       </aside>
@@ -77,7 +77,7 @@ export function IssueDetailPane({
       <SheetContent
         side="right"
         showCloseButton={false}
-        className="w-full overflow-y-auto p-4 sm:max-w-md"
+        className="w-full overflow-y-auto overflow-x-hidden p-4 sm:max-w-md"
         onCloseAutoFocus={(event) => event.preventDefault()}
       >
         <SheetTitle className="sr-only">{issue.key}</SheetTitle>

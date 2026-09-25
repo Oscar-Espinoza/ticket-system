@@ -3,96 +3,96 @@
 Features in Linear that this app doesn't have yet (reviewed 2026-09-24).
 
 ## GitHub integration
-- [ ] Create branch from issue
-- [ ] Copy git branch name
-- [ ] GitHub webhook registration
-- [ ] Auto status on PR opened / merged
-- [ ] Linked pull requests on issue
-- [ ] Magic words in commits/PRs (closes, fixes)
-- [ ] Connect repo UI
+- [x] Create branch from issue
+- [x] Copy git branch name
+- [x] GitHub webhook registration
+- [x] Auto status on PR opened / merged
+- [x] Linked pull requests on issue
+- [x] Magic words in commits/PRs (closes, fixes)
+- [x] Connect repo UI
 
 ## Issue properties
-- [ ] Priority
-- [ ] Labels
-- [ ] Estimates / points
-- [ ] Due dates
-- [ ] Sub-issues
-- [ ] Parent issue
-- [ ] Issue relations (blocks, blocked by, related, duplicate)
-- [ ] Canceled / duplicate status
-- [ ] Custom workflow statuses
-- [ ] Issue templates
-- [ ] Attachments / file uploads
-- [ ] Rich-text / markdown editor
-- [ ] Manual sort order within a column
+- [x] Priority
+- [x] Labels
+- [x] Estimates / points
+- [x] Due dates
+- [x] Sub-issues
+- [x] Parent issue
+- [x] Issue relations (blocks, blocked by, related, duplicate)
+- [x] Canceled / duplicate status
+- [x] Custom workflow statuses
+- [x] Issue templates
+- [x] Attachments / file uploads
+- [x] Rich-text / markdown editor
+- [x] Manual sort order within a column
 
 ## Collaboration
-- [ ] Comments
-- [ ] Comment reactions
-- [ ] @mentions
-- [ ] Activity history / audit log
-- [ ] Subscribers / follow issue
-- [ ] Inbox
-- [ ] Notifications (in-app, email)
-- [ ] Real-time multiplayer updates
-- [ ] Presence indicators
+- [x] Comments
+- [x] Comment reactions
+- [x] @mentions
+- [x] Activity history / audit log
+- [x] Subscribers / follow issue
+- [x] Inbox
+- [x] Notifications (in-app, email)
+- [x] Real-time multiplayer updates
+- [x] Presence indicators
 
 ## Planning
-- [ ] Cycles / sprints
-- [ ] Projects (as groups of issues)
-- [ ] Milestones
-- [ ] Initiatives
-- [ ] Roadmap / timeline view
-- [ ] Triage
-- [ ] Backlog auto-archive / auto-close
-- [ ] Project updates / health status
+- [x] Cycles / sprints
+- [x] Projects (as groups of issues)
+- [x] Milestones
+- [x] Initiatives
+- [x] Roadmap / timeline view
+- [x] Triage
+- [x] Backlog auto-archive / auto-close
+- [x] Project updates / health status
 
 ## Views & navigation
-- [ ] My Issues
-- [ ] Custom saved views
-- [ ] Favorites
-- [ ] Full-text issue search
-- [ ] Filter by priority / label / date / creator
-- [ ] Group by (assignee, priority, label, etc.)
-- [ ] Sort options
-- [ ] Display options (visible properties)
-- [ ] Sub-grouping / swimlanes
-- [ ] Spreadsheet / table view
-- [ ] Calendar view
-- [ ] Archive / archived issues
-- [ ] Trash / restore deleted issues
-- [ ] Peek preview
-- [ ] Issue permalink page
+- [x] My Issues
+- [x] Custom saved views
+- [x] Favorites
+- [x] Full-text issue search
+- [x] Filter by priority / label / date / creator
+- [x] Group by (assignee, priority, label, etc.)
+- [x] Sort options
+- [x] Display options (visible properties)
+- [x] Sub-grouping / swimlanes
+- [x] Spreadsheet / table view
+- [x] Calendar view
+- [x] Archive / archived issues
+- [x] Trash / restore deleted issues
+- [x] Peek preview
+- [x] Issue permalink page
 
 ## Productivity
-- [ ] Bulk select and multi-edit
-- [ ] Per-issue keyboard shortcuts (assign, priority, labels, etc.)
-- [ ] Issue commands in command palette
-- [ ] Undo
-- [ ] Copy issue link / ID
-- [ ] Drafts
-- [ ] Create more (keep new-issue dialog open)
-- [ ] Reminders / snooze
+- [x] Bulk select and multi-edit
+- [x] Per-issue keyboard shortcuts (assign, priority, labels, etc.)
+- [x] Issue commands in command palette
+- [x] Undo
+- [x] Copy issue link / ID
+- [x] Drafts
+- [x] Create more (keep new-issue dialog open)
+- [x] Reminders / snooze
 
 ## Workspace & teams
-- [ ] Workspaces with multiple teams
-- [ ] Team settings
-- [ ] Project settings (rename, key, delete)
-- [ ] Roles beyond owner/member (admin, guest)
-- [ ] Email invitations
-- [ ] Member profile pages
-- [ ] Account settings / profile editing
-- [ ] Notification preferences
-- [ ] Theme / appearance settings
+- [x] Workspaces with multiple teams
+- [x] Team settings
+- [x] Project settings (rename, key, delete)
+- [x] Roles beyond owner/member (admin, guest)
+- [x] Email invitations
+- [x] Member profile pages
+- [x] Account settings / profile editing
+- [x] Notification preferences
+- [x] Theme / appearance settings
 
 ## Insights & integrations
-- [ ] Insights / analytics
-- [ ] Cycle burndown / velocity charts
-- [ ] Slack integration
-- [ ] Public API
-- [ ] Outgoing webhooks
-- [ ] CSV import / export
-- [ ] Import from Jira / GitHub Issues
-- [ ] Customer requests / intake forms
-- [ ] Mobile app / PWA
-- [ ] Offline support
+- [x] Insights / analytics
+- [x] Cycle burndown / velocity charts
+- [x] Slack integration
+- [x] Public API
+- [x] Outgoing webhooks
+- [x] CSV import / export
+- [x] Import from Jira / GitHub Issues
+- [x] Customer requests / intake forms
+- [x] Mobile app / PWA
+- [x] Offline support
