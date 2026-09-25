@@ -1,98 +1,64 @@
 # Linear Feature Gaps
 
-Features in Linear that this app doesn't have yet (reviewed 2026-09-24).
+Features Linear has that this app doesn't yet (reviewed 2026-09-25, after the
+linear-parity build — see `.planning/features/00-MASTER-PLAN.md`).
 
-## GitHub integration
-- [x] Create branch from issue
-- [x] Copy git branch name
-- [x] GitHub webhook registration
-- [x] Auto status on PR opened / merged
-- [x] Linked pull requests on issue
-- [x] Magic words in commits/PRs (closes, fixes)
-- [x] Connect repo UI
+## Core sync & editing
+- [ ] Local-first sync engine (instant writes, websockets, offline edits)
+- [ ] WYSIWYG editor (slash commands, image paste, embeds)
+- [ ] Collaborative real-time editing of descriptions
+- [ ] Project documents / docs
 
-## Issue properties
-- [x] Priority
-- [x] Labels
-- [x] Estimates / points
-- [x] Due dates
-- [x] Sub-issues
-- [x] Parent issue
-- [x] Issue relations (blocks, blocked by, related, duplicate)
-- [x] Canceled / duplicate status
-- [x] Custom workflow statuses
-- [x] Issue templates
-- [x] Attachments / file uploads
-- [x] Rich-text / markdown editor
-- [x] Manual sort order within a column
+## Teams & structure
+- [ ] Issues moving between teams
+- [ ] Cross-team projects (epics spanning projects)
+- [ ] Sub-teams / team hierarchy
+- [ ] Private teams
+- [ ] Project templates
+- [ ] Project labels
+- [ ] Project dependencies
 
-## Collaboration
-- [x] Comments
-- [x] Comment reactions
-- [x] @mentions
-- [x] Activity history / audit log
-- [x] Subscribers / follow issue
-- [x] Inbox
-- [x] Notifications (in-app, email)
-- [x] Real-time multiplayer updates
-- [x] Presence indicators
+## Issues
+- [ ] Recurring issues
+- [ ] SLAs
+- [ ] Time in status
+- [ ] Cycle capacity / cooldown periods
 
-## Planning
-- [x] Cycles / sprints
-- [x] Projects (as groups of issues)
-- [x] Milestones
-- [x] Initiatives
-- [x] Roadmap / timeline view
-- [x] Triage
-- [x] Backlog auto-archive / auto-close
-- [x] Project updates / health status
+## Customers & intake
+- [ ] Customer entities (customers, revenue, request tracking)
+- [ ] Linear Asks (Slack intake)
+- [ ] Intercom / Zendesk / Front integrations
 
-## Views & navigation
-- [x] My Issues
-- [x] Custom saved views
-- [x] Favorites
-- [x] Full-text issue search
-- [x] Filter by priority / label / date / creator
-- [x] Group by (assignee, priority, label, etc.)
-- [x] Sort options
-- [x] Display options (visible properties)
-- [x] Sub-grouping / swimlanes
-- [x] Spreadsheet / table view
-- [x] Calendar view
-- [x] Archive / archived issues
-- [x] Trash / restore deleted issues
-- [x] Peek preview
-- [x] Issue permalink page
+## Views & insights
+- [ ] Dashboards
+- [ ] Pulse / project update digests
+- [ ] Issue timeline view
+- [ ] Search query syntax
 
-## Productivity
-- [x] Bulk select and multi-edit
-- [x] Per-issue keyboard shortcuts (assign, priority, labels, etc.)
-- [x] Issue commands in command palette
-- [x] Undo
-- [x] Copy issue link / ID
-- [x] Drafts
-- [x] Create more (keep new-issue dialog open)
-- [x] Reminders / snooze
+## AI
+- [ ] Triage suggestions
+- [ ] Duplicate detection
+- [ ] Issue / thread summaries
 
-## Workspace & teams
-- [x] Workspaces with multiple teams
-- [x] Team settings
-- [x] Project settings (rename, key, delete)
-- [x] Roles beyond owner/member (admin, guest)
-- [x] Email invitations
-- [x] Member profile pages
-- [x] Account settings / profile editing
-- [x] Notification preferences
-- [x] Theme / appearance settings
+## Integrations & API
+- [ ] GraphQL API
+- [ ] OAuth apps
+- [ ] Webhook retries
+- [ ] GitLab / Bitbucket
+- [ ] PR review and CI status on issues
+- [ ] Figma / Sentry / Zapier
+- [ ] Import from Asana / Shortcut
 
-## Insights & integrations
-- [x] Insights / analytics
-- [x] Cycle burndown / velocity charts
-- [x] Slack integration
-- [x] Public API
-- [x] Outgoing webhooks
-- [x] CSV import / export
-- [x] Import from Jira / GitHub Issues
-- [x] Customer requests / intake forms
-- [x] Mobile app / PWA
-- [x] Offline support
+## Notifications
+- [ ] Desktop / push notifications
+- [ ] Email digests
+- [ ] Per-user Slack notifications
+
+## Apps
+- [ ] Native desktop app
+- [ ] Native mobile apps
+
+## Security & admin
+- [ ] SAML SSO / SCIM
+- [ ] Two-factor authentication
+- [ ] Audit log export

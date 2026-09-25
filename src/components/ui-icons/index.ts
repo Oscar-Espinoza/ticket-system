@@ -1,4 +1,4 @@
-// C4 primitives — additive exports only (docs/mimo-refactor/README.md).
+// Domain glyphs and primitives (status, priority, labels, avatars, states).
 
 export { StatusIcon, StateIcon } from './status-icon';
 export type { StatusIconProps, StateIconProps } from './status-icon';
