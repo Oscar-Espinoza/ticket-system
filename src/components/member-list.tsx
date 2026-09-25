@@ -1,25 +1,16 @@
 'use client';
 
-// MemberList — client component rendering the project member roster.
-//
-// Renders each member as a dense row with name + role chip. When isOwner is true
-// and the row is neither the current user nor an owner row, a Remove button
-// (AlertDialog confirm) is shown. Clicking Remove calls removeMember via
-// startTransition and disables the button while pending.
-//
-// Props:
-//   members       — array of { id, userId, name, role } from the members page
-//   isOwner       — whether the viewing user is the project owner (controls visibility)
-//   currentUserId — the session user id (hides Remove from self)
-//   projectId     — forwarded to removeMember
-//
-// D-33: self-remove and owner-row removal are also rejected server-side.
-// D-34: AlertDialog semantics match a destructive irreversible action (role="alertdialog").
+// Project member roster (settings › Members). Each row links to the member's
+// profile and, when the viewer's role allows it (role-rules.ts), offers a role
+// select, "Transfer ownership" (owner only) and "Remove". The server actions
+// enforce the same rules; hiding controls here is UX only.
 
-import { useTransition } from 'react';
+import { useState, useTransition } from 'react';
+import Link from 'next/link';
 import { toast } from 'sonner';
-import { UserMinus } from 'lucide-react';
-import { LabelChip } from '@/components/ui-icons';
+import { Crown, MoreHorizontal, UserMinus } from 'lucide-react';
+
+import { Avatar, LabelChip } from '@/components/ui-icons';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -30,132 +21,213 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { removeMember } from '@/app/actions/members';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { removeMember, transferOwnership, updateMemberRole } from '@/app/actions/members';
+import { useProjectPermissions } from '@/components/workspaces/permissions';
+import { PROJECT_ROLE_DESCRIPTION, PROJECT_ROLE_LABEL } from '@/components/workspaces/role-rules';
+import type { ProjectRole } from '@/lib/roles';
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-type Member = {
-  id: string;       // project_member row id — used as the FormData memberId
-  userId: string;   // user id — compared to currentUserId to hide self-remove
+export type MemberListMember = {
+  /** project_member row id. */
+  id: string;
+  userId: string;
   name: string;
-  role: 'owner' | 'member';
+  email?: string | null;
+  image?: string | null;
+  role: ProjectRole;
 };
 
 type MemberListProps = {
-  members: Member[];
-  isOwner: boolean;
+  members: MemberListMember[];
   currentUserId: string;
   projectId: string;
 };
 
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
+const ROLE_ORDER: Record<ProjectRole, number> = { owner: 0, admin: 1, member: 2, guest: 3 };
 
-export function MemberList({
-  members,
-  isOwner,
-  currentUserId,
-  projectId,
-}: MemberListProps) {
+export function MemberList({ members, currentUserId, projectId }: MemberListProps) {
+  const sorted = [...members].sort(
+    (a, b) => ROLE_ORDER[a.role] - ROLE_ORDER[b.role] || a.name.localeCompare(b.name),
+  );
   return (
-    <div className="flex flex-col">
-      {members.map((member) => (
+    <ul className="flex flex-col divide-y divide-border/60 rounded-lg border">
+      {sorted.map((member) => (
         <MemberRow
           key={member.id}
           member={member}
-          isOwner={isOwner}
-          currentUserId={currentUserId}
+          isSelf={member.userId === currentUserId}
           projectId={projectId}
         />
       ))}
-    </div>
+    </ul>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Row — each row gets its own isPending + error state
-// ---------------------------------------------------------------------------
-
 function MemberRow({
   member,
-  isOwner,
-  currentUserId,
+  isSelf,
   projectId,
 }: {
-  member: Member;
-  isOwner: boolean;
-  currentUserId: string;
+  member: MemberListMember;
+  isSelf: boolean;
   projectId: string;
 }) {
+  const perms = useProjectPermissions();
   const [isPending, startTransition] = useTransition();
+  const [dialog, setDialog] = useState<'remove' | 'transfer' | null>(null);
 
-  // Show Remove control only when:
-  //   1. Viewing user is owner
-  //   2. Row is not an owner row (owner rows are unremovable)
-  //   3. Row is not the current user's own row (self-remove blocked client-side too)
-  const showRemove =
-    isOwner && member.role !== 'owner' && member.userId !== currentUserId;
+  const canManage = !isSelf && perms.canManage(member.role);
+  const canTransfer = perms.isOwner && !isSelf;
 
-  function handleRemove() {
+  function changeRole(role: string) {
+    startTransition(async () => {
+      const result = await updateMemberRole({ projectId, memberId: member.id, role: role as ProjectRole });
+      if (!result.ok) toast.error(result.error);
+      else toast.success(`${member.name} is now ${PROJECT_ROLE_LABEL[role as ProjectRole].toLowerCase()}`);
+    });
+  }
+
+  function remove() {
     startTransition(async () => {
       const formData = new FormData();
       formData.set('projectId', projectId);
       formData.set('memberId', member.id);
       const result = await removeMember({}, formData);
-      if (result.errors?.server) {
-        toast.error('Failed to remove member. Please try again.');
-      } else {
-        toast.success(`${member.name} was removed`);
-      }
+      if (result.errors?.server) toast.error(result.errors.server);
+      else toast.success(`${member.name} was removed`);
+    });
+  }
+
+  function transfer() {
+    startTransition(async () => {
+      const result = await transferOwnership({ projectId, memberId: member.id });
+      if (!result.ok) toast.error(result.error);
+      else toast.success(`${member.name} now owns this project`);
     });
   }
 
   return (
-    <div className="flex h-10 items-center justify-between gap-4 rounded-md px-2 transition-colors hover:bg-accent/40">
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-medium">{member.name}</span>
-        {member.role === 'owner' ? (
-          <LabelChip color="primary">Owner</LabelChip>
-        ) : (
-          <LabelChip>Member</LabelChip>
-        )}
-      </div>
+    <li className="flex min-h-12 items-center gap-3 px-3 py-2">
+      <Link
+        href={`/dashboard/people/${member.userId}`}
+        className="flex min-w-0 flex-1 items-center gap-2.5 rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+      >
+        <Avatar name={member.name} src={member.image} />
+        <span className="min-w-0">
+          <span className="block truncate text-sm font-medium hover:underline">
+            {member.name}
+            {isSelf && <span className="ml-1.5 font-normal text-muted-foreground">(you)</span>}
+          </span>
+          {member.email && (
+            <span className="block truncate text-xs text-muted-foreground">{member.email}</span>
+          )}
+        </span>
+      </Link>
 
-      {showRemove && (
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
+      {canManage ? (
+        <Select value={member.role} onValueChange={changeRole} disabled={isPending}>
+          <SelectTrigger size="sm" className="w-28" aria-label={`Role of ${member.name}`}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent align="end">
+            {perms.assignableRoles.map((role) => (
+              <SelectItem key={role} value={role} title={PROJECT_ROLE_DESCRIPTION[role]}>
+                {PROJECT_ROLE_LABEL[role]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      ) : (
+        <LabelChip
+          color={member.role === 'owner' ? 'primary' : 'default'}
+          title={PROJECT_ROLE_DESCRIPTION[member.role]}
+        >
+          {PROJECT_ROLE_LABEL[member.role]}
+        </LabelChip>
+      )}
+
+      {canManage || canTransfer ? (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
-              className="text-destructive hover:text-destructive"
-              size="sm"
+              size="icon-sm"
+              aria-label={`More actions for ${member.name}`}
               disabled={isPending}
             >
-              <UserMinus className="h-4 w-4" />
-              Remove
+              <MoreHorizontal />
             </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Remove member?</AlertDialogTitle>
-              <AlertDialogDescription>
-                <strong>{member.name}</strong> will immediately lose access to this
-                project. This cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction variant="destructive" onClick={handleRemove} disabled={isPending}>
-                Remove member
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {canTransfer && (
+              <DropdownMenuItem onSelect={() => setDialog('transfer')}>
+                <Crown />
+                Transfer ownership
+              </DropdownMenuItem>
+            )}
+            {canManage && (
+              <DropdownMenuItem variant="destructive" onSelect={() => setDialog('remove')}>
+                <UserMinus />
+                Remove from project
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ) : (
+        // Keeps the role column aligned with rows that have a menu.
+        <span className="size-7 shrink-0" aria-hidden="true" />
       )}
-    </div>
+
+      <AlertDialog open={dialog !== null} onOpenChange={(open) => !open && setDialog(null)}>
+        <AlertDialogContent>
+          {dialog === 'transfer' ? (
+            <>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Transfer ownership?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  <strong>{member.name}</strong> becomes the owner of this project and you
+                  become an admin. Only the new owner can transfer it back.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={transfer} disabled={isPending}>
+                  Transfer ownership
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </>
+          ) : (
+            <>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Remove member?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  <strong>{member.name}</strong> will immediately lose access to this project.
+                  You can invite them again later.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction variant="destructive" onClick={remove} disabled={isPending}>
+                  Remove member
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </>
+          )}
+        </AlertDialogContent>
+      </AlertDialog>
+    </li>
   );
 }

@@ -14,6 +14,11 @@ import { useLogout } from '@/hooks/use-logout';
 import { registerHotkeys } from '@/lib/hotkeys';
 import type { PaletteCommand } from '@/lib/palette-commands';
 import { projectHref } from '@/components/app-shell/routes';
+import {
+  CREATE_PARAM,
+  hasIssueCreator,
+  subscribeIssueCreator,
+} from '@/components/productivity/new-issue-bus';
 
 export interface TopbarProject {
   id: string;
@@ -144,11 +149,6 @@ export function TopbarChrome({ projects }: { projects: TopbarProject[] }) {
           description: 'Show keyboard shortcuts',
           handler: () => setOverlayOpen((o) => !o),
         },
-        {
-          key: 'c',
-          description: 'Create project',
-          handler: () => setCreateOpen(true),
-        },
       ]),
     [handlePaletteOpenChange],
   );
@@ -161,6 +161,24 @@ export function TopbarChrome({ projects }: { projects: TopbarProject[] }) {
   const currentProject = currentProjectId
     ? projects.find((p) => p.id === currentProjectId)
     : undefined;
+
+  // `c` creates a project outside projects. Inside one it creates an issue: the
+  // page's new-issue dialog registers its own `c` (new-issue-bus); pages without
+  // one hand off to the issues page, which opens the dialog for `?create=1`.
+  const issueCreator = useSyncExternalStore(subscribeIssueCreator, hasIssueCreator, () => false);
+  useEffect(() => {
+    if (currentProjectId && issueCreator) return;
+    return registerHotkeys([
+      currentProjectId
+        ? {
+            key: 'c',
+            scope: 'Issues',
+            description: 'Create issue',
+            handler: () => router.push(`${projectHref(currentProjectId)}?${CREATE_PARAM}=1`),
+          }
+        : { key: 'c', description: 'Create project', handler: () => setCreateOpen(true) },
+    ]);
+  }, [currentProjectId, issueCreator, router]);
   const dark = resolvedTheme === 'dark';
 
   const commands: PaletteCommand[] = [

@@ -1,6 +1,6 @@
 'use client';
 
-import { useOptimistic, useTransition } from 'react';
+import { useEffect, useOptimistic, useTransition } from 'react';
 import { toast } from 'sonner';
 
 import {
@@ -12,8 +12,9 @@ import {
   updateIssue,
 } from '@/app/actions/tickets';
 import { useProjectData } from '@/components/project/project-data';
-import type { CreateIssueInput, IssuePatch, IssueRow } from '@/lib/issue-model';
+import type { CreateIssueInput, IssueField, IssuePatch, IssueRow } from '@/lib/issue-model';
 import type { ProjectData } from '@/lib/project-data-types';
+import { pushUndo, retainUndoHotkey, undoToastAction } from '@/lib/undo';
 import { defaultNewIssueState, stateTransitionTimestamps } from '@/lib/workflow';
 
 const TEMP_PREFIX = 'temp-';
@@ -119,6 +120,7 @@ export interface CreateCallbacks {
   onError?: (message: string) => void;
 }
 
+/** Every successful mutation is undoable (⌘Z / the toast's Undo) — see src/lib/undo.ts. */
 export interface IssueMutations {
   /** Server issues with optimistic changes applied, filtered by `include`. */
   issues: IssueRow[];
@@ -133,15 +135,60 @@ export interface IssueMutations {
   restore: (issue: IssueRow, onDone?: () => void) => void;
 }
 
+
 function errorMessage(error: string) {
   return error === 'Forbidden' ? "You don't have permission to do that in this project." : error;
 }
 
 type Result = { ok: true } | { ok: false; error: string };
 
+const FIELD_WORDS: Record<IssueField, string> = {
+  title: 'title',
+  description: 'description',
+  stateId: 'status',
+  priority: 'priority',
+  estimate: 'estimate',
+  dueDate: 'due date',
+  assigneeId: 'assignee',
+  parentId: 'parent',
+  cycleId: 'cycle',
+  epicId: 'epic',
+  milestoneId: 'milestone',
+  sortOrder: 'order',
+  labelIds: 'labels',
+};
+
+function describePatch(patch: IssuePatch): string {
+  const words = (Object.keys(patch) as IssueField[])
+    .filter((field) => patch[field] !== undefined && FIELD_WORDS[field])
+    .map((field) => FIELD_WORDS[field]);
+  return words.length > 0 ? `${words.join(', ')} change` : 'change';
+}
+
+/** The patch that puts `issue`'s touched fields back (the undo of `patch`). */
+export function inversePatch(issue: IssueRow, patch: IssuePatch): IssuePatch {
+  const inverse: IssuePatch = {};
+  for (const field of Object.keys(patch) as IssueField[]) {
+    if (patch[field] === undefined) continue;
+    if (field === 'assigneeId') inverse.assigneeId = issue.assignee?.id ?? null;
+    else if (field === 'labelIds') inverse.labelIds = issue.labels.map((l) => l.id);
+    else (inverse as Record<string, unknown>)[field] = (issue as unknown as Record<string, unknown>)[field];
+  }
+  // A milestone implies its epic; restore the pair together so it stays valid.
+  if (patch.epicId !== undefined || patch.milestoneId !== undefined) {
+    inverse.epicId = issue.epicId;
+    inverse.milestoneId = issue.milestoneId;
+  }
+  return inverse;
+}
+
 // Optimistic state reverts to the server props when the transition settles: on
 // success the action's revalidation already carries the new data, on failure
 // the UI rolls back and we toast.
+//
+// Each successful change pushes its inverse onto the session undo stack
+// (src/lib/undo.ts); undoing runs the same functions with `track` off, so the
+// undo is optimistic and goes through the server actions (activity, webhooks).
 export function useIssueMutations(
   serverIssues: IssueRow[],
   options: {
@@ -157,6 +204,8 @@ export function useIssueMutations(
   const [, startTransition] = useTransition();
   const include = options.include ?? isActiveIssue;
 
+  useEffect(() => retainUndoHotkey(), []);
+
   function run(op: Op, action: () => Promise<Result>, onSuccess?: () => void) {
     startTransition(async () => {
       apply(op);
@@ -170,14 +219,102 @@ export function useIssueMutations(
     });
   }
 
-  const restore: IssueMutations['restore'] = (issue, onDone) => {
+  function update(issue: IssueRow, patch: IssuePatch, track = true) {
+    if (isPendingIssue(issue) || !patchChangesIssue(issue, patch)) return;
+    const inverse = inversePatch(issue, patch);
+    run(
+      { type: 'patch', ids: [issue.id], patch, data },
+      () => updateIssue({ projectId: issue.projectId, id: issue.id, patch }),
+      () => {
+        if (!track) return;
+        const after = applyIssuePatch(issue, patch, data);
+        pushUndo(`${describePatch(patch)} on ${issue.key}`, () => update(after, inverse, false));
+      },
+    );
+  }
+
+  function bulkUpdate(issues: IssueRow[], patch: IssuePatch, track = true) {
+    const targets = issues.filter((i) => !isPendingIssue(i) && patchChangesIssue(i, patch));
+    if (targets.length === 0) return;
+    run(
+      { type: 'patch', ids: targets.map((i) => i.id), patch, data },
+      () =>
+        bulkUpdateIssues({
+          projectId: data.project.id,
+          ids: targets.map((i) => i.id),
+          patch,
+        }),
+      () => {
+        if (!track) return;
+        // Issues that shared a value share an inverse: one bulk call per group.
+        const groups = new Map<string, { patch: IssuePatch; issues: IssueRow[] }>();
+        for (const issue of targets) {
+          const inverse = inversePatch(issue, patch);
+          const key = JSON.stringify(inverse);
+          const group = groups.get(key) ?? { patch: inverse, issues: [] };
+          group.issues.push(applyIssuePatch(issue, patch, data));
+          groups.set(key, group);
+        }
+        const label =
+          targets.length === 1
+            ? `${describePatch(patch)} on ${targets[0].key}`
+            : `${describePatch(patch)} on ${targets.length} issues`;
+        const id = pushUndo(label, () =>
+          groups.forEach((group) => bulkUpdate(group.issues, group.patch, false)),
+        );
+        if (targets.length > 1) {
+          toast.success(`Updated ${targets.length} issues`, { action: undoToastAction(id) });
+        }
+      },
+    );
+  }
+
+  function archive(issue: IssueRow, onDone?: () => void, track = true) {
     if (isPendingIssue(issue)) return;
     run(
-      { type: 'upsert', issue: { ...issue, archivedAt: null, deletedAt: null } },
-      () => restoreIssue({ projectId: issue.projectId, id: issue.id }),
-      onDone,
+      { type: 'upsert', issue: { ...issue, archivedAt: new Date() } },
+      () => archiveIssue({ projectId: issue.projectId, id: issue.id }),
+      () => {
+        if (track) {
+          const id = pushUndo(`archiving ${issue.key}`, () => restore(issue, undefined, false));
+          toast.success(`Archived ${issue.key}`, { action: undoToastAction(id) });
+        }
+        onDone?.();
+      },
     );
-  };
+  }
+
+  function remove(issue: IssueRow, onDone?: () => void, track = true) {
+    if (isPendingIssue(issue)) return;
+    run(
+      { type: 'upsert', issue: { ...issue, deletedAt: new Date() } },
+      () => deleteTicket({ projectId: issue.projectId, id: issue.id }),
+      () => {
+        if (track) {
+          const id = pushUndo(`moving ${issue.key} to trash`, () => restore(issue, undefined, false));
+          toast.success(`Moved ${issue.key} to trash`, { action: undoToastAction(id) });
+        }
+        onDone?.();
+      },
+    );
+  }
+
+  function restore(issue: IssueRow, onDone?: () => void, track = true) {
+    if (isPendingIssue(issue)) return;
+    const restored = { ...issue, archivedAt: null, deletedAt: null };
+    run(
+      { type: 'upsert', issue: restored },
+      () => restoreIssue({ projectId: issue.projectId, id: issue.id }),
+      () => {
+        if (track && issue.deletedAt) {
+          pushUndo(`restoring ${issue.key}`, () => remove(restored, undefined, false));
+        } else if (track && issue.archivedAt) {
+          pushUndo(`restoring ${issue.key}`, () => archive(restored, undefined, false));
+        }
+        onDone?.();
+      },
+    );
+  }
 
   return {
     issues: optimistic.filter(include),
@@ -234,66 +371,24 @@ export function useIssueMutations(
             fail(errorMessage(result.error));
             return;
           }
-          if (result.ticket) onSuccess?.(result.ticket);
-          toast.success(result.ticket ? `Created ${result.ticket.key}` : 'Issue created');
+          const ticket = result.ticket;
+          if (!ticket) {
+            toast.success('Issue created');
+            return;
+          }
+          onSuccess?.(ticket);
+          const id = pushUndo(`creating ${ticket.key}`, () => remove(ticket, undefined, false));
+          toast.success(`Created ${ticket.key}`, { action: undoToastAction(id) });
         } catch {
           fail('Something went wrong — the issue was not created.');
         }
       });
     },
 
-    update: (issue, patch) => {
-      if (isPendingIssue(issue) || !patchChangesIssue(issue, patch)) return;
-      run({ type: 'patch', ids: [issue.id], patch, data }, () =>
-        updateIssue({ projectId: issue.projectId, id: issue.id, patch }),
-      );
-    },
-
-    bulkUpdate: (issues, patch) => {
-      const targets = issues.filter((i) => !isPendingIssue(i) && patchChangesIssue(i, patch));
-      if (targets.length === 0) return;
-      run(
-        { type: 'patch', ids: targets.map((i) => i.id), patch, data },
-        () =>
-          bulkUpdateIssues({
-            projectId: data.project.id,
-            ids: targets.map((i) => i.id),
-            patch,
-          }),
-        () => {
-          if (targets.length > 1) toast.success(`Updated ${targets.length} issues`);
-        },
-      );
-    },
-
-    archive: (issue, onDone) => {
-      if (isPendingIssue(issue)) return;
-      run(
-        { type: 'upsert', issue: { ...issue, archivedAt: new Date() } },
-        () => archiveIssue({ projectId: issue.projectId, id: issue.id }),
-        () => {
-          toast.success(`Archived ${issue.key}`, {
-            action: { label: 'Undo', onClick: () => restore(issue) },
-          });
-          onDone?.();
-        },
-      );
-    },
-
-    remove: (issue, onDone) => {
-      if (isPendingIssue(issue)) return;
-      run(
-        { type: 'upsert', issue: { ...issue, deletedAt: new Date() } },
-        () => deleteTicket({ projectId: issue.projectId, id: issue.id }),
-        () => {
-          toast.success(`Moved ${issue.key} to trash`, {
-            action: { label: 'Undo', onClick: () => restore(issue) },
-          });
-          onDone?.();
-        },
-      );
-    },
-
-    restore,
+    update: (issue, patch) => update(issue, patch),
+    bulkUpdate: (issues, patch) => bulkUpdate(issues, patch),
+    archive: (issue, onDone) => archive(issue, onDone),
+    remove: (issue, onDone) => remove(issue, onDone),
+    restore: (issue, onDone) => restore(issue, onDone),
   };
 }

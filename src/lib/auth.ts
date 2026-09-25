@@ -14,10 +14,11 @@
 //   - NO `runtime = 'edge'` anywhere in the auth path — Better Auth's password
 //     hashing relies on the Node runtime (bcryptjs is not Edge-safe).
 //
-// GitHub OAuth (socialProviders.github) is wired in Plan 03 (AUTH-02) with
-// MINIMAL scopes only (read:user, user:email — D-01). Elevated GitHub scopes
-// (repository write + webhook admin) are deferred to the Phase 7
-// Connect-GitHub flow (D-02) and are explicitly NOT requested here.
+// GitHub OAuth (socialProviders.github) signs in with MINIMAL scopes only
+// (read:user, user:email — D-01). The elevated scopes (`repo`,
+// `admin:repo_hook`) are requested only from Settings → GitHub via
+// authClient.linkSocial({ scopes }) (D-02), which re-runs OAuth for the same
+// provider and updates the existing account row's token + scope.
 
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
@@ -51,19 +52,15 @@ export const auth = betterAuth({
     enabled: true,
     minPasswordLength: 8, // D-11
   },
-  // GitHub OAuth (AUTH-02). The explicit `scope` array OVERRIDES Better Auth's
-  // default scope list (assumption A4), so the access token carries ONLY
-  // read:user + user:email (D-01 — least privilege). We deliberately do NOT
-  // request repository-write or webhook-admin scopes; those elevated scopes
-  // belong to the Phase 7 Connect-GitHub flow (D-02). The token is stored
-  // plaintext for v1 (D-03 — acceptable while it only grants the two read
-  // scopes above) and is read
-  // exclusively through getGitHubToken() in src/lib/github-token.ts (D-04).
+  // GitHub OAuth (AUTH-02). Better Auth always requests read:user + user:email
+  // for GitHub; `scope` below only restates them (D-01 — least privilege at
+  // sign-in). Tokens are read exclusively through getGitHubToken() in
+  // src/lib/github-token.ts (D-04), which decrypts them (see `account`).
   socialProviders: {
     github: {
       clientId: process.env.GITHUB_CLIENT_ID!,
       clientSecret: process.env.GITHUB_CLIENT_SECRET!,
-      scope: ['read:user', 'user:email'], // D-01 minimal scopes — A4 override
+      scope: ['read:user', 'user:email'], // D-01 minimal scopes
     },
   },
   // Signed session snapshot in a cookie saves a DB lookup per request. Trade-off:
@@ -72,6 +69,17 @@ export const auth = betterAuth({
   // cache is stale (the old RSC-null bug, 01-RESEARCH Pitfall 6).
   session: {
     cookieCache: { enabled: true, maxAge: 5 * 60 },
+  },
+  account: {
+    // AES-256-GCM at rest now that linked tokens can carry `repo` scope (D-03
+    // superseded). Rows written before this stay plaintext and still read fine.
+    encryptOAuthTokens: true,
+    accountLinking: {
+      // Email/password users often sign in to GitHub with another address.
+      // linkSocial is session-bound, so this only lets a signed-in user attach
+      // a GitHub identity they just authenticated as.
+      allowDifferentEmails: true,
+    },
   },
   plugins: [nextCookies()],
 });

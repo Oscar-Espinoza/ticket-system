@@ -1,13 +1,29 @@
-// Slot stub — owned by B2 (notifications). Rendered by AppShell (server) at the
-// end of the sidebar Inbox link; may be async and may nest a client component
-// for polling. Return a small count pill, or null when there is nothing unread.
+// Owner: B2 (notifications). Unread count at the end of the sidebar Inbox link.
+// Streams in its own Suspense boundary so the count query never holds up the
+// shell; the client pill then keeps itself fresh.
+
+import { Suspense } from 'react';
+
+import { InboxBadgeCount } from '@/components/inbox/inbox-badge-count';
+import { countUnreadNotifications } from '@/lib/notifications/inbox';
 
 export interface InboxBadgeProps {
   /** Session user id (already authenticated by the dashboard layout). */
   userId: string;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- stub; owner uses the props
-export function InboxBadge(_props: InboxBadgeProps) {
-  return null;
+export function InboxBadge({ userId }: InboxBadgeProps) {
+  return (
+    <Suspense fallback={null}>
+      <UnreadCount userId={userId} />
+    </Suspense>
+  );
+}
+
+async function UnreadCount({ userId }: InboxBadgeProps) {
+  const count = await countUnreadNotifications(userId).catch((err) => {
+    console.error('[inbox] unread count failed', err);
+    return 0;
+  });
+  return <InboxBadgeCount initial={count} />;
 }

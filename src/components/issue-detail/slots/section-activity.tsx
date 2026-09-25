@@ -1,12 +1,13 @@
 'use client';
 
-// Owner: B1. Stub slot rendered by IssueDetail — Activity history + comments.
+// Owner: B1. Activity history + comments (src/components/comments).
 
+import { IssueActivity } from '@/components/comments';
 import type { IssueRow } from '@/lib/issue-model';
-import type { IssueMutations } from '@/components/issues/use-issue-mutations';
+import { isPendingIssue, type IssueMutations } from '@/components/issues/use-issue-mutations';
 
-export function SectionActivity({ issue, mutations }: { issue: IssueRow; mutations: IssueMutations }) {
-  void issue;
-  void mutations;
-  return null;
+export function SectionActivity({ issue }: { issue: IssueRow; mutations: IssueMutations }) {
+  // A just-created issue has no server id yet.
+  if (isPendingIssue(issue)) return null;
+  return <IssueActivity issue={issue} />;
 }

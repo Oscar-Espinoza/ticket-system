@@ -1,14 +1,24 @@
-// Slot stub — owned by B6 (navigation). Rendered by AppShell (server) as its own
-// sidebar section between the top-level links and Workspaces; may be async.
-// Build rows with SidebarSection / SidebarLink from '../sidebar-nav' so they
-// match the shell. Return null when the user has no favorites.
+// Slot — owned by B6 (navigation). Rendered by AppShell (server) as its own
+// sidebar section between the top-level links and Workspaces. Resolves the
+// user's favorites (access re-checked in SQL) and hands plain rows to the
+// client list. Also mounts navigation's global palette commands, since this
+// is the one B6 node rendered on every dashboard page.
+
+import { NavigationCommands } from '@/components/navigation/navigation-commands';
+import { SidebarFavoritesList } from '@/components/navigation/sidebar-favorites-list';
+import { getSidebarFavorites } from '@/lib/favorites';
 
 export interface SidebarFavoritesProps {
   /** Session user id (already authenticated by the dashboard layout). */
   userId: string;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- stub; owner uses the props
-export function SidebarFavorites(_props: SidebarFavoritesProps) {
-  return null;
+export async function SidebarFavorites({ userId }: SidebarFavoritesProps) {
+  const items = await getSidebarFavorites(userId);
+  return (
+    <>
+      <NavigationCommands />
+      {items.length > 0 && <SidebarFavoritesList items={items} />}
+    </>
+  );
 }

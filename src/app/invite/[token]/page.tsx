@@ -1,33 +1,31 @@
-// Invite landing page — MEM-02, D-26, D-27, D-28.
+// Invite landing page. PUBLIC route (outside /dashboard); it resolves the
+// session itself and renders one of four states:
 //
-// PUBLIC route (outside /dashboard). No DashboardLayout guard.
-// The page handles auth state internally — three render states:
+//   invalid   — unknown / expired / already-used token: a generic message
+//               (never notFound(), which would confirm whether a token exists)
+//   signed out — sign-in CTA returning here (/login?redirect=/invite/[token])
+//   mismatch  — email invitation for a different address than the session's
+//   ready     — "Join {project}" with the role; JoinProjectButton POSTs
 //
-//   State A — valid token + logged-in user → "Join {projectName}" with JoinProjectButton
-//   State B — valid token + logged-out visitor → sign-in CTA returning to this invite link
-//   State C — invalid/expired/unknown token → clean error page (never Next's not-found, D-28)
-//
-// D-26: logged-out visitor redirects to /login?redirect=/invite/[token] after auth.
-// D-27: joining is an explicit POST from JoinProjectButton — visiting this page is read-only.
-// D-28: invalid/expired token returns 200 with a generic message — next/navigation not-found
-//       is intentionally avoided (it would confirm token existence, leaking info).
+// Visiting is read-only: joining is the explicit POST in joinProject.
 
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { headers } from 'next/headers';
-import { auth } from '@/lib/auth';
+import { and, eq, gt, isNull } from 'drizzle-orm';
+
+import { getSession } from '@/lib/session';
 import { db } from '@/lib/db';
-import { invitations, projects } from '@/db/schema';
-import { and, eq, gt } from 'drizzle-orm';
+import { invitations, projects, users } from '@/db/schema';
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { JoinProjectButton } from '@/components/join-project-button';
+import { PROJECT_ROLE_LABEL } from '@/components/workspaces/role-rules';
 
 export const metadata: Metadata = { title: 'Join project' };
 
@@ -36,65 +34,49 @@ export default async function InvitePage({
 }: {
   params: Promise<{ token: string }>;
 }) {
-  // Step 1: Resolve async params (Next.js 15 — params is a Promise).
-  const { token } = await params;
+  const [{ token }, session] = await Promise.all([params, getSession()]);
 
-  // Step 2: Resolve the invitation: token match AND expiresAt > now (D-24/D-28).
-  // Return 200 with the error state for invalid tokens — do not use Next's 404 helper
-  // to avoid confirming whether a token exists (D-28).
   const [invitation] = await db
     .select({
-      projectId: invitations.projectId,
-      expiresAt: invitations.expiresAt,
+      email: invitations.email,
+      role: invitations.role,
+      projectName: projects.name,
+      inviterName: users.name,
     })
     .from(invitations)
+    .innerJoin(projects, eq(invitations.projectId, projects.id))
+    .leftJoin(users, eq(invitations.invitedById, users.id))
     .where(
       and(
         eq(invitations.token, token),
         gt(invitations.expiresAt, new Date()),
+        isNull(invitations.acceptedAt),
       ),
     )
     .limit(1);
 
-  // Step 3: Look up the project name (only if the token is valid).
-  let projectName: string | undefined;
-  if (invitation) {
-    const [project] = await db
-      .select({ name: projects.name })
-      .from(projects)
-      .where(eq(projects.id, invitation.projectId))
-      .limit(1);
-    projectName = project?.name;
-  }
+  const user = session?.user;
+  const isEmailInvite = Boolean(invitation?.email);
+  const mismatch =
+    invitation && user && isEmailInvite && invitation.email!.toLowerCase() !== user.email.toLowerCase();
+  const roleLabel = invitation ? PROJECT_ROLE_LABEL[isEmailInvite ? invitation.role : 'member'] : '';
+  const invitedBy = invitation?.inviterName ? `${invitation.inviterName} invited you` : 'You’ve been invited';
 
-  const isValid = !!invitation && !!projectName;
-
-  // Step 4: Resolve session — may be null; do NOT redirect unconditionally (D-26).
-  // The page renders different states based on auth status, not just redirecting.
-  const session = await auth.api.getSession({ headers: await headers() });
-
-  // Step 5: Centered card layout (UI-SPEC, 03-PATTERNS.md).
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
       <Card className="w-full max-w-md">
-        {/* State C — Invalid / expired / unknown token (D-28) */}
-        {!isValid && (
+        {!invitation && (
           <>
             <CardHeader>
-              <CardTitle className="text-xl font-medium">
-                Invalid invite link
-              </CardTitle>
-              <CardDescription className="text-sm text-muted-foreground mt-2">
-                This invite link is invalid or has expired. Ask the project
-                owner for a new link.
+              <CardTitle className="text-xl font-medium">Invalid invite link</CardTitle>
+              <CardDescription className="mt-2 text-sm text-muted-foreground">
+                This invitation is invalid, has expired or has already been used. Ask a
+                project admin for a new one.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {session?.user && (
-                <Link
-                  href="/dashboard"
-                  className="text-sm text-muted-foreground underline"
-                >
+              {user && (
+                <Link href="/dashboard" className="text-sm text-muted-foreground underline">
                   Go to dashboard
                 </Link>
               )}
@@ -102,41 +84,63 @@ export default async function InvitePage({
           </>
         )}
 
-        {/* State B — Valid token, logged-out visitor */}
-        {isValid && !session?.user && (
+        {invitation && !user && (
           <>
             <CardHeader>
-              <CardTitle className="text-xl font-medium">
-                You&apos;ve been invited
-              </CardTitle>
-              <CardDescription className="text-sm text-muted-foreground mt-2">
-                Sign in to join {projectName}.
+              <CardTitle className="text-xl font-medium">{invitedBy}</CardTitle>
+              <CardDescription className="mt-2 text-sm text-muted-foreground">
+                Sign in to join {invitation.projectName} as {roleLabel.toLowerCase()}.
+                {isEmailInvite && (
+                  <>
+                    {' '}
+                    Use <strong className="text-foreground">{invitation.email}</strong>.
+                  </>
+                )}
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {/* CTA: sign in and return to the invite link after auth (D-26) */}
-              <Button className="w-full mt-6" asChild>
-                <Link href={`/login?redirect=/invite/${token}`}>
-                  Sign in to continue
-                </Link>
+              <Button className="mt-6 w-full" asChild>
+                <Link href={`/login?redirect=/invite/${token}`}>Sign in to continue</Link>
               </Button>
+              <p className="mt-3 text-center text-sm text-muted-foreground">
+                New here?{' '}
+                <Link href={`/signup?redirect=/invite/${token}`} className="underline">
+                  Create an account
+                </Link>
+                , then open this link again.
+              </p>
             </CardContent>
           </>
         )}
 
-        {/* State A — Valid token, logged-in user */}
-        {isValid && session?.user && (
+        {invitation && user && mismatch && (
           <>
             <CardHeader>
-              <CardTitle className="text-xl font-medium">
-                Join {projectName}
-              </CardTitle>
-              <CardDescription className="text-sm text-muted-foreground mt-2">
-                You&apos;ve been invited to join this project.
+              <CardTitle className="text-xl font-medium">Wrong account</CardTitle>
+              <CardDescription className="mt-2 text-sm text-muted-foreground">
+                This invitation to {invitation.projectName} was sent to{' '}
+                <strong className="text-foreground">{invitation.email}</strong>, but you’re
+                signed in as <strong className="text-foreground">{user.email}</strong>. Sign
+                in with the invited address to accept it.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {/* JoinProjectButton handles the POST — the Server Action redirects on success (D-27) */}
+              <Link href="/dashboard" className="text-sm text-muted-foreground underline">
+                Go to dashboard
+              </Link>
+            </CardContent>
+          </>
+        )}
+
+        {invitation && user && !mismatch && (
+          <>
+            <CardHeader>
+              <CardTitle className="text-xl font-medium">Join {invitation.projectName}</CardTitle>
+              <CardDescription className="mt-2 text-sm text-muted-foreground">
+                {invitedBy} to join this project as {roleLabel.toLowerCase()}.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
               <JoinProjectButton token={token} />
             </CardContent>
           </>

@@ -1,12 +1,14 @@
 'use client';
 
-import { useDraggable } from '@dnd-kit/react';
+import { useSortable } from '@dnd-kit/react/sortable';
 
 import { useDisplayOptions } from '@/components/issues/display-options';
 import { DueDateChip, EstimateChip, LabelChips } from '@/components/issues/issue-properties';
 import { isPendingIssue } from '@/components/issues/use-issue-mutations';
-import { useProjectData } from '@/components/project/project-data';
+import { useProjectData, useProjectPermission } from '@/components/project/project-data';
 import { Avatar, PriorityIcon, StateIcon } from '@/components/ui-icons';
+import { CycleChip, EpicChip, MilestoneChip, SubIssueChip } from '@/components/views/property-chips';
+import { useSubIssueCount } from '@/components/views/view-context';
 import type { IssueRow } from '@/lib/issue-model';
 import { cn } from '@/lib/utils';
 
@@ -18,12 +20,18 @@ export function BoardCardContent({
   className?: string;
 }) {
   const { project } = useProjectData();
-  const [{ properties: show }] = useDisplayOptions();
+  const [{ properties: show, showSubIssues }] = useDisplayOptions();
+  const subIssues = useSubIssueCount(issue.id);
+  const showSubCount = (show.subIssues || !showSubIssues) && subIssues !== null;
   const footer =
     (show.priority && issue.priority !== 'none') ||
     (show.labels && issue.labels.length > 0) ||
     (show.estimate && issue.estimate !== null && project.estimateScale !== 'none') ||
-    (show.dueDate && issue.dueDate !== null);
+    (show.dueDate && issue.dueDate !== null) ||
+    (show.cycle && issue.cycleId !== null) ||
+    (show.epic && issue.epicId !== null) ||
+    (show.milestone && issue.milestoneId !== null) ||
+    showSubCount;
 
   return (
     <div
@@ -52,8 +60,12 @@ export function BoardCardContent({
               <PriorityIcon priority={issue.priority} size={14} />
             </span>
           )}
+          {showSubCount && <SubIssueChip count={subIssues} />}
           {show.estimate && <EstimateChip scale={project.estimateScale} value={issue.estimate} />}
           {show.dueDate && <DueDateChip dueDate={issue.dueDate} stateType={issue.state.type} />}
+          {show.cycle && <CycleChip cycleId={issue.cycleId} />}
+          {show.epic && <EpicChip epicId={issue.epicId} />}
+          {show.milestone && <MilestoneChip epicId={issue.epicId} milestoneId={issue.milestoneId} />}
           {show.labels && <LabelChips labels={issue.labels} max={2} />}
         </div>
       )}
@@ -62,19 +74,30 @@ export function BoardCardContent({
 }
 
 export function BoardCard({
+  id,
+  index,
+  container,
   issue,
   active,
   onSelect,
 }: {
+  /** Sortable id (unique per container — an issue can sit in several label columns). */
+  id: string;
+  index: number;
+  /** Column / cell the card is in. */
+  container: string;
   issue: IssueRow;
   active: boolean;
   onSelect?: () => void;
 }) {
-  const { ref, isDragSource } = useDraggable({
-    id: issue.id,
+  const canWrite = useProjectPermission('write');
+  const { ref, isDragSource } = useSortable({
+    id,
+    index,
+    group: container,
     type: 'issue',
-    data: { stateId: issue.stateId },
-    disabled: isPendingIssue(issue),
+    accept: 'issue',
+    disabled: !canWrite || isPendingIssue(issue),
   });
 
   return (
@@ -82,7 +105,7 @@ export function BoardCard({
       ref={ref}
       tabIndex={0}
       data-board-card={issue.id}
-      aria-label={`${issue.key} ${issue.title}, ${issue.state.name}. Press Space to move.`}
+      aria-label={`${issue.key} ${issue.title}, ${issue.state.name}.${canWrite ? ' Press Space to move.' : ''}`}
       aria-current={active ? 'true' : undefined}
       onClick={onSelect}
       onKeyDown={(event) => {

@@ -1,17 +1,18 @@
 'use client';
 
-import { useId, useState, type ComponentProps } from 'react';
-import { CalendarDays, Tag, Triangle, UserRound } from 'lucide-react';
+import { useEffect, useEffectEvent, useId, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 import {
-  AssigneePicker,
-  DueDatePicker,
-  EstimatePicker,
-  LabelPicker,
-  PriorityPicker,
-  StatePicker,
-} from '@/components/issue-pickers';
-import { useProjectData } from '@/components/project/project-data';
+  registerNewIssueHost,
+  type NewIssueSeed,
+} from '@/components/productivity/new-issue-bus';
+import { PropertyChips } from '@/components/productivity/property-chips';
+import { TemplateMenu } from '@/components/productivity/template-menu';
+import { templateProps, type IssueTemplate } from '@/components/productivity/templates-store';
+import { useDraftAutosave } from '@/components/productivity/use-draft-autosave';
+import { useProjectData, useProjectPermission } from '@/components/project/project-data';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -23,75 +24,179 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { Avatar, PriorityIcon, StateIcon } from '@/components/ui-icons';
-import { formatDueDate } from '@/lib/dates';
-import { formatEstimate } from '@/lib/estimates';
-import { PRIORITY_LABEL, type IssuePatch } from '@/lib/issue-model';
+import type { IssuePatch } from '@/lib/issue-model';
 import { defaultNewIssueState } from '@/lib/workflow';
 import type { IssueMutations } from './use-issue-mutations';
 
-/** Property chip trigger; trigger props (ref, onClick, aria-*) come via asChild. */
-function Chip(props: ComponentProps<typeof Button>) {
-  return (
-    <Button
-      type="button"
-      variant="outline"
-      size="xs"
-      className="max-w-48 font-normal text-muted-foreground aria-expanded:text-foreground"
-      {...props}
-    />
-  );
+const NO_DEFAULTS: IssuePatch = {};
+const CREATE_MORE_KEY = 'new-issue-create-more';
+
+function readCreateMore() {
+  try {
+    return typeof window !== 'undefined' && window.localStorage.getItem(CREATE_MORE_KEY) === '1';
+  } catch {
+    return false;
+  }
 }
 
-const NO_DEFAULTS: IssuePatch = {};
-
 // The dialog closes on submit and the issue appears optimistically; on failure
-// it reopens with the draft (this component stays mounted, so state survives).
+// it reopens with the text (this component stays mounted, so state survives).
+// Text autosaves as a draft (issue_draft) and the draft is deleted once the
+// issue exists. "Create more" keeps the dialog open for the next issue.
 export function NewIssueDialog({
   open,
   onOpenChange,
   defaults = NO_DEFAULTS,
   onCreate,
+  fallback = false,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** Initial properties (e.g. a board column's { stateId }); a new object resets them. */
   defaults?: IssuePatch;
   onCreate: IssueMutations['create'];
+  /**
+   * Only receives `requestNewIssue` (the `c` key, drafts, templates) when the
+   * page has no other dialog — IssueShortcuts' own instance.
+   */
+  fallback?: boolean;
 }) {
-  const { states, members, labels, project } = useProjectData();
+  const data = useProjectData();
+  const { states, project } = data;
+  const canWrite = useProjectPermission('write');
+  const router = useRouter();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [props, setProps] = useState<IssuePatch>(defaults);
   const [propsFor, setPropsFor] = useState(defaults);
+  const [draftId, setDraftId] = useState<string | null>(null);
+  const [createMore, setCreateMore] = useState(readCreateMore);
   if (defaults !== propsFor) {
     setPropsFor(defaults);
     setProps(defaults);
   }
   const uid = useId();
+  const titleRef = useRef<HTMLInputElement>(null);
+  const autosave = useDraftAutosave(project.id, canWrite);
 
-  const set = (patch: IssuePatch) => setProps((current) => ({ ...current, ...patch }));
   const state = states.find((s) => s.id === props.stateId) ?? defaultNewIssueState(states);
-  const priority = props.priority ?? 'none';
-  const assignee = members.find((m) => m.id === props.assigneeId);
-  const labelIds = props.labelIds ?? [];
-  const selectedLabels = labels.filter((l) => labelIds.includes(l.id));
+  const hasContent = Boolean(title.trim() || description.trim());
+
+  /** Apply an edit and schedule the draft save (only once there is text). */
+  function edit(next: { title?: string; description?: string; props?: IssuePatch }) {
+    const t = next.title ?? title;
+    const d = next.description ?? description;
+    const p = next.props ?? props;
+    if (next.title !== undefined) setTitle(t);
+    if (next.description !== undefined) setDescription(d);
+    if (next.props !== undefined) setProps(p);
+    if (!canWrite) return;
+    if (!t.trim() && !d.trim()) {
+      // Emptied out: an empty draft is no draft.
+      if (draftId) autosave.discard(draftId);
+      else autosave.cancel();
+      setDraftId(null);
+      return;
+    }
+    const id = draftId ?? crypto.randomUUID();
+    if (!draftId) setDraftId(id);
+    autosave.schedule({ id, title: t, description: d, props: p });
+  }
+
+  const set = (patch: IssuePatch) => edit({ props: { ...props, ...patch } });
+
+  const applyTemplate = (template: IssueTemplate) =>
+    edit({
+      title: title.trim() ? title : template.title,
+      description: description.trim() ? description : template.description,
+      props: { ...props, ...templateProps(template, data) },
+    });
+
+  const onRequest = useEffectEvent((seed?: NewIssueSeed) => {
+    if (seed) {
+      autosave.flush();
+      autosave.reset();
+      setTitle(seed.title ?? '');
+      setDescription(seed.description ?? '');
+      setProps({ ...seed.props });
+      setDraftId(seed.draftId ?? null);
+      setError(null);
+    }
+    onOpenChange(true);
+  });
+
+  useEffect(() => {
+    if (!canWrite) return;
+    return registerNewIssueHost({ fallback, open: (seed) => onRequest(seed) });
+  }, [canWrite, fallback]);
+
+  const close = () => {
+    setError(null);
+    autosave.flush();
+    if (hasContent && draftId) {
+      toast('Draft saved', {
+        action: { label: 'View drafts', onClick: () => router.push('/dashboard/drafts') },
+      });
+    }
+    onOpenChange(false);
+  };
+
+  const discard = () => {
+    if (draftId) autosave.discard(draftId);
+    setDraftId(null);
+    setTitle('');
+    setDescription('');
+    setError(null);
+    onOpenChange(false);
+  };
+
+  const toggleCreateMore = (next: boolean) => {
+    setCreateMore(next);
+    try {
+      window.localStorage.setItem(CREATE_MORE_KEY, next ? '1' : '0');
+    } catch {
+      // Private mode: the toggle just isn't remembered.
+    }
+  };
 
   function submit(event?: React.FormEvent) {
     event?.preventDefault();
     if (!title.trim()) return;
+    const sent = { title, description, draftId };
+    const more = createMore;
+    autosave.cancel();
     setError(null);
-    onOpenChange(false);
+    if (more) {
+      // Next issue: fresh text and draft, same properties.
+      setTitle('');
+      setDescription('');
+      setDraftId(null);
+      autosave.reset();
+      titleRef.current?.focus();
+    } else {
+      onOpenChange(false);
+    }
     onCreate(
       { ...props, title, description, stateId: props.stateId ?? state?.id },
       {
         onSuccess: () => {
-          setTitle('');
-          setDescription('');
+          if (!more) {
+            setTitle('');
+            setDescription('');
+            setDraftId(null);
+          }
+          if (sent.draftId) autosave.discard(sent.draftId);
         },
         onError: (message) => {
+          // Bring the text back unless the next issue (create more) is under way.
+          const restore = (current: string, previous: string) =>
+            current.trim() ? current : previous;
+          setTitle((current) => restore(current, sent.title));
+          setDescription((current) => restore(current, sent.description));
+          setDraftId((current) => current ?? sent.draftId);
           setError(message);
           onOpenChange(true);
         },
@@ -99,20 +204,27 @@ export function NewIssueDialog({
     );
   }
 
+  const draftHint =
+    draftId && hasContent
+      ? autosave.status === 'saving'
+        ? 'Saving draft…'
+        : autosave.status === 'error'
+          ? 'Draft not saved'
+          : 'Draft saved'
+      : null;
+
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(next) => {
-        if (!next) setError(null);
-        onOpenChange(next);
-      }}
-    >
+    <Dialog open={open} onOpenChange={(next) => (next ? onOpenChange(true) : close())}>
       <DialogContent className="sm:max-w-xl">
-        <DialogHeader>
+        <DialogHeader className="flex-row items-center gap-2 pr-8">
           <DialogTitle>New issue</DialogTitle>
+          <span className="font-mono text-xs text-muted-foreground">{project.ticketKey}</span>
           <DialogDescription className="sr-only">
             Title, description and properties of the new {project.ticketKey} issue.
           </DialogDescription>
+          <div className="ml-auto">
+            <TemplateMenu enabled={open} onApply={applyTemplate} />
+          </div>
         </DialogHeader>
 
         <form
@@ -125,9 +237,10 @@ export function NewIssueDialog({
           <div className="flex flex-col gap-1.5">
             <Label htmlFor={`${uid}-title`}>Title</Label>
             <Input
+              ref={titleRef}
               id={`${uid}-title`}
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => edit({ title: e.target.value })}
               placeholder="Issue title"
               maxLength={200}
               autoFocus
@@ -140,115 +253,45 @@ export function NewIssueDialog({
             <Textarea
               id={`${uid}-description`}
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={(e) => edit({ description: e.target.value })}
               placeholder="Add a description…"
               rows={5}
             />
           </div>
 
-          <div role="group" aria-label="Properties" className="flex flex-wrap gap-1.5">
-            <StatePicker value={state?.id ?? null} onChange={(stateId) => set({ stateId })}>
-              <Chip aria-label={`Status: ${state?.name ?? 'none'}`}>
-                {state && <StateIcon state={state} size={14} />}
-                <span className="truncate text-foreground">{state?.name ?? 'Status'}</span>
-              </Chip>
-            </StatePicker>
-
-            <PriorityPicker value={priority} onChange={(next) => set({ priority: next })}>
-              <Chip aria-label={`Priority: ${PRIORITY_LABEL[priority]}`}>
-                <PriorityIcon priority={priority} size={14} />
-                <span className={priority !== 'none' ? 'text-foreground' : undefined}>
-                  {priority === 'none' ? 'Priority' : PRIORITY_LABEL[priority]}
-                </span>
-              </Chip>
-            </PriorityPicker>
-
-            <AssigneePicker
-              value={props.assigneeId ?? null}
-              onChange={(assigneeId) => set({ assigneeId })}
-            >
-              <Chip aria-label={`Assignee: ${assignee?.name ?? 'none'}`}>
-                {assignee ? (
-                  <>
-                    <Avatar name={assignee.name} src={assignee.image} size={20} className="-my-1 size-4" />
-                    <span className="truncate text-foreground">{assignee.name}</span>
-                  </>
-                ) : (
-                  <>
-                    <UserRound />
-                    Assignee
-                  </>
-                )}
-              </Chip>
-            </AssigneePicker>
-
-            <LabelPicker value={labelIds} onChange={(next) => set({ labelIds: next })}>
-              <Chip aria-label={`Labels: ${selectedLabels.map((l) => l.name).join(', ') || 'none'}`}>
-                {selectedLabels.length === 0 ? (
-                  <>
-                    <Tag />
-                    Labels
-                  </>
-                ) : (
-                  <>
-                    {selectedLabels.slice(0, 3).map((l) => (
-                      <span
-                        key={l.id}
-                        aria-hidden="true"
-                        className="size-2 shrink-0 rounded-full"
-                        style={{ backgroundColor: l.color }}
-                      />
-                    ))}
-                    <span className="truncate text-foreground">
-                      {selectedLabels.length === 1
-                        ? selectedLabels[0].name
-                        : `${selectedLabels.length} labels`}
-                    </span>
-                  </>
-                )}
-              </Chip>
-            </LabelPicker>
-
-            <EstimatePicker
-              value={props.estimate ?? null}
-              onChange={(estimate) => set({ estimate })}
-            >
-              <Chip aria-label="Estimate">
-                <Triangle />
-                {props.estimate != null ? (
-                  <span className="text-foreground">
-                    {formatEstimate(project.estimateScale, props.estimate)}
-                  </span>
-                ) : (
-                  'Estimate'
-                )}
-              </Chip>
-            </EstimatePicker>
-
-            <DueDatePicker value={props.dueDate ?? null} onChange={(dueDate) => set({ dueDate })}>
-              <Chip aria-label="Due date">
-                <CalendarDays />
-                {props.dueDate ? (
-                  <span className="text-foreground">{formatDueDate(props.dueDate)}</span>
-                ) : (
-                  'Due date'
-                )}
-              </Chip>
-            </DueDatePicker>
-          </div>
+          <PropertyChips value={props} onChange={set} fallbackState={state} />
 
           {error && (
             <p id={`${uid}-error`} className="text-sm text-destructive">
               {error}
             </p>
           )}
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={!title.trim()}>
-              Create issue
-            </Button>
+          <DialogFooter className="items-center sm:justify-between">
+            <div className="flex min-h-6 items-center gap-2 text-xs text-muted-foreground">
+              {draftHint && (
+                <>
+                  <span aria-live="polite">{draftHint}</span>
+                  <Button
+                    type="button"
+                    variant="link"
+                    size="xs"
+                    className="h-auto px-0 text-xs text-muted-foreground"
+                    onClick={discard}
+                  >
+                    Discard
+                  </Button>
+                </>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Switch size="sm" checked={createMore} onCheckedChange={toggleCreateMore} />
+                Create more
+              </label>
+              <Button type="submit" disabled={!title.trim()}>
+                Create issue
+              </Button>
+            </div>
           </DialogFooter>
         </form>
       </DialogContent>

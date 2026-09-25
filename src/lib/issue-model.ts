@@ -166,66 +166,26 @@ export const ISSUE_PATCH_FIELDS: IssueField[] = [
 ];
 
 // ---------------------------------------------------------------------------
-// Filters (B5 extends these — keep each field independent and URL-encodable)
+// Filters — implemented in issue-filtering.ts (B5); re-exported here so older
+// imports keep working. The legacy names map onto the B5 ones.
 // ---------------------------------------------------------------------------
 
-export const UNASSIGNED = 'unassigned';
+export {
+  EMPTY_FILTERS,
+  ME,
+  NONE,
+  UNASSIGNED,
+  filterIssues,
+  filtersFromSearchParams,
+  filtersToSearchParams,
+  isFilterActive,
+  matchesFilters,
+  normalizeIssueFilters,
+  filtersFromSearchParams as parseIssueFilters,
+  filtersToSearchParams as serializeIssueFilters,
+  isFilterActive as hasActiveFilters,
+} from './issue-filtering';
+export type { IssueFilterInput, IssueFilters } from './issue-filtering';
 
+/** Session cookie remembering the last issues layout (list / board / …). */
 export const VIEW_COOKIE = 'issues-view';
-
-export interface IssueFilters {
-  /** Workflow state ids; empty = any state. */
-  stateIds: string[];
-  /** A member's user id, UNASSIGNED, or null for "anyone". */
-  assignee: string | null;
-}
-
-export const EMPTY_FILTERS: IssueFilters = { stateIds: [], assignee: null };
-
-type SearchParamValue = string | string[] | null | undefined;
-
-function first(value: SearchParamValue): string | undefined {
-  return (Array.isArray(value) ? value[0] : value) ?? undefined;
-}
-
-function list(value: SearchParamValue): string[] {
-  const items = (first(value) ?? '').split(',').map((s) => s.trim()).filter(Boolean);
-  return [...new Set(items)];
-}
-
-/** URL params → filters. Param names: `state` (comma-separated ids), `assignee`. */
-export function parseIssueFilters(params: Record<string, SearchParamValue>): IssueFilters {
-  return {
-    stateIds: list(params.state),
-    assignee: first(params.assignee)?.trim() || null,
-  };
-}
-
-/** Filters → URL params (null = remove the param). Inverse of parseIssueFilters. */
-export function serializeIssueFilters(filters: IssueFilters): Record<string, string | null> {
-  return {
-    state: filters.stateIds.length ? filters.stateIds.join(',') : null,
-    assignee: filters.assignee,
-  };
-}
-
-export function hasActiveFilters(filters: IssueFilters): boolean {
-  return filters.stateIds.length > 0 || filters.assignee !== null;
-}
-
-export function matchesFilters(issue: IssueRow, filters: IssueFilters): boolean {
-  if (filters.stateIds.length > 0 && !filters.stateIds.includes(issue.stateId)) {
-    return false;
-  }
-  if (filters.assignee !== null) {
-    const assigneeId = issue.assignee?.id ?? null;
-    if (filters.assignee === UNASSIGNED ? assigneeId !== null : assigneeId !== filters.assignee) {
-      return false;
-    }
-  }
-  return true;
-}
-
-export function filterIssues(issues: IssueRow[], filters: IssueFilters): IssueRow[] {
-  return issues.filter((issue) => matchesFilters(issue, filters));
-}

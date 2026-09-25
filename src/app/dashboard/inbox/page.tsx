@@ -1,16 +1,16 @@
-// Stub — owned by B2
-
 import type { Metadata } from 'next';
+import { redirect } from 'next/navigation';
 
-import { ComingSoon } from '@/components/coming-soon';
+import { InboxView } from '@/components/inbox/inbox-view';
+import { getInbox } from '@/lib/notifications/inbox';
+import { getSession } from '@/lib/session';
 
 export const metadata: Metadata = { title: 'Inbox' };
 
-export default function Page() {
-  return (
-    <ComingSoon
-      title="Inbox"
-      description="Notifications about issues you follow, are assigned to or are mentioned in."
-    />
-  );
+export default async function InboxPage() {
+  const session = await getSession();
+  if (!session?.user) redirect('/login');
+
+  const { notifications, issues } = await getInbox(session.user.id);
+  return <InboxView notifications={notifications} issues={issues} />;
 }

@@ -1,16 +1,30 @@
-// Stub — owned by B12
-
 import type { Metadata } from 'next';
+import { notFound, redirect } from 'next/navigation';
 
-import { ComingSoon } from '@/components/coming-soon';
+import { ImportExportPanel } from '@/components/import/import-export-panel';
+import { getMemberProject } from '@/lib/project-access';
+import { roleAllows } from '@/lib/roles';
+import { getSession } from '@/lib/session';
 
 export const metadata: Metadata = { title: 'Import / export' };
 
-export default function Page() {
+export default async function ImportExportPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const [{ id }, session] = await Promise.all([params, getSession()]);
+  if (!session?.user) redirect('/login');
+  const membership = await getMemberProject(id, session.user.id);
+  if (!membership) notFound();
+
   return (
-    <ComingSoon
-      title="Import / export"
-      description="Import from CSV, Jira or GitHub Issues, and export to CSV."
-    />
+    <>
+      <h1 className="text-xl font-medium">Import / export</h1>
+      <p className="mt-1 mb-8 text-sm text-muted-foreground">
+        Move issues in from CSV, Jira or GitHub Issues, or take them out as CSV / JSON.
+      </p>
+      <ImportExportPanel projectId={id} canImport={roleAllows(membership.role, 'write')} />
+    </>
   );
 }

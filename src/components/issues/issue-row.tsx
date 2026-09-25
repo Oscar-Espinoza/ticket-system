@@ -8,6 +8,8 @@ import { useProjectData, useProjectPermission } from '@/components/project/proje
 import { Avatar, PriorityIcon, StateIcon } from '@/components/ui-icons';
 import { PRIORITY_LABEL, type IssuePatch, type IssueRow as Issue } from '@/lib/issue-model';
 import { cn } from '@/lib/utils';
+import { CycleChip, EpicChip, MilestoneChip, SubIssueChip } from '@/components/views/property-chips';
+import { useSubIssueCount } from '@/components/views/view-context';
 import { useDisplayOptions } from './display-options';
 import { DueDateChip, EstimateChip, LabelChips, relativeTime } from './issue-properties';
 
@@ -56,7 +58,8 @@ export function IssueRow({
 }: IssueRowProps) {
   const { project } = useProjectData();
   const canWrite = useProjectPermission('write');
-  const [{ properties: show }] = useDisplayOptions();
+  const [{ properties: show, showSubIssues }] = useDisplayOptions();
+  const subIssues = useSubIssueCount(issue.id);
 
   // Pickers hand focus back to the row, not their trigger, so j/k keep working.
   const refocusRow = (event: Event) => {
@@ -115,7 +118,13 @@ export function IssueRow({
 
       <span className="min-w-0 flex-1 truncate">{issue.title}</span>
 
+      {(show.subIssues || !showSubIssues) && <SubIssueChip count={subIssues} />}
       {show.labels && <LabelChips labels={issue.labels} className="hidden md:flex" />}
+      {show.epic && <EpicChip epicId={issue.epicId} className="hidden lg:inline-flex" />}
+      {show.milestone && (
+        <MilestoneChip epicId={issue.epicId} milestoneId={issue.milestoneId} className="hidden lg:inline-flex" />
+      )}
+      {show.cycle && <CycleChip cycleId={issue.cycleId} className="hidden lg:inline-flex" />}
       {show.estimate && <EstimateChip scale={project.estimateScale} value={issue.estimate} />}
       {show.dueDate && <DueDateChip dueDate={issue.dueDate} stateType={issue.state.type} />}
 

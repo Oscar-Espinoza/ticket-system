@@ -1,16 +1,15 @@
-// Stub — owned by B6
+// Short link for a saved view → its project page (views live in a project).
 
-import type { Metadata } from 'next';
+import { notFound, redirect } from 'next/navigation';
 
-import { ComingSoon } from '@/components/coming-soon';
+import { getSession } from '@/lib/session';
+import { getViewForUser } from '@/lib/views';
 
-export const metadata: Metadata = { title: 'View' };
-
-export default function Page() {
-  return (
-    <ComingSoon
-      title="View"
-      description="A saved view of issues."
-    />
-  );
+export default async function ViewRedirect({ params }: { params: Promise<{ viewId: string }> }) {
+  const [{ viewId }, session] = await Promise.all([params, getSession()]);
+  if (!session?.user) redirect('/login');
+  const view = await getViewForUser(viewId, session.user.id);
+  if (!view) notFound();
+  // Project-less views have no page of their own yet; list them with the rest.
+  redirect(view.projectId ? `/dashboard/projects/${view.projectId}/views/${view.id}` : '/dashboard/views');
 }

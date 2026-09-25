@@ -31,7 +31,8 @@ import { cache } from 'react';
 import { db } from '@/lib/db';
 import type { ProjectRole } from '@/lib/roles';
 import { projectMembers, projects } from '@/db/schema';
-import { and, eq } from 'drizzle-orm';
+import { and, asc, eq } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -180,3 +181,29 @@ export const getMemberProject = cache(
     return row ?? null;
   },
 );
+
+/**
+ * Projects both users belong to, with `userId`'s role in each (empty when they
+ * share none). The viewer's membership join is the authorization filter:
+ * callers use a non-empty result as "these two people work together" (member
+ * profiles, adding people you know to a workspace). Memoized per request.
+ */
+export const getSharedProjects = cache(async (viewerId: string, userId: string) => {
+  if (!viewerId || !userId) return [];
+  const viewer = alias(projectMembers, 'viewer_member');
+  return db
+    .select({
+      id: projects.id,
+      name: projects.name,
+      ticketKey: projects.ticketKey,
+      role: projectMembers.role,
+    })
+    .from(projectMembers)
+    .innerJoin(projects, eq(projectMembers.projectId, projects.id))
+    .innerJoin(
+      viewer,
+      and(eq(viewer.projectId, projectMembers.projectId), eq(viewer.userId, viewerId)),
+    )
+    .where(eq(projectMembers.userId, userId))
+    .orderBy(asc(projects.name));
+});

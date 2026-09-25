@@ -1,17 +1,19 @@
-// Project settings › Members — MEM-04, MEM-01 (owner-only invite panel)
+// Project settings › Members: roster with roles for everyone; invitations
+// (email + shareable link) for owners and admins.
 //
 // Security: getMemberProject (membership inner join) runs before any other
 // project-scoped read; non-members get notFound() so outsiders can't probe
-// project ids (D-15, T-03-06). The invite panel only renders for owners, and
-// generateInviteLink re-checks ownership server-side (D-25).
+// project ids. Every invite/member action re-checks the role server-side.
 
 import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
+import { and, asc, eq, isNull } from 'drizzle-orm';
+
 import { getSession } from '@/lib/session';
 import { getMemberProject } from '@/lib/project-access';
 import { db } from '@/lib/db';
-import { projectMembers, invitations, users } from '@/db/schema';
-import { and, eq, isNull } from 'drizzle-orm';
+import { invitations, projectMembers, users } from '@/db/schema';
+import { roleAllows } from '@/lib/roles';
 import { Separator } from '@/components/ui/separator';
 import { InvitePanel } from '@/components/invite-panel';
 import { MemberList } from '@/components/member-list';
@@ -26,80 +28,92 @@ export async function generateMetadata({
   return { title: project ? `Members · ${project.name}` : 'Project not found' };
 }
 
+const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? '';
+
 export default async function MembersPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const [{ id }, session] = await Promise.all([params, getSession()]);
-  if (!session?.user) {
-    redirect('/login');
-  }
+  if (!session?.user) redirect('/login');
 
   const project = await getMemberProject(id, session.user.id);
   if (!project) notFound();
-  const isOwner = project.role === 'owner';
+  const canInvite = roleAllows(project.role, 'admin');
 
-  const [roster, invitation] = await Promise.all([
+  const [roster, invites] = await Promise.all([
     db
       .select({
-        id: projectMembers.id, // MemberList → removeMember FormData (memberId)
+        id: projectMembers.id,
         userId: projectMembers.userId,
         name: users.name,
+        email: users.email,
+        image: users.image,
         role: projectMembers.role,
       })
       .from(projectMembers)
       .innerJoin(users, eq(projectMembers.userId, users.id))
       .where(eq(projectMembers.projectId, id)),
-    // Only owners see the invite panel.
-    isOwner
+    canInvite
       ? db
-          .select({ token: invitations.token })
+          .select({
+            id: invitations.id,
+            token: invitations.token,
+            email: invitations.email,
+            role: invitations.role,
+            expiresAt: invitations.expiresAt,
+            invitedByName: users.name,
+          })
           .from(invitations)
-          // Shareable link only; email invitations (email set) are per-person.
-          .where(and(eq(invitations.projectId, id), isNull(invitations.email)))
-          .limit(1)
-          .then(([row]) => row ?? null)
-      : null,
+          .leftJoin(users, eq(invitations.invitedById, users.id))
+          .where(and(eq(invitations.projectId, id), isNull(invitations.acceptedAt)))
+          .orderBy(asc(invitations.createdAt))
+      : [],
   ]);
 
-  // Compute the absolute invite URL from the stored token (D-25).
-  // The URL is derived server-side and passed to InvitePanel as a prop
-  // so the client component never reads NEXT_PUBLIC_APP_URL itself.
-  const existingUrl = invitation
-    ? `${process.env.NEXT_PUBLIC_APP_URL}/invite/${invitation.token}`
-    : null;
+  const link = invites.find((invite) => invite.email === null);
+  const pending = invites.flatMap((invite) =>
+    invite.email === null
+      ? []
+      : [
+          {
+            id: invite.id,
+            email: invite.email,
+            role: invite.role,
+            expiresAt: invite.expiresAt.toISOString(),
+            url: `${appUrl}/invite/${invite.token}`,
+            invitedByName: invite.invitedByName,
+          },
+        ],
+  );
 
   return (
     <>
       <h1 className="text-xl font-medium">Members</h1>
       <p className="mt-1 mb-8 text-sm text-muted-foreground">
-        People who can see and work on this project.
+        People who can see and work on this project. Admins manage settings and
+        members; guests can only view and comment.
       </p>
 
-      {/* Invite panel — owner-only (D-25, D-32) */}
-      {isOwner && (
+      {canInvite && (
         <>
-          <InvitePanel projectId={id} inviteUrl={existingUrl} />
-          <Separator className="my-6" />
+          <InvitePanel
+            projectId={id}
+            inviteUrl={link ? `${appUrl}/invite/${link.token}` : null}
+            pending={pending}
+          />
+          <Separator className="my-8" />
         </>
       )}
 
-      {/* Roster section — visible to all members (MEM-04) */}
-      {/* Remove controls only rendered for owner; server guards all removeMember calls */}
       <section>
-        <h2 className="text-base font-medium mb-4">Team members</h2>
-        <MemberList
-          members={roster.map((member) => ({
-            ...member,
-            // MemberList (B9 extends it for admin/guest) only knows owner vs member.
-            role: member.role === 'owner' ? ('owner' as const) : ('member' as const),
-          }))}
-          isOwner={isOwner}
-          currentUserId={session.user.id}
-          projectId={id}
-        />
+        <h2 className="mb-3 text-base font-medium">
+          Team members <span className="text-muted-foreground">· {roster.length}</span>
+        </h2>
+        <MemberList members={roster} currentUserId={session.user.id} projectId={id} />
       </section>
     </>
   );
 }
+

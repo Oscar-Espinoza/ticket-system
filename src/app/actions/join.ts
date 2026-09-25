@@ -1,119 +1,115 @@
 'use server';
 
-// joinProject Server Action — MEM-02
+// joinProject — accept an invitation by token (explicit POST from
+// JoinProjectButton; visiting /invite/[token] is read-only).
 //
-// Idempotent join via invite token:
-//   1. Validate session (not authenticated → return error, no insert).
-//   2. Resolve the invitation by token AND expiresAt > now (expired/unknown → return error).
-//   3. Check if already a member (check-then-insert for app-level idempotency).
-//   4. Insert project_member row with role 'member'. Map SQLSTATE 23505 (concurrent
-//      double-join) to "already a member" (the race-safe backstop, D-29).
-//      Re-throw any other code.
-//   5. Call revalidatePath + redirect OUTSIDE the DB try/catch — redirect() throws
-//      NEXT_REDIRECT which the catch block would otherwise swallow.
-//
-// D-27: join only fires on the explicit POST from JoinProjectButton — never on GET.
-// D-28: unknown/expired token → { error: 'invalid' }, no project info leaked.
-// D-29: check-then-insert + 23505 backstop for race-safe idempotency.
+//   - Valid token = not expired AND not yet accepted. Unknown / expired /
+//     used tokens all return { error: 'invalid' } (no project info leaked).
+//   - Shareable link (email null): reusable, joins as member.
+//   - Email invitation: the signed-in email must match (case-insensitive),
+//     else { error: 'wrong-account' }. It is single use: the row is claimed
+//     with a conditional UPDATE … WHERE accepted_at IS NULL before the member
+//     insert, so two concurrent accepts can't both succeed. The member joins
+//     with the invitation's role; an existing member keeps theirs.
+//   - Existing membership → idempotent success; 23505 is the race backstop.
+//   - redirect() stays outside every try/catch (it throws NEXT_REDIRECT).
 
 import { headers } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { and, eq, gt } from 'drizzle-orm';
+import { and, eq, gt, isNull } from 'drizzle-orm';
+
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { invitations, projectMembers } from '@/db/schema';
 
 export type JoinProjectState = {
-  error?: string;
+  error?: 'Not authenticated' | 'invalid' | 'wrong-account';
 };
 
+function isUniqueViolation(err: unknown) {
+  const code =
+    (err as { code?: string })?.code ?? (err as { cause?: { code?: string } })?.cause?.code;
+  return code === '23505';
+}
+
 export async function joinProject(
-  prevState: JoinProjectState,
+  _prevState: JoinProjectState,
   formData: FormData,
 ): Promise<JoinProjectState> {
-  // Step 1: Resolve session — never trust client-supplied userId.
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session?.user) {
-    return { error: 'Not authenticated' };
-  }
+  if (!session?.user) return { error: 'Not authenticated' };
 
-  // Step 2: Read token from form data.
   const token = ((formData.get('token') as string | null) ?? '').trim();
-  if (!token) {
-    return { error: 'invalid' };
-  }
+  if (!token) return { error: 'invalid' };
 
-  // Step 3: Resolve the invitation by token AND expiresAt > now (D-24, D-28).
-  // Filter expired tokens server-side — never leak project info (D-28).
+  const now = new Date();
   const [invitation] = await db
-    .select({ projectId: invitations.projectId })
+    .select({
+      id: invitations.id,
+      projectId: invitations.projectId,
+      email: invitations.email,
+      role: invitations.role,
+    })
     .from(invitations)
     .where(
       and(
         eq(invitations.token, token),
-        gt(invitations.expiresAt, new Date()),
+        gt(invitations.expiresAt, now),
+        isNull(invitations.acceptedAt),
       ),
     )
     .limit(1);
-
-  if (!invitation) {
-    // Unknown or expired token — clean error, no project info (D-28).
-    return { error: 'invalid' };
-  }
+  if (!invitation) return { error: 'invalid' };
 
   const { projectId } = invitation;
   const userId = session.user.id;
+  const isEmailInvite = invitation.email !== null;
 
-  // Step 4: Check-then-insert with 23505 backstop (D-29).
-  // DB try/catch handles only DB errors — redirect() is called OUTSIDE this block
-  // because redirect() throws NEXT_REDIRECT (a non-Error), which a catch clause
-  // would otherwise swallow.
-  try {
-    // App-level idempotency check: skip insert if user is already a member or owner.
-    const [existing] = await db
-      .select({ id: projectMembers.id })
-      .from(projectMembers)
-      .where(
-        and(
-          eq(projectMembers.projectId, projectId),
-          eq(projectMembers.userId, userId),
-        ),
-      )
-      .limit(1);
+  if (isEmailInvite && invitation.email!.toLowerCase() !== session.user.email.toLowerCase()) {
+    return { error: 'wrong-account' };
+  }
 
-    if (!existing) {
-      // New member — insert the project_member row.
+  const [existing] = await db
+    .select({ id: projectMembers.id })
+    .from(projectMembers)
+    .where(and(eq(projectMembers.projectId, projectId), eq(projectMembers.userId, userId)))
+    .limit(1);
+
+  if (isEmailInvite) {
+    const claimed = await db
+      .update(invitations)
+      .set({ acceptedAt: now })
+      .where(and(eq(invitations.id, invitation.id), isNull(invitations.acceptedAt)))
+      .returning({ id: invitations.id });
+    // Someone (this user in another tab) accepted it a moment ago.
+    if (claimed.length === 0 && !existing) return { error: 'invalid' };
+  }
+
+  if (!existing) {
+    try {
       await db.insert(projectMembers).values({
         id: crypto.randomUUID(),
         projectId,
         userId,
-        role: 'member',
-        createdAt: new Date(),
+        role: isEmailInvite ? invitation.role : 'member',
+        createdAt: now,
       });
-    }
-    // If `existing` is truthy, the user is already a member/owner — skip insert
-    // (idempotent path). Fall through to the redirect below.
-  } catch (err: unknown) {
-    // Map SQLSTATE 23505 (unique_violation) to the already-a-member no-op path.
-    // A concurrent double-submit can race past the check above and hit the unique
-    // constraint on (project_id, user_id) — treat as success (D-29).
-    // WR-02: Neon may wrap the driver error, so also check one level of `.cause`.
-    const code =
-      (err as { code?: string })?.code ??
-      (err as { cause?: { code?: string } })?.cause?.code;
-    if (code === '23505') {
-      // Race-safe backstop: duplicate insert → treat as already a member.
-      // Fall through to redirect below.
-    } else {
-      // All other DB errors are unexpected — re-throw (REQUIRED, never swallow).
-      throw err;
+    } catch (err: unknown) {
+      if (!isUniqueViolation(err)) {
+        // Give the invitation back so the person can retry.
+        if (isEmailInvite) {
+          await db
+            .update(invitations)
+            .set({ acceptedAt: null })
+            .where(eq(invitations.id, invitation.id));
+        }
+        throw err;
+      }
+      // 23505: a concurrent submit already inserted the row — treat as joined.
     }
   }
 
-  // Step 5: All success paths (fresh join, already-member, 23505-backstop) arrive
-  // here. redirect() throws NEXT_REDIRECT and MUST be called OUTSIDE the DB try/catch
-  // so the catch block does not swallow it.
-  revalidatePath(`/dashboard/projects/${projectId}`);
+  revalidatePath('/dashboard', 'layout');
   redirect(`/dashboard/projects/${projectId}`);
 }
