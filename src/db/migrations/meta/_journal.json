@@ -43,6 +43,27 @@
       "when": 1790294768288,
       "tag": "0005_wave_c_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790371871811,
+      "tag": "0006_linear_parity_2",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790371879500,
+      "tag": "0007_trigram_and_backfill",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790372007470,
+      "tag": "0008_uploads",
+      "breakpoints": true
     }
   ]
 }

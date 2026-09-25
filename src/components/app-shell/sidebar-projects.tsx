@@ -4,6 +4,7 @@ import { useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
+  FileText,
   ChevronRight,
   Layers,
   ListTodo,
@@ -34,6 +35,7 @@ const SUB_LINKS = [
   { segment: 'cycles', label: 'Cycles', icon: <RefreshCcw /> },
   { segment: 'epics', label: 'Epics', icon: <Package /> },
   { segment: 'views', label: 'Views', icon: <Layers /> },
+  { segment: 'docs', label: 'Docs', icon: <FileText /> },
   { segment: 'settings', label: 'Settings', icon: <Settings /> },
 ];
 

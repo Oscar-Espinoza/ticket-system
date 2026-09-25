@@ -13,6 +13,7 @@ import { eq, inArray } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { comments, notifications, projectMembers, tickets, userProfiles, users } from '@/db/schema';
 import { sendEmail } from '@/lib/email';
+import { deliverToChannels } from '@/lib/notifications/channels';
 import type { IssueChange, StoredIssueEvent } from '@/lib/events';
 import { isStateType, type StateType } from '@/lib/issue-model';
 import { issuePath } from '@/lib/issue-links';
@@ -257,7 +258,9 @@ async function dispatch(events: StoredIssueEvent[]) {
 
   if (rows.length > 0) await db.insert(notifications).values(rows);
   await subscribing;
-  if (rows.length > 0) await emailRecipients(rows, personById);
+  if (rows.length > 0) {
+    await Promise.allSettled([emailRecipients(rows, personById), deliverToChannels(rows)]);
+  }
 }
 
 type Person = {

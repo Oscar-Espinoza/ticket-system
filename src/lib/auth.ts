@@ -23,12 +23,24 @@
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { nextCookies } from 'better-auth/next-js';
+import { jwt, twoFactor } from 'better-auth/plugins';
+import { oauthProvider } from '@better-auth/oauth-provider';
+import { scim } from '@better-auth/scim';
+import { sso } from '@better-auth/sso';
 import { authDb } from '@/lib/db';
 import {
   users,
   sessions,
   accounts,
   verifications,
+  twoFactors,
+  jwks,
+  ssoProviders,
+  scimProviders,
+  oauthClients,
+  oauthAccessTokens,
+  oauthRefreshTokens,
+  oauthConsents,
 } from '@/db/schema';
 
 // Better Auth's Drizzle adapter resolves its logical models by looking up
@@ -41,6 +53,14 @@ const authSchema = {
   session: sessions,
   account: accounts,
   verification: verifications,
+  twoFactor: twoFactors,
+  jwks,
+  ssoProvider: ssoProviders,
+  scimProvider: scimProviders,
+  oauthClient: oauthClients,
+  oauthAccessToken: oauthAccessTokens,
+  oauthRefreshToken: oauthRefreshTokens,
+  oauthConsent: oauthConsents,
 };
 
 export const auth = betterAuth({
@@ -81,5 +101,20 @@ export const auth = betterAuth({
       allowDifferentEmails: true,
     },
   },
-  plugins: [nextCookies()],
+  // Round-2 plugins (UIs owned by the security/API agents — see
+  // .planning/features/10-MASTER-PLAN-2.md): TOTP 2FA, SAML/OIDC SSO, SCIM
+  // provisioning, and an OAuth 2.0 provider (third-party "OAuth apps", with
+  // jwt for signed tokens/JWKS). nextCookies must stay last.
+  plugins: [
+    twoFactor({ issuer: 'Ticket System' }),
+    jwt(),
+    oauthProvider({
+      loginPage: '/login',
+      consentPage: '/oauth/consent',
+      scopes: ['openid', 'profile', 'email', 'offline_access', 'read', 'write'],
+    }),
+    sso(),
+    scim(),
+    nextCookies(),
+  ],
 });

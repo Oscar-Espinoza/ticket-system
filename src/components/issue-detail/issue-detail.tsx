@@ -57,13 +57,18 @@ import { HeaderPresence } from './slots/header-presence';
 import { HeaderRemind } from './slots/header-remind';
 import { HeaderSubscribe } from './slots/header-subscribe';
 import { MenuExtraItems } from './slots/menu-extra-items';
+import { MenuMove } from './slots/menu-move';
 import { PropertyCycle } from './slots/property-cycle';
 import { PropertyEpic } from './slots/property-epic';
 import { PropertyParent } from './slots/property-parent';
+import { PropertySla } from './slots/property-sla';
+import { PropertyStartDate } from './slots/property-start-date';
 import { SectionActivity } from './slots/section-activity';
 import { SectionAttachments } from './slots/section-attachments';
+import { SectionCustomers } from './slots/section-customers';
 import { SectionPullRequests } from './slots/section-pull-requests';
 import { SectionRelations } from './slots/section-relations';
+import { SectionSimilar } from './slots/section-similar';
 import { SectionSubIssues } from './slots/section-sub-issues';
 
 // Menu hints for the shortcuts IssueShortcuts registers (B10).
@@ -153,6 +158,7 @@ export function IssueDetail({
               Copy ID
               <DropdownMenuShortcut>{formatHotkey(COPY_ID_KEY)}</DropdownMenuShortcut>
             </DropdownMenuItem>
+            <MenuMove issue={issue} mutations={mutations} />
             <MenuExtraItems issue={issue} mutations={mutations} />
             {canWrite && (
               <>
@@ -348,6 +354,8 @@ export function IssueDetail({
         )}
       </PropertyRow>
 
+      <PropertyStartDate issue={issue} mutations={mutations} />
+      <PropertySla issue={issue} mutations={mutations} />
       <PropertyParent issue={issue} mutations={mutations} />
       <PropertyCycle issue={issue} mutations={mutations} />
       <PropertyEpic issue={issue} mutations={mutations} />
@@ -389,7 +397,9 @@ export function IssueDetail({
       <DescriptionEditor issue={issue} mutations={mutations} readOnly={!canWrite} />
       <SectionSubIssues issue={issue} mutations={mutations} />
       <SectionRelations issue={issue} mutations={mutations} />
+      <SectionSimilar issue={issue} mutations={mutations} />
       <SectionAttachments issue={issue} mutations={mutations} />
+      <SectionCustomers issue={issue} mutations={mutations} />
       <SectionPullRequests issue={issue} mutations={mutations} />
       <SectionActivity issue={issue} mutations={mutations} />
     </>

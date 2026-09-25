@@ -38,7 +38,11 @@ const issueColumns = {
   stateDescription: workflowStates.description,
   priority: tickets.priority,
   estimate: tickets.estimate,
+  startDate: tickets.startDate,
   dueDate: tickets.dueDate,
+  slaDueAt: tickets.slaDueAt,
+  slaBreachedAt: tickets.slaBreachedAt,
+  stateChangedAt: tickets.stateChangedAt,
   parentId: tickets.parentId,
   sortOrder: tickets.sortOrder,
   cycleId: tickets.cycleId,
@@ -122,7 +126,11 @@ export function toIssueRow(row: IssueSelectRow, issueLabelsList: IssueLabel[] = 
     },
     priority: row.priority,
     estimate: row.estimate,
+    startDate: row.startDate,
     dueDate: row.dueDate,
+    slaDueAt: row.slaDueAt,
+    slaBreachedAt: row.slaBreachedAt,
+    stateChangedAt: row.stateChangedAt,
     assignee: row.assigneeId
       ? { id: row.assigneeId, name: row.assigneeName ?? '', image: row.assigneeImage }
       : null,

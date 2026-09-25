@@ -1,10 +1,11 @@
-# Linear Feature Gaps
+# Linear Feature Gaps — round 2
 
-Features Linear has that this app doesn't yet (reviewed 2026-09-25, after the
-linear-parity build — see `.planning/features/00-MASTER-PLAN.md`).
+Features Linear has that this app didn't yet (reviewed 2026-09-25, after the
+first linear-parity build). Paid items moved to `.planning/PAID-FEATURES.md`.
+Build plan: `.planning/features/10-MASTER-PLAN-2.md`.
 
 ## Core sync & editing
-- [ ] Local-first sync engine (instant writes, websockets, offline edits)
+- [ ] Local-first sync (offline edits outbox, cross-tab sync, server-sent live updates)
 - [ ] WYSIWYG editor (slash commands, image paste, embeds)
 - [ ] Collaborative real-time editing of descriptions
 - [ ] Project documents / docs
@@ -27,7 +28,6 @@ linear-parity build — see `.planning/features/00-MASTER-PLAN.md`).
 ## Customers & intake
 - [ ] Customer entities (customers, revenue, request tracking)
 - [ ] Linear Asks (Slack intake)
-- [ ] Intercom / Zendesk / Front integrations
 
 ## Views & insights
 - [ ] Dashboards
@@ -35,10 +35,9 @@ linear-parity build — see `.planning/features/00-MASTER-PLAN.md`).
 - [ ] Issue timeline view
 - [ ] Search query syntax
 
-## AI
+## Smart features (free heuristics — LLM versions are in PAID-FEATURES.md)
 - [ ] Triage suggestions
 - [ ] Duplicate detection
-- [ ] Issue / thread summaries
 
 ## Integrations & API
 - [ ] GraphQL API
@@ -46,19 +45,18 @@ linear-parity build — see `.planning/features/00-MASTER-PLAN.md`).
 - [ ] Webhook retries
 - [ ] GitLab / Bitbucket
 - [ ] PR review and CI status on issues
-- [ ] Figma / Sentry / Zapier
+- [ ] Figma embeds / Sentry integration
 - [ ] Import from Asana / Shortcut
 
 ## Notifications
-- [ ] Desktop / push notifications
+- [ ] Web push notifications
 - [ ] Email digests
 - [ ] Per-user Slack notifications
-
-## Apps
-- [ ] Native desktop app
-- [ ] Native mobile apps
 
 ## Security & admin
 - [ ] SAML SSO / SCIM
 - [ ] Two-factor authentication
 - [ ] Audit log export
+
+## Moved to PAID-FEATURES.md
+AI summaries · native desktop app · native mobile apps · Zapier · Intercom / Zendesk / Front

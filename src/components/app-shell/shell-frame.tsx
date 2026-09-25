@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { usePathname } from 'next/navigation';
-import { FilePen, Inbox, Layers, PanelLeft, Search, Target } from 'lucide-react';
+import { FilePen, Inbox, Layers, LayoutDashboard, PanelLeft, Search, Target } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Wordmark } from '@/components/wordmark';
@@ -137,6 +137,7 @@ export function ShellFrame({
               <SidebarLink href="/dashboard/my-issues" label="My issues" icon={<Target />} />
               <SidebarLink href="/dashboard/views" label="Views" icon={<Layers />} />
               <SidebarLink href="/dashboard/drafts" label="Drafts" icon={<FilePen />} />
+              <SidebarLink href="/dashboard/dashboards" label="Dashboards" icon={<LayoutDashboard />} />
             </div>
 
             {favorites}

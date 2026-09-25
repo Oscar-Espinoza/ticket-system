@@ -26,6 +26,8 @@ const TABS = [
   { segment: 'epics', label: 'Epics' },
   { segment: 'roadmap', label: 'Roadmap' },
   { segment: 'views', label: 'Views' },
+  { segment: 'docs', label: 'Docs' },
+  { segment: 'customers', label: 'Customers' },
   { segment: 'insights', label: 'Insights' },
 ];
 

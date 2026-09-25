@@ -101,8 +101,15 @@ export interface IssueRow {
   state: WorkflowState;
   priority: Priority;
   estimate: number | null;
+  /** Planned start, YYYY-MM-DD (issue timeline view). */
+  startDate: string | null;
   /** Calendar date, YYYY-MM-DD (no timezone). */
   dueDate: string | null;
+  /** SLA deadline from the project's policy for this priority; null = no SLA. */
+  slaDueAt: Date | null;
+  slaBreachedAt: Date | null;
+  /** When the issue entered its current state ("time in status"). */
+  stateChangedAt: Date | null;
   assignee: IssueUser | null;
   creator: IssueUser | null;
   labels: IssueLabel[];
@@ -133,6 +140,7 @@ export interface IssuePatch {
   stateId?: string;
   priority?: Priority;
   estimate?: number | null;
+  startDate?: string | null;
   dueDate?: string | null;
   assigneeId?: string | null;
   parentId?: string | null;
@@ -159,6 +167,7 @@ export const ISSUE_PATCH_FIELDS: IssueField[] = [
   'stateId',
   'priority',
   'estimate',
+  'startDate',
   'dueDate',
   'assigneeId',
   'parentId',

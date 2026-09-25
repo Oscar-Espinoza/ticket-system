@@ -137,6 +137,12 @@ function normalizePatch(input: unknown): { ok: true; patch: IssuePatch } | Issue
     }
     patch.dueDate = raw.dueDate;
   }
+  if (raw.startDate !== undefined) {
+    if (raw.startDate !== null && !isDateString(raw.startDate)) {
+      return fail('Invalid start date.', 'startDate');
+    }
+    patch.startDate = raw.startDate;
+  }
   for (const field of ['assigneeId', 'parentId', 'cycleId', 'epicId', 'milestoneId'] as const) {
     if (raw[field] === undefined) continue;
     if (!optionalId(raw[field])) return fail(`Invalid ${field.replace(/Id$/, '')}.`, field);
@@ -184,7 +190,12 @@ interface ParentRef {
 }
 
 interface Context {
-  project: { id: string; ticketKey: string; estimateScale: string };
+  project: {
+    id: string;
+    ticketKey: string;
+    estimateScale: string;
+    slaPolicy: Record<string, number>;
+  };
   states: WorkflowState[];
   issues: IssueRow[];
   labels: Map<string, IssueLabel>;
@@ -199,6 +210,16 @@ interface Context {
 }
 
 const NOTHING = sql`false`;
+
+/** Deadline from a project's SLA policy ({ priority: hours }); null when none applies. */
+export function slaDeadline(
+  policy: Record<string, number> | null | undefined,
+  priority: string,
+  from: Date,
+): Date | null {
+  const hours = policy?.[priority];
+  return typeof hours === 'number' && hours > 0 ? new Date(from.getTime() + hours * 3_600_000) : null;
+}
 
 async function loadContext(
   projectId: string,
@@ -252,6 +273,7 @@ async function loadContext(
         id: projects.id,
         ticketKey: projects.ticketKey,
         estimateScale: projects.estimateScale,
+        slaPolicy: projects.slaPolicy,
       })
       .from(projects)
       .where(eq(projects.id, projectId))
@@ -453,7 +475,7 @@ function applyToIssue(
   const set: TicketSet = {};
   const next: IssueRow = { ...old };
 
-  for (const field of ['title', 'description', 'priority', 'estimate', 'dueDate', 'parentId', 'cycleId', 'sortOrder'] as const) {
+  for (const field of ['title', 'description', 'priority', 'estimate', 'startDate', 'dueDate', 'parentId', 'cycleId', 'sortOrder'] as const) {
     if (patch[field] !== undefined) {
       (set as Record<string, unknown>)[field] = patch[field];
       (next as unknown as Record<string, unknown>)[field] = patch[field];
@@ -461,8 +483,16 @@ function applyToIssue(
   }
   if (resolved.state) {
     const timestamps = stateTransitionTimestamps(old.state.type, resolved.state.type, old, now);
-    Object.assign(set, { stateId: resolved.state.id }, timestamps);
-    Object.assign(next, { stateId: resolved.state.id, state: resolved.state }, timestamps);
+    const moved = resolved.state.id !== old.stateId ? { stateChangedAt: now } : {};
+    Object.assign(set, { stateId: resolved.state.id }, timestamps, moved);
+    Object.assign(next, { stateId: resolved.state.id, state: resolved.state }, timestamps, moved);
+  }
+  // A priority change restarts the SLA clock (or clears it when the new
+  // priority has no target); breaches are flagged by the daily SLA job.
+  if (patch.priority !== undefined && patch.priority !== old.priority) {
+    const slaDueAt = slaDeadline(ctx.project.slaPolicy, patch.priority, now);
+    Object.assign(set, { slaDueAt, slaBreachedAt: null });
+    Object.assign(next, { slaDueAt, slaBreachedAt: null });
   }
   if (resolved.assignee !== undefined) {
     set.assigneeId = resolved.assignee?.id ?? null;
@@ -502,6 +532,7 @@ function applyToIssue(
   if (next.priority !== old.priority) push('priority', old.priority, next.priority);
   if (next.estimate !== old.estimate) push('estimate', old.estimate, next.estimate);
   if (next.dueDate !== old.dueDate) push('dueDate', old.dueDate, next.dueDate);
+  if (next.startDate !== old.startDate) push('startDate', old.startDate, next.startDate);
   if ((next.assignee?.id ?? null) !== (old.assignee?.id ?? null)) {
     const describe = (u: IssueUser | null) => (u ? { id: u.id, name: u.name } : null);
     push('assigneeId', describe(old.assignee), describe(next.assignee));
@@ -591,6 +622,7 @@ export async function createIssue(
   );
   const id = crypto.randomUUID();
   const labelList = resolved.labels ?? [];
+  const slaDueAt = slaDeadline(ctx.project.slaPolicy, patch.priority ?? 'none', now);
   const epicId = resolved.milestoneEpicId ?? patch.epicId ?? null;
 
   // The counter UPDATE row-locks the project for the batch's transaction, so
@@ -611,7 +643,10 @@ export async function createIssue(
     stateId: state.id,
     priority: patch.priority ?? 'none',
     estimate: patch.estimate ?? null,
+    startDate: patch.startDate ?? null,
     dueDate: patch.dueDate ?? null,
+    slaDueAt,
+    stateChangedAt: now,
     assigneeId: resolved.assignee?.id ?? null,
     creatorId: ctx.actor?.id ?? null,
     parentId: patch.parentId ?? null,
@@ -645,7 +680,11 @@ export async function createIssue(
     state,
     priority: patch.priority ?? 'none',
     estimate: patch.estimate ?? null,
+    startDate: patch.startDate ?? null,
     dueDate: patch.dueDate ?? null,
+    slaDueAt,
+    slaBreachedAt: null,
+    stateChangedAt: now,
     assignee: resolved.assignee ?? null,
     creator: ctx.actor,
     labels: labelList,

@@ -38,7 +38,7 @@ export type PatchData = Pick<ProjectData, 'states' | 'labels' | 'members' | 'epi
  */
 export function applyIssuePatch(issue: IssueRow, patch: IssuePatch, data: PatchData): IssueRow {
   const next: IssueRow = { ...issue };
-  for (const field of ['title', 'description', 'priority', 'estimate', 'dueDate', 'parentId', 'cycleId', 'sortOrder'] as const) {
+  for (const field of ['title', 'description', 'priority', 'estimate', 'startDate', 'dueDate', 'parentId', 'cycleId', 'sortOrder'] as const) {
     if (patch[field] !== undefined) (next as unknown as Record<string, unknown>)[field] = patch[field];
   }
   if (patch.title !== undefined) next.title = patch.title.trim();
@@ -174,6 +174,7 @@ const FIELD_WORDS: Record<IssueField, string> = {
   stateId: 'status',
   priority: 'priority',
   estimate: 'estimate',
+  startDate: 'start date',
   dueDate: 'due date',
   assigneeId: 'assignee',
   parentId: 'parent',
@@ -434,7 +435,11 @@ export function useIssueMutations(
               state,
               priority: 'none',
               estimate: null,
+              startDate: null,
               dueDate: null,
+              slaDueAt: null,
+              slaBreachedAt: null,
+              stateChangedAt: now,
               assignee: null,
               creator: data.viewer,
               labels: [],
