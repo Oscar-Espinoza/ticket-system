@@ -4,7 +4,7 @@
 // webhook, and PR automations. Controls hide for non-admins; the actions
 // re-check the role server-side.
 
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { usePathname } from 'next/navigation';
 import { AlertTriangle, Check, ExternalLink, Loader2, Unplug, Webhook } from 'lucide-react';
 import { toast } from 'sonner';
@@ -16,6 +16,7 @@ import {
   updateGithubAutomation,
   type ConnectResult,
 } from '@/app/actions/github';
+import { getGithubWebhookHealth, updateGithubWebhookEvents } from '@/app/actions/developer';
 import { useProjectData } from '@/components/project/project-data';
 import {
   AlertDialog,
@@ -241,6 +242,7 @@ function RepositorySection({
   const [selected, setSelected] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [action, setAction] = useState<'connect' | 'webhook' | 'disconnect' | null>(null);
+  const health = useWebhookHealth(projectId, !!repo && webhookRegistered && canEdit && accountReady);
 
   const run = (kind: typeof action, fn: () => Promise<void>) => {
     setAction(kind);
@@ -260,7 +262,9 @@ function RepositorySection({
 
   const reRegister = () =>
     run('webhook', async () => {
-      toastConnect(await registerWebhook(projectId), 'Webhook registered');
+      const result = await registerWebhook(projectId);
+      toastConnect(result, 'Webhook registered');
+      if (result.ok && result.webhook === 'registered') health.markCurrent();
     });
 
   const disconnect = () =>
@@ -323,6 +327,25 @@ function RepositorySection({
               </span>
             )}
           </div>
+          {health.status === 'outdated' && (
+            <Callout tone="warning">
+              <span className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                <span>
+                  The webhook doesn&apos;t send review and CI events yet, so pull requests can&apos;t show
+                  approval and check status.
+                </span>
+                <Button size="xs" variant="outline" onClick={health.update} disabled={health.updating}>
+                  {health.updating && <Loader2 className="animate-spin" />}
+                  Update webhook
+                </Button>
+              </span>
+            </Callout>
+          )}
+          {health.status === 'missing' && (
+            <Callout tone="warning">
+              The webhook was removed on GitHub. Register it again to keep pull requests in sync.
+            </Callout>
+          )}
           {canEdit && (
             <div className="flex flex-wrap gap-2">
               <Button
@@ -380,6 +403,45 @@ function RepositorySection({
       )}
     </section>
   );
+}
+
+/**
+ * Whether the registered hook subscribes to every event we handle — hooks from
+ * before review / CI support only send pull_request + push. Checked with the
+ * viewer's own token; 'unknown' (no access) shows nothing.
+ */
+function useWebhookHealth(projectId: string, enabled: boolean) {
+  const [status, setStatus] = useState<'current' | 'outdated' | 'missing' | 'unknown'>('unknown');
+  const [updating, startUpdate] = useTransition();
+
+  useEffect(() => {
+    if (!enabled) return;
+    let cancelled = false;
+    getGithubWebhookHealth(projectId)
+      .then((result) => {
+        if (!cancelled && result.ok) setStatus(result.status);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [projectId, enabled]);
+
+  const update = () =>
+    startUpdate(async () => {
+      const result = await updateGithubWebhookEvents(projectId);
+      if (result.ok) {
+        setStatus('current');
+        toast.success('Webhook updated');
+      } else {
+        toast.error(result.error);
+      }
+    });
+
+  // A fresh registration subscribes to every event.
+  const markCurrent = () => setStatus('current');
+
+  return { status: enabled ? status : 'unknown', update, updating, markCurrent };
 }
 
 // ---------------------------------------------------------------------------

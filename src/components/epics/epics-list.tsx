@@ -1,22 +1,28 @@
 'use client';
 
-// Epics list: dense Linear-style rows, a status filter kept in `?status=`,
-// j/k to move between rows (Enter follows the focused link), and a create dialog.
+// Epics list: dense Linear-style rows, a status filter kept in `?status=`, a
+// label filter in `?label=a,b` (any match), j/k to move between rows (Enter
+// follows the focused link), a create dialog and the epic-labels dialog.
 
-import { useEffect, useEffectEvent, useState } from 'react';
+import { useEffect, useEffectEvent, useOptimistic, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Archive, ArchiveRestore, Boxes, Link2, Plus, SearchX } from 'lucide-react';
+import { Archive, ArchiveRestore, Boxes, Link2, Plus, SearchX, Tag } from 'lucide-react';
 import { toast } from 'sonner';
 
+import { setEpicLabels } from '@/app/actions/epic-labels';
 import { archiveEpic, unarchiveEpic } from '@/app/actions/epics';
 import { useProjectData, useProjectPermission } from '@/components/project/project-data';
 import { Button } from '@/components/ui/button';
 import {
   ContextMenu,
+  ContextMenuCheckboxItem,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
@@ -26,7 +32,14 @@ import { registerHotkeys } from '@/lib/hotkeys';
 import { registerPaletteCommands } from '@/lib/palette-commands';
 import { CreateEpicDialog } from './create-epic-dialog';
 import { EpicIcon, EpicStatusIcon, HealthChip } from './epic-glyphs';
-import { EPIC_STATUS_LABEL, epicPath, type EpicRow, type EpicStatus } from './epic-model';
+import { EpicLabelChips, EpicLabelFilter, EpicLabelsDialog } from './epic-labels';
+import {
+  EPIC_STATUS_LABEL,
+  epicPath,
+  type EpicLabelRow,
+  type EpicRow,
+  type EpicStatus,
+} from './epic-model';
 import { EpicProgress } from './epic-progress';
 
 const FILTERS = [
@@ -54,24 +67,54 @@ function isFilterId(value: string | null): value is FilterId {
   return FILTERS.some((f) => f.id === value);
 }
 
-export function EpicsList({ epics }: { epics: EpicRow[] }) {
+function setParam(name: string, value: string | null) {
+  const params = new URLSearchParams(window.location.search);
+  if (value === null) params.delete(name);
+  else params.set(name, value);
+  const query = params.toString();
+  window.history.replaceState(null, '', query ? `?${query}` : window.location.pathname);
+}
+
+export function EpicsList({
+  epics: serverEpics,
+  labels,
+}: {
+  epics: EpicRow[];
+  /** The project's epic labels. */
+  labels: EpicLabelRow[];
+}) {
   const { project } = useProjectData();
   const canWrite = useProjectPermission('write');
   const searchParams = useSearchParams();
   const param = searchParams.get('status');
   const filter: FilterId = isFilterId(param) ? param : 'all';
+  // Unknown (e.g. deleted) label ids are dropped.
+  const labelFilter = (searchParams.get('label') ?? '')
+    .split(',')
+    .filter((id) => labels.some((l) => l.id === id));
   const [creating, setCreating] = useState(false);
+  const [managing, setManaging] = useState(false);
+  const [epics, patchLabels] = useOptimistic(
+    serverEpics,
+    (list, patch: { id: string; labelIds: string[] }) =>
+      list.map((epic) => (epic.id === patch.id ? { ...epic, labelIds: patch.labelIds } : epic)),
+  );
+  const [, startTransition] = useTransition();
 
   const setFilter = (next: string) => {
-    if (!isFilterId(next)) return;
-    const params = new URLSearchParams(window.location.search);
-    if (next === 'all') params.delete('status');
-    else params.set('status', next);
-    const query = params.toString();
-    window.history.replaceState(null, '', query ? `?${query}` : window.location.pathname);
+    if (isFilterId(next)) setParam('status', next === 'all' ? null : next);
   };
+  const setLabelFilter = (ids: string[]) => setParam('label', ids.length ? ids.join(',') : null);
+
+  const setLabels = (epic: EpicRow, labelIds: string[]) =>
+    startTransition(async () => {
+      patchLabels({ id: epic.id, labelIds });
+      const result = await setEpicLabels({ projectId: project.id, epicId: epic.id, labelIds });
+      if (!result.ok) toast.error(result.error);
+    });
 
   const onCreate = useEffectEvent(() => setCreating(true));
+  const onManage = useEffectEvent(() => setManaging(true));
   useEffect(() => {
     if (!canWrite) return;
     return registerPaletteCommands([
@@ -81,6 +124,13 @@ export function EpicsList({ epics }: { epics: EpicRow[] }) {
         section: 'Epics',
         keywords: ['create', 'project'],
         run: () => onCreate(),
+      },
+      {
+        id: 'manage-epic-labels',
+        label: 'Manage epic labels',
+        section: 'Epics',
+        keywords: ['project labels', 'tags'],
+        run: () => onManage(),
       },
     ]);
   }, [canWrite]);
@@ -100,10 +150,21 @@ export function EpicsList({ epics }: { epics: EpicRow[] }) {
     ]);
   }, []);
 
-  const shown = epics.filter((epic) => matches(epic, filter));
+  const labelled = labelFilter.length
+    ? epics.filter((epic) => epic.labelIds?.some((id) => labelFilter.includes(id)))
+    : epics;
+  const shown = labelled.filter((epic) => matches(epic, filter));
   const counts = Object.fromEntries(
-    FILTERS.map((f) => [f.id, epics.filter((epic) => matches(epic, f.id)).length]),
+    FILTERS.map((f) => [f.id, labelled.filter((epic) => matches(epic, f.id)).length]),
   ) as Record<FilterId, number>;
+  const countByLabel = (list: EpicRow[]) => {
+    const map = new Map<string, number>();
+    for (const epic of list) {
+      for (const id of epic.labelIds ?? []) map.set(id, (map.get(id) ?? 0) + 1);
+    }
+    return map;
+  };
+  const labelCounts = countByLabel(epics.filter((epic) => matches(epic, filter)));
 
   let body: React.ReactNode;
   if (epics.length === 0) {
@@ -127,9 +188,20 @@ export function EpicsList({ epics }: { epics: EpicRow[] }) {
       <EmptyState
         icon={<SearchX />}
         title="No epics here"
-        description={`No ${FILTERS.find((f) => f.id === filter)?.label.toLowerCase()} epics.`}
+        description={
+          labelFilter.length
+            ? 'No epics match these filters.'
+            : `No ${FILTERS.find((f) => f.id === filter)?.label.toLowerCase()} epics.`
+        }
         action={
-          <Button size="sm" variant="outline" onClick={() => setFilter('all')}>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              setFilter('all');
+              setLabelFilter([]);
+            }}
+          >
             Show all epics
           </Button>
         }
@@ -152,7 +224,14 @@ export function EpicsList({ epics }: { epics: EpicRow[] }) {
           <span className="w-12 text-right">Issues</span>
         </div>
         {shown.map((epic) => (
-          <EpicListRow key={epic.id} epic={epic} projectId={project.id} canWrite={canWrite} />
+          <EpicListRow
+            key={epic.id}
+            epic={epic}
+            labels={labels}
+            projectId={project.id}
+            canWrite={canWrite}
+            onSetLabels={(labelIds) => setLabels(epic, labelIds)}
+          />
         ))}
       </div>
     );
@@ -177,6 +256,15 @@ export function EpicsList({ epics }: { epics: EpicRow[] }) {
             </ToggleGroupItem>
           ))}
         </ToggleGroup>
+        {(labels.length > 0 || canWrite) && (
+          <EpicLabelFilter
+            labels={labels}
+            counts={labelCounts}
+            value={labelFilter}
+            onChange={setLabelFilter}
+            onManage={canWrite ? () => setManaging(true) : undefined}
+          />
+        )}
         {canWrite && (
           <Button size="sm" className="ml-auto" onClick={() => setCreating(true)}>
             <Plus />
@@ -186,19 +274,33 @@ export function EpicsList({ epics }: { epics: EpicRow[] }) {
       </div>
       {body}
       {canWrite && <CreateEpicDialog open={creating} onOpenChange={setCreating} />}
+      {canWrite && (
+        <EpicLabelsDialog
+          open={managing}
+          onOpenChange={setManaging}
+          projectId={project.id}
+          labels={labels}
+          usage={countByLabel(epics)}
+        />
+      )}
     </div>
   );
 }
 
 function EpicListRow({
   epic,
+  labels,
   projectId,
   canWrite,
+  onSetLabels,
 }: {
   epic: EpicRow;
+  labels: EpicLabelRow[];
   projectId: string;
   canWrite: boolean;
+  onSetLabels: (labelIds: string[]) => void;
 }) {
+  const own = epic.labelIds ?? [];
   const href = epicPath(projectId, epic.id);
 
   const toggleArchive = async () => {
@@ -232,6 +334,12 @@ function EpicListRow({
             {epic.archivedAt && (
               <span className="shrink-0 text-xs text-muted-foreground">Archived</span>
             )}
+            <EpicLabelChips
+              labels={labels}
+              labelIds={own}
+              max={3}
+              className="hidden shrink flex-nowrap overflow-hidden sm:flex"
+            />
           </span>
           <span className="hidden w-24 md:block">
             <HealthChip health={epic.health} />
@@ -265,6 +373,34 @@ function EpicListRow({
           <Link2 />
           Copy link
         </ContextMenuItem>
+        {canWrite && labels.length > 0 && (
+          <ContextMenuSub>
+            <ContextMenuSubTrigger>
+              <Tag />
+              Labels
+            </ContextMenuSubTrigger>
+            <ContextMenuSubContent className="max-h-72 w-48 overflow-y-auto">
+              {labels.map((label) => (
+                <ContextMenuCheckboxItem
+                  key={label.id}
+                  checked={own.includes(label.id)}
+                  // Keep the menu open to toggle several.
+                  onSelect={(event) => event.preventDefault()}
+                  onCheckedChange={(checked) =>
+                    onSetLabels(checked ? [...own, label.id] : own.filter((id) => id !== label.id))
+                  }
+                >
+                  <span
+                    aria-hidden="true"
+                    className="size-2 shrink-0 rounded-full"
+                    style={{ backgroundColor: label.color }}
+                  />
+                  <span className="truncate">{label.name}</span>
+                </ContextMenuCheckboxItem>
+              ))}
+            </ContextMenuSubContent>
+          </ContextMenuSub>
+        )}
         {canWrite && (
           <>
             <ContextMenuSeparator />

@@ -2,7 +2,8 @@
 
 // Search input + filters. Everything lives in the URL (q, project, archived) so
 // results are server-rendered and shareable; typing replaces the URL after a
-// short pause instead of on every key.
+// short pause instead of on every key. `q` may carry filter syntax
+// (label:bug assignee:me …) — see the "?" popover.
 
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
@@ -18,6 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { SearchSyntaxHelp, SearchTermChips, appendToken } from '@/components/views/search-syntax-help';
 
 const ALL = '__all';
 const DEBOUNCE_MS = 250;
@@ -58,6 +60,7 @@ export function SearchControls({
     clearTimeout(timer.current);
     timer.current = setTimeout(() => navigate({ q: value }), DEBOUNCE_MS);
   };
+  const inputRef = useRef<HTMLInputElement>(null);
 
   return (
     <div className="flex flex-col gap-3">
@@ -77,7 +80,8 @@ export function SearchControls({
             type="search"
             name="q"
             aria-label="Search issues"
-            placeholder="Search issues, descriptions and comments — or jump to a key like APP-12"
+            ref={inputRef}
+            placeholder="Search issues and comments — try label:bug assignee:me, or a key like APP-12"
             autoFocus
             autoComplete="off"
             value={text}
@@ -89,8 +93,18 @@ export function SearchControls({
               }
             }}
           />
+          <InputGroupAddon align="inline-end">
+            <SearchSyntaxHelp
+              note="Free text matches titles, descriptions and comments."
+              onInsert={(token) => {
+                onType(appendToken(text, token));
+                inputRef.current?.focus();
+              }}
+            />
+          </InputGroupAddon>
         </InputGroup>
       </form>
+      <SearchTermChips query={query} />
 
       <div className="flex flex-wrap items-center gap-4">
         <Select

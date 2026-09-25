@@ -3,7 +3,11 @@
 // Epic page: header (editable name), tabs Overview · Updates · Issues (`?tab=`).
 // Overview = description, latest update, milestones + a property sidebar.
 // Property edits are optimistic (useOptimistic) and settle on the refreshed props.
+// Issues from sibling projects (cross-project epics) get a project switcher on
+// the Issues tab; only this project's issues are editable in place.
 
+import { EpicDocuments } from '@/components/documents/epic-documents';
+import type { DocumentSummary } from '@/components/documents/document-model';
 import { useOptimistic, useState, useTransition, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -16,11 +20,13 @@ import {
   Link2,
   MoreHorizontal,
   Pencil,
+  Tag,
   Target,
   UserRound,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
+import { setEpicLabels } from '@/app/actions/epic-labels';
 import { archiveEpic, unarchiveEpic, updateEpic, type EpicInput } from '@/app/actions/epics';
 import { setEpicInitiative } from '@/app/actions/initiatives';
 import { PropertyRow } from '@/components/issue-detail/property-row';
@@ -39,20 +45,26 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Avatar } from '@/components/ui-icons';
 import { formatDueDate } from '@/lib/dates';
 import type { IssueRow } from '@/lib/issue-model';
 import { cn } from '@/lib/utils';
+import { EpicForeignIssues } from './epic-foreign-issues';
 import { EpicIcon, EpicStatusIcon, HealthChip } from './epic-glyphs';
+import { EpicLabelChips, EpicLabelPicker } from './epic-labels';
 import {
   DEFAULT_EPIC_COLOR,
   EPIC_DESCRIPTION_MAX,
   EPIC_NAME_MAX,
   EPIC_STATUS_LABEL,
+  type EpicLabelRow,
+  type EpicRelationRow,
   type EpicRow,
   type EpicUpdateRow,
   type InitiativeOption,
   type MilestoneRow,
+  type ProjectRef,
 } from './epic-model';
 import {
   ColorSwatches,
@@ -63,6 +75,7 @@ import {
   MemberPicker,
 } from './epic-pickers';
 import { ProgressBlock } from './epic-progress';
+import { EpicDependencies } from './epic-relations';
 import { EpicUpdates, UpdateCard } from './epic-updates';
 import { MilestonesSection } from './milestones-section';
 import { RichText, RichTextEditor } from './rich-text';
@@ -70,13 +83,15 @@ import { RichText, RichTextEditor } from './rich-text';
 const TABS = ['overview', 'updates', 'issues'] as const;
 type Tab = (typeof TABS)[number];
 
-function setTabParam(tab: Tab) {
+function setParam(name: string, value: string | null) {
   const params = new URLSearchParams(window.location.search);
-  if (tab === 'overview') params.delete('tab');
-  else params.set('tab', tab);
+  if (value === null) params.delete(name);
+  else params.set(name, value);
   const query = params.toString();
   window.history.replaceState(null, '', query ? `?${query}` : window.location.pathname);
 }
+
+const setTabParam = (tab: Tab) => setParam('tab', tab === 'overview' ? null : tab);
 
 function PropertyButton({ className, ...props }: React.ComponentProps<typeof Button>) {
   return (
@@ -97,7 +112,15 @@ export interface EpicDetailProps {
   epic: EpicRow;
   milestones: MilestoneRow[];
   updates: EpicUpdateRow[];
+  /** Active issues from every project the viewer is in (cross-project epics). */
   issues: IssueRow[];
+  /** Projects of `issues` other than this one. */
+  issueProjects: ProjectRef[];
+  /** The project's epic labels. */
+  labels: EpicLabelRow[];
+  relations: EpicRelationRow[];
+  /** Project docs linked to this epic (D2). */
+  documents?: DocumentSummary[];
   /** null: the project isn't in a workspace the viewer belongs to. */
   initiatives: InitiativeOption[] | null;
   workspaceSlug: string | null;
@@ -109,11 +132,15 @@ export function EpicDetail({
   milestones,
   updates,
   issues,
+  issueProjects,
+  labels,
+  relations,
+  documents = [],
   initiatives,
   workspaceSlug,
   defaultView,
 }: EpicDetailProps) {
-  const { project, members, viewer } = useProjectData();
+  const { project, members, viewer, epics: projectEpics } = useProjectData();
   const canWrite = useProjectPermission('write');
   const isAdmin = useProjectPermission('admin');
   const searchParams = useSearchParams();
@@ -122,6 +149,9 @@ export function EpicDetail({
     (current, patch: Partial<EpicRow>) => ({ ...current, ...patch }),
   );
   const [, startTransition] = useTransition();
+
+  const ownIssues = issues.filter((i) => i.projectId === project.id);
+  const foreignProject = issueProjects.find((p) => p.id === searchParams.get('project')) ?? null;
 
   const param = searchParams.get('tab');
   const tab: Tab = TABS.includes(param as Tab)
@@ -145,6 +175,13 @@ export function EpicDetail({
         epicId: epic.id,
         initiativeId,
       });
+      if (!result.ok) toast.error(result.error);
+    });
+
+  const setLabels = (labelIds: string[]) =>
+    startTransition(async () => {
+      patchOptimistic({ labelIds });
+      const result = await setEpicLabels({ projectId: project.id, epicId: epic.id, labelIds });
       if (!result.ok) toast.error(result.error);
     });
 
@@ -229,6 +266,36 @@ export function EpicDetail({
               >
                 {trigger}
               </MemberPicker>
+            ),
+          )}
+        </PropertyRow>
+        <PropertyRow label="Labels">
+          {picker(
+            <PropertyButton disabled={!canWrite}>
+              {epic.labelIds?.length ? (
+                <EpicLabelChips
+                  labels={labels}
+                  labelIds={epic.labelIds}
+                  max={2}
+                  className="flex-nowrap overflow-hidden"
+                />
+              ) : (
+                <>
+                  <Tag className="text-muted-foreground" />
+                  <Muted>Add labels</Muted>
+                </>
+              )}
+            </PropertyButton>,
+            (trigger) => (
+              <EpicLabelPicker
+                projectId={project.id}
+                labels={labels}
+                value={epic.labelIds ?? []}
+                onChange={setLabels}
+                canCreate={canWrite}
+              >
+                {trigger}
+              </EpicLabelPicker>
             ),
           )}
         </PropertyRow>
@@ -433,6 +500,14 @@ export function EpicDetail({
                 color={epic.color}
                 canWrite={canWrite}
               />
+              <EpicDependencies
+                projectId={project.id}
+                epic={epic}
+                relations={relations}
+                candidates={projectEpics}
+                canWrite={canWrite}
+              />
+              <EpicDocuments projectId={project.id} epicId={epic.id} documents={documents} />
             </div>
             {sidebar}
           </div>
@@ -453,11 +528,44 @@ export function EpicDetail({
         {/* Mounted only while active: IssuesView registers list hotkeys and palette commands. */}
         {tab === 'issues' && (
           <TabsContent value="issues" className="flex min-h-0 flex-1 flex-col">
-            <IssuesView
-              issues={issues}
-              defaultView={defaultView}
-              createDefaults={{ epicId: epic.id }}
-            />
+            {issueProjects.length > 0 && (
+              <ToggleGroup
+                type="single"
+                size="sm"
+                variant="outline"
+                spacing={0}
+                value={foreignProject?.id ?? project.id}
+                onValueChange={(value) =>
+                  value && setParam('project', value === project.id ? null : value)
+                }
+                aria-label="Issues by project"
+                className="mb-3 flex-wrap"
+              >
+                {[{ id: project.id, name: project.name, ticketKey: project.ticketKey }, ...issueProjects].map(
+                  (p) => (
+                    <ToggleGroupItem key={p.id} value={p.id} className="gap-1.5 px-2.5 text-xs">
+                      <span className="font-mono text-muted-foreground">{p.ticketKey}</span>
+                      <span className="max-w-40 truncate">{p.name}</span>
+                      <span className="text-muted-foreground tabular-nums">
+                        {issues.filter((i) => i.projectId === p.id).length}
+                      </span>
+                    </ToggleGroupItem>
+                  ),
+                )}
+              </ToggleGroup>
+            )}
+            {foreignProject ? (
+              <EpicForeignIssues
+                project={foreignProject}
+                issues={issues.filter((i) => i.projectId === foreignProject.id)}
+              />
+            ) : (
+              <IssuesView
+                issues={ownIssues}
+                defaultView={defaultView}
+                createDefaults={{ epicId: epic.id }}
+              />
+            )}
           </TabsContent>
         )}
       </Tabs>

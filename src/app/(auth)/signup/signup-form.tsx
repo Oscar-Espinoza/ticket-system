@@ -91,6 +91,12 @@ export function SignupForm({ redirectTo }: { redirectTo: string }) {
       // Better Auth 1.6: duplicate email -> USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL
       // (422); too-short password -> PASSWORD_TOO_SHORT (400). Match the
       // USER_ALREADY_EXISTS* family so the mapping survives version drift.
+      if (error.code === 'SSO_REQUIRED') {
+        // The email's domain enforces SSO: accounts are created by signing in with it.
+        const login = authHref('/login', redirectTo);
+        router.push(`${login}${login.includes('?') ? '&' : '?'}sso=1`);
+        return;
+      }
       if (error.code?.startsWith('USER_ALREADY_EXISTS')) {
         setEmailError('An account with this email already exists. Sign in instead.');
       } else if (error.code === 'PASSWORD_TOO_SHORT') {

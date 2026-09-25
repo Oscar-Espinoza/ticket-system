@@ -31,6 +31,7 @@ export default async function PlanningSettingsPage({
         cyclesEnabled: projects.cyclesEnabled,
         durationWeeks: projects.cycleDurationWeeks,
         startWeekday: projects.cycleStartWeekday,
+        cooldownWeeks: projects.cycleCooldownWeeks,
         autoCreate: projects.cycleAutoCreate,
         autoRollover: projects.cycleAutoRollover,
         triageEnabled: projects.triageEnabled,

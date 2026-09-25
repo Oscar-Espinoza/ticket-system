@@ -22,7 +22,7 @@ export default async function ImportExportPage({
     <>
       <h1 className="text-xl font-medium">Import / export</h1>
       <p className="mt-1 mb-8 text-sm text-muted-foreground">
-        Move issues in from CSV, Jira or GitHub Issues, or take them out as CSV / JSON.
+        Move issues in from CSV, Jira, GitHub Issues, Asana or Shortcut, or take them out as CSV / JSON.
       </p>
       <ImportExportPanel projectId={id} canImport={roleAllows(membership.role, 'write')} />
     </>

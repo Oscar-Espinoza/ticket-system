@@ -7,10 +7,12 @@
 //       capped at 6 chars. Validation (2-char minimum, uniqueness) happens on submit.
 // The form uses useActionState with the createProject Server Action so the pending
 // state, field errors, and success handling are fully integrated.
+// Project templates (D4a): an optional Template select, loaded when the dialog opens.
 
 import { useActionState, useId, useState } from 'react';
 import { toast } from 'sonner';
 import { createProject, type CreateProjectState } from '@/app/actions/projects';
+import { TemplateSelect, useProjectTemplates } from '@/components/project-templates/template-select';
 import {
   Dialog,
   DialogContent,
@@ -39,6 +41,7 @@ export function CreateProjectDialog({
 }) {
   const [internalOpen, setInternalOpen] = useState(false);
   const [ticketKey, setTicketKey] = useState('');
+  const [templateId, setTemplateId] = useState('');
 
   const isControlled = controlledOpen !== undefined;
   const open = isControlled ? controlledOpen : internalOpen;
@@ -57,6 +60,8 @@ export function CreateProjectDialog({
   const keyId = `${uid}-key`;
   const keyErrorId = `${uid}-key-error`;
   const keyHintId = `${uid}-key-hint`;
+  const templateFieldId = `${uid}-template`;
+  const templates = useProjectTemplates(open);
 
   // Run success side effects inside the action (not an effect) so they fire on
   // EVERY successful submit. Keying an effect off `state.success` only fired on
@@ -68,6 +73,7 @@ export function CreateProjectDialog({
       if (result.success) {
         setOpen(false);
         setTicketKey('');
+        setTemplateId('');
         toast.success('Project created');
       }
       return result;
@@ -147,6 +153,20 @@ export function CreateProjectDialog({
                 <p id={keyErrorId} className="text-destructive text-sm">
                   {state.errors.ticketKey}
                 </p>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor={templateFieldId}>Template</Label>
+              <input type="hidden" name="templateId" value={templateId} />
+              <TemplateSelect
+                id={templateFieldId}
+                templates={templates}
+                value={templateId}
+                onChange={setTemplateId}
+              />
+              {state.errors?.templateId && (
+                <p className="text-destructive text-sm">{state.errors.templateId}</p>
               )}
             </div>
 

@@ -10,11 +10,12 @@ import { Inbox } from 'lucide-react';
 import { getSession } from '@/lib/session';
 import { getMemberProject } from '@/lib/project-access';
 import { db } from '@/lib/db';
-import { customerRequests, projects, tickets, workflowStates } from '@/db/schema';
+import { customerRequests, customers, projects, tickets, workflowStates } from '@/db/schema';
 import { roleAllows } from '@/lib/roles';
 import { issuePath } from '@/lib/issue-links';
 import { appUrl } from '@/lib/integrations/app-url';
 import { IntakeSettings } from '@/components/integrations/intake-settings';
+import { customerPath } from '@/components/customers/customer-model';
 import { EmptyState, StatusIcon } from '@/components/ui-icons';
 import { Separator } from '@/components/ui/separator';
 
@@ -54,10 +55,13 @@ export default async function IntakeSettingsPage({
         stateName: workflowStates.name,
         stateType: workflowStates.type,
         stateColor: workflowStates.color,
+        customerId: customers.id,
+        customerName: customers.name,
       })
       .from(customerRequests)
       .leftJoin(tickets, eq(customerRequests.ticketId, tickets.id))
       .leftJoin(workflowStates, eq(tickets.stateId, workflowStates.id))
+      .leftJoin(customers, eq(customerRequests.customerId, customers.id))
       .where(eq(customerRequests.projectId, id))
       .orderBy(desc(customerRequests.createdAt))
       .limit(REQUESTS_SHOWN),
@@ -132,6 +136,17 @@ export default async function IntakeSettingsPage({
                   </time>
                 </div>
                 <p className="text-xs text-muted-foreground">
+                  {request.customerId && (
+                    <>
+                      <Link
+                        href={customerPath(id, request.customerId)}
+                        className="font-medium text-foreground hover:underline"
+                      >
+                        {request.customerName}
+                      </Link>
+                      {' · '}
+                    </>
+                  )}
                   {request.name ? `${request.name} · ` : ''}
                   {request.email ?? 'No email'}
                 </p>

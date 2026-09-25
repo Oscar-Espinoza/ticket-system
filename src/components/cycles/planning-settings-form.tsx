@@ -19,12 +19,13 @@ import {
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
-import { CYCLE_DURATIONS, UPCOMING_CYCLES, WEEKDAYS } from './cycle-utils';
+import { COOLDOWN_OPTIONS, CYCLE_DURATIONS, UPCOMING_CYCLES, WEEKDAYS } from './cycle-utils';
 
 export interface PlanningSettings {
   cyclesEnabled: boolean;
   durationWeeks: number;
   startWeekday: number;
+  cooldownWeeks: number;
   autoCreate: boolean;
   autoRollover: boolean;
   triageEnabled: boolean;
@@ -85,7 +86,9 @@ export function PlanningSettingsForm({
   );
   const cadenceChanged =
     hasCycles &&
-    (values.durationWeeks !== saved.durationWeeks || values.startWeekday !== saved.startWeekday);
+    (values.durationWeeks !== saved.durationWeeks ||
+      values.startWeekday !== saved.startWeekday ||
+      values.cooldownWeeks !== saved.cooldownWeeks);
   const disabled = !canEdit || pending;
 
   const save = (event: React.FormEvent) => {
@@ -155,6 +158,28 @@ export function PlanningSettingsForm({
                   {WEEKDAYS.map((day, i) => (
                     <SelectItem key={day} value={String(i)}>
                       {day}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field
+              id="cycle-cooldown"
+              label="Cooldown"
+              hint="Free weeks between cycles for planning and unplanned work."
+            >
+              <Select
+                value={String(values.cooldownWeeks)}
+                onValueChange={(v) => set('cooldownWeeks', Number(v))}
+                disabled={disabled || !values.cyclesEnabled}
+              >
+                <SelectTrigger id="cycle-cooldown" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {COOLDOWN_OPTIONS.map((weeks) => (
+                    <SelectItem key={weeks} value={String(weeks)}>
+                      {weeks === 0 ? 'No cooldown' : `${weeks} ${weeks === 1 ? 'week' : 'weeks'}`}
                     </SelectItem>
                   ))}
                 </SelectContent>

@@ -137,6 +137,8 @@ export interface EpicRow {
   createdAt: Date;
   updatedAt: Date;
   progress: Progress;
+  /** Epic label ids (D4b); absent where labels aren't loaded (initiatives). */
+  labelIds?: string[];
 }
 
 export interface MilestoneRow {
@@ -166,3 +168,82 @@ export interface InitiativeOption {
 
 export const epicPath = (projectId: string, epicId: string) =>
   `/dashboard/projects/${projectId}/epics/${epicId}`;
+
+// ---------------------------------------------------------------------------
+// Epic labels, dependencies and cross-project epics (D4b)
+// ---------------------------------------------------------------------------
+
+export interface EpicLabelRow {
+  id: string;
+  name: string;
+  color: string;
+}
+
+export const EPIC_LABEL_NAME_MAX = 40;
+export const EPIC_LABELS_MAX = 20;
+
+/** From the viewing epic's point of view. Stored rows are only 'blocks' | 'related'. */
+export type EpicRelationKind = 'blocks' | 'blocked_by' | 'related';
+
+export const EPIC_RELATION_KINDS: EpicRelationKind[] = ['blocked_by', 'blocks', 'related'];
+
+export const EPIC_RELATION_LABEL: Record<EpicRelationKind, string> = {
+  blocked_by: 'Blocked by',
+  blocks: 'Blocking',
+  related: 'Related',
+};
+
+export function isEpicRelationKind(value: unknown): value is EpicRelationKind {
+  return value === 'blocks' || value === 'blocked_by' || value === 'related';
+}
+
+export interface EpicRef {
+  id: string;
+  projectId: string;
+  name: string;
+  color: string | null;
+  status: EpicStatus;
+  startDate: string | null;
+  targetDate: string | null;
+  archivedAt: Date | null;
+}
+
+export interface EpicRelationRow {
+  id: string;
+  kind: EpicRelationKind;
+  epic: EpicRef;
+}
+
+/** A `blocks` edge between two epics of the project (roadmap connectors). */
+export interface EpicDependency {
+  id: string;
+  blockerId: string;
+  blockedId: string;
+}
+
+/**
+ * A blocked epic that starts on or before its blocker's target date. Needs
+ * both dates; one-sided epics can't be judged.
+ */
+export function isScheduleConflict(
+  blocker: { targetDate: string | null },
+  blocked: { startDate: string | null },
+) {
+  return Boolean(blocker.targetDate && blocked.startDate && blocked.startDate <= blocker.targetDate);
+}
+
+export interface ProjectRef {
+  id: string;
+  name: string;
+  ticketKey: string;
+}
+
+/** An epic of another project in the workspace that this project's issues may join. */
+export interface ForeignEpicOption {
+  id: string;
+  name: string;
+  color: string | null;
+  status: EpicStatus;
+  project: ProjectRef;
+  milestones: { id: string; name: string }[];
+}

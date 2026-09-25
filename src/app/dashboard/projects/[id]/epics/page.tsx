@@ -13,6 +13,6 @@ export const metadata: Metadata = { title: 'Epics' };
 export default async function EpicsPage({ params }: { params: Promise<{ id: string }> }) {
   const [{ id }, session] = await Promise.all([params, getSession()]);
   if (!session?.user) redirect('/login');
-  const { epics } = await getProjectEpics(id, session.user.id);
-  return <EpicsList epics={epics} />;
+  const { epics, labels } = await getProjectEpics(id, session.user.id);
+  return <EpicsList epics={epics} labels={labels} />;
 }

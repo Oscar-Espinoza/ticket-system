@@ -2,6 +2,7 @@
 // inbox, emails and badges render. Client-safe (no server imports).
 
 import type { StateType } from '@/lib/issue-model';
+import { issuePath } from '@/lib/issue-links';
 
 export const NOTIFICATION_TYPES = [
   'assigned',
@@ -11,6 +12,10 @@ export const NOTIFICATION_TYPES = [
   'completed',
   'reminder',
   'github',
+  // Inserted by cron jobs (D5 / D8), not by dispatch.
+  'sla_breached',
+  'recurring_created',
+  'pulse',
 ] as const;
 
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
@@ -27,7 +32,19 @@ export const NOTIFICATION_PREFS: { type: NotificationType; label: string; descri
   { type: 'status_changed', label: 'Status changes', description: 'An issue you subscribe to changes status.' },
   { type: 'completed', label: 'Completed', description: 'An issue you subscribe to is completed or canceled.' },
   { type: 'github', label: 'Pull requests', description: 'A pull request linked to a subscribed issue is merged.' },
+  { type: 'sla_breached', label: 'SLA breaches', description: 'An issue you follow misses its SLA deadline.' },
+  { type: 'pulse', label: 'Pulse', description: 'A weekly summary of activity in your projects.' },
 ];
+
+/** In digest mode these still email right away; everything else waits for the digest. */
+export const DIGEST_IMMEDIATE_TYPES: ReadonlySet<string> = new Set(['assigned', 'mentioned']);
+
+export const DIGEST_FREQUENCIES = ['off', 'daily', 'weekly'] as const;
+export type DigestFrequency = (typeof DIGEST_FREQUENCIES)[number];
+
+export function isDigestFrequency(value: unknown): value is DigestFrequency {
+  return typeof value === 'string' && (DIGEST_FREQUENCIES as readonly string[]).includes(value);
+}
 
 /** Stored on notification.data so the inbox renders without extra lookups. */
 export interface NotificationData {
@@ -39,6 +56,10 @@ export interface NotificationData {
   /** Plain-text comment excerpt (mentions stripped). */
   excerpt?: string;
   commentId?: string;
+  /** Extra detail lines for issue-less notifications (e.g. pulse). */
+  lines?: string[];
+  /** Relative app path for issue-less notifications, e.g. "/dashboard/dashboards?tab=pulse". */
+  url?: string;
 }
 
 export function notificationData(value: unknown): NotificationData {
@@ -75,13 +96,31 @@ export function describeNotification(
       return 'Reminder';
     case 'github':
       return data.summary ? `${capitalize(data.summary)}` : 'Pull request merged';
+    case 'sla_breached':
+      return data.summary ? capitalize(data.summary) : 'SLA breached';
+    case 'recurring_created':
+      return data.summary ? capitalize(data.summary) : 'Created from a recurring schedule';
+    case 'pulse':
+      return data.summary ? capitalize(data.summary) : 'Your weekly pulse';
     default:
-      return data.summary ? `${who} ${data.summary}` : `${who} updated the issue`;
+      // Unknown / future types: a summary reads as "Ana <summary>" or stands alone.
+      if (data.summary) return actor ? `${actor} ${data.summary}` : capitalize(data.summary);
+      return `${who} updated the issue`;
   }
 }
 
 function capitalize(text: string) {
   return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+/**
+ * Relative link for a notification: the issue permalink, else a same-app
+ * `data.url`, else the inbox.
+ */
+export function notificationPath(projectId: string | null | undefined, data: NotificationData): string {
+  if (projectId && data.key) return issuePath(projectId, data.key);
+  if (typeof data.url === 'string' && data.url.startsWith('/') && !data.url.startsWith('//')) return data.url;
+  return '/dashboard/inbox';
 }
 
 /** Window event the inbox fires after changing read state, so the badge refetches. */

@@ -2,7 +2,7 @@
 
 import type { ComponentType } from 'react';
 import dynamic from 'next/dynamic';
-import { CalendarDays, Kanban, List, Sheet, type LucideIcon } from 'lucide-react';
+import { CalendarDays, GanttChart, Kanban, List, Sheet, type LucideIcon } from 'lucide-react';
 
 import { useProjectData } from '@/components/project/project-data';
 import { Skeleton } from '@/components/ui-icons';
@@ -49,11 +49,13 @@ function ListView({ groups, mutations, selectedId, onSelect, onCreate }: IssueVi
 const loadBoard = () => import('@/components/board/board');
 const loadTable = () => import('@/components/views/table-view');
 const loadCalendar = () => import('@/components/views/calendar-view');
+const loadTimeline = () => import('@/components/views/timeline-view');
 
 export function preloadViews() {
   void loadBoard();
   void loadTable();
   void loadCalendar();
+  void loadTimeline();
 }
 
 const BoardView = dynamic(loadBoard, {
@@ -82,10 +84,17 @@ const CalendarView = dynamic(loadCalendar, {
   loading: () => <Skeleton variant="card" className="h-[32rem] w-full" />,
 });
 
+// Client only too: "today", the zoom (localStorage) and scroll position.
+const TimelineView = dynamic(loadTimeline, {
+  ssr: false,
+  loading: () => <Skeleton variant="card" className="h-[32rem] w-full" />,
+});
+
 // View registry: the switcher and the Display menu render one entry each.
 export const ISSUE_VIEWS: IssueViewDefinition[] = [
   { id: 'list', label: 'List', icon: List, component: ListView },
   { id: 'board', label: 'Board', icon: Kanban, component: BoardView },
   { id: 'table', label: 'Table', icon: Sheet, component: TableView },
   { id: 'calendar', label: 'Calendar', icon: CalendarDays, component: CalendarView },
+  { id: 'timeline', label: 'Timeline', icon: GanttChart, component: TimelineView },
 ];

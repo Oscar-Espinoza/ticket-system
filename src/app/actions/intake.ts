@@ -11,6 +11,7 @@ import { and, count, eq, gte } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { customerRequests, projects, workflowStates } from '@/db/schema';
 import { authorizeProjectAction } from '@/lib/action-auth';
+import { matchCustomerByEmail } from '@/lib/customers';
 import { createIssue, SYSTEM_ACTOR } from '@/lib/issue-service';
 import { stripMentions } from '@/lib/mentions';
 import { defaultNewIssueState, firstStateOfType } from '@/lib/workflow';
@@ -167,10 +168,19 @@ export async function submitIntakeRequest(
     return { values, errors: { server: 'Something went wrong. Please try again.' } };
   }
 
+  // A known customer's domain links the request to them (D6). Best effort: the
+  // issue already exists, so a failed lookup must not fail the submission.
+  const customer = await matchCustomerByEmail(project.id, values.email).catch((err) => {
+    console.error('[intake] customer match failed', err);
+    return null;
+  });
+
   await db.insert(customerRequests).values({
     id: crypto.randomUUID(),
     projectId: project.id,
     ticketId: result.issue.id,
+    customerId: customer?.id ?? null,
+    source: 'intake',
     name: values.name || null,
     email: values.email,
     body: values.description || values.title,

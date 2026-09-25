@@ -23,6 +23,7 @@ import { isClosed } from '@/lib/workflow';
 import { notificationEmail, settingsUrl, type EmailItem } from './email-templates';
 import { appUrl } from '@/lib/integrations/app-url';
 import {
+  DIGEST_IMMEDIATE_TYPES,
   describeNotification,
   prefEnabled,
   type NotificationData,
@@ -233,6 +234,7 @@ async function dispatch(events: StoredIssueEvent[]) {
       name: users.name,
       email: users.email,
       emailNotifications: userProfiles.emailNotifications,
+      digestFrequency: userProfiles.digestFrequency,
       prefs: userProfiles.notificationPrefs,
     })
     .from(users)
@@ -268,6 +270,7 @@ type Person = {
   name: string;
   email: string;
   emailNotifications: boolean | null;
+  digestFrequency: string | null;
 };
 
 /** One email per recipient per batch, so a bulk edit is one message, not twenty. */
@@ -277,6 +280,9 @@ async function emailRecipients(rows: NotificationInsert[], personById: Map<strin
     const person = personById.get(row.userId);
     // No profile row yet = defaults = email on.
     if (!person || person.emailNotifications === false) continue;
+    // Digest mode: the daily digests job emails the rest (rows without emailedAt).
+    const digest = person.digestFrequency && person.digestFrequency !== 'off';
+    if (digest && !DIGEST_IMMEDIATE_TYPES.has(row.type)) continue;
     const list = byUser.get(row.userId) ?? [];
     list.push(row);
     byUser.set(row.userId, list);

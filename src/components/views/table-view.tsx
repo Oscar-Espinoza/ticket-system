@@ -31,7 +31,9 @@ import { registerHotkeys } from '@/lib/hotkeys';
 import type { OrderBy } from '@/lib/issue-grouping';
 import { PRIORITY_LABEL, type IssuePatch, type IssueRow } from '@/lib/issue-model';
 import { cn } from '@/lib/utils';
-import { CycleChip, EpicChip, MilestoneChip, SubIssueChip } from './property-chips';
+import { SlaChip } from '@/components/sla/sla-chip';
+import { StartDatePicker } from '@/components/issue-detail/slots/property-start-date';
+import { CycleChip, EpicChip, MilestoneChip, StartDateChip, SubIssueChip } from './property-chips';
 import { useSubIssueCount } from './view-context';
 
 interface Column {
@@ -230,6 +232,31 @@ function useColumns(): Column[] {
           content
         );
       },
+    },
+    {
+      id: 'startDate',
+      label: 'Start date',
+      className: 'w-32 min-w-32',
+      cell: (issue, edit) => {
+        const content = issue.startDate ? <StartDateChip startDate={issue.startDate} /> : muted;
+        return edit.canEdit ? (
+          <StartDatePicker
+            value={issue.startDate}
+            onChange={(startDate) => edit.update({ startDate })}
+            onCloseAutoFocus={edit.refocus}
+          >
+            <CellButton label="Change start date">{content}</CellButton>
+          </StartDatePicker>
+        ) : (
+          content
+        );
+      },
+    },
+    {
+      id: 'sla',
+      label: 'SLA',
+      className: 'w-28 min-w-28',
+      cell: (issue) => (issue.slaDueAt ? <SlaChip issue={issue} /> : muted),
     },
     {
       id: 'cycle',

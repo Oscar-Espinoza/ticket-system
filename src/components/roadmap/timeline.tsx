@@ -7,10 +7,15 @@
 // Dragging: the bar moves in whole weeks; the edges snap the start to a
 // Monday and the target to a Sunday, and never cross (min one week). A press
 // without movement is a click (opens the item). Esc cancels a drag.
+//
+// Dependencies (optional): SVG connectors from each blocker bar's end to the
+// blocked bar's start, following bars live while dragging. A connector turns
+// red when the blocked item starts on or before its blocker's target date.
 
 import {
   useEffect,
   useEffectEvent,
+  useId,
   useRef,
   useState,
   type PointerEvent as ReactPointerEvent,
@@ -56,6 +61,13 @@ export interface TimelineItem {
   editable: boolean;
 }
 
+/** `from` blocks `to` (item ids). */
+export interface TimelineDependency {
+  id: string;
+  from: string;
+  to: string;
+}
+
 type DragMode = 'move' | 'start' | 'end';
 interface Drag {
   id: string;
@@ -95,15 +107,28 @@ function spanOf(item: Pick<TimelineItem, 'startDate' | 'targetDate'>) {
 
 const monthLabel = new Intl.DateTimeFormat('en', { month: 'short' });
 
+/** Curved when the target is comfortably to the right, else an elbow through the row gap. */
+function connectorPath(x1: number, y1: number, x2: number, y2: number) {
+  if (x2 - x1 >= 16) {
+    const c = Math.min(40, (x2 - x1) / 2);
+    return `M ${x1} ${y1} C ${x1 + c} ${y1}, ${x2 - c} ${y2}, ${x2} ${y2}`;
+  }
+  const gap = y2 > y1 ? y2 - ROW_HEIGHT / 2 : y2 + ROW_HEIGHT / 2;
+  return `M ${x1} ${y1} H ${x1 + 8} V ${gap} H ${x2 - 8} V ${y2} H ${x2}`;
+}
+
 export function Timeline({
   items,
   zoom,
   onChangeDates,
+  dependencies = [],
   className,
 }: {
   /** Items with at least one date (others are ignored). */
   items: TimelineItem[];
   zoom: Zoom;
+  /** Connectors between items; ones touching undated/missing items are skipped. */
+  dependencies?: TimelineDependency[];
   /** Omit for a read-only timeline. */
   onChangeDates?: (id: string, dates: { startDate?: string; targetDate?: string }) => void;
   className?: string;
@@ -113,6 +138,7 @@ export function Timeline({
   const [today] = useState(() => toDateString(new Date()));
   const [drag, setDrag] = useState<Drag | null>(null);
   const dragRef = useRef<Drag | null>(null);
+  const markerId = `dep-${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
   const px = PX_PER_DAY[zoom];
 
   const dated = items.filter((item) => item.startDate || item.targetDate);
@@ -146,6 +172,43 @@ export function Timeline({
       width: days * px,
       label: `${monthLabel.format(m)}${showYear ? ` ${m.getFullYear()}` : ''}`,
     });
+  }
+
+  // Effective span per item, following an in-flight drag.
+  const liveSpan = (item: TimelineItem) => {
+    const span = spanOf(item)!;
+    const live = drag?.id === item.id ? drag : null;
+    return live ? { ...span, start: live.nextStart, end: live.nextEnd } : span;
+  };
+
+  const rowOf = new Map(dated.map((item, index) => [item.id, index]));
+  const connectors = dependencies.flatMap((dep) => {
+    const fromRow = rowOf.get(dep.from);
+    const toRow = rowOf.get(dep.to);
+    if (fromRow === undefined || toRow === undefined) return [];
+    const blocker = dated[fromRow];
+    const blocked = dated[toRow];
+    const from = liveSpan(blocker);
+    const to = liveSpan(blocked);
+    // Only real dates can conflict (stubs are placeholders); live while dragging.
+    const conflict = Boolean(blocker.targetDate && blocked.startDate) && to.start <= from.end;
+    return [
+      {
+        ...dep,
+        conflict,
+        blockerName: blocker.name,
+        path: connectorPath(
+          (dayIndex(origin, from.end) + 1) * px,
+          fromRow * ROW_HEIGHT + ROW_HEIGHT / 2,
+          dayIndex(origin, to.start) * px,
+          toRow * ROW_HEIGHT + ROW_HEIGHT / 2,
+        ),
+      },
+    ];
+  });
+  const conflictsOf = new Map<string, string[]>();
+  for (const c of connectors) {
+    if (c.conflict) conflictsOf.set(c.to, [...(conflictsOf.get(c.to) ?? []), c.blockerName]);
   }
 
   const weeks: { key: string; left: number; label: string }[] = [];
@@ -333,18 +396,61 @@ export function Timeline({
             )}
           </div>
 
+          {connectors.length > 0 && (
+            // Before the rows in the DOM so the (positioned) bars paint over it.
+            <svg
+              aria-hidden="true"
+              className="pointer-events-none absolute top-0 overflow-visible"
+              style={{ left: NAME_COLUMN, width, height: dated.length * ROW_HEIGHT }}
+            >
+              <defs>
+                {(['ok', 'conflict'] as const).map((kind) => (
+                  <marker
+                    key={kind}
+                    id={`${markerId}-${kind}`}
+                    viewBox="0 0 6 6"
+                    refX="5"
+                    refY="3"
+                    markerWidth="6"
+                    markerHeight="6"
+                    orient="auto"
+                  >
+                    <path
+                      d="M0,0 L6,3 L0,6 z"
+                      className={kind === 'conflict' ? 'fill-destructive' : 'fill-muted-foreground'}
+                    />
+                  </marker>
+                ))}
+              </defs>
+              {connectors.map((c) => (
+                <path
+                  key={c.id}
+                  d={c.path}
+                  fill="none"
+                  strokeWidth={1.25}
+                  strokeDasharray={c.conflict ? '4 3' : undefined}
+                  markerEnd={`url(#${markerId}-${c.conflict ? 'conflict' : 'ok'})`}
+                  className={c.conflict ? 'stroke-destructive' : 'stroke-muted-foreground/70'}
+                />
+              ))}
+            </svg>
+          )}
+
           {dated.map((item) => {
             const live = drag?.id === item.id ? drag : null;
             const span = spanOf(item)!;
             const start = live ? live.nextStart : span.start;
             const endDate = live ? live.nextEnd : span.end;
+            const blockers = conflictsOf.get(item.id);
             const left = dayIndex(origin, start) * px;
             const barWidth = Math.max(px, (dayIndex(origin, endDate) - dayIndex(origin, start) + 1) * px);
             const percent = progressPercent(item.progress);
             const editable = item.editable && Boolean(onChangeDates);
             const color = item.color ?? 'var(--color-primary)';
             const muted = isClosedEpic(item.status);
-            const label = `${item.name}: ${formatDueDate(start)} – ${formatDueDate(endDate)}, ${percent}% complete`;
+            const label =
+              `${item.name}: ${formatDueDate(start)} – ${formatDueDate(endDate)}, ${percent}% complete` +
+              (blockers ? `. Starts before ${blockers.join(', ')} ${blockers.length > 1 ? 'end' : 'ends'}` : '');
 
             return (
               <div key={item.id} role="listitem" className="flex border-b border-border last:border-b-0" style={{ height: ROW_HEIGHT }}>
@@ -371,6 +477,7 @@ export function Timeline({
                       editable ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer',
                       muted && 'opacity-60',
                       span.partial && 'border border-dashed',
+                      blockers && 'ring-2 ring-destructive/70',
                     )}
                     style={{
                       left,

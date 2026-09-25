@@ -5,7 +5,7 @@
 // the member list as a prop so they also work outside a project (initiatives).
 
 import { useState } from 'react';
-import { Ban, Check, CircleDashed, Target, UserRound, X } from 'lucide-react';
+import { Ban, Check, CircleDashed, Loader2, Target, UserRound, X } from 'lucide-react';
 
 import { PickerPopover, digitShortcut, keywordFilter, type PickerPopoverProps } from '@/components/issue-pickers';
 import { Calendar } from '@/components/ui/calendar';
@@ -31,6 +31,7 @@ import {
   HEALTH_LABEL,
   type EpicStatus,
   type Health,
+  type ProjectRef,
 } from './epic-model';
 
 export function EpicStatusPicker({
@@ -302,11 +303,16 @@ export interface EpicOption {
 export function EpicPicker({
   value,
   epics,
+  otherProjects = [],
+  loadingOthers = false,
   onChange,
   ...popover
 }: PickerPopoverProps & {
   value: string | null;
   epics: EpicOption[];
+  /** Cross-project epics (same workspace), one group per project. */
+  otherProjects?: { project: ProjectRef; epics: EpicOption[] }[];
+  loadingOthers?: boolean;
   onChange: (epicId: string | null) => void;
 }) {
   return (
@@ -344,6 +350,31 @@ export function EpicPicker({
                   <span className="truncate">{epic.name}</span>
                 </CommandItem>
               ))}
+              {otherProjects.map(({ project, epics: projectEpics }) => (
+                <CommandGroup key={project.id} heading={`Epics in ${project.name}`}>
+                  {projectEpics.map((epic) => (
+                    <CommandItem
+                      key={epic.id}
+                      value={epic.id}
+                      keywords={[epic.name, project.name, project.ticketKey]}
+                      data-checked={epic.id === value}
+                      onSelect={() => pick(epic.id)}
+                    >
+                      <EpicIcon color={epic.color} />
+                      <span className="flex-1 truncate">{epic.name}</span>
+                      <span className="font-mono text-[10px] text-muted-foreground">
+                        {project.ticketKey}
+                      </span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              ))}
+              {loadingOthers && (
+                <div className="flex items-center gap-2 px-2 py-1.5 text-xs text-muted-foreground">
+                  <Loader2 className="size-3.5 animate-spin" />
+                  Loading other projects…
+                </div>
+              )}
             </CommandList>
           </Command>
         );

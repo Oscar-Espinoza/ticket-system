@@ -1,15 +1,22 @@
 'use client';
 
 import { useActionState, useEffect, useState } from 'react';
-import { AlertTriangle, Loader2 } from 'lucide-react';
+import { AlertTriangle, LayoutTemplate, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import {
   changeProjectKey,
   deleteProject,
   updateProjectDetails,
+  updateProjectParent,
+  updateProjectVisibility,
   type ProjectSettingsState,
+  type ProjectVisibility,
 } from '@/app/actions/project-settings';
+import {
+  TemplateDialog,
+  type TemplateWorkspaceOption,
+} from '@/components/project-templates/template-dialog';
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -22,6 +29,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
   Select,
   SelectContent,
@@ -44,6 +53,15 @@ export interface ProjectGeneralFormProps {
   canEdit: boolean;
   /** Owner only: may change the key and delete the project. */
   isOwner: boolean;
+  workspaceId: string | null;
+  workspaceName: string | null;
+  /** Current parent team (only when it's one of `parentOptions`). */
+  parentId: string | null;
+  /** Teams this one may be nested under (same workspace, viewer is a member). */
+  parentOptions: { id: string; name: string; ticketKey: string }[];
+  visibility: ProjectVisibility;
+  /** Workspaces a template saved from here can be shared with. */
+  templateWorkspaces: TemplateWorkspaceOption[];
 }
 
 /** Toast once per action result (server errors only; field errors render inline). */
@@ -65,7 +83,15 @@ export function ProjectGeneralForm(props: ProjectGeneralFormProps) {
       )}
       <DetailsForm {...props} />
       <Separator className="my-10" />
+      <TeamStructure {...props} />
+      <Separator className="my-10" />
       <KeyForm {...props} />
+      {canEdit && (
+        <>
+          <Separator className="my-10" />
+          <SaveAsTemplate {...props} />
+        </>
+      )}
       {isOwner && (
         <>
           <Separator className="my-10" />
@@ -260,6 +286,163 @@ function DangerZone({ projectId, name }: { projectId: string; name: string }) {
           </form>
         </AlertDialogContent>
       </AlertDialog>
+    </section>
+  );
+}
+
+const NO_PARENT = 'none';
+
+function TeamStructure(props: ProjectGeneralFormProps) {
+  const { workspaceName } = props;
+  return (
+    <section className="flex flex-col gap-6">
+      <div>
+        <h2 className="text-base font-medium">Team structure</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {workspaceName ? (
+            <>
+              Where this team sits in <span className="text-foreground">{workspaceName}</span> and
+              who can find it.
+            </>
+          ) : (
+            'Parent teams and visibility apply once the project is in a workspace.'
+          )}
+        </p>
+      </div>
+      <ParentForm {...props} />
+      <VisibilityForm {...props} />
+    </section>
+  );
+}
+
+function ParentForm({ projectId, workspaceId, parentId, parentOptions, canEdit }: ProjectGeneralFormProps) {
+  const [state, action, pending] = useActionState(updateProjectParent, {});
+  useResultToast(state, 'Parent team updated');
+  const [value, setValue] = useState(parentId ?? NO_PARENT);
+  const disabled = !canEdit || !workspaceId;
+
+  return (
+    <form action={action} className="flex flex-col gap-3" noValidate>
+      <input type="hidden" name="projectId" value={projectId} />
+      <input type="hidden" name="parentId" value={value === NO_PARENT ? '' : value} />
+      <Field
+        id="project-parent"
+        label="Parent team"
+        hint="Sub-teams are listed under their parent in the sidebar and workspace. Issues stay separate."
+        error={state.errors?.parentId}
+      >
+        <Select value={value} onValueChange={setValue} disabled={disabled}>
+          <SelectTrigger id="project-parent" className="w-full max-w-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={NO_PARENT}>No parent</SelectItem>
+            {parentOptions.map((option) => (
+              <SelectItem key={option.id} value={option.id}>
+                <span className="font-mono text-xs text-muted-foreground">{option.ticketKey}</span>
+                {option.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </Field>
+      {!disabled && (
+        <div>
+          <Button
+            type="submit"
+            variant="outline"
+            disabled={pending || value === (parentId ?? NO_PARENT)}
+          >
+            {pending && <Loader2 className="animate-spin" />}
+            Save parent
+          </Button>
+        </div>
+      )}
+    </form>
+  );
+}
+
+const VISIBILITY_COPY: Record<ProjectVisibility, { label: string; hint: string }> = {
+  private: {
+    label: 'Private',
+    hint: 'Only members can see this team. Others join by invitation.',
+  },
+  workspace: {
+    label: 'Workspace',
+    hint: 'Everyone in the workspace can find this team and join it as a member.',
+  },
+};
+
+function VisibilityForm({ projectId, visibility, workspaceId, canEdit }: ProjectGeneralFormProps) {
+  const [state, action, pending] = useActionState(updateProjectVisibility, {});
+  useResultToast(state, 'Visibility updated');
+  const [value, setValue] = useState<ProjectVisibility>(visibility);
+  const disabled = !canEdit || !workspaceId;
+
+  return (
+    <form action={action} className="flex flex-col gap-3" noValidate>
+      <input type="hidden" name="projectId" value={projectId} />
+      <input type="hidden" name="visibility" value={value} />
+      <fieldset className="flex flex-col gap-2" disabled={disabled}>
+        <legend className="mb-2 text-sm font-medium">Visibility</legend>
+        <RadioGroup
+          value={value}
+          onValueChange={(next) => setValue(next as ProjectVisibility)}
+          disabled={disabled}
+          className="gap-3"
+        >
+          {(Object.keys(VISIBILITY_COPY) as ProjectVisibility[]).map((option) => (
+            <div key={option} className="flex items-start gap-2.5">
+              <RadioGroupItem id={`visibility-${option}`} value={option} className="mt-0.5" />
+              <Label htmlFor={`visibility-${option}`} className="flex flex-col items-start gap-0.5">
+                <span>{VISIBILITY_COPY[option].label}</span>
+                <span className="text-xs font-normal text-muted-foreground">
+                  {VISIBILITY_COPY[option].hint}
+                </span>
+              </Label>
+            </div>
+          ))}
+        </RadioGroup>
+        {state.errors?.visibility && (
+          <p role="alert" className="text-xs text-destructive">
+            {state.errors.visibility}
+          </p>
+        )}
+      </fieldset>
+      {!disabled && (
+        <div>
+          <Button type="submit" variant="outline" disabled={pending || value === visibility}>
+            {pending && <Loader2 className="animate-spin" />}
+            Save visibility
+          </Button>
+        </div>
+      )}
+    </form>
+  );
+}
+
+function SaveAsTemplate({ projectId, name, ticketKey, workspaceId, templateWorkspaces }: ProjectGeneralFormProps) {
+  const [open, setOpen] = useState(false);
+  return (
+    <section className="flex flex-col gap-3">
+      <div>
+        <h2 className="text-base font-medium">Project template</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Reuse this project&rsquo;s workflow, labels, estimates, cycle and triage settings, SLAs
+          and issue templates when creating new projects.
+        </p>
+      </div>
+      <Button variant="outline" className="w-fit" onClick={() => setOpen(true)}>
+        <LayoutTemplate />
+        Save as template…
+      </Button>
+      <TemplateDialog
+        open={open}
+        onOpenChange={setOpen}
+        fixedProject={{ id: projectId, name, ticketKey }}
+        workspaces={templateWorkspaces}
+        defaultWorkspaceId={workspaceId}
+      />
     </section>
   );
 }

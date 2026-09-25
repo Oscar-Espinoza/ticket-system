@@ -42,6 +42,7 @@ export async function AppShell({
           id: p.id,
           name: p.name,
           ticketKey: p.ticketKey,
+          parentId: p.parentId,
         }))}
         sidebarFooter={sidebarFooter}
         topbarRight={topbarRight}

@@ -59,6 +59,9 @@ export function SectionRelations({ issue, mutations }: { issue: IssueRow; mutati
   const [version, setVersion] = useState(0);
   const [adding, setAdding] = useState(false);
   const [, startTransition] = useTransition();
+  // Relations added elsewhere (e.g. "Mark as duplicate" in Similar issues)
+  // bump the issue's updatedAt; refetch when it changes.
+  const updatedStamp = new Date(issue.updatedAt).getTime();
 
   useEffect(() => {
     let cancelled = false;
@@ -74,7 +77,7 @@ export function SectionRelations({ issue, mutations }: { issue: IssueRow; mutati
     return () => {
       cancelled = true;
     };
-  }, [issue.projectId, issue.id, version]);
+  }, [issue.projectId, issue.id, version, updatedStamp]);
 
   const resync = () => setVersion((v) => v + 1);
 

@@ -80,6 +80,95 @@ export function notificationEmail(items: EmailItem[], settingsUrl: string): Rend
   return { subject, text, html };
 }
 
+export interface DigestGroup {
+  /** Empty for issue-less notifications (pulse). */
+  key: string;
+  title: string;
+  url: string;
+  /** Newest first. */
+  items: { sentence: string; at: Date; excerpt?: string }[];
+  /** Notifications on this issue not listed. */
+  more: number;
+}
+
+const digestDate = new Intl.DateTimeFormat('en-US', {
+  month: 'short',
+  day: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit',
+  timeZone: 'UTC',
+  timeZoneName: 'short',
+});
+
+export function digestEmail(input: {
+  frequency: 'daily' | 'weekly';
+  groups: DigestGroup[];
+  /** All notifications in the digest window, including ones not listed. */
+  total: number;
+  inboxUrl: string;
+  settingsUrl: string;
+}): RenderedEmail {
+  const { groups, total } = input;
+  const issues = groups.filter((group) => group.key).length;
+  const updates = `${total} update${total === 1 ? '' : 's'}`;
+  const scope = issues > 0 ? ` on ${issues} issue${issues === 1 ? '' : 's'}` : '';
+  const subject = `Your ${input.frequency} digest — ${updates}${scope}`;
+  const listed = groups.reduce((sum, group) => sum + group.items.length + group.more, 0);
+  const unlisted = total - listed;
+
+  const groupHtml = (group: DigestGroup) => {
+    const heading = group.key
+      ? `<span style="color:#8a8a93;font-weight:400">${escapeHtml(group.key)}</span> ${escapeHtml(group.title)}`
+      : escapeHtml(group.title);
+    const items = group.items
+      .map(
+        (item) => `<li style="margin:4px 0;color:#55555c">${escapeHtml(item.sentence)}
+<span style="color:#8a8a93;font-size:12px"> · ${escapeHtml(digestDate.format(item.at))}</span>${
+          item.excerpt
+            ? `<div style="margin-top:2px;padding-left:8px;border-left:2px solid #e6e6e9;color:#8a8a93">${escapeHtml(item.excerpt)}</div>`
+            : ''
+        }</li>`,
+      )
+      .join('');
+    const more = group.more > 0 ? `<li style="margin:4px 0;color:#8a8a93">+${group.more} more</li>` : '';
+    return `<div style="padding:12px 0;border-top:1px solid #f0f0f2">
+<a href="${escapeHtml(group.url)}" style="color:#1b1b1f;font-weight:600;text-decoration:none">${heading}</a>
+<ul style="margin:6px 0 0;padding-left:18px">${items}${more}</ul>
+</div>`;
+  };
+
+  const footer = `${unlisted > 0 ? `${unlisted} more in your inbox. ` : ''}`;
+  const html = layout(
+    `<p style="margin:0 0 8px;font-weight:600">${escapeHtml(subject)}</p>
+${groups.map(groupHtml).join('')}
+<p style="margin:16px 0 0">${escapeHtml(footer)}<a href="${escapeHtml(input.inboxUrl)}" style="color:#1b1b1f">Open your inbox</a></p>`,
+    input.settingsUrl,
+  );
+
+  const text = [
+    subject,
+    '',
+    groups
+      .map((group) =>
+        [
+          group.key ? `${group.key} ${group.title}` : group.title,
+          ...group.items.map((item) => {
+            const line = `  - ${item.sentence} (${digestDate.format(item.at)})`;
+            return item.excerpt ? `${line}\n      "${item.excerpt}"` : line;
+          }),
+          ...(group.more > 0 ? [`  - +${group.more} more`] : []),
+          `  ${group.url}`,
+        ].join('\n'),
+      )
+      .join('\n\n'),
+    '',
+    `${footer}Inbox: ${input.inboxUrl}`,
+    `Notification settings: ${input.settingsUrl}`,
+  ].join('\n');
+
+  return { subject, text, html };
+}
+
 export function testEmail(name: string, settingsUrl: string): RenderedEmail {
   const subject = 'Test notification email';
   const body = `Hi ${name}, this is a test. Notification emails will look like this and link back to the issue.`;

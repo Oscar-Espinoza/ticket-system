@@ -2,19 +2,26 @@
 
 // Workspace › Teams: the workspace's projects, "Add project" (projects the
 // viewer administers) and "New project" (created inside the workspace).
-// Projects the viewer isn't a member of show their name only.
+// Projects the viewer isn't a member of show their name only, and only when
+// they're workspace-visible (with a Join button); private ones stay hidden.
+// Sub-teams are listed under their parent (D4a).
 
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { FolderPlus, Loader2, MoreHorizontal, Plus, Unlink } from 'lucide-react';
+import { CornerDownRight, FolderPlus, Loader2, Lock, MoreHorizontal, Plus, Unlink } from 'lucide-react';
 
 import {
   addProjectToWorkspace,
   createWorkspaceProject,
+  joinWorkspaceProject,
   removeProjectFromWorkspace,
 } from '@/app/actions/workspaces';
+import {
+  TemplateSelect,
+  useProjectTemplates,
+} from '@/components/project-templates/template-select';
 import { EmptyState, LabelChip } from '@/components/ui-icons';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,19 +51,62 @@ import { roleAllows } from '@/lib/roles';
 import { PROJECT_ROLE_LABEL } from './role-rules';
 import type { EligibleProject, WorkspaceProjectRow, WorkspaceRole } from './workspace-types';
 
+/** The page's rows plus the team-structure columns (optional until it passes them). */
+export type WorkspaceTeamRow = WorkspaceProjectRow & {
+  parentId?: string | null;
+  visibility?: string;
+};
+
+const MAX_DEPTH = 4;
+
+/**
+ * Visible rows in tree order with their depth: private projects the viewer
+ * isn't in are dropped (the server should not send them at all; this is the
+ * backstop), sub-teams follow their parent. Orphans / cycles go top level.
+ */
+function teamTree(rows: WorkspaceTeamRow[]): { project: WorkspaceTeamRow; depth: number }[] {
+  const visible = rows.filter((p) => p.viewerRole !== null || p.visibility === 'workspace');
+  const ids = new Set(visible.map((p) => p.id));
+  const childrenOf = new Map<string, WorkspaceTeamRow[]>();
+  const roots: WorkspaceTeamRow[] = [];
+  for (const project of visible) {
+    const parentId = project.parentId;
+    if (parentId && parentId !== project.id && ids.has(parentId)) {
+      childrenOf.set(parentId, [...(childrenOf.get(parentId) ?? []), project]);
+    } else {
+      roots.push(project);
+    }
+  }
+  const out: { project: WorkspaceTeamRow; depth: number }[] = [];
+  const seen = new Set<string>();
+  const walk = (list: WorkspaceTeamRow[], depth: number) => {
+    for (const project of list) {
+      if (seen.has(project.id)) continue;
+      seen.add(project.id);
+      out.push({ project, depth });
+      if (depth < MAX_DEPTH) walk(childrenOf.get(project.id) ?? [], depth + 1);
+    }
+  };
+  walk(roots, 0);
+  walk(visible.filter((p) => !seen.has(p.id)), 0);
+  return out;
+}
+
 export function WorkspaceProjects({
   workspaceId,
-  projects,
+  projects: allProjects,
   eligible,
   role,
 }: {
   workspaceId: string;
-  projects: WorkspaceProjectRow[];
+  projects: WorkspaceTeamRow[];
   eligible: EligibleProject[];
   role: WorkspaceRole;
 }) {
   const [dialog, setDialog] = useState<'add' | 'create' | null>(null);
   const isAdmin = role !== 'member';
+  const tree = teamTree(allProjects);
+  const projects = tree.map((row) => row.project);
 
   return (
     <section aria-labelledby="workspace-projects">
@@ -91,11 +141,12 @@ export function WorkspaceProjects({
         />
       ) : (
         <ul className="flex flex-col divide-y divide-border/60 rounded-lg border">
-          {projects.map((project) => (
+          {tree.map(({ project, depth }) => (
             <ProjectRow
               key={project.id}
               workspaceId={workspaceId}
               project={project}
+              depth={depth}
               canRemove={
                 isAdmin || (project.viewerRole !== null && roleAllows(project.viewerRole, 'admin'))
               }
@@ -122,14 +173,30 @@ export function WorkspaceProjects({
 function ProjectRow({
   workspaceId,
   project,
+  depth,
   canRemove,
 }: {
   workspaceId: string;
-  project: WorkspaceProjectRow;
+  project: WorkspaceTeamRow;
+  depth: number;
   canRemove: boolean;
 }) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [joining, startJoin] = useTransition();
   const isMember = project.viewerRole !== null;
+
+  function join() {
+    startJoin(async () => {
+      const result = await joinWorkspaceProject({ workspaceId, projectId: project.id });
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(`Joined ${project.name}`);
+      router.push(`/dashboard/projects/${project.id}`);
+    });
+  }
 
   function remove() {
     startTransition(async () => {
@@ -145,11 +212,20 @@ function ProjectRow({
         {project.ticketKey}
       </LabelChip>
       <span className="truncate text-sm font-medium">{project.name}</span>
+      {project.visibility === 'private' && (
+        <Lock aria-label="Private team" className="size-3 shrink-0 text-muted-foreground" />
+      )}
     </>
   );
 
   return (
-    <li className="flex min-h-11 items-center gap-3 px-3 py-2">
+    <li
+      className="flex min-h-11 items-center gap-3 px-3 py-2"
+      style={depth > 0 ? { paddingLeft: `${0.75 + (depth - 1) * 1.25}rem` } : undefined}
+    >
+      {depth > 0 && (
+        <CornerDownRight aria-hidden="true" className="size-3.5 shrink-0 text-muted-foreground" />
+      )}
       {isMember ? (
         <Link
           href={`/dashboard/projects/${project.id}`}
@@ -164,9 +240,22 @@ function ProjectRow({
         {project.openCount !== null && `${project.openCount} open · `}
         {project.memberCount} member{project.memberCount === 1 ? '' : 's'}
       </span>
-      <span className="w-16 shrink-0 text-right text-xs text-muted-foreground">
-        {project.viewerRole ? PROJECT_ROLE_LABEL[project.viewerRole] : 'Not a member'}
-      </span>
+      {isMember ? (
+        <span className="w-16 shrink-0 text-right text-xs text-muted-foreground">
+          {PROJECT_ROLE_LABEL[project.viewerRole!]}
+        </span>
+      ) : (
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 w-16 shrink-0"
+          disabled={joining}
+          onClick={join}
+          aria-label={`Join ${project.name}`}
+        >
+          {joining ? <Loader2 className="animate-spin" /> : 'Join'}
+        </Button>
+      )}
       {canRemove ? (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -298,12 +387,15 @@ function CreateProjectDialog({
   const router = useRouter();
   const [name, setName] = useState('');
   const [ticketKey, setTicketKey] = useState('');
+  const [templateId, setTemplateId] = useState('');
+  const templates = useProjectTemplates(open);
   const [errors, setErrors] = useState<{ name?: string; ticketKey?: string; server?: string }>({});
   const [isPending, startTransition] = useTransition();
 
   function close() {
     setName('');
     setTicketKey('');
+    setTemplateId('');
     setErrors({});
     onClose();
   }
@@ -311,7 +403,12 @@ function CreateProjectDialog({
   function submit(event: React.FormEvent) {
     event.preventDefault();
     startTransition(async () => {
-      const result = await createWorkspaceProject({ workspaceId, name, ticketKey });
+      const result = await createWorkspaceProject({
+        workspaceId,
+        name,
+        ticketKey,
+        templateId: templateId || undefined,
+      });
       if (!result.ok) {
         const field =
           result.field === 'name' || result.field === 'ticketKey' ? result.field : 'server';
@@ -366,6 +463,15 @@ function CreateProjectDialog({
               2–6 uppercase letters, unique across all projects.
             </p>
             {errors.ticketKey && <p className="text-sm text-destructive">{errors.ticketKey}</p>}
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="ws-project-template">Template</Label>
+            <TemplateSelect
+              id="ws-project-template"
+              templates={templates}
+              value={templateId}
+              onChange={setTemplateId}
+            />
           </div>
           {errors.server && <p className="text-sm text-destructive">{errors.server}</p>}
           <DialogFooter>

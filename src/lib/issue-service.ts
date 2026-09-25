@@ -17,19 +17,23 @@
 // are stored as null. Every successful write emits activity + events
 // (src/lib/events.ts), written in the same db.batch as the change.
 
-import { and, eq, inArray, or, sql, type SQL } from 'drizzle-orm';
-import { alias, type AnyPgColumn } from 'drizzle-orm/pg-core';
+import { and, asc, eq, exists, inArray, isNull, or, sql, type SQL } from 'drizzle-orm';
+import { alias, type AnyPgColumn, type PgUpdateSetSource } from 'drizzle-orm/pg-core';
 import type { BatchItem } from 'drizzle-orm/batch';
 
 import { db } from '@/lib/db';
 import {
+  activities,
   cycles,
   epics,
+  githubPullRequests,
   issueLabels,
   labels,
   milestones,
+  notifications,
   projectMembers,
   projects,
+  ticketKeyAliases,
   tickets,
   users,
   workflowStates,
@@ -54,8 +58,14 @@ import {
   type IssueUser,
   type WorkflowState,
 } from '@/lib/issue-model';
+import type { EpicSummary } from '@/lib/project-data-types';
 import { issueQueries, mergeIssueRows, queryIssues } from '@/lib/tickets';
-import { defaultNewIssueState, sortStates, stateTransitionTimestamps } from '@/lib/workflow';
+import {
+  defaultNewIssueState,
+  firstStateOfType,
+  sortStates,
+  stateTransitionTimestamps,
+} from '@/lib/workflow';
 
 // ---------------------------------------------------------------------------
 // Contract
@@ -202,8 +212,8 @@ interface Context {
   assignee: IssueUser | null;
   parents: Map<string, ParentRef>;
   cycles: Map<string, Named>;
-  epics: Map<string, Named>;
-  milestones: Map<string, Named & { epicId: string }>;
+  epics: Map<string, Named & { available: boolean }>;
+  milestones: Map<string, Named & { epicId: string; available: boolean }>;
   /** Issues (of `issueIds`) that are the new parent or one of its ancestors. */
   cyclic: Set<string>;
   actor: IssueUser | null;
@@ -219,6 +229,110 @@ export function slaDeadline(
 ): Date | null {
   const hours = policy?.[priority];
   return typeof hours === 'number' && hours > 0 ? new Date(from.getTime() + hours * 3_600_000) : null;
+}
+
+// ---------------------------------------------------------------------------
+// Cross-project epics (.planning/features/D4a-cross-project-epics.md)
+// ---------------------------------------------------------------------------
+
+/**
+ * SQL predicate over the `epic` table: an issue of `projectId` may point at
+ * this epic, for `userId`. Own epics always; another project's epics when both
+ * projects share a workspace and `userId` is a member of the epic's project.
+ * System actors (null) only get the project's own epics.
+ */
+export function epicAvailableTo(projectId: string, userId: string | null): SQL {
+  const own = eq(epics.projectId, projectId);
+  if (!userId) return own;
+  const epicProject = alias(projects, 'epic_project');
+  const issueProject = alias(projects, 'issue_project');
+  const epicMember = alias(projectMembers, 'epic_member');
+  return or(
+    own,
+    and(
+      exists(
+        db
+          .select({ one: sql`1` })
+          .from(epicProject)
+          .innerJoin(issueProject, eq(issueProject.workspaceId, epicProject.workspaceId))
+          .where(and(eq(epicProject.id, epics.projectId), eq(issueProject.id, projectId))),
+      ),
+      exists(
+        db
+          .select({ one: sql`1` })
+          .from(epicMember)
+          .where(and(eq(epicMember.projectId, epics.projectId), eq(epicMember.userId, userId))),
+      ),
+    ),
+  )!;
+}
+
+const epicAvailableSql = (projectId: string, userId: string | null) =>
+  sql<boolean>`(${epicAvailableTo(projectId, userId)})`.mapWith(Boolean);
+
+export interface AvailableEpic extends EpicSummary {
+  projectId: string;
+  projectName: string;
+  ticketKey: string;
+  /** Owned by another project than the one asked about. */
+  external: boolean;
+}
+
+/**
+ * Non-archived epics (+ milestones) that issues of `projectId` may use, as seen
+ * by `userId`: the project's own first (sortOrder, name), then other workspace
+ * projects' (project name, sortOrder). [] when `userId` isn't a member of
+ * `projectId`. Server-only; wrap it in your own authorized server action.
+ */
+export async function availableEpicsForProject(
+  projectId: string,
+  userId: string,
+): Promise<AvailableEpic[]> {
+  if (!projectId || !userId) return [];
+  const viewer = alias(projectMembers, 'viewer');
+  const where = and(
+    isNull(epics.archivedAt),
+    epicAvailableTo(projectId, userId),
+    exists(
+      db
+        .select({ one: sql`1` })
+        .from(viewer)
+        .where(and(eq(viewer.projectId, projectId), eq(viewer.userId, userId))),
+    ),
+  );
+  const [epicRows, milestoneRows] = await db.batch([
+    db
+      .select({
+        id: epics.id,
+        name: epics.name,
+        color: epics.color,
+        status: epics.status,
+        projectId: epics.projectId,
+        projectName: projects.name,
+        ticketKey: projects.ticketKey,
+      })
+      .from(epics)
+      .innerJoin(projects, eq(epics.projectId, projects.id))
+      .where(where)
+      .orderBy(asc(projects.name), asc(epics.sortOrder), asc(epics.name)),
+    db
+      .select({ id: milestones.id, name: milestones.name, epicId: milestones.epicId })
+      .from(milestones)
+      .innerJoin(epics, eq(milestones.epicId, epics.id))
+      .where(where)
+      .orderBy(asc(milestones.sortOrder), asc(milestones.name)),
+  ]);
+
+  const byId = new Map<string, AvailableEpic>(
+    epicRows.map((epic) => [
+      epic.id,
+      { ...epic, external: epic.projectId !== projectId, milestones: [] },
+    ]),
+  );
+  for (const { epicId, ...milestone } of milestoneRows) byId.get(epicId)?.milestones.push(milestone);
+  const list = [...byId.values()];
+  // Stable sort: own epics first, the query's order otherwise.
+  return list.sort((a, b) => Number(a.external) - Number(b.external));
 }
 
 async function loadContext(
@@ -320,20 +434,23 @@ async function loadContext(
       .select({ id: cycles.id, number: cycles.number, name: cycles.name })
       .from(cycles)
       .where(and(eq(cycles.projectId, projectId), refCond(cycles.id, patch.cycleId, src.cycleId))),
+    // Epics / milestones aren't project-scoped here: the issues' current ones
+    // are loaded for their names even when the actor can no longer see them;
+    // `available` decides whether one may be newly assigned (cross-project epics).
     db
-      .select({ id: epics.id, name: epics.name })
+      .select({ id: epics.id, name: epics.name, available: epicAvailableSql(projectId, actorId) })
       .from(epics)
-      .where(and(eq(epics.projectId, projectId), refCond(epics.id, patch.epicId, src.epicId))),
+      .where(refCond(epics.id, patch.epicId, src.epicId)),
     db
-      .select({ id: milestones.id, name: milestones.name, epicId: milestones.epicId })
+      .select({
+        id: milestones.id,
+        name: milestones.name,
+        epicId: milestones.epicId,
+        available: epicAvailableSql(projectId, actorId),
+      })
       .from(milestones)
       .innerJoin(epics, eq(milestones.epicId, epics.id))
-      .where(
-        and(
-          eq(epics.projectId, projectId),
-          refCond(milestones.id, patch.milestoneId, src.milestoneId),
-        ),
-      ),
+      .where(refCond(milestones.id, patch.milestoneId, src.milestoneId)),
     // Walk up from the proposed parent; any of our issues on that path would
     // make a cycle (including parent = self). Depth-capped against bad data.
     db
@@ -447,10 +564,10 @@ function resolvePatch(ctx: Context, patch: IssuePatch): { ok: true; resolved: Re
     }
   }
   if (patch.cycleId && !ctx.cycles.has(patch.cycleId)) return fail('Invalid cycle.', 'cycleId');
-  if (patch.epicId && !ctx.epics.has(patch.epicId)) return fail('Invalid epic.', 'epicId');
+  if (patch.epicId && !ctx.epics.get(patch.epicId)?.available) return fail('Invalid epic.', 'epicId');
   if (patch.milestoneId) {
     const milestone = ctx.milestones.get(patch.milestoneId);
-    if (!milestone) return fail('Invalid milestone.', 'milestoneId');
+    if (!milestone?.available) return fail('Invalid milestone.', 'milestoneId');
     if (patch.epicId !== undefined && patch.epicId !== milestone.epicId) {
       return fail('That milestone belongs to another epic.', 'milestoneId');
     }
@@ -1001,4 +1118,247 @@ export async function purge(actor: IssueActor, projectId: string, id: string): P
   ]);
   publishIssueEvents(stored);
   return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// Move to another project (.planning/features/D4a-move-issues.md)
+// ---------------------------------------------------------------------------
+
+export const ISSUE_MOVED_EVENT = 'issue.moved';
+
+export type MoveIssueResult =
+  | {
+      ok: true;
+      /** The moved issue, as it now reads in the target project. */
+      issue: IssueRow;
+      fromKey: string;
+      /** Issues moved, sub-issues included. */
+      moved: number;
+      /** Label names the target project doesn't have (dropped). */
+      droppedLabels: string[];
+    }
+  | IssueServiceError;
+
+/**
+ * Move an issue — with all of its sub-issues, so a parent never lives in
+ * another project — from `fromProjectId` to `toProjectId`. Callers MUST
+ * authorize write access in BOTH projects. Each issue gets the next number in
+ * the target and its old key is kept as a `ticket_key_alias`. State maps by
+ * name → type → default; labels by name (unmatched are dropped); assignee kept
+ * if a target member; cycle cleared; epic + milestone kept only when the epic
+ * is available to the target (epicAvailableTo). Comments, attachments,
+ * relations, subscribers, PR links, notifications and activity come along.
+ */
+export async function moveIssue(
+  actor: IssueActor,
+  fromProjectId: string,
+  id: string,
+  toProjectId: string,
+): Promise<MoveIssueResult> {
+  if (!fromProjectId || !toProjectId || typeof id !== 'string' || !id) return NOT_FOUND;
+  if (fromProjectId === toProjectId) return fail('The issue is already in that project.');
+
+  // The issue and every descendant (depth-capped against bad data), all in the
+  // source project.
+  const inTree = and(
+    eq(tickets.projectId, fromProjectId),
+    sql`${tickets.id} in (
+      with recursive tree(id, depth) as (
+        select t.id, 0 from ${tickets} t where t.id = ${id} and t.project_id = ${fromProjectId}
+        union all
+        select c.id, tree.depth + 1 from ${tickets} c join tree on c.parent_id = tree.id
+        where tree.depth < 50
+      )
+      select id from tree
+    )`,
+  )!;
+  const treeEpicIds = db.select({ epicId: tickets.epicId }).from(tickets).where(inTree);
+
+  const [issueRows, issueLabelRows, targetRows, stateRows, labelRows, memberRows, epicRows] =
+    await db.batch([
+      ...issueQueries(inTree, { orderBy: [asc(tickets.ticketNumber)] }),
+      db
+        .select({
+          ticketKey: projects.ticketKey,
+          estimateScale: projects.estimateScale,
+          slaPolicy: projects.slaPolicy,
+        })
+        .from(projects)
+        .where(eq(projects.id, toProjectId))
+        .limit(1),
+      db
+        .select({
+          id: workflowStates.id,
+          name: workflowStates.name,
+          type: workflowStates.type,
+          color: workflowStates.color,
+          position: workflowStates.position,
+          description: workflowStates.description,
+        })
+        .from(workflowStates)
+        .where(eq(workflowStates.projectId, toProjectId)),
+      db
+        .select({ id: labels.id, name: labels.name, color: labels.color })
+        .from(labels)
+        .where(eq(labels.projectId, toProjectId)),
+      db
+        .select({ userId: projectMembers.userId })
+        .from(projectMembers)
+        .where(eq(projectMembers.projectId, toProjectId)),
+      db
+        .select({ id: epics.id })
+        .from(epics)
+        .where(and(inArray(epics.id, treeEpicIds), epicAvailableTo(toProjectId, actor.userId))),
+    ]);
+
+  const all = mergeIssueRows(issueRows, issueLabelRows);
+  const root = all.find((issue) => issue.id === id);
+  if (!root) return NOT_FOUND;
+  if (root.deletedAt) return fail('Restore the issue before moving it.');
+  if (all.length > BULK_MAX) {
+    return fail(`Too many sub-issues to move at once (at most ${BULK_MAX} issues).`);
+  }
+  const [target] = targetRows;
+  if (!target) return fail('Project not found.');
+  const states = sortStates(stateRows);
+  if (states.length === 0) return fail('That project has no workflow states.');
+
+  // Root first, then sub-issues in their old order.
+  const ordered = [root, ...all.filter((issue) => issue.id !== id)];
+  const treeIds = ordered.map((issue) => issue.id);
+  const stateByName = new Map(states.map((s) => [s.name.toLowerCase(), s]));
+  const labelByName = new Map(labelRows.map((l) => [l.name.toLowerCase(), l]));
+  const memberIds = new Set(memberRows.map((m) => m.userId));
+  const keptEpics = new Set(epicRows.map((e) => e.id));
+  const dropped = new Set<string>();
+  const now = new Date();
+  const count = ordered.length;
+  const counter = sql<number>`(select ${projects.ticketCounter} from ${projects} where ${projects.id} = ${toProjectId})`;
+
+  const plans = ordered.map((old, i) => {
+    const state =
+      stateByName.get(old.state.name.toLowerCase()) ??
+      firstStateOfType(states, old.state.type) ??
+      defaultNewIssueState(states) ??
+      states[0];
+    const labelsKept: IssueLabel[] = [];
+    for (const label of old.labels) {
+      const match = labelByName.get(label.name.toLowerCase());
+      if (match) labelsKept.push(match);
+      else dropped.add(label.name);
+    }
+    const keepEpic = old.epicId !== null && keptEpics.has(old.epicId);
+    const typeChanged = state.type !== old.state.type;
+    const timestamps = typeChanged
+      ? stateTransitionTimestamps(old.state.type, state.type, old, now)
+      : { startedAt: old.startedAt, completedAt: old.completedAt, canceledAt: old.canceledAt };
+    const number = sql<number>`${counter} - ${count - 1 - i}::int`;
+    const set: PgUpdateSetSource<typeof tickets> = {
+      projectId: toProjectId,
+      ticketNumber: number,
+      sortOrder: number,
+      stateId: state.id,
+      ...timestamps,
+      stateChangedAt: typeChanged ? now : old.stateChangedAt,
+      assigneeId: old.assignee && memberIds.has(old.assignee.id) ? old.assignee.id : null,
+      // The root's parent stays behind; sub-issues keep theirs (moved too).
+      parentId: i === 0 ? null : old.parentId,
+      cycleId: null,
+      epicId: keepEpic ? old.epicId : null,
+      milestoneId: keepEpic ? old.milestoneId : null,
+      estimate:
+        old.estimate !== null && isValidEstimate(target.estimateScale, old.estimate)
+          ? old.estimate
+          : null,
+      slaDueAt: slaDeadline(target.slaPolicy, old.priority, old.createdAt),
+      slaBreachedAt: null,
+      updatedAt: now,
+    };
+    return { old, set, labels: labelsKept };
+  });
+
+  const bump = db
+    .update(projects)
+    .set({ ticketCounter: sql`${projects.ticketCounter} + ${count}::int`, updatedAt: now })
+    .where(eq(projects.id, toProjectId))
+    .returning({ number: projects.ticketCounter });
+  const labelInserts = plans.flatMap((p) =>
+    p.labels.map((label) => ({ ticketId: p.old.id, labelId: label.id })),
+  );
+  const statements: BatchItem<'pg'>[] = [
+    ...plans.map(({ old, set }) =>
+      db
+        .update(tickets)
+        .set(set)
+        .where(and(eq(tickets.id, old.id), eq(tickets.projectId, fromProjectId))),
+    ),
+    db.delete(issueLabels).where(inArray(issueLabels.ticketId, treeIds)),
+    ...(labelInserts.length ? [db.insert(issueLabels).values(labelInserts)] : []),
+    db
+      .insert(ticketKeyAliases)
+      .values(ordered.map((old) => ({ key: old.key, ticketId: old.id, createdAt: now })))
+      .onConflictDoUpdate({
+        target: ticketKeyAliases.key,
+        set: { ticketId: sql`excluded.ticket_id` },
+      }),
+    // History, PR links and inbox entries follow the issue to its new project.
+    db.update(activities).set({ projectId: toProjectId }).where(inArray(activities.ticketId, treeIds)),
+    db
+      .update(githubPullRequests)
+      .set({ projectId: toProjectId })
+      .where(inArray(githubPullRequests.ticketId, treeIds)),
+    db
+      .update(notifications)
+      .set({ projectId: toProjectId })
+      .where(inArray(notifications.ticketId, treeIds)),
+  ];
+  const [[bumped]] = await db.batch([bump, ...statements]);
+  if (!bumped) return fail('Project not found.');
+
+  const keyOf = (i: number) => `${target.ticketKey}-${bumped.number - (count - 1 - i)}`;
+  const droppedLabels = [...dropped].sort();
+  const toKey = keyOf(0);
+  await emitIssueEvent([
+    {
+      projectId: fromProjectId,
+      ticketId: null,
+      actorId: actor.userId,
+      type: ISSUE_MOVED_EVENT,
+      data: {
+        ticketId: root.id,
+        key: root.key,
+        title: root.title,
+        fromKey: root.key,
+        toKey,
+        toProjectId,
+        moved: count,
+        summary: `moved ${root.key} to ${toKey}`,
+      },
+    },
+    ...ordered.map((old, i) => ({
+      projectId: toProjectId,
+      ticketId: old.id,
+      actorId: actor.userId,
+      type: ISSUE_MOVED_EVENT,
+      data: {
+        key: keyOf(i),
+        title: old.title,
+        fromKey: old.key,
+        toKey: keyOf(i),
+        fromProjectId,
+        toProjectId,
+        droppedLabels: old.labels
+          .filter((l) => !labelByName.has(l.name.toLowerCase()))
+          .map((l) => l.name),
+        ...(i > 0 ? { withParent: root.key } : {}),
+        summary: `moved from ${old.key}`,
+      },
+    })),
+  ]);
+
+  const [issue] = await queryIssues(and(eq(tickets.id, id), eq(tickets.projectId, toProjectId)), {
+    limit: 1,
+  });
+  if (!issue) return NOT_FOUND;
+  return { ok: true, issue, fromKey: root.key, moved: count, droppedLabels };
 }

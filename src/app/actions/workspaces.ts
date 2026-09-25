@@ -12,14 +12,14 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { and, eq, gt, isNull, sql } from 'drizzle-orm';
+import { and, eq, gt, isNull, ne, or, sql } from 'drizzle-orm';
 
+import { recordWorkspaceEvent } from '@/lib/audit';
 import { db } from '@/lib/db';
 import {
   projectMembers,
   projects,
   users,
-  workflowStates,
   workspaceInvitations,
   workspaceMembers,
   workspaces,
@@ -37,11 +37,19 @@ import {
   type WorkspaceMembership,
   type WorkspaceRole,
 } from '@/lib/workspace-access';
-import { workflowStateInserts } from '@/lib/workflow-server';
+import { getUsableTemplateConfig, projectSeed } from '@/lib/project-templates';
 import { sendEmail } from '@/lib/email';
 import { isValidSlug, slugify } from '@/components/workspaces/slug';
 
-export type WorkspaceField = 'name' | 'slug' | 'confirm' | 'email' | 'role' | 'ticketKey' | 'projectId';
+export type WorkspaceField =
+  | 'name'
+  | 'slug'
+  | 'confirm'
+  | 'email'
+  | 'role'
+  | 'ticketKey'
+  | 'projectId'
+  | 'templateId';
 
 export type WorkspaceActionResult =
   | { ok: true; slug?: string; added?: boolean; emailed?: boolean; url?: string }
@@ -213,10 +221,15 @@ export async function addProjectToWorkspace(input: {
     return { ok: false, error: 'You need to be an admin of that project.', field: 'projectId' };
   }
 
-  await db
-    .update(projects)
-    .set({ workspaceId: authz.membership.workspaceId, updatedAt: new Date() })
-    .where(eq(projects.id, input.projectId));
+  // Sub-team links never cross workspaces: the project leaves its old parent
+  // and its sub-teams (still in the old workspace) are detached.
+  await db.batch([
+    db
+      .update(projects)
+      .set({ workspaceId: authz.membership.workspaceId, parentId: null, updatedAt: new Date() })
+      .where(eq(projects.id, input.projectId)),
+    detachSubTeams(input.projectId, authz.membership.workspaceId),
+  ]);
   revalidateWorkspace(authz.membership.slug);
   revalidatePath(`/dashboard/projects/${input.projectId}`, 'layout');
   return { ok: true };
@@ -235,28 +248,45 @@ export async function removeProjectFromWorkspace(input: {
     if (!project.ok) return FORBIDDEN;
   }
 
+  const projectId = typeof input.projectId === 'string' ? input.projectId : '';
   const updated = await db
     .update(projects)
-    .set({ workspaceId: null, updatedAt: new Date() })
-    .where(
-      and(
-        eq(projects.id, typeof input.projectId === 'string' ? input.projectId : ''),
-        eq(projects.workspaceId, authz.membership.workspaceId),
-      ),
-    )
+    .set({ workspaceId: null, parentId: null, updatedAt: new Date() })
+    .where(and(eq(projects.id, projectId), eq(projects.workspaceId, authz.membership.workspaceId)))
     .returning({ id: projects.id });
   if (updated.length === 0) return { ok: false, error: 'Project not found in this workspace.' };
+  // Only once the project is confirmed to have been in this workspace.
+  await detachSubTeams(projectId, null);
 
   revalidateWorkspace(authz.membership.slug);
   revalidatePath(`/dashboard/projects/${input.projectId}`, 'layout');
   return { ok: true };
 }
 
-/** Same shape as createProject (project + owner row + default states, one batch), inside the workspace. */
+/** Sub-teams of `projectId` outside `workspaceId` (null = any) lose their parent. */
+function detachSubTeams(projectId: string, workspaceId: string | null) {
+  return db
+    .update(projects)
+    .set({ parentId: null })
+    .where(
+      and(
+        eq(projects.parentId, projectId),
+        workspaceId
+          ? or(isNull(projects.workspaceId), ne(projects.workspaceId, workspaceId))
+          : undefined,
+      ),
+    );
+}
+
+/**
+ * Same shape as createProject (project + owner row + states, one batch), inside
+ * the workspace. `templateId` seeds it from a project template (D4a).
+ */
 export async function createWorkspaceProject(input: {
   workspaceId: string;
   name: string;
   ticketKey: string;
+  templateId?: string;
 }): Promise<WorkspaceActionResult & { projectId?: string }> {
   const authz = await authorizeWorkspace(input?.workspaceId, 'member');
   if (isError(authz)) return authz;
@@ -271,8 +301,15 @@ export async function createWorkspaceProject(input: {
     return { ok: false, error: 'Key must be 2–6 uppercase letters.', field: 'ticketKey' };
   }
 
+  const templateId = typeof input.templateId === 'string' ? input.templateId : '';
+  const template = templateId ? await getUsableTemplateConfig(templateId, authz.userId) : null;
+  if (templateId && !template) {
+    return { ok: false, error: 'That template is no longer available.', field: 'templateId' };
+  }
+
   const projectId = crypto.randomUUID();
   const now = new Date();
+  const seed = projectSeed(projectId, now, template, authz.userId);
   try {
     await db.batch([
       db.insert(projects).values({
@@ -282,6 +319,7 @@ export async function createWorkspaceProject(input: {
         ticketCounter: 0,
         ownerId: authz.userId,
         workspaceId: authz.membership.workspaceId,
+        ...seed.settings,
         createdAt: now,
         updatedAt: now,
       }),
@@ -292,7 +330,7 @@ export async function createWorkspaceProject(input: {
         role: 'owner',
         createdAt: now,
       }),
-      db.insert(workflowStates).values(workflowStateInserts(projectId, now)),
+      ...seed.statements,
     ]);
   } catch (err) {
     if (isUniqueViolation(err)) {
@@ -306,6 +344,46 @@ export async function createWorkspaceProject(input: {
   }
 
   revalidateWorkspace(authz.membership.slug);
+  return { ok: true, projectId };
+}
+
+/**
+ * Private teams (D4a): any workspace member may join a project of the
+ * workspace whose visibility is 'workspace', as a member. Private projects
+ * answer "not found" so their existence doesn't leak.
+ */
+export async function joinWorkspaceProject(input: {
+  workspaceId: string;
+  projectId: string;
+}): Promise<WorkspaceActionResult & { projectId?: string }> {
+  const authz = await authorizeWorkspace(input?.workspaceId, 'member');
+  if (isError(authz)) return authz;
+  const projectId = typeof input.projectId === 'string' ? input.projectId : '';
+  const [project] = await db
+    .select({ id: projects.id })
+    .from(projects)
+    .where(
+      and(
+        eq(projects.id, projectId),
+        eq(projects.workspaceId, authz.membership.workspaceId),
+        eq(projects.visibility, 'workspace'),
+      ),
+    )
+    .limit(1);
+  if (!project) return { ok: false, error: 'Project not found.', field: 'projectId' };
+
+  await db
+    .insert(projectMembers)
+    .values({
+      id: crypto.randomUUID(),
+      projectId,
+      userId: authz.userId,
+      role: 'member',
+      createdAt: new Date(),
+    })
+    .onConflictDoNothing();
+  revalidateWorkspace(authz.membership.slug);
+  revalidatePath(`/dashboard/projects/${projectId}`, 'layout');
   return { ok: true, projectId };
 }
 
@@ -541,6 +619,12 @@ export async function updateWorkspaceMemberRole(input: {
     .returning({ id: workspaceMembers.id });
   if (updated.length === 0) return { ok: false, error: 'Member not found.' };
 
+  await recordWorkspaceEvent(authz.membership.workspaceId, {
+    actorId: authz.userId,
+    type: 'workspace.role_changed',
+    summary: `changed a member's workspace role to ${input.role}`,
+    data: { userId: input.userId, role: input.role },
+  });
   revalidateWorkspace(authz.membership.slug);
   return { ok: true };
 }
@@ -576,6 +660,12 @@ export async function removeWorkspaceMember(input: {
     .where(
       and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.userId, input.userId)),
     );
+  await recordWorkspaceEvent(workspaceId, {
+    actorId: authz.userId,
+    type: 'workspace.member_removed',
+    summary: 'removed a member from the workspace',
+    data: { userId: input.userId },
+  });
   revalidateWorkspace(authz.membership.slug);
   return { ok: true };
 }
@@ -647,6 +737,12 @@ export async function acceptWorkspaceInvite(
     throw err;
   }
 
+  await recordWorkspaceEvent(invite.workspaceId, {
+    actorId: session.user.id,
+    type: 'workspace.member_joined',
+    summary: `joined the workspace as ${invite.role}`,
+    data: { userId: session.user.id, role: invite.role },
+  });
   revalidatePath('/dashboard', 'layout');
   redirect(`/dashboard/workspaces/${workspace.slug}`);
 }

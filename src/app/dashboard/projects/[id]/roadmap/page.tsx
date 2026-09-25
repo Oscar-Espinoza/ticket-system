@@ -13,13 +13,16 @@ export const metadata: Metadata = { title: 'Roadmap' };
 export default async function RoadmapPage({ params }: { params: Promise<{ id: string }> }) {
   const [{ id }, session] = await Promise.all([params, getSession()]);
   if (!session?.user) redirect('/login');
-  const { epics, milestones } = await getProjectEpics(id, session.user.id);
+  const { epics, milestones, dependencies } = await getProjectEpics(id, session.user.id);
   const active = epics.filter((epic) => !epic.archivedAt);
   const activeIds = new Set(active.map((epic) => epic.id));
   return (
     <RoadmapView
       epics={active}
       milestones={milestones.filter((milestone) => activeIds.has(milestone.epicId))}
+      dependencies={dependencies.filter(
+        (dep) => activeIds.has(dep.blockerId) && activeIds.has(dep.blockedId),
+      )}
     />
   );
 }

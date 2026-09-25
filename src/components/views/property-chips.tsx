@@ -1,11 +1,12 @@
 'use client';
 
 // Small read-only chips for the properties B5 added to rows / cards / table:
-// cycle, epic, milestone and sub-issue progress.
+// cycle, epic, milestone, sub-issue progress and (D8) start date.
 
-import { Diamond, Network, RefreshCcw } from 'lucide-react';
+import { CalendarArrowUp, Diamond, Network, RefreshCcw } from 'lucide-react';
 
 import { useProjectData } from '@/components/project/project-data';
+import { formatDueDate } from '@/lib/dates';
 import { cn } from '@/lib/utils';
 import type { SubIssueCount } from './view-context';
 
@@ -73,6 +74,16 @@ export function SubIssueChip({ count, className }: { count: SubIssueCount | null
     >
       <Network className="size-3 shrink-0" aria-hidden="true" />
       {count.done}/{count.total}
+    </span>
+  );
+}
+
+export function StartDateChip({ startDate, className }: { startDate: string | null; className?: string }) {
+  if (!startDate) return null;
+  return (
+    <span title={`Starts ${formatDueDate(startDate)}`} suppressHydrationWarning className={cn(CHIP, className)}>
+      <CalendarArrowUp className="size-3 shrink-0" aria-hidden="true" />
+      {formatDueDate(startDate)}
     </span>
   );
 }

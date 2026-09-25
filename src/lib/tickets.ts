@@ -13,6 +13,7 @@ import {
   labels,
   projectMembers,
   projects,
+  ticketKeyAliases,
   tickets,
   users,
   workflowStates,
@@ -246,15 +247,35 @@ export async function getTicketById(
   return issue ?? null;
 }
 
-/** By per-project number ("ENG-12" → 12); archived / deleted included. Trusts projectId. */
+/**
+ * By per-project number ("ENG-12" → 12); archived / deleted included. Trusts
+ * projectId. With `viewerId`, a number that no longer exists here falls back to
+ * `ticket_key_alias` (issues moved to another project keep their old key) and
+ * returns the issue only if `viewerId` is a member of the project it lives in
+ * now — callers compare `issue.projectId` with `projectId` and redirect.
+ */
 export async function getIssueByKey(
   projectId: string,
   number: number,
+  viewerId?: string,
 ): Promise<IssueRow | null> {
   if (!projectId || !Number.isInteger(number)) return null;
   const [issue] = await queryIssues(
     and(eq(tickets.projectId, projectId), eq(tickets.ticketNumber, number)),
     { limit: 1 },
   );
-  return issue ?? null;
+  if (issue || !viewerId) return issue ?? null;
+
+  const [moved] = await db
+    .select({ ticketId: ticketKeyAliases.ticketId })
+    .from(ticketKeyAliases)
+    .innerJoin(projects, sql`${ticketKeyAliases.key} = ${projects.ticketKey} || '-' || ${String(number)}`)
+    .where(eq(projects.id, projectId))
+    .limit(1);
+  if (!moved) return null;
+  const [found] = await queryIssues(
+    and(eq(tickets.id, moved.ticketId), memberOfIssueProject(viewerId)),
+    { limit: 1 },
+  );
+  return found ?? null;
 }

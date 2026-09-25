@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { registerPaletteCommands } from '@/lib/palette-commands';
 import { cn } from '@/lib/utils';
 import { VelocityChart, type VelocityCycle } from './cycle-charts';
+import { CapacityBadge, CapacityMeter } from './cycle-capacity';
 import { CycleFormDialog } from './cycle-dialogs';
 import { CycleGlyph, CycleProgressBar, CycleStats } from './cycle-stats';
 import {
@@ -20,6 +21,7 @@ import {
   daysUntil,
   formatCycleRange,
   percent,
+  type CycleCapacity,
   type CycleStatus,
   type CycleTotals,
 } from './cycle-utils';
@@ -41,6 +43,8 @@ export function CyclesList({
   upcoming,
   past,
   velocity,
+  capacity,
+  cooldownWeeks,
   estimatesEnabled,
   canWrite,
   suggested,
@@ -52,6 +56,9 @@ export function CyclesList({
   /** Newest first. */
   past: CycleListItem[];
   velocity: VelocityCycle[];
+  /** Average throughput of the last past cycles; null without history. */
+  capacity: CycleCapacity | null;
+  cooldownWeeks: number;
   estimatesEnabled: boolean;
   canWrite: boolean;
   suggested: { startsAt: Date; endsAt: Date };
@@ -108,10 +115,24 @@ export function CyclesList({
             </div>
             <CycleProgressBar totals={current.totals} />
             <CycleStats totals={current.totals} showPoints={estimatesEnabled} />
+            {capacity && (
+              <CapacityMeter
+                totals={current.totals}
+                capacity={capacity}
+                estimatesEnabled={estimatesEnabled}
+              />
+            )}
           </Link>
         ) : (
-          <p className="rounded-lg border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
-            No cycle is running right now.
+          <p
+            className="rounded-lg border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground"
+            suppressHydrationWarning
+          >
+            {upcoming[0]
+              ? `${cooldownWeeks > 0 && past.length > 0 ? 'Cooldown' : 'No cycle is running'} — ${cycleName(
+                  upcoming[0],
+                )} starts in ${daysUntil(upcoming[0])} ${daysUntil(upcoming[0]) === 1 ? 'day' : 'days'}.`
+              : 'No cycle is running right now.'}
           </p>
         )}
       </section>
@@ -127,9 +148,17 @@ export function CyclesList({
                 cycle={cycle}
                 trailing={
                   <>
-                    <span>
-                      {cycle.totals.scope} {cycle.totals.scope === 1 ? 'issue' : 'issues'}
-                    </span>
+                    {capacity ? (
+                      <CapacityBadge
+                        totals={cycle.totals}
+                        capacity={capacity}
+                        estimatesEnabled={estimatesEnabled}
+                      />
+                    ) : (
+                      <span>
+                        {cycle.totals.scope} {cycle.totals.scope === 1 ? 'issue' : 'issues'}
+                      </span>
+                    )}
                     <span className="w-24 text-right" suppressHydrationWarning>
                       in {daysUntil(cycle)} days
                     </span>

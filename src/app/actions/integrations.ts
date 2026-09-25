@@ -5,10 +5,11 @@
 // webhook id from another project is simply "not found".
 
 import { revalidatePath } from 'next/cache';
+import { after } from 'next/server';
 import { and, count, eq } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
-import { projects, webhooks } from '@/db/schema';
+import { projects, webhookDeliveries, webhooks } from '@/db/schema';
 import { authorizeProjectAction } from '@/lib/action-auth';
 import {
   isWebhookEventType,
@@ -19,7 +20,11 @@ import {
 import { sendSlackMessage, slackEscape } from '@/lib/integrations/slack';
 import {
   generateWebhookSecret,
-  sendWebhook,
+  isSuccess,
+  recentDeliveries,
+  redeliver,
+  retryDueDeliveries,
+  sendLoggedDelivery,
 } from '@/lib/integrations/outgoing-webhooks';
 import { checkOutgoingUrl } from '@/lib/integrations/url-guard';
 
@@ -35,6 +40,22 @@ export interface WebhookView {
   lastStatus: number | null;
   lastDeliveredAt: string | null;
   createdAt: string;
+}
+
+/** One logged attempt series of an event to a webhook (settings delivery log). */
+export interface WebhookDeliveryView {
+  id: string;
+  eventType: string;
+  /** Attempts made so far (0 = not attempted yet). */
+  attempt: number;
+  /** Last HTTP status; 0 = refused / network error; null = not attempted. */
+  status: number | null;
+  error: string | null;
+  /** Next retry; null = delivered or given up. */
+  nextAttemptAt: string | null;
+  deliveredAt: string | null;
+  createdAt: string;
+  payload: Record<string, unknown>;
 }
 
 const WEBHOOKS_MAX = 10;
@@ -284,33 +305,121 @@ export async function revealWebhookSecret(input: {
 export async function sendWebhookTest(input: {
   projectId: string;
   id: string;
-}): Promise<Result<{ webhook: WebhookView }>> {
+}): Promise<Result<{ webhook: WebhookView; delivery: WebhookDeliveryView }>> {
   const auth = await authorizeProjectAction(input?.projectId, 'admin');
   if (!auth.ok) return { ok: false, error: auth.error };
-  if (typeof input.id !== 'string') return { ok: false, error: 'Webhook not found.' };
+  const hook = await findWebhook(input.projectId, input.id);
+  if (!hook) return { ok: false, error: 'Webhook not found.' };
 
+  // Logged like any delivery, but never retried.
+  const delivery = await sendLoggedDelivery(
+    hook,
+    {
+      id: crypto.randomUUID(),
+      type: 'webhook.test',
+      createdAt: new Date().toISOString(),
+      projectId: input.projectId,
+      actor: null,
+      issue: null,
+      data: { message: 'This is a test delivery.' },
+    },
+    { retry: false },
+  );
+  const [row] = await db
+    .select(webhookColumns)
+    .from(webhooks)
+    .where(eq(webhooks.id, hook.id))
+    .limit(1);
+  revalidate(input.projectId);
+  if (!isSuccess(delivery.status)) {
+    return {
+      ok: false,
+      error:
+        delivery.status === 0
+          ? (delivery.error ?? 'Could not reach the endpoint.')
+          : `The endpoint responded with HTTP ${delivery.status}.`,
+    };
+  }
+  return { ok: true, webhook: toView(row), delivery: toDeliveryView(delivery) };
+}
+
+// ---------------------------------------------------------------------------
+// Delivery log + retries
+// ---------------------------------------------------------------------------
+
+async function findWebhook(projectId: string, id: unknown) {
+  if (typeof id !== 'string' || !id) return null;
   const [hook] = await db
     .select({ id: webhooks.id, url: webhooks.url, secret: webhooks.secret })
     .from(webhooks)
-    .where(and(eq(webhooks.id, input.id), eq(webhooks.projectId, input.projectId)))
+    .where(and(eq(webhooks.id, id), eq(webhooks.projectId, projectId)))
     .limit(1);
-  if (!hook) return { ok: false, error: 'Webhook not found.' };
+  return hook ?? null;
+}
 
-  const status = await sendWebhook(hook, {
-    id: crypto.randomUUID(),
-    type: 'webhook.test',
-    createdAt: new Date().toISOString(),
-    projectId: input.projectId,
-    actor: null,
-    issue: null,
-    data: { message: 'This is a test delivery.' },
-  });
+function toDeliveryView(row: typeof webhookDeliveries.$inferSelect): WebhookDeliveryView {
+  return {
+    id: row.id,
+    eventType: row.eventType,
+    attempt: row.attempt,
+    status: row.attempt === 0 ? null : row.status,
+    error: row.error,
+    nextAttemptAt: row.nextAttemptAt?.toISOString() ?? null,
+    deliveredAt: row.deliveredAt?.toISOString() ?? null,
+    createdAt: row.createdAt.toISOString(),
+    payload: row.payload,
+  };
+}
+
+/** The last 20 deliveries of a webhook, newest first. */
+export async function listWebhookDeliveries(input: {
+  projectId: string;
+  webhookId: string;
+}): Promise<Result<{ deliveries: WebhookDeliveryView[] }>> {
+  const denied = await admin(input?.projectId);
+  if (denied) return denied;
+  const hook = await findWebhook(input.projectId, input.webhookId);
+  if (!hook) return { ok: false, error: 'Webhook not found.' };
+  const rows = await recentDeliveries(hook.id, 20);
+  return { ok: true, deliveries: rows.map(toDeliveryView) };
+}
+
+/** Resend a logged delivery now (its next attempt). */
+export async function redeliverWebhookDelivery(input: {
+  projectId: string;
+  webhookId: string;
+  deliveryId: string;
+}): Promise<Result<{ delivery: WebhookDeliveryView; webhook: WebhookView }>> {
+  const denied = await admin(input?.projectId);
+  if (denied) return denied;
+  const hook = await findWebhook(input.projectId, input.webhookId);
+  if (!hook || typeof input.deliveryId !== 'string') return { ok: false, error: 'Delivery not found.' };
+
+  const [delivery] = await db
+    .select()
+    .from(webhookDeliveries)
+    .where(and(eq(webhookDeliveries.id, input.deliveryId), eq(webhookDeliveries.webhookId, hook.id)))
+    .limit(1);
+  if (!delivery) return { ok: false, error: 'Delivery not found.' };
+
+  const updated = await redeliver(hook, delivery);
   const [row] = await db
-    .update(webhooks)
-    .set({ lastStatus: status, lastDeliveredAt: new Date() })
+    .select(webhookColumns)
+    .from(webhooks)
     .where(eq(webhooks.id, hook.id))
-    .returning(webhookColumns);
+    .limit(1);
   revalidate(input.projectId);
-  if (status < 200 || status >= 300) return statusError(status, 'The endpoint');
-  return { ok: true, webhook: toView(row) };
+  return { ok: true, delivery: toDeliveryView(updated), webhook: toView(row) };
+}
+
+/**
+ * Lazy retry hook for the settings page: resend this project's due deliveries
+ * after the response (no queue on the free tier; the daily cron also sweeps).
+ */
+export async function retryWebhookDeliveries(input: { projectId: string }): Promise<Result> {
+  const denied = await admin(input?.projectId);
+  if (denied) return denied;
+  const { projectId } = input;
+  after(() => retryDueDeliveries({ projectId, limit: 20 }).then(() => undefined));
+  return { ok: true };
 }

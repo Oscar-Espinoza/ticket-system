@@ -1,15 +1,22 @@
-// The normalized shape every importer (CSV, Jira CSV, GitHub Issues) produces on
-// the client and `importIssues` re-validates on the server. Client-safe.
+// The normalized shape every importer (CSV, Jira CSV, GitHub Issues, Asana,
+// Shortcut) produces and `importIssues` re-validates on the server. Client-safe.
 
 import type { Priority } from '@/lib/issue-model';
 
-export type ImportSourceKind = 'csv' | 'jira' | 'github';
+export const IMPORT_SOURCE_KINDS = ['csv', 'jira', 'github', 'asana', 'shortcut'] as const;
+export type ImportSourceKind = (typeof IMPORT_SOURCE_KINDS)[number];
 
 export const IMPORT_SOURCE_LABEL: Record<ImportSourceKind, string> = {
   csv: 'CSV',
   jira: 'Jira',
   github: 'GitHub',
+  asana: 'Asana',
+  shortcut: 'Shortcut',
 };
+
+export function isImportSourceKind(value: unknown): value is ImportSourceKind {
+  return typeof value === 'string' && (IMPORT_SOURCE_KINDS as readonly string[]).includes(value);
+}
 
 export interface ImportLabel {
   name: string;
@@ -19,7 +26,7 @@ export interface ImportLabel {
 
 export interface ImportSource {
   kind: ImportSourceKind;
-  /** Jira key, "owner/repo#12", or the CSV's id column. */
+  /** Jira key, "owner/repo#12", Asana task gid, Shortcut story id, or the CSV's id column. */
   id: string;
   url?: string | null;
   /** Original creation date, kept in the footer (issues are created "now"). */
@@ -41,6 +48,12 @@ export interface ImportRecord {
   /** YYYY-MM-DD */
   dueDate: string | null;
   source: ImportSource | null;
+  /**
+   * The parent's source (Asana subtasks, Shortcut sub-tasks): the issue becomes
+   * a sub-issue of whichever issue carries that source's marker — imported
+   * earlier or earlier in the same run (parents are ordered first).
+   */
+  parent?: ImportSource | null;
 }
 
 export interface ImportFailure {
@@ -60,6 +73,8 @@ export interface ImportChunkResult {
 export const IMPORT_CHUNK = 25;
 export const IMPORT_MAX_ROWS = 5000;
 export const GITHUB_IMPORT_CAP = 500;
+/** Tasks / stories fetched per Asana or Shortcut import. */
+export const EXTERNAL_IMPORT_CAP = 500;
 
 function sourceRef(source: ImportSource): string {
   return source.url ? `[${source.id}](${source.url})` : source.id;

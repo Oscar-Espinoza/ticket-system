@@ -1,11 +1,15 @@
 'use client';
 
-// Owner: B12 (data & realtime). Mounted once by the project layout.
+// Owner: B12 (data & realtime), D3 (SSE, cross-tab, outbox). Mounted once by
+// the project layout.
 //
-// Live updates without websockets (Vercel Hobby): poll a cheap change token
-// every 5 s while the tab is visible and router.refresh() when it moves —
-// debounced, and never while the user is typing (a refresh would clobber
-// uncontrolled drafts). Also keeps this project's presence channel alive.
+// Live updates without websockets (Vercel Hobby): a short-lived SSE stream
+// (`/api/projects/[id]/stream`) pushes the project's change token; when it
+// moves, router.refresh() — debounced, and never while the user is typing (a
+// refresh would clobber uncontrolled drafts). Streams reconnect with backoff
+// and fall back to polling the token every 5 s. Paused while the tab is hidden
+// or offline. Other tabs' saves arrive over a BroadcastChannel. Also keeps this
+// project's presence channel alive and shows the offline-outbox status.
 //
 // Presence: one ref-counted heartbeat channel per project, shared by
 // LiveUpdates and HeaderPresence (which also works outside the project layout,
@@ -15,8 +19,18 @@
 import { useCallback, useEffect, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 
+import { useProjectData } from '@/components/project/project-data';
+import { SyncStatus } from '@/components/sync/sync-status';
+import { onProjectChanged } from '@/lib/sync/broadcast';
+import { setSyncUser } from '@/lib/sync/outbox';
+
 const POLL_MS = 5_000;
 const POLL_BACKOFF_MS = 30_000;
+const SSE_RECONNECT_MS = 250;
+const SSE_BACKOFF_MS = 1_000;
+const SSE_BACKOFF_MAX_MS = 30_000;
+/** Consecutive stream failures (no token in between) before falling back to polling. */
+const SSE_MAX_FAILURES = 3;
 const REFRESH_DEBOUNCE_MS = 400;
 const HEARTBEAT_MS = 15_000;
 /** Collapses bursts (layout + detail pane mounting together) into one POST. */
@@ -181,15 +195,25 @@ export function useProjectPresence(projectId: string, ticketId: string | null = 
 
 export function LiveUpdates({ projectId }: { projectId: string }) {
   const router = useRouter();
+  const viewerId = useProjectData().viewer.id;
   useProjectPresence(projectId);
 
+  // Replays anything an earlier visit left in the offline outbox.
+  useEffect(() => setSyncUser(viewerId), [viewerId]);
+
   useEffect(() => {
+    const base = `/api/projects/${encodeURIComponent(projectId)}`;
     let token: string | null = null;
-    let pollTimer: ReturnType<typeof setTimeout> | undefined;
+    let timer: ReturnType<typeof setTimeout> | undefined;
     let refreshTimer: ReturnType<typeof setTimeout> | undefined;
+    let source: EventSource | null = null;
+    let polling = typeof EventSource === 'undefined';
+    let sseFailures = 0;
     let inFlight = false;
     let stopped = false;
     let waitingForBlur = false;
+
+    const active = () => !stopped && document.visibilityState === 'visible' && navigator.onLine;
 
     const refresh = () => {
       if (stopped) return;
@@ -211,59 +235,116 @@ export function LiveUpdates({ projectId }: { projectId: string }) {
         refresh();
       }, 0);
     }
+    const scheduleRefresh = () => {
+      clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(refresh, REFRESH_DEBOUNCE_MS);
+    };
 
-    const check = async () => {
-      clearTimeout(pollTimer);
-      if (stopped || inFlight) return;
-      // Resumed by the visibility / focus / online listeners below.
-      if (document.visibilityState !== 'visible' || !navigator.onLine) return;
+    // The first token is the baseline; it survives reconnects, so a new stream
+    // (whose first event is the current token) reveals what changed meanwhile.
+    const onToken = (next: string) => {
+      if (token !== null && next !== token) scheduleRefresh();
+      token = next;
+    };
+
+    // --- SSE --------------------------------------------------------------
+    const disconnect = () => {
+      source?.close();
+      source = null;
+    };
+
+    const connect = () => {
+      clearTimeout(timer);
+      if (source || !active()) return;
+      const es = new EventSource(`${base}/stream`);
+      source = es;
+      es.addEventListener('token', (event) => {
+        sseFailures = 0;
+        try {
+          onToken((JSON.parse((event as MessageEvent<string>).data) as { token: string }).token);
+        } catch {
+          // Malformed frame — the next one carries the token again.
+        }
+      });
+      // Planned close (function time limit): reconnect right away.
+      es.addEventListener('end', () => {
+        disconnect();
+        timer = setTimeout(connect, SSE_RECONNECT_MS);
+      });
+      // Removed from the project.
+      es.addEventListener('gone', () => {
+        stopped = true;
+        disconnect();
+      });
+      es.onerror = () => {
+        if (source !== es) return;
+        disconnect();
+        sseFailures += 1;
+        // Streaming doesn't work here (proxy, 401/404, …): poll instead, which
+        // also sees status codes and stops for good on 401/403/404.
+        if (sseFailures >= SSE_MAX_FAILURES) {
+          polling = true;
+          void poll();
+          return;
+        }
+        timer = setTimeout(connect, Math.min(SSE_BACKOFF_MS * 2 ** (sseFailures - 1), SSE_BACKOFF_MAX_MS));
+      };
+    };
+
+    // --- Polling fallback (B12) --------------------------------------------
+    const poll = async () => {
+      clearTimeout(timer);
+      if (inFlight || !active()) return;
       inFlight = true;
       let delay = POLL_MS;
       try {
-        const res = await fetch(`/api/projects/${encodeURIComponent(projectId)}/changes`, {
-          cache: 'no-store',
-        });
+        const res = await fetch(`${base}/changes`, { cache: 'no-store' });
         if (stopStatus(res.status)) {
           stopped = true;
           return;
         }
-        if (res.ok) {
-          const next = ((await res.json()) as { token: string }).token;
-          if (token !== null && next !== token) {
-            clearTimeout(refreshTimer);
-            refreshTimer = setTimeout(refresh, REFRESH_DEBOUNCE_MS);
-          }
-          token = next;
-        } else {
-          delay = POLL_BACKOFF_MS;
-        }
+        if (res.ok) onToken(((await res.json()) as { token: string }).token);
+        else delay = POLL_BACKOFF_MS;
       } catch {
         delay = POLL_BACKOFF_MS;
       } finally {
         inFlight = false;
       }
-      if (!stopped) pollTimer = setTimeout(() => void check(), delay);
+      if (!stopped) timer = setTimeout(() => void poll(), delay);
     };
 
-    const wake = () => void check();
-    const onVisibility = () => {
-      if (document.visibilityState === 'visible') wake();
+    // Hidden or offline: pause (close the stream); resumed by the listeners.
+    const wake = () => {
+      if (!active()) {
+        clearTimeout(timer);
+        disconnect();
+        return;
+      }
+      if (polling) void poll();
+      else connect();
     };
-    document.addEventListener('visibilitychange', onVisibility);
+
+    // Another tab of this project just saved something.
+    const stopCrossTab = onProjectChanged(projectId, scheduleRefresh);
+    document.addEventListener('visibilitychange', wake);
     window.addEventListener('focus', wake);
     window.addEventListener('online', wake);
-    void check();
+    window.addEventListener('offline', wake);
+    wake();
 
     return () => {
       stopped = true;
-      clearTimeout(pollTimer);
+      disconnect();
+      clearTimeout(timer);
       clearTimeout(refreshTimer);
-      document.removeEventListener('visibilitychange', onVisibility);
+      stopCrossTab();
+      document.removeEventListener('visibilitychange', wake);
       document.removeEventListener('focusout', onFocusOut);
       window.removeEventListener('focus', wake);
       window.removeEventListener('online', wake);
+      window.removeEventListener('offline', wake);
     };
   }, [projectId, router]);
 
-  return null;
+  return <SyncStatus userId={viewerId} />;
 }

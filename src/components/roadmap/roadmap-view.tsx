@@ -1,17 +1,24 @@
 'use client';
 
 // Project roadmap: the epics timeline with a zoom toggle (`?zoom=`), optimistic
-// rescheduling, and a side list of epics that have no dates yet.
+// rescheduling, dependency connectors (with a scheduling-conflict count), and
+// a side list of epics that have no dates yet.
 
 import { useOptimistic, useTransition } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { CalendarRange, Plus } from 'lucide-react';
+import { AlertTriangle, CalendarRange, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { updateEpic } from '@/app/actions/epics';
 import { EpicIcon, EpicStatusIcon } from '@/components/epics/epic-glyphs';
-import { epicPath, type EpicRow, type MilestoneRow } from '@/components/epics/epic-model';
+import {
+  epicPath,
+  isScheduleConflict,
+  type EpicDependency,
+  type EpicRow,
+  type MilestoneRow,
+} from '@/components/epics/epic-model';
 import { useProjectData, useProjectPermission } from '@/components/project/project-data';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
@@ -23,10 +30,13 @@ type DatePatch = { id: string; startDate?: string; targetDate?: string };
 export function RoadmapView({
   epics: serverEpics,
   milestones,
+  dependencies = [],
 }: {
   /** Non-archived epics. */
   epics: EpicRow[];
   milestones: MilestoneRow[];
+  /** `blocks` edges between those epics. */
+  dependencies?: EpicDependency[];
 }) {
   const { project } = useProjectData();
   const canWrite = useProjectPermission('write');
@@ -81,6 +91,13 @@ export function RoadmapView({
     );
   const undated = epics.filter((epic) => !epic.startDate && !epic.targetDate);
 
+  const byId = new Map(epics.map((epic) => [epic.id, epic]));
+  const conflicts = dependencies.filter((dep) => {
+    const blocker = byId.get(dep.blockerId);
+    const blocked = byId.get(dep.blockedId);
+    return blocker && blocked && isScheduleConflict(blocker, blocked);
+  });
+
   if (epics.length === 0) {
     return (
       <EmptyState
@@ -122,12 +139,32 @@ export function RoadmapView({
             Drag bars or their edges to reschedule (snaps to weeks)
           </span>
         )}
+        {conflicts.length > 0 && (
+          <span
+            className="ml-auto flex items-center gap-1 text-xs text-destructive"
+            title={conflicts
+              .map((dep) => `${byId.get(dep.blockedId)?.name} starts before ${byId.get(dep.blockerId)?.name} ends`)
+              .join('\n')}
+          >
+            <AlertTriangle className="size-3.5" />
+            {conflicts.length} scheduling {conflicts.length === 1 ? 'conflict' : 'conflicts'}
+          </span>
+        )}
       </div>
 
       <div className="flex min-h-0 flex-col gap-4 xl:flex-row">
         <div className="min-w-0 flex-1">
           {items.length > 0 ? (
-            <Timeline items={items} zoom={zoom} onChangeDates={canWrite ? onChangeDates : undefined} />
+            <Timeline
+              items={items}
+              zoom={zoom}
+              onChangeDates={canWrite ? onChangeDates : undefined}
+              dependencies={dependencies.map((dep) => ({
+                id: dep.id,
+                from: dep.blockerId,
+                to: dep.blockedId,
+              }))}
+            />
           ) : (
             <EmptyState
               icon={<CalendarRange />}

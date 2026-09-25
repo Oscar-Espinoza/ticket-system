@@ -20,6 +20,11 @@ export const WEEKDAYS = [
 export const CYCLE_DURATIONS = [1, 2, 3, 4, 5, 6, 7, 8] as const;
 /** Auto-create keeps this many upcoming cycles scheduled. */
 export const UPCOMING_CYCLES = 2;
+/** Cooldown between cycles: 0 (back-to-back) … MAX_COOLDOWN_WEEKS weeks. */
+export const MAX_COOLDOWN_WEEKS = 4;
+export const COOLDOWN_OPTIONS = [0, 1, 2, 3, 4] as const;
+/** Capacity = average throughput of this many most recent past cycles. */
+export const CAPACITY_CYCLES = 3;
 /** Choices for auto-archive / auto-close (null = off). */
 export const AUTOMATION_MONTHS = [1, 3, 6, 9, 12] as const;
 
@@ -178,4 +183,39 @@ export function startedOf(t: CycleTotals, unit: ChartUnit): number {
 
 export function percent(part: number, whole: number): number {
   return whole > 0 ? Math.round((part / whole) * 100) : 0;
+}
+
+// ---------------------------------------------------------------------------
+// Capacity (average completed work of recent cycles)
+// ---------------------------------------------------------------------------
+
+export interface CycleCapacity {
+  /** Average completed issues per cycle. */
+  issues: number;
+  /** Average completed points per cycle. */
+  points: number;
+  /** How many past cycles the average covers (1…CAPACITY_CYCLES). */
+  sample: number;
+}
+
+/** From past cycles' totals, oldest first; null when there are none. */
+export function cycleCapacity(past: CycleTotals[]): CycleCapacity | null {
+  const recent = past.slice(-CAPACITY_CYCLES);
+  if (recent.length === 0) return null;
+  const avg = (pick: (t: CycleTotals) => number) =>
+    Math.round((recent.reduce((sum, t) => sum + pick(t), 0) / recent.length) * 10) / 10;
+  return {
+    issues: avg((t) => t.completed),
+    points: avg((t) => t.completedPoints),
+    sample: recent.length,
+  };
+}
+
+/** Points when estimates are on and the team has completed any; else issues. */
+export function capacityUnit(capacity: CycleCapacity, estimatesEnabled: boolean): ChartUnit {
+  return estimatesEnabled && capacity.points > 0 ? 'points' : 'issues';
+}
+
+export function capacityOf(capacity: CycleCapacity, unit: ChartUnit): number {
+  return unit === 'points' ? capacity.points : capacity.issues;
 }

@@ -27,7 +27,12 @@ export interface SidebarProject {
   id: string;
   name: string;
   ticketKey: string;
+  /** Parent team (sub-teams, D4a); nested under it when the viewer has both. */
+  parentId?: string | null;
 }
+
+// Guards against bad data: a cycle or absurd depth just stops nesting.
+const MAX_DEPTH = 4;
 
 const SUB_LINKS = [
   { segment: '', label: 'Issues', icon: <ListTodo /> },
@@ -68,7 +73,16 @@ function subscribeOpen(listener: () => void) {
   };
 }
 
-function ProjectItem({ project }: { project: SidebarProject }) {
+function ProjectItem({
+  project,
+  childrenOf,
+  depth = 0,
+}: {
+  project: SidebarProject;
+  childrenOf: Map<string, SidebarProject[]>;
+  depth?: number;
+}) {
+  const subTeams = depth < MAX_DEPTH ? (childrenOf.get(project.id) ?? []) : [];
   const pathname = usePathname();
   const base = projectHref(project.id);
   const inProject = isActivePath(pathname, base);
@@ -118,12 +132,46 @@ function ProjectItem({ project }: { project: SidebarProject }) {
             active={link.segment === '' ? issuesActive : undefined}
           />
         ))}
+        {subTeams.length > 0 && (
+          <div className="ml-3.5 flex flex-col gap-px border-l border-sidebar-border pl-1">
+            {subTeams.map((child) => (
+              <ProjectItem key={child.id} project={child} childrenOf={childrenOf} depth={depth + 1} />
+            ))}
+          </div>
+        )}
       </CollapsibleContent>
     </Collapsible>
   );
 }
 
 export function SidebarProjects({ projects }: { projects: SidebarProject[] }) {
+  // Sub-teams nest under a parent the viewer also sees; otherwise top level.
+  const ids = new Set(projects.map((p) => p.id));
+  const childrenOf = new Map<string, SidebarProject[]>();
+  const roots: SidebarProject[] = [];
+  for (const project of projects) {
+    const parentId = project.parentId;
+    if (parentId && parentId !== project.id && ids.has(parentId)) {
+      const list = childrenOf.get(parentId);
+      if (list) list.push(project);
+      else childrenOf.set(parentId, [project]);
+    } else {
+      roots.push(project);
+    }
+  }
+  // Anything not reachable from a root (a parent cycle, or deeper than
+  // MAX_DEPTH) is listed at the top level instead of disappearing.
+  const reached = new Set<string>();
+  const walk = (list: SidebarProject[], depth: number) => {
+    for (const project of list) {
+      reached.add(project.id);
+      if (depth < MAX_DEPTH) walk(childrenOf.get(project.id) ?? [], depth + 1);
+    }
+  };
+  walk(roots, 0);
+  const top = [...roots, ...projects.filter((p) => !reached.has(p.id))];
+  const nested = childrenOf;
+
   return (
     <SidebarSection
       title={
@@ -138,7 +186,7 @@ export function SidebarProjects({ projects }: { projects: SidebarProject[] }) {
       {projects.length === 0 ? (
         <p className="px-2 py-1 text-xs text-muted-foreground">No projects yet.</p>
       ) : (
-        projects.map((project) => <ProjectItem key={project.id} project={project} />)
+        top.map((project) => <ProjectItem key={project.id} project={project} childrenOf={nested} />)
       )}
     </SidebarSection>
   );

@@ -16,6 +16,7 @@ import { CyclesList, type CycleListItem } from '@/components/cycles/cycles-list'
 import { FeatureOffState } from '@/components/cycles/feature-off';
 import {
   DAY_MS,
+  cycleCapacity,
   cycleName,
   cycleStatus,
   utcDay,
@@ -49,7 +50,10 @@ export default async function CyclesPage({ params }: { params: Promise<{ id: str
     getProjectCycles(id),
     loadCycleHistory(id),
     db
-      .select({ durationWeeks: projects.cycleDurationWeeks })
+      .select({
+        durationWeeks: projects.cycleDurationWeeks,
+        cooldownWeeks: projects.cycleCooldownWeeks,
+      })
       .from(projects)
       .where(eq(projects.id, id))
       .limit(1),
@@ -68,7 +72,11 @@ export default async function CyclesPage({ params }: { params: Promise<{ id: str
 
   const past = items.filter((c) => c.status === 'past');
   const lastEnd = rows.length ? Math.max(...rows.map((r) => r.endsAt.getTime())) : 0;
-  const start = Math.max(lastEnd, utcDay(now).getTime());
+  const cooldownWeeks = settings?.cooldownWeeks ?? 0;
+  const start = Math.max(
+    lastEnd ? lastEnd + cooldownWeeks * 7 * DAY_MS : 0,
+    utcDay(now).getTime(),
+  );
   const duration = (settings?.durationWeeks ?? 2) * 7 * DAY_MS;
 
   return (
@@ -83,6 +91,8 @@ export default async function CyclesPage({ params }: { params: Promise<{ id: str
         name: cycleName(c),
         totals: c.totals,
       }))}
+      capacity={cycleCapacity(past.map((c) => c.totals))}
+      cooldownWeeks={cooldownWeeks}
       estimatesEnabled={project.estimateScale !== 'none'}
       canWrite={roleAllows(project.role, 'write') && project.cyclesEnabled}
       suggested={{ startsAt: new Date(start), endsAt: new Date(start + duration) }}

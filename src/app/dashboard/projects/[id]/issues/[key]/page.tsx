@@ -36,7 +36,8 @@ const load = cache(async (id: string, rawKey: string) => {
   if (number === null) return null;
   const data = await getProjectData(id, session.user.id);
   if (!data) return null;
-  const issue = await getIssueByKey(id, number);
+  // Passing the viewer enables the moved-issue alias fallback (ticket_key_alias).
+  const issue = await getIssueByKey(id, number, session.user.id);
   return issue ? { issue, userId: session.user.id } : null;
 });
 
@@ -51,9 +52,11 @@ export default async function IssuePage({ params }: { params: Params }) {
   const found = await load(id, key);
   if (!found) notFound();
 
-  // Lowercase keys and keys from before a project-key rename resolve by
-  // number; send them to the canonical URL.
-  if (key !== found.issue.key) redirect(issuePath(id, found.issue.key));
+  // Lowercase keys, keys from before a project-key rename and issues moved to
+  // another project all redirect to the canonical URL.
+  if (found.issue.projectId !== id || key !== found.issue.key) {
+    redirect(issuePath(found.issue.projectId, found.issue.key));
+  }
 
   // The project's active issues feed the sub-issue / relation sections.
   const projectIssues = await getProjectIssues(id, found.userId);

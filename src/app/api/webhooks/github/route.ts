@@ -11,10 +11,12 @@ import { db } from '@/lib/db';
 import { projects } from '@/db/schema';
 import { verifySignature } from '@/lib/github/webhooks';
 import {
+  syncCheckRun,
+  syncCheckSuite,
   syncPullRequest,
+  syncPullRequestReview,
   syncPush,
-  type PullRequestPayload,
-  type PushPayload,
+  syncStatus,
   type SyncProject,
 } from '@/lib/github/sync';
 
@@ -26,6 +28,17 @@ const projectColumns = {
   githubWebhookSecret: projects.githubWebhookSecret,
   githubPrOpenStateId: projects.githubPrOpenStateId,
   githubPrMergeStateId: projects.githubPrMergeStateId,
+  githubConnectedById: projects.githubConnectedById,
+};
+
+// Each handler reads only the payload fields it declares (GitHub's shapes).
+const HANDLERS: Record<string, (project: SyncProject, payload: never) => Promise<void>> = {
+  pull_request: syncPullRequest,
+  push: syncPush,
+  pull_request_review: syncPullRequestReview,
+  check_suite: syncCheckSuite,
+  check_run: syncCheckRun,
+  status: syncStatus,
 };
 
 /** Projects this delivery could belong to: by hook id first (survives repo renames), else by repo. */
@@ -81,15 +94,12 @@ export async function POST(request: Request) {
   if (event === 'ping') return Response.json({ ok: true });
 
   const delivery = request.headers.get('x-github-delivery') ?? 'unknown';
-  if (event === 'pull_request' || event === 'push') {
+  const handler = Object.hasOwn(HANDLERS, event) ? HANDLERS[event] : null;
+  if (handler) {
     after(async () => {
       for (const project of verified) {
         try {
-          if (event === 'pull_request') {
-            await syncPullRequest(project, payload as unknown as PullRequestPayload);
-          } else {
-            await syncPush(project, payload as unknown as PushPayload);
-          }
+          await handler(project, payload as never);
         } catch (err) {
           console.error(`[github-webhook] ${event} delivery ${delivery} failed`, err);
         }

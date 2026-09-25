@@ -8,7 +8,8 @@ import { useProjectData, useProjectPermission } from '@/components/project/proje
 import { Avatar, PriorityIcon, StateIcon } from '@/components/ui-icons';
 import { PRIORITY_LABEL, type IssuePatch, type IssueRow as Issue } from '@/lib/issue-model';
 import { cn } from '@/lib/utils';
-import { CycleChip, EpicChip, MilestoneChip, SubIssueChip } from '@/components/views/property-chips';
+import { SlaChip } from '@/components/sla/sla-chip';
+import { CycleChip, EpicChip, MilestoneChip, StartDateChip, SubIssueChip } from '@/components/views/property-chips';
 import { useSubIssueCount } from '@/components/views/view-context';
 import { useDisplayOptions } from './display-options';
 import { DueDateChip, EstimateChip, LabelChips, relativeTime } from './issue-properties';
@@ -159,7 +160,9 @@ export function IssueRow({
       )}
       {show.cycle && <CycleChip cycleId={issue.cycleId} className="hidden lg:inline-flex" />}
       {show.estimate && <EstimateChip scale={project.estimateScale} value={issue.estimate} />}
+      {show.startDate && <StartDateChip startDate={issue.startDate} className="hidden sm:inline-flex" />}
       {show.dueDate && <DueDateChip dueDate={issue.dueDate} stateType={issue.state.type} />}
+      {show.sla && <SlaChip issue={issue} />}
 
       {show.assignee && !canWrite && issue.assignee && (
         <Avatar name={issue.assignee.name} src={issue.assignee.image} size={20} className="shrink-0" />

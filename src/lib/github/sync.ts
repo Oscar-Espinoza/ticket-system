@@ -1,42 +1,32 @@
-// Applies verified GitHub webhook deliveries to one project: links pull
-// requests to the issues they reference, records them in github_pull_request,
-// emits github.* events and moves issue state (GH-04 / GH-05, magic words).
+// Applies verified GitHub webhook deliveries to one project. Pull requests and
+// pushes map onto the provider-neutral engine in src/lib/vcs/automation.ts
+// (shared with GitLab / Bitbucket); reviews and checks update the linked PRs'
+// review decision and combined CI state.
 //
 // The caller (the webhook route) has already verified the delivery's signature
-// against THIS project's secret, so everything here is scoped to `project.id`
-// and to the project's own issue key. State changes go through the issue
-// service as the system actor, so activity, notifications, Slack and outgoing
-// webhooks all see them.
+// against THIS project's secret, so everything here is scoped to `project.id`.
 
-import { and, eq, inArray, isNull, or, sql, type SQL } from 'drizzle-orm';
-
-import { db } from '@/lib/db';
-import { githubPullRequests, tickets, workflowStates } from '@/db/schema';
-import { emitIssueEvent, type IssueEventInput } from '@/lib/events';
-import { SYSTEM_ACTOR, updateIssueFields } from '@/lib/issue-service';
-import type { IssueRow, WorkflowState } from '@/lib/issue-model';
-import { queryIssues } from '@/lib/tickets';
+import { githubMessage, splitRepo, userOctokit } from '@/lib/github/client';
 import {
-  defaultPrMergeState,
-  defaultPrOpenState,
-  resolveAutomationState,
-  shouldAdvance,
-} from '@/lib/github/automation';
-import { classifyPullRequest, closingNumbers } from '@/lib/github/references';
+  PR_EVENT,
+  resetChecks,
+  syncClosingCommits,
+  syncPullRequest as syncVcsPullRequest,
+  updatePullRequestStatus,
+  type PrTrigger,
+  type VcsProject,
+} from '@/lib/vcs/automation';
+import { combineChecks, combineReviews, type ChecksState, type ReviewDecision } from '@/lib/vcs/providers';
 
-export const GITHUB_EVENT = {
-  branchCreated: 'github.branch_created',
-  prLinked: 'github.pr_linked',
-  prMerged: 'github.pr_merged',
-  prClosed: 'github.pr_closed',
-  commitClosed: 'github.commit_closed',
-} as const;
+export const GITHUB_EVENT = PR_EVENT;
 
 export interface SyncProject {
   id: string;
   ticketKey: string;
   githubPrOpenStateId: string | null;
   githubPrMergeStateId: string | null;
+  /** Whose token reads reviews / checks (the admin who connected the repo). */
+  githubConnectedById: string | null;
 }
 
 // Just the webhook payload fields we read.
@@ -53,7 +43,8 @@ export interface PullRequestPayload {
     merged?: boolean;
     merged_at: string | null;
     user: { login: string } | null;
-    head: { ref: string };
+    head: { ref: string; sha?: string };
+    requested_reviewers?: unknown[];
   };
 }
 
@@ -61,6 +52,50 @@ export interface PushPayload {
   ref: string;
   repository: { full_name: string; default_branch: string };
   commits?: { id: string; message: string; url: string }[];
+}
+
+export interface PullRequestReviewPayload {
+  action: string;
+  repository: { full_name: string };
+  review: { state: string };
+  pull_request: { number: number };
+}
+
+type Conclusion = string | null | undefined;
+
+interface CheckPullRequest {
+  number: number;
+}
+
+export interface CheckSuitePayload {
+  action: string;
+  repository: { full_name: string };
+  check_suite: {
+    head_sha: string;
+    head_branch: string | null;
+    status: string;
+    conclusion: Conclusion;
+    pull_requests?: CheckPullRequest[];
+  };
+}
+
+export interface CheckRunPayload {
+  action: string;
+  repository: { full_name: string };
+  check_run: {
+    head_sha: string;
+    status: string;
+    conclusion: Conclusion;
+    pull_requests?: CheckPullRequest[];
+    check_suite?: { head_branch: string | null };
+  };
+}
+
+export interface StatusPayload {
+  repository: { full_name: string };
+  sha: string;
+  state: string;
+  branches?: { name: string }[];
 }
 
 const PR_ACTIONS = new Set([
@@ -71,226 +106,211 @@ const PR_ACTIONS = new Set([
   'edited',
   'synchronize',
   'closed',
+  'review_requested',
 ]);
 
 /** Actions that (re)announce a PR as open and ready — the "PR opened" automation. */
 const OPEN_ACTIONS = new Set(['opened', 'reopened', 'ready_for_review']);
 
-async function loadStates(projectId: string): Promise<WorkflowState[]> {
-  return db
-    .select({
-      id: workflowStates.id,
-      name: workflowStates.name,
-      type: workflowStates.type,
-      color: workflowStates.color,
-      position: workflowStates.position,
-      description: workflowStates.description,
-    })
-    .from(workflowStates)
-    .where(eq(workflowStates.projectId, projectId));
+function vcsProject(project: SyncProject): VcsProject {
+  return {
+    id: project.id,
+    ticketKey: project.ticketKey,
+    prOpenStateId: project.githubPrOpenStateId,
+    prMergeStateId: project.githubPrMergeStateId,
+  };
 }
 
-/** Non-deleted issues of the project by number and/or stored branch name. */
-async function findIssues(projectId: string, numbers: number[], branch?: string): Promise<IssueRow[]> {
-  const match: SQL[] = [];
-  if (numbers.length) match.push(inArray(tickets.ticketNumber, numbers));
-  if (branch) match.push(eq(tickets.githubBranch, branch));
-  if (!match.length) return [];
-  return queryIssues(and(eq(tickets.projectId, projectId), isNull(tickets.deletedAt), or(...match)));
-}
-
-async function moveIssues(
-  project: SyncProject,
-  issues: IssueRow[],
-  target: WorkflowState | null,
-  states: WorkflowState[],
-  eventData?: (issue: IssueRow) => Record<string, unknown> | undefined,
-) {
-  if (!target) return;
-  for (const issue of issues) {
-    if (!shouldAdvance(issue.state, target, states)) continue;
-    const result = await updateIssueFields(
-      SYSTEM_ACTOR,
-      project.id,
-      issue.id,
-      { stateId: target.id },
-      { eventData: eventData?.(issue) },
-    );
-    if (!result.ok) console.error(`[github] could not move ${issue.key}: ${result.error}`);
-  }
+function triggerOf(action: string): PrTrigger {
+  if (action === 'closed') return 'closed';
+  return OPEN_ACTIONS.has(action) ? 'opened' : 'updated';
 }
 
 export async function syncPullRequest(project: SyncProject, payload: PullRequestPayload) {
   if (!PR_ACTIONS.has(payload.action)) return;
   const pr = payload.pull_request;
   const repo = payload.repository.full_name;
-  const { auto, linkOnly } = classifyPullRequest(
-    { branch: pr.head.ref, title: pr.title, body: pr.body },
-    project.ticketKey,
+  // Verdicts come from pull_request_review deliveries; a review request on a
+  // new PR (or a re-request) marks it as awaiting review.
+  const reviewRequested =
+    (payload.action === 'opened' || payload.action === 'review_requested') &&
+    !!pr.requested_reviewers?.length;
+  const reviewDecision = reviewRequested
+    ? ((await currentReviewDecision(project, repo, pr.number)) ?? 'review_required')
+    : null;
+  await syncVcsPullRequest(
+    vcsProject(project),
+    {
+      provider: 'github',
+      repo,
+      number: pr.number,
+      title: pr.title,
+      body: pr.body,
+      url: pr.html_url,
+      state: pr.merged ? 'merged' : pr.state,
+      draft: !!pr.draft,
+      branch: pr.head.ref,
+      author: pr.user?.login ?? null,
+      mergedAt: pr.merged_at ? new Date(pr.merged_at) : null,
+      reviewDecision,
+    },
+    triggerOf(payload.action),
   );
-
-  const [referenced, existing] = await Promise.all([
-    findIssues(project.id, [...auto, ...linkOnly], pr.head.ref),
-    db
-      .select({ ticketId: githubPullRequests.ticketId, state: githubPullRequests.state })
-      .from(githubPullRequests)
-      .where(
-        and(
-          eq(githubPullRequests.projectId, project.id),
-          sql`lower(${githubPullRequests.repo}) = lower(${repo})`,
-          eq(githubPullRequests.number, pr.number),
-        ),
-      ),
-  ]);
-  const previous = new Map(existing.map((row) => [row.ticketId, row.state]));
-
-  // Once linked, a PR stays linked even if the reference is edited away.
-  const missing = [...previous.keys()].filter((id) => !referenced.some((i) => i.id === id));
-  const stillLinked = missing.length
-    ? await queryIssues(
-        and(eq(tickets.projectId, project.id), isNull(tickets.deletedAt), inArray(tickets.id, missing)),
-      )
-    : [];
-  const linked = [...referenced, ...stillLinked];
-  if (!linked.length) return;
-
-  const autoIssues = referenced.filter(
-    (issue) => auto.has(issue.number) || issue.githubBranch === pr.head.ref,
-  );
-
-  const merged = !!pr.merged;
-  const state = merged ? 'merged' : pr.state;
-  const now = new Date();
-  await db
-    .insert(githubPullRequests)
-    .values(
-      linked.map((issue) => ({
-        id: crypto.randomUUID(),
-        projectId: project.id,
-        ticketId: issue.id,
-        repo,
-        number: pr.number,
-        title: pr.title.slice(0, 500),
-        url: pr.html_url,
-        state,
-        draft: !!pr.draft,
-        branch: pr.head.ref,
-        authorLogin: pr.user?.login ?? null,
-        mergedAt: pr.merged_at ? new Date(pr.merged_at) : null,
-        createdAt: now,
-        updatedAt: now,
-      })),
-    )
-    .onConflictDoUpdate({
-      target: [githubPullRequests.ticketId, githubPullRequests.repo, githubPullRequests.number],
-      set: {
-        title: sql`excluded.title`,
-        url: sql`excluded.url`,
-        state: sql`excluded.state`,
-        draft: sql`excluded.draft`,
-        branch: sql`excluded.branch`,
-        authorLogin: sql`excluded.author_login`,
-        mergedAt: sql`excluded.merged_at`,
-        updatedAt: sql`excluded.updated_at`,
-      },
-    });
-
-  // Events only on transitions, so GitHub redeliveries stay idempotent.
-  const events: IssueEventInput[] = [];
-  const base = { number: pr.number, url: pr.html_url, repo, title: pr.title };
-  const mergedNow = new Set<string>();
-  for (const issue of linked) {
-    const before = previous.get(issue.id);
-    const common = { projectId: project.id, ticketId: issue.id, actorId: null };
-    const about = { key: issue.key, title: issue.title, pullRequest: base };
-    if (before === undefined) {
-      events.push({
-        ...common,
-        type: GITHUB_EVENT.prLinked,
-        data: { ...about, summary: `linked PR #${pr.number}` },
-      });
-    }
-    if (state === 'merged' && before !== 'merged') {
-      mergedNow.add(issue.id);
-      events.push({
-        ...common,
-        type: GITHUB_EVENT.prMerged,
-        data: { ...about, summary: `merged PR #${pr.number}` },
-      });
-    } else if (state === 'closed' && before !== 'closed') {
-      events.push({
-        ...common,
-        type: GITHUB_EVENT.prClosed,
-        data: { ...about, summary: `closed PR #${pr.number} without merging` },
-      });
-    }
-  }
-  if (events.length) await emitIssueEvent(events);
-
-  if (!autoIssues.length) return;
-  const states = await loadStates(project.id);
-  if (merged) {
-    // Only on the merge itself: a later edit of a merged PR must not re-close
-    // an issue someone reopened by hand.
-    if (payload.action !== 'closed') return;
-    const target = resolveAutomationState(project.githubPrMergeStateId, states, defaultPrMergeState);
-    // Subscribers were just notified "Merged PR #N" (github.pr_merged above);
-    // viaPullRequest tells the notification dispatcher not to send a second
-    // "marked it Done" for the move. Only for merges announced in THIS
-    // delivery — a redelivery that re-closes a reopened issue still notifies.
-    const via = { number: pr.number, url: pr.html_url, repo };
-    await moveIssues(project, autoIssues, target, states, (issue) =>
-      mergedNow.has(issue.id) ? { viaPullRequest: via } : undefined,
-    );
-  } else if (pr.state === 'open' && !pr.draft) {
-    // edited / synchronize only move issues this delivery linked for the first
-    // time — otherwise every push would undo a manual move back to In Progress.
-    const candidates = OPEN_ACTIONS.has(payload.action)
-      ? autoIssues
-      : autoIssues.filter((issue) => !previous.has(issue.id));
-    const target = resolveAutomationState(project.githubPrOpenStateId, states, defaultPrOpenState);
-    await moveIssues(project, candidates, target, states);
+  // New commits restart CI: a known state goes back to pending until checks report.
+  if (payload.action === 'synchronize') {
+    await resetChecks(project.id, { provider: 'github', repo, number: pr.number });
   }
 }
 
 /** Commits pushed to the default branch close issues they reference with closing words. */
 export async function syncPush(project: SyncProject, payload: PushPayload) {
   if (payload.ref !== `refs/heads/${payload.repository.default_branch}`) return;
-  const closedBy = new Map<number, { id: string; url: string }>();
-  for (const commit of payload.commits ?? []) {
-    for (const number of closingNumbers(commit.message, project.ticketKey)) {
-      if (!closedBy.has(number)) closedBy.set(number, { id: commit.id, url: commit.url });
+  await syncClosingCommits(vcsProject(project), {
+    provider: 'github',
+    repo: payload.repository.full_name,
+    commits: payload.commits ?? [],
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Reviews
+// ---------------------------------------------------------------------------
+
+async function octokitFor(project: SyncProject) {
+  if (!project.githubConnectedById) return null;
+  return userOctokit(project.githubConnectedById).catch(() => null);
+}
+
+/**
+ * The PR's decision from all reviews (latest verdict per reviewer), read with
+ * the connecting admin's token. undefined = no token or GitHub failed.
+ */
+async function currentReviewDecision(
+  project: SyncProject,
+  repo: string,
+  number: number,
+): Promise<ReviewDecision | undefined> {
+  const octokit = await octokitFor(project);
+  const target = splitRepo(repo);
+  if (!octokit || !target) return undefined;
+  try {
+    const { data } = await octokit.rest.pulls.listReviews({ ...target, pull_number: number, per_page: 100 });
+    const latest = new Map<string, 'approved' | 'changes_requested' | null>();
+    for (const review of data) {
+      const who = review.user?.login;
+      if (!who) continue;
+      if (review.state === 'APPROVED') latest.set(who, 'approved');
+      else if (review.state === 'CHANGES_REQUESTED') latest.set(who, 'changes_requested');
+      else if (review.state === 'DISMISSED') latest.set(who, null);
     }
+    return combineReviews(latest.values(), true) ?? 'review_required';
+  } catch (err) {
+    console.error('[github] listReviews failed', githubMessage(err));
+    return undefined;
   }
-  if (!closedBy.size) return;
+}
 
-  const [issues, states] = await Promise.all([
-    findIssues(project.id, [...closedBy.keys()]),
-    loadStates(project.id),
-  ]);
-  const target = resolveAutomationState(project.githubPrMergeStateId, states, defaultPrMergeState);
-  if (!target) return;
+export async function syncPullRequestReview(project: SyncProject, payload: PullRequestReviewPayload) {
+  const repo = payload.repository.full_name;
+  const number = payload.pull_request.number;
+  let decision = await currentReviewDecision(project, repo, number);
+  if (!decision) {
+    // No token: the delivered review is the best signal we have.
+    const state = payload.review.state.toLowerCase();
+    if (state === 'approved' || state === 'changes_requested') decision = state;
+    else if (state === 'dismissed') decision = 'review_required';
+    else return; // a plain comment changes nothing
+  }
+  await updatePullRequestStatus(project.id, { provider: 'github', repo, numbers: [number] }, { reviewDecision: decision });
+}
 
-  const moved = issues.filter((issue) => shouldAdvance(issue.state, target, states));
-  if (!moved.length) return;
-  await emitIssueEvent(
-    moved.map((issue) => {
-      const commit = closedBy.get(issue.number)!;
-      const sha = commit.id.slice(0, 7);
-      return {
-        projectId: project.id,
-        ticketId: issue.id,
-        actorId: null,
-        type: GITHUB_EVENT.commitClosed,
-        data: {
-          key: issue.key,
-          title: issue.title,
-          summary: `closed by commit ${sha}`,
-          commit: { sha: commit.id, url: commit.url },
-          repo: payload.repository.full_name,
-        },
-      };
-    }),
+// ---------------------------------------------------------------------------
+// Checks (check_suite / check_run / status)
+// ---------------------------------------------------------------------------
+
+function fromCheck(status: string, conclusion: Conclusion): ChecksState | null {
+  if (status !== 'completed') return 'pending';
+  switch (conclusion) {
+    case 'success':
+    case 'neutral':
+    case 'skipped':
+      return 'success';
+    case 'failure':
+    case 'timed_out':
+    case 'cancelled':
+    case 'action_required':
+    case 'startup_failure':
+      return 'failure';
+    case 'stale':
+      return null;
+    default:
+      return null;
+  }
+}
+
+function fromStatus(state: string): ChecksState | null {
+  if (state === 'success') return 'success';
+  if (state === 'failure' || state === 'error') return 'failure';
+  if (state === 'pending') return 'pending';
+  return null;
+}
+
+/** Combined state of every check run and commit status on `sha`, or null without a token. */
+async function combinedChecks(project: SyncProject, repo: string, sha: string): Promise<ChecksState | null> {
+  const octokit = await octokitFor(project);
+  const target = splitRepo(repo);
+  if (!octokit || !target) return null;
+  try {
+    const [runs, statuses] = await Promise.all([
+      octokit.rest.checks.listForRef({ ...target, ref: sha, per_page: 100 }),
+      octokit.rest.repos.getCombinedStatusForRef({ ...target, ref: sha }),
+    ]);
+    return combineChecks([
+      ...runs.data.check_runs.map((run) => fromCheck(run.status, run.conclusion)),
+      statuses.data.total_count > 0 ? fromStatus(statuses.data.state) : null,
+    ]);
+  } catch (err) {
+    console.error('[github] check lookup failed', githubMessage(err));
+    return null;
+  }
+}
+
+async function applyChecks(
+  project: SyncProject,
+  repo: string,
+  sha: string,
+  delivered: ChecksState | null,
+  match: { numbers: number[]; branches: string[] },
+) {
+  const state = (await combinedChecks(project, repo, sha)) ?? delivered;
+  if (!state) return;
+  await updatePullRequestStatus(
+    project.id,
+    { provider: 'github', repo, ...match, openOnly: true },
+    { checksState: state },
   );
-  await moveIssues(project, moved, target, states);
+}
+
+export async function syncCheckSuite(project: SyncProject, payload: CheckSuitePayload) {
+  const suite = payload.check_suite;
+  await applyChecks(project, payload.repository.full_name, suite.head_sha, fromCheck(suite.status, suite.conclusion), {
+    numbers: (suite.pull_requests ?? []).map((pr) => pr.number),
+    branches: suite.head_branch ? [suite.head_branch] : [],
+  });
+}
+
+export async function syncCheckRun(project: SyncProject, payload: CheckRunPayload) {
+  const run = payload.check_run;
+  const branch = run.check_suite?.head_branch;
+  await applyChecks(project, payload.repository.full_name, run.head_sha, fromCheck(run.status, run.conclusion), {
+    numbers: (run.pull_requests ?? []).map((pr) => pr.number),
+    branches: branch ? [branch] : [],
+  });
+}
+
+export async function syncStatus(project: SyncProject, payload: StatusPayload) {
+  await applyChecks(project, payload.repository.full_name, payload.sha, fromStatus(payload.state), {
+    numbers: [],
+    branches: (payload.branches ?? []).map((branch) => branch.name),
+  });
 }

@@ -1,14 +1,17 @@
 'use client';
 
-// Owner: B3. Issue header GitHub menu — copy git branch name (⌘⇧.) and create
-// the branch on the connected repository with the viewer's own token.
+// Owner: B3 / D10b. Issue header git menu — copy git branch name (⌘⇧.), create
+// the branch on the connected GitHub repository with the viewer's own token,
+// and open the branch on whichever code host the project uses (GitHub, GitLab
+// or Bitbucket).
 
 import { useEffect, useEffectEvent, useTransition } from 'react';
 import { Copy, ExternalLink, GitBranch, GitBranchPlus, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { createBranch, saveBranchName } from '@/app/actions/github';
-import { GithubMark } from '@/components/github/github-mark';
+import { VcsMark } from '@/components/developer/provider-marks';
+import { useVcsConnections } from '@/components/developer/use-vcs-connections';
 import { useGithubViewer } from '@/components/github/use-github-viewer';
 import type { IssueMutations } from '@/components/issues/use-issue-mutations';
 import { useProjectData, useProjectPermission } from '@/components/project/project-data';
@@ -27,6 +30,7 @@ import { branchNameFor, branchPrefix } from '@/lib/github/branch';
 import { registerHotkeys } from '@/lib/hotkeys';
 import type { IssueRow } from '@/lib/issue-model';
 import { registerPaletteCommands } from '@/lib/palette-commands';
+import { branchUrl, VCS_PROVIDER_LABEL } from '@/lib/vcs/providers';
 
 const isMac = () => typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.userAgent);
 
@@ -35,9 +39,16 @@ export function HeaderGithub({ issue, mutations }: { issue: IssueRow; mutations:
   const { project, viewer } = useProjectData();
   const canWrite = useProjectPermission('write');
   const github = useGithubViewer(project.id);
+  const connections = useVcsConnections(project.id);
   const [creating, startCreate] = useTransition();
 
   const repo = github?.repo ?? project.githubRepo;
+  // GitHub when connected, else the first other code host; branch creation
+  // stays GitHub-only and hides when the project lives elsewhere.
+  const host = repo
+    ? { provider: 'github' as const, webUrl: `https://github.com/${repo}` }
+    : (connections?.find((c) => c.provider !== 'github') ?? null);
+  const offersCreate = !host || host.provider === 'github';
   const branch =
     issue.githubBranch ??
     branchNameFor(branchPrefix(github?.login, viewer.name), issue.key, issue.title);
@@ -91,13 +102,15 @@ export function HeaderGithub({ issue, mutations }: { issue: IssueRow; mutations:
     ]);
     const unregisterCommands = registerPaletteCommands([
       { id: 'github.copy-branch', label: 'Copy git branch name', section: 'Issue', keywords: ['git', 'branch'], run: () => onCopy() },
-      { id: 'github.create-branch', label: 'Create branch on GitHub', section: 'Issue', keywords: ['git', 'branch', 'github'], run: () => onCreate() },
+      ...(offersCreate
+        ? [{ id: 'github.create-branch', label: 'Create branch on GitHub', section: 'Issue', keywords: ['git', 'branch', 'github'], run: () => onCreate() }]
+        : []),
     ]);
     return () => {
       unregisterKeys();
       unregisterCommands();
     };
-  }, [issue.id]);
+  }, [issue.id, offersCreate]);
 
   const createItem = (
     <DropdownMenuItem
@@ -121,7 +134,7 @@ export function HeaderGithub({ issue, mutations }: { issue: IssueRow; mutations:
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64">
         <DropdownMenuLabel className="flex items-center gap-1.5 font-mono text-xs font-normal text-muted-foreground">
-          <GithubMark className="size-3.5 shrink-0" />
+          <VcsMark provider={host?.provider ?? 'github'} className="size-3.5 shrink-0" />
           <span className="truncate" title={branch}>
             {branch}
           </span>
@@ -132,7 +145,7 @@ export function HeaderGithub({ issue, mutations }: { issue: IssueRow; mutations:
           Copy git branch name
           <DropdownMenuShortcut>{isMac() ? '⌘⇧.' : 'Ctrl+Shift+.'}</DropdownMenuShortcut>
         </DropdownMenuItem>
-        {createDisabledReason ? (
+        {!offersCreate ? null : createDisabledReason ? (
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -145,15 +158,11 @@ export function HeaderGithub({ issue, mutations }: { issue: IssueRow; mutations:
         ) : (
           createItem
         )}
-        {issue.githubBranch && repo && (
+        {issue.githubBranch && host && (
           <DropdownMenuItem asChild>
-            <a
-              href={`https://github.com/${repo}/tree/${issue.githubBranch.split('/').map(encodeURIComponent).join('/')}`}
-              target="_blank"
-              rel="noreferrer"
-            >
+            <a href={branchUrl(host.provider, host.webUrl, issue.githubBranch)} target="_blank" rel="noreferrer">
               <ExternalLink />
-              Open branch on GitHub
+              Open branch on {VCS_PROVIDER_LABEL[host.provider]}
             </a>
           </DropdownMenuItem>
         )}

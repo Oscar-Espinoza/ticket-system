@@ -8,6 +8,7 @@ import { run as sla } from './jobs/sla';
 import { run as digests } from './jobs/digests';
 import { run as pulse } from './jobs/pulse';
 import { run as webhookRetries } from './jobs/webhook-retries';
+import { run as collabPrune } from './jobs/collab-prune';
 
 const JOBS: Record<string, (now: Date) => Promise<string>> = {
   automations,
@@ -16,6 +17,7 @@ const JOBS: Record<string, (now: Date) => Promise<string>> = {
   digests,
   pulse,
   webhookRetries,
+  collabPrune,
 };
 
 export async function runDailyJobs(now = new Date()): Promise<Record<string, string>> {

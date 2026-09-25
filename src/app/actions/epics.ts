@@ -12,6 +12,7 @@ import { db } from '@/lib/db';
 import { epicUpdates, epics, milestones, projectMembers } from '@/db/schema';
 import { authorizeProjectAction } from '@/lib/action-auth';
 import { isDateString } from '@/lib/dates';
+import { getCrossProjectEpicOptions } from '@/lib/epics';
 import { emitIssueEvent } from '@/lib/events';
 import {
   DEFAULT_EPIC_COLOR,
@@ -22,6 +23,7 @@ import {
   isEpicStatus,
   isHealth,
   type EpicStatus,
+  type ForeignEpicOption,
   type Health,
 } from '@/components/epics/epic-model';
 
@@ -262,6 +264,23 @@ export async function archiveEpic(input: { projectId: string; id: string }) {
 
 export async function unarchiveEpic(input: { projectId: string; id: string }) {
   return setArchived(input, null);
+}
+
+// ---------------------------------------------------------------------------
+// Cross-project epics (D4b)
+// ---------------------------------------------------------------------------
+
+/**
+ * Epics of other projects in the workspace that this project's issues may
+ * join (the issue pickers load them lazily). Read level: guests see the
+ * current value's name too.
+ */
+export async function listAvailableEpics(input: {
+  projectId: string;
+}): Promise<{ ok: true; epics: ForeignEpicOption[] } | { ok: false; error: string }> {
+  const authz = await authorizeProjectAction(input?.projectId, 'read');
+  if (!authz.ok) return authz;
+  return { ok: true, epics: await getCrossProjectEpicOptions(input.projectId, authz.userId) };
 }
 
 // ---------------------------------------------------------------------------

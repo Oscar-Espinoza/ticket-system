@@ -10,21 +10,25 @@
 // D-17: ticketKey must match /^[A-Z]{2,6}$/ server-side; client transform is UX only.
 // D-18: atomic insert via db.batch — no sequential awaits (no ownerless-project window).
 // The default workflow states are seeded in the same batch (no stateless project).
+// With a `templateId` (project templates, D4a) the states, labels, settings and
+// issue templates come from the template instead — still one batch.
 
 import { headers } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { projects, projectMembers, workflowStates } from '@/db/schema';
-import { workflowStateInserts } from '@/lib/workflow-server';
+import { projects, projectMembers } from '@/db/schema';
+import { getUsableTemplateConfig, projectSeed } from '@/lib/project-templates';
 
 export type CreateProjectState = {
   errors?: {
     name?: string;
     ticketKey?: string;
+    templateId?: string;
     server?: string;
   };
   success?: boolean;
+  projectId?: string;
 };
 
 export async function createProject(
@@ -56,10 +60,18 @@ export async function createProject(
     return { errors };
   }
 
+  // Template access is re-checked here (own, or shared with one of your workspaces).
+  const templateId = ((formData.get('templateId') as string | null) ?? '').trim();
+  const template = templateId ? await getUsableTemplateConfig(templateId, session.user.id) : null;
+  if (templateId && !template) {
+    return { errors: { templateId: 'That template is no longer available.' } };
+  }
+
   // Step 4: Generate stable IDs and timestamps
   const projectId = crypto.randomUUID();
   const memberId = crypto.randomUUID();
   const now = new Date();
+  const seed = projectSeed(projectId, now, template, session.user.id);
 
   // Step 5: Atomic two-row insert via db.batch — both rows created together
   // or both rolled back. No sequential awaits — eliminates the ownerless-project
@@ -72,6 +84,7 @@ export async function createProject(
         ticketKey,
         ticketCounter: 0,
         ownerId: session.user.id,
+        ...seed.settings,
         createdAt: now,
         updatedAt: now,
       }),
@@ -82,7 +95,7 @@ export async function createProject(
         role: 'owner',
         createdAt: now,
       }),
-      db.insert(workflowStates).values(workflowStateInserts(projectId, now)),
+      ...seed.statements,
     ]);
   } catch (err: unknown) {
     // Step 6: Map Postgres unique-violation to a field-level error.
@@ -105,6 +118,6 @@ export async function createProject(
   }
 
   // Step 7: Revalidate and return success
-  revalidatePath('/dashboard');
-  return { success: true };
+  revalidatePath('/dashboard', 'layout');
+  return { success: true, projectId };
 }

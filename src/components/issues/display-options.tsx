@@ -11,9 +11,9 @@ import { isGroupBy, isOrderBy, type GroupBy, type OrderBy } from '@/lib/issue-gr
 
 export type { OrderBy };
 
-export type ViewLayout = 'list' | 'board' | 'table' | 'calendar';
+export type ViewLayout = 'list' | 'board' | 'table' | 'calendar' | 'timeline';
 
-export const VIEW_LAYOUTS: ViewLayout[] = ['list', 'board', 'table', 'calendar'];
+export const VIEW_LAYOUTS: ViewLayout[] = ['list', 'board', 'table', 'calendar', 'timeline'];
 
 export function isViewLayout(value: unknown): value is ViewLayout {
   return typeof value === 'string' && (VIEW_LAYOUTS as string[]).includes(value);
@@ -27,6 +27,8 @@ export type DisplayProperty =
   | 'labels'
   | 'estimate'
   | 'dueDate'
+  | 'startDate'
+  | 'sla'
   | 'created'
   | 'updated'
   | 'cycle'
@@ -43,6 +45,8 @@ export const DISPLAY_PROPERTY_LABEL: Record<DisplayProperty, string> = {
   labels: 'Labels',
   estimate: 'Estimate',
   dueDate: 'Due date',
+  startDate: 'Start date',
+  sla: 'SLA',
   created: 'Created',
   updated: 'Updated',
   cycle: 'Cycle',
@@ -77,6 +81,8 @@ export const DEFAULT_DISPLAY_OPTIONS: DisplayOptions = {
     labels: true,
     estimate: true,
     dueDate: true,
+    startDate: false,
+    sla: true,
     created: true,
     updated: false,
     cycle: false,

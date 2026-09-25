@@ -1,6 +1,7 @@
 'use server';
 
-// Project planning + automation settings (admin level): cycles cadence, triage,
+// Project planning + automation settings (admin level): cycles cadence and
+// cooldown, triage,
 // auto-archive / auto-close. Saving cycle settings schedules cycles right away
 // instead of waiting for the next daily automation run.
 
@@ -11,7 +12,7 @@ import { db } from '@/lib/db';
 import { projects } from '@/db/schema';
 import { authorizeProjectAction } from '@/lib/action-auth';
 import { ensureUpcomingCycles, getProjectCycles, rescheduleUpcomingCycles } from '@/lib/cycles';
-import { AUTOMATION_MONTHS } from '@/components/cycles/cycle-utils';
+import { AUTOMATION_MONTHS, MAX_COOLDOWN_WEEKS } from '@/components/cycles/cycle-utils';
 
 export type SettingsActionResult = { ok: true } | { ok: false; error: string };
 
@@ -22,6 +23,8 @@ export interface PlanningSettingsInput {
   durationWeeks: number;
   /** 0 = Sunday … 6 = Saturday */
   startWeekday: number;
+  /** Weeks between cycles, 0 … MAX_COOLDOWN_WEEKS. */
+  cooldownWeeks: number;
   autoCreate: boolean;
   /** Move unfinished issues to the next cycle when a cycle auto-completes. */
   autoRollover: boolean;
@@ -47,6 +50,10 @@ export async function updatePlanningSettings(
   if (!Number.isInteger(weekday) || weekday < 0 || weekday > 6) {
     return { ok: false, error: 'Invalid start day.' };
   }
+  const cooldown = input.cooldownWeeks ?? 0;
+  if (!Number.isInteger(cooldown) || cooldown < 0 || cooldown > MAX_COOLDOWN_WEEKS) {
+    return { ok: false, error: `Cooldown must be 0 to ${MAX_COOLDOWN_WEEKS} weeks.` };
+  }
   const cyclesEnabled = input.cyclesEnabled === true;
   const autoCreate = input.autoCreate === true;
 
@@ -55,6 +62,7 @@ export async function updatePlanningSettings(
       .select({
         durationWeeks: projects.cycleDurationWeeks,
         startWeekday: projects.cycleStartWeekday,
+        cooldownWeeks: projects.cycleCooldownWeeks,
       })
       .from(projects)
       .where(eq(projects.id, projectId))
@@ -69,6 +77,7 @@ export async function updatePlanningSettings(
       cyclesEnabled,
       cycleDurationWeeks: duration,
       cycleStartWeekday: weekday,
+      cycleCooldownWeeks: cooldown,
       cycleAutoCreate: autoCreate,
       cycleAutoRollover: input.autoRollover === true,
       triageEnabled: input.triageEnabled === true,
@@ -80,9 +89,14 @@ export async function updatePlanningSettings(
     try {
       const cadenceChanged =
         existing.length > 0 &&
-        (before.durationWeeks !== duration || before.startWeekday !== weekday);
-      if (cadenceChanged) await rescheduleUpcomingCycles(projectId, duration, weekday);
-      if (autoCreate) await ensureUpcomingCycles(projectId, duration, new Date(), weekday);
+        (before.durationWeeks !== duration ||
+          before.startWeekday !== weekday ||
+          before.cooldownWeeks !== cooldown);
+      const now = new Date();
+      if (cadenceChanged) {
+        await rescheduleUpcomingCycles(projectId, duration, weekday, now, cooldown);
+      }
+      if (autoCreate) await ensureUpcomingCycles(projectId, duration, now, weekday, cooldown);
     } catch (err) {
       // Settings are saved; the daily automation run retries the scheduling.
       console.error('[planning] cycle scheduling failed', err);

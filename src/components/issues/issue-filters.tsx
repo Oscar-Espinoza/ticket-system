@@ -2,6 +2,8 @@
 
 // Filter state for an issues view: seeded from the URL (else a saved view's
 // filters), mirrored back to the URL on every change so links are shareable.
+// The quick filter box accepts query syntax (label:bug assignee:me …): the
+// matcher understands it as text, and Enter turns what it can into chips.
 
 import {
   createContext,
@@ -16,9 +18,12 @@ import {
 import { useSearchParams } from 'next/navigation';
 import { Search, X } from 'lucide-react';
 
+import { useOptionalProjectData, type ProjectData } from '@/components/project/project-data';
 import { Button } from '@/components/ui/button';
 import { FilterChips, FilterMenu, type FilterPropertyId } from '@/components/views/filter-menu';
+import { SearchSyntaxHelp, appendToken } from '@/components/views/search-syntax-help';
 import { registerHotkeys } from '@/lib/hotkeys';
+import { cn } from '@/lib/utils';
 import {
   EMPTY_FILTERS,
   FILTER_PARAM_NAMES,
@@ -27,7 +32,9 @@ import {
   filtersToSearchParams,
   isFilterActive,
   normalizeIssueFilters,
+  resolveSearchTerms,
   type IssueFilters as Filters,
+  type SearchKey,
 } from '@/lib/issue-filtering';
 
 // Native history updates sync with useSearchParams without a server request —
@@ -120,7 +127,20 @@ export function clearFilters() {
   setIssueFilters({ ...EMPTY_FILTERS });
 }
 
-function QuickFilter({ value, onChange }: { value: string; onChange: (q: string) => void }) {
+// List rows carry no cycle / epic names, so those terms always become chips.
+const ID_ONLY_KEYS: SearchKey[] = ['cycle', 'epic'];
+
+function resolveWith(data: ProjectData | null, filters: Filters, q: string, onlyKeys?: SearchKey[]): Filters {
+  if (!data) return { ...filters, q };
+  const next = resolveSearchTerms(filters, q, data, onlyKeys);
+  // Nothing became a chip: keep the text exactly as typed (no reformatting under the caret).
+  const unchanged = filtersKey({ ...next, q: '' }) === filtersKey({ ...filters, q: '' });
+  return unchanged ? { ...filters, q } : next;
+}
+
+function QuickFilter({ filters, onChange }: { filters: Filters; onChange: (next: Filters) => void }) {
+  const data = useOptionalProjectData();
+  const value = filters.q;
   const [draft, setDraft] = useState(value);
   const [synced, setSynced] = useState(value);
   // Filters changed elsewhere (Clear, saved view): follow them.
@@ -130,32 +150,52 @@ function QuickFilter({ value, onChange }: { value: string; onChange: (q: string)
   }
   // Debounced so typing doesn't rewrite the URL per keystroke; the event reads
   // the latest filters when it fires.
-  const commit = useEffectEvent((q: string) => onChange(q));
+  const commit = useEffectEvent((q: string, all = false) =>
+    onChange(resolveWith(data, filters, q, all ? undefined : ID_ONLY_KEYS)),
+  );
   useEffect(() => {
     if (draft === value) return;
     const id = setTimeout(() => commit(draft), 200);
     return () => clearTimeout(id);
   }, [draft, value]);
   const update = setDraft;
+  const syntax = /(^|\s)-?[a-z]+:/i.test(draft);
 
   return (
-    <label className="relative flex items-center">
-      <Search className="pointer-events-none absolute left-2 size-3.5 text-muted-foreground" aria-hidden="true" />
-      <input
-        type="search"
-        value={draft}
-        onChange={(event) => update(event.target.value)}
-        onKeyDown={(event) => {
-          if (event.key === 'Escape') {
-            update('');
-            event.currentTarget.blur();
-          }
-        }}
-        placeholder="Filter by title or ID"
-        aria-label="Filter issues by title or ID"
-        className="h-7 w-44 rounded-md border border-transparent bg-transparent pr-2 pl-7 text-xs outline-none placeholder:text-muted-foreground hover:border-border focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 [&::-webkit-search-cancel-button]:hidden"
+    <div className="flex items-center">
+      <label className="relative flex items-center">
+        <Search className="pointer-events-none absolute left-2 size-3.5 text-muted-foreground" aria-hidden="true" />
+        <input
+          type="search"
+          value={draft}
+          onChange={(event) => update(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') {
+              update('');
+              event.currentTarget.blur();
+            } else if (event.key === 'Enter') {
+              // Enter: convert every term that maps onto a filter into a chip.
+              event.preventDefault();
+              const next = resolveWith(data, filters, draft);
+              setDraft(next.q);
+              setSynced(next.q);
+              onChange(next);
+            }
+          }}
+          placeholder="Filter… (label:bug)"
+          aria-label="Filter issues by title, ID or query (label:bug, assignee:me)"
+          title={syntax ? 'Press Enter to turn filters into chips' : undefined}
+          className={cn(
+            'h-7 w-44 rounded-md border border-transparent bg-transparent pr-2 pl-7 text-xs outline-none transition-[width] placeholder:text-muted-foreground hover:border-border focus-visible:w-64 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 [&::-webkit-search-cancel-button]:hidden',
+            syntax && 'w-64 font-mono',
+          )}
+        />
+      </label>
+      <SearchSyntaxHelp
+        note="Free text matches titles and IDs."
+        onInsert={(token) => update(appendToken(draft, token))}
       />
-    </label>
+    </div>
   );
 }
 
@@ -200,7 +240,7 @@ export function IssueFilters() {
         onChange={setFilters}
         onEdit={(property) => setMenu({ open: true, property })}
       />
-      <QuickFilter value={filters.q} onChange={(q) => setFilters({ ...filters, q })} />
+      <QuickFilter filters={filters} onChange={setFilters} />
       {active && (
         <Button variant="ghost" size="sm" onClick={() => setFilters({ ...EMPTY_FILTERS })} className="text-muted-foreground">
           <X />

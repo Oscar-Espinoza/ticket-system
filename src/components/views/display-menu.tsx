@@ -42,6 +42,8 @@ const TOGGLEABLE: DisplayProperty[] = [
   'labels',
   'estimate',
   'dueDate',
+  'startDate',
+  'sla',
   'cycle',
   'epic',
   'milestone',
@@ -119,7 +121,7 @@ export function DisplayMenu({
   );
 
   const update = (patch: Partial<DisplayOptions>) => setDisplay({ ...display, ...patch });
-  const grouped = layout === 'list' || layout === 'board';
+  const grouped = layout === 'list' || layout === 'board' || layout === 'timeline';
   const ordered = layout !== 'calendar';
 
   // Hide groupings the project can't use (no cycles / epics yet).
@@ -150,7 +152,7 @@ export function DisplayMenu({
         <div
           role="radiogroup"
           aria-label="Layout"
-          className="grid grid-cols-4 gap-1 border-b border-border p-2"
+          className="grid grid-cols-5 gap-1 border-b border-border p-2"
         >
           {views.map((view) => {
             const Icon = view.icon;
@@ -186,7 +188,7 @@ export function DisplayMenu({
                 labels={GROUP_BY_LABEL}
                 onChange={setGroupBy}
               />
-              {display.groupBy !== 'none' && (
+              {display.groupBy !== 'none' && layout !== 'timeline' && (
                 <Row label={layout === 'board' ? 'Swimlanes' : 'Sub-grouping'}>
                   <Select
                     value={display.subGroupBy ?? NO_SUBGROUP}
@@ -244,7 +246,7 @@ export function DisplayMenu({
           </Row>
         </div>
 
-        {layout !== 'calendar' && (
+        {layout !== 'calendar' && layout !== 'timeline' && (
           <div className="border-t border-border px-3 py-2">
             <p className="mb-2 text-xs font-medium text-muted-foreground">Display properties</p>
             <div className="flex flex-wrap gap-1">

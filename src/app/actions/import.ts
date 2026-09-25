@@ -1,10 +1,11 @@
 'use server';
 
-// Issue import (CSV, Jira CSV, GitHub Issues). The client parses and maps rows
-// into ImportRecords and sends them here in chunks; everything is re-validated
-// against the project before issue-service.createIssue writes it. Created
-// issues land in activity like any other, but with `source: 'import'` so
-// Slack, outgoing webhooks and notifications skip them (no flood per row).
+// Issue import (CSV, Jira CSV, GitHub Issues, Asana, Shortcut). The client
+// parses / fetches records and sends them here in chunks; everything is
+// re-validated against the project before issue-service.createIssue writes it.
+// Created issues land in activity like any other, but with `source: 'import'`
+// so Slack, outgoing webhooks and notifications skip them (no flood per row).
+// Asana / Shortcut tokens are passed per call and never stored.
 
 import { revalidatePath } from 'next/cache';
 import { and, eq, or, sql } from 'drizzle-orm';
@@ -22,6 +23,7 @@ import { defaultNewIssueState, firstStateOfType } from '@/lib/workflow';
 import {
   GITHUB_IMPORT_CAP,
   IMPORT_CHUNK,
+  isImportSourceKind,
   sourceFooter,
   sourceMarker,
   type ImportChunkResult,
@@ -29,6 +31,10 @@ import {
   type ImportRecord,
   type ImportSource,
 } from '@/lib/import/records';
+import { fetchAsanaTasks, listAsanaProjects, listAsanaWorkspaces, type AsanaOption } from '@/lib/import/asana';
+import { describeImportError, type ExternalFetchResult } from '@/lib/import/external';
+import { fetchShortcutStories, listShortcutSources, type ShortcutOption } from '@/lib/import/shortcut';
+import { VcsHttpError } from '@/lib/vcs/http';
 
 type Fail = { ok: false; error: string };
 
@@ -49,7 +55,7 @@ function readSource(value: unknown): ImportSource | null {
   const raw = value as Record<string, unknown>;
   const kind = raw.kind;
   const id = str(raw.id, 200);
-  if ((kind !== 'csv' && kind !== 'jira' && kind !== 'github') || !id) return null;
+  if (!isImportSourceKind(kind) || !id) return null;
   const url = str(raw.url, 500);
   return {
     kind,
@@ -87,6 +93,7 @@ function readRecord(value: unknown): ImportRecord | null {
     estimate: typeof raw.estimate === 'number' && Number.isFinite(raw.estimate) ? raw.estimate : null,
     dueDate: isDateString(raw.dueDate) ? raw.dueDate : null,
     source: readSource(raw.source),
+    parent: readSource(raw.parent),
   };
 }
 
@@ -236,21 +243,30 @@ export async function importIssues(input: {
   }
 
   // Duplicates: the source footer is the marker (trash included — restore instead).
+  // Parent markers resolve sub-issues to issues imported in earlier chunks.
   const markers = records.flatMap((r) => (r?.source ? [sourceMarker(r.source)] : []));
-  const existing = markers.length
+  const parentMarkers = records.flatMap((r) => (r?.parent ? [sourceMarker(r.parent)] : []));
+  const lookup = [...new Set([...markers, ...parentMarkers])];
+  const existing = lookup.length
     ? await db
-        .select({ description: tickets.description })
+        .select({ id: tickets.id, description: tickets.description, deletedAt: tickets.deletedAt })
         .from(tickets)
         .where(
           and(
             eq(tickets.projectId, projectId),
-            or(...markers.map((m) => sql`position(${m} in ${tickets.description}) > 0`)),
+            or(...lookup.map((m) => sql`position(${m} in ${tickets.description}) > 0`)),
           ),
         )
     : [];
   const seen = new Set(
     markers.filter((m) => existing.some((row) => row.description?.includes(m))),
   );
+  /** Marker → live issue id, for parents (grows as this chunk creates issues). */
+  const issueByMarker = new Map<string, string>();
+  for (const m of parentMarkers) {
+    const row = existing.find((r) => !r.deletedAt && r.description?.includes(m));
+    if (row) issueByMarker.set(m, row.id);
+  }
 
   const byEmail = new Map(memberRows.map((m) => [m.email.toLowerCase(), m.id]));
   const byName = new Map<string, string | null>();
@@ -275,6 +291,7 @@ export async function importIssues(input: {
     }
     const who = record.assignee?.toLowerCase();
     const state = resolveState(stateRows, record);
+    const parentId = record.parent ? issueByMarker.get(sourceMarker(record.parent)) : undefined;
     try {
       const created = await createIssue(
         { userId: authz.userId },
@@ -288,11 +305,16 @@ export async function importIssues(input: {
           labelIds: record.labels.flatMap((l) => labelIds.get(l.name.toLowerCase()) ?? []),
           estimate: snapEstimate(project.estimateScale, record.estimate),
           dueDate: record.dueDate,
+          ...(parentId ? { parentId } : {}),
         },
         { source: 'import' },
       );
-      if (created.ok) result.created++;
-      else result.failed.push({ index, title: record.title, error: created.error });
+      if (created.ok) {
+        result.created++;
+        if (record.source) issueByMarker.set(sourceMarker(record.source), created.issue.id);
+      } else {
+        result.failed.push({ index, title: record.title, error: created.error });
+      }
     } catch (err) {
       console.error('[import] create failed', err);
       result.failed.push({ index, title: record.title, error: 'Could not create the issue.' });
@@ -426,4 +448,124 @@ export async function fetchGitHubIssues(input: {
   }
   const closed = records.filter((r) => r.closed).length;
   return { ok: true, records, open: records.length - closed, closed, truncated };
+}
+
+// ---------------------------------------------------------------------------
+// Asana / Shortcut (token per call, never stored)
+// ---------------------------------------------------------------------------
+
+type ExternalFail = Fail;
+
+const TOKEN_MAX = 500;
+
+function readToken(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() && value.length <= TOKEN_MAX ? value.trim() : null;
+}
+
+function externalError(provider: string, err: unknown): ExternalFail {
+  if (err instanceof VcsHttpError) {
+    if (err.status >= 500 || err.status === 0) console.error(`[import] ${provider} failed`, err);
+    return { ok: false, error: describeImportError(provider, err.status, err.message) };
+  }
+  console.error(`[import] ${provider} failed`, err);
+  return { ok: false, error: `Could not reach ${provider}.` };
+}
+
+/** Write access to the project plus a token; the token only authenticates upstream. */
+async function external(projectId: unknown, token: unknown): Promise<{ ok: true; token: string } | ExternalFail> {
+  const authz = await authorizeProjectAction(projectId, 'write');
+  if (!authz.ok) return authz;
+  const value = readToken(token);
+  if (!value) return { ok: false, error: 'Enter a personal access token.' };
+  return { ok: true, token: value };
+}
+
+const GID_RE = /^\d{1,30}$/;
+
+export async function listAsanaWorkspacesAction(input: {
+  projectId: string;
+  token: string;
+}): Promise<{ ok: true; workspaces: AsanaOption[] } | ExternalFail> {
+  const auth = await external(input?.projectId, input?.token);
+  if (!auth.ok) return auth;
+  try {
+    return { ok: true, workspaces: await listAsanaWorkspaces(auth.token) };
+  } catch (err) {
+    return externalError('Asana', err);
+  }
+}
+
+export async function listAsanaProjectsAction(input: {
+  projectId: string;
+  token: string;
+  workspace: string;
+}): Promise<{ ok: true; projects: AsanaOption[] } | ExternalFail> {
+  const auth = await external(input?.projectId, input?.token);
+  if (!auth.ok) return auth;
+  if (typeof input.workspace !== 'string' || !GID_RE.test(input.workspace)) {
+    return { ok: false, error: 'Pick a workspace.' };
+  }
+  try {
+    return { ok: true, projects: await listAsanaProjects(auth.token, input.workspace) };
+  } catch (err) {
+    return externalError('Asana', err);
+  }
+}
+
+export async function fetchAsanaTasksAction(input: {
+  projectId: string;
+  token: string;
+  project: string;
+  includeCompleted: boolean;
+}): Promise<({ ok: true } & ExternalFetchResult) | ExternalFail> {
+  const auth = await external(input?.projectId, input?.token);
+  if (!auth.ok) return auth;
+  if (typeof input.project !== 'string' || !GID_RE.test(input.project)) {
+    return { ok: false, error: 'Pick a project.' };
+  }
+  try {
+    return { ok: true, ...(await fetchAsanaTasks(auth.token, input.project, input.includeCompleted === true)) };
+  } catch (err) {
+    return externalError('Asana', err);
+  }
+}
+
+export async function listShortcutSourcesAction(input: {
+  projectId: string;
+  token: string;
+}): Promise<{ ok: true; workflows: ShortcutOption[]; projects: ShortcutOption[] } | ExternalFail> {
+  const auth = await external(input?.projectId, input?.token);
+  if (!auth.ok) return auth;
+  try {
+    return { ok: true, ...(await listShortcutSources(auth.token)) };
+  } catch (err) {
+    return externalError('Shortcut', err);
+  }
+}
+
+export async function fetchShortcutStoriesAction(input: {
+  projectId: string;
+  token: string;
+  source: { kind: 'workflow' | 'project'; id: number };
+  includeCompleted: boolean;
+}): Promise<({ ok: true } & ExternalFetchResult) | ExternalFail> {
+  const auth = await external(input?.projectId, input?.token);
+  if (!auth.ok) return auth;
+  const source = input.source;
+  if (
+    !source ||
+    (source.kind !== 'workflow' && source.kind !== 'project') ||
+    !Number.isSafeInteger(source.id) ||
+    source.id <= 0
+  ) {
+    return { ok: false, error: 'Pick a workflow or project.' };
+  }
+  try {
+    return {
+      ok: true,
+      ...(await fetchShortcutStories(auth.token, { kind: source.kind, id: source.id }, input.includeCompleted === true)),
+    };
+  } catch (err) {
+    return externalError('Shortcut', err);
+  }
 }

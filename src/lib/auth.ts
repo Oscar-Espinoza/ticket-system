@@ -22,12 +22,26 @@
 
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
+import { createAuthMiddleware, isAPIError } from 'better-auth/api';
 import { nextCookies } from 'better-auth/next-js';
 import { jwt, twoFactor } from 'better-auth/plugins';
 import { oauthProvider } from '@better-auth/oauth-provider';
 import { scim } from '@better-auth/scim';
 import { sso } from '@better-auth/sso';
 import { authDb } from '@/lib/db';
+import { recordUserSecurityEvent } from '@/lib/audit';
+import {
+  assertIdentityDomain,
+  assertPasswordSignInAllowed,
+  canGenerateScimToken,
+  enforcedSsoForEmail,
+  handleScimActiveChange,
+  isNonSsoSignIn,
+  onIdentityCreated,
+  onIdentityDeleted,
+  shouldLinkScimUser,
+  ssoCallbackContext,
+} from '@/lib/sso';
 import {
   users,
   sessions,
@@ -112,9 +126,136 @@ export const auth = betterAuth({
       loginPage: '/login',
       consentPage: '/oauth/consent',
       scopes: ['openid', 'profile', 'email', 'offline_access', 'read', 'write'],
+      // Discovery is served by src/app/.well-known/oauth-authorization-server/api/auth/route.ts.
+      silenceWarnings: { oauthAuthServerConfig: true },
     }),
-    sso(),
-    scim(),
+    // Providers are written only by workspace admins through
+    // src/app/actions/security.ts (domain proven, see src/lib/sso.ts), so the
+    // IdP's email_verified claim can be trusted; self-service registration off.
+    sso({ providersLimit: 0, trustEmailVerified: true }),
+    scim({
+      storeSCIMToken: 'hashed',
+      // Tokens are per workspace (providerId `scim-<workspaceId>`), owners/admins only.
+      canGenerateToken: ({ user, providerId, organizationId }) =>
+        !organizationId && canGenerateScimToken(user.id, providerId),
+      linkExistingUsers: {
+        shouldLinkUser: ({ user, email, provider }) =>
+          !provider.organizationId && shouldLinkScimUser(user.id, email, provider.providerId),
+      },
+    }),
     nextCookies(),
   ],
+  // D12 security. The SSO / SCIM plugins' self-service provider management
+  // would let any signed-in user register an IdP for any domain or manage
+  // any token; workspace admins use the server actions instead (auth.api
+  // calls bypass disabledPaths).
+  disabledPaths: [
+    '/sso/register',
+    '/sso/update-provider',
+    '/sso/delete-provider',
+    '/sso/providers',
+    '/sso/get-provider',
+    '/sso/request-domain-verification',
+    '/sso/verify-domain',
+    '/scim/generate-token',
+    '/scim/list-provider-connections',
+    '/scim/get-provider-connection',
+    '/scim/delete-provider-connection',
+  ],
+  hooks: {
+    before: createAuthMiddleware(async (ctx) => {
+      // "Enforce SSO": password sign-in / sign-up is refused for the domain.
+      if (ctx.path === '/sign-in/email' || ctx.path === '/sign-up/email') {
+        await assertPasswordSignInAllowed(ctx.body?.email);
+        return;
+      }
+      if (ctx.path === '/scim/v2/Users/:userId') {
+        const resource = await handleScimActiveChange({
+          method: ctx.request?.method,
+          authorization: ctx.headers?.get('authorization'),
+          userId: ctx.params?.userId,
+          body: ctx.body,
+        });
+        if (resource) return ctx.json(resource);
+        return;
+      }
+      const override = await ssoCallbackContext(
+        ctx.path,
+        ctx.params?.providerId,
+        ctx.context.options,
+      );
+      if (override) return { context: { context: override } };
+    }),
+    after: createAuthMiddleware(async (ctx) => {
+      const userId = ctx.context.session?.user.id;
+      if (
+        ctx.path === '/two-factor/generate-backup-codes' &&
+        userId &&
+        ctx.context.returned &&
+        !isAPIError(ctx.context.returned)
+      ) {
+        await recordUserSecurityEvent(userId, {
+          actorId: userId,
+          type: 'security.2fa_backup_codes_regenerated',
+          summary: 'regenerated two-factor backup codes',
+        });
+      }
+    }),
+  },
+  databaseHooks: {
+    user: {
+      update: {
+        // The two-factor plugin flips twoFactorEnabled on the first verified
+        // code (enable) and on /two-factor/disable.
+        after: async (user, ctx) => {
+          const path = ctx?.path;
+          const enabled =
+            path?.startsWith('/two-factor/verify-') && user.twoFactorEnabled === true;
+          const disabled = path === '/two-factor/disable' && user.twoFactorEnabled === false;
+          if (!enabled && !disabled) return;
+          await recordUserSecurityEvent(user.id, {
+            actorId: user.id,
+            type: enabled ? 'security.2fa_enabled' : 'security.2fa_disabled',
+            summary: enabled
+              ? 'enabled two-factor authentication'
+              : 'disabled two-factor authentication',
+          });
+        },
+      },
+      delete: {
+        // SCIM deprovisioning removes the identity and workspace seats
+        // (onIdentityDeleted) but never deletes the account and everything
+        // it owns.
+        before: async (_user, ctx) => (ctx?.path?.startsWith('/scim/') ? false : undefined),
+      },
+    },
+    account: {
+      create: {
+        before: async (account, ctx) => {
+          await assertIdentityDomain(account, async (id) =>
+            ctx ? ctx.context.internalAdapter.findUserById(id) : null,
+          );
+        },
+        after: async (account) => {
+          await onIdentityCreated(account);
+        },
+      },
+      delete: {
+        after: async (account) => {
+          await onIdentityDeleted(account);
+        },
+      },
+    },
+    session: {
+      create: {
+        // Backstop for "Enforce SSO" on GitHub sign-in (email unknown until
+        // the OAuth callback). Returning false fails the sign-in.
+        before: async (session, ctx) => {
+          if (!ctx || !isNonSsoSignIn(ctx.path)) return;
+          const user = await ctx.context.internalAdapter.findUserById(session.userId);
+          if (user && (await enforcedSsoForEmail(user.email))) return false;
+        },
+      },
+    },
+  },
 });

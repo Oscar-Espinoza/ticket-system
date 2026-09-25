@@ -5,11 +5,13 @@
 // Every action resolves the session and the caller's project role itself —
 // the settings UI hiding controls is UX only. Owner/admin may edit details;
 // changing the key and deleting are owner-only (they break links for everyone).
+// Team structure (D4a): parent team (sub-teams) and visibility (private teams)
+// are admin settings.
 
 import { headers } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
@@ -23,6 +25,8 @@ export type ProjectSettingsState = {
     description?: string;
     estimateScale?: string;
     ticketKey?: string;
+    parentId?: string;
+    visibility?: string;
     confirm?: string;
     server?: string;
   };
@@ -161,4 +165,100 @@ export async function deleteProject(
 
   revalidatePath('/dashboard', 'layout');
   redirect('/dashboard');
+}
+
+// ---------------------------------------------------------------------------
+// Team structure: parent team + visibility
+// ---------------------------------------------------------------------------
+
+// Not exported: 'use server' files may only export async functions.
+const PROJECT_VISIBILITIES = ['private', 'workspace'] as const;
+export type ProjectVisibility = (typeof PROJECT_VISIBILITIES)[number];
+
+/**
+ * Sub-teams: the parent must share this project's (non-null) workspace, the
+ * caller must be a member of it, and it can't be this project or one of its
+ * sub-teams. An empty parentId clears it.
+ */
+export async function updateProjectParent(
+  _prev: ProjectSettingsState,
+  formData: FormData,
+): Promise<ProjectSettingsState> {
+  const projectId = field(formData, 'projectId');
+  const gate = await authorize(projectId, 'admin');
+  if ('error' in gate) return gate.error;
+  const parentId = field(formData, 'parentId') || null;
+
+  if (parentId) {
+    if (parentId === projectId) return { errors: { parentId: "A team can't be its own parent." } };
+    const [child] = await db
+      .select({ workspaceId: projects.workspaceId })
+      .from(projects)
+      .where(eq(projects.id, projectId))
+      .limit(1);
+    const [parent] = await db
+      .select({ workspaceId: projects.workspaceId, role: projectMembers.role })
+      .from(projects)
+      .innerJoin(
+        projectMembers,
+        and(eq(projectMembers.projectId, projects.id), eq(projectMembers.userId, gate.userId)),
+      )
+      .where(eq(projects.id, parentId))
+      .limit(1);
+    if (!child?.workspaceId) {
+      return { errors: { parentId: 'Add this project to a workspace first.' } };
+    }
+    if (!parent || parent.workspaceId !== child.workspaceId) {
+      return { errors: { parentId: 'Pick a team in the same workspace.' } };
+    }
+    // Walk up from the candidate parent; meeting this project means a cycle.
+    const [cycle] = await db
+      .select({ id: projects.id })
+      .from(projects)
+      .where(
+        and(
+          eq(projects.id, projectId),
+          sql`${projects.id} in (
+            with recursive ancestors(id, parent_id, depth) as (
+              select p.id, p.parent_id, 0 from ${projects} p where p.id = ${parentId}
+              union all
+              select a.id, a.parent_id, ancestors.depth + 1
+              from ${projects} a join ancestors on a.id = ancestors.parent_id
+              where ancestors.depth < 50
+            )
+            select id from ancestors
+          )`,
+        ),
+      )
+      .limit(1);
+    if (cycle) return { errors: { parentId: "A team can't be nested under its own sub-team." } };
+  }
+
+  await db
+    .update(projects)
+    .set({ parentId, updatedAt: new Date() })
+    .where(eq(projects.id, projectId));
+  revalidateProject(projectId);
+  return { success: true };
+}
+
+/** Private teams: 'private' (members only) or 'workspace' (discoverable, joinable). */
+export async function updateProjectVisibility(
+  _prev: ProjectSettingsState,
+  formData: FormData,
+): Promise<ProjectSettingsState> {
+  const projectId = field(formData, 'projectId');
+  const gate = await authorize(projectId, 'admin');
+  if ('error' in gate) return gate.error;
+  const visibility = field(formData, 'visibility');
+  if (!(PROJECT_VISIBILITIES as readonly string[]).includes(visibility)) {
+    return { errors: { visibility: 'Pick a visibility.' } };
+  }
+
+  await db
+    .update(projects)
+    .set({ visibility, updatedAt: new Date() })
+    .where(eq(projects.id, projectId));
+  revalidateProject(projectId);
+  return { success: true };
 }

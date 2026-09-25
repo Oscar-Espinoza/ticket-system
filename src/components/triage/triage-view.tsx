@@ -1,7 +1,7 @@
 'use client';
 
 // Triage inbox: issues in a triage state (newest first) with the issue preview.
-// Keyboard: j/k (↑/↓) move, 1 accept, 2 duplicate, 3 decline.
+// Keyboard: j/k (↑/↓) move, 1 accept, 2 duplicate, 3 decline, a apply suggestions.
 
 import { useEffect, useEffectEvent, useState, useTransition } from 'react';
 import { CheckCircle2, Copy, Inbox, XCircle } from 'lucide-react';
@@ -23,6 +23,7 @@ import { registerHotkeys } from '@/lib/hotkeys';
 import type { IssueRow } from '@/lib/issue-model';
 import { cn } from '@/lib/utils';
 import { AcceptDialog, DeclineDialog, DuplicateDialog, type AcceptChoice } from './triage-dialogs';
+import { TriageSuggestions } from './triage-suggestions';
 
 type DialogKind = 'accept' | 'decline' | 'duplicate' | null;
 
@@ -113,7 +114,7 @@ export function TriageView({
       () => declineTriageIssue({ projectId: issue.projectId, id: issue.id, reason }),
       `Declined ${issue.key}`,
     );
-  const duplicate = (issue: IssueRow, original: IssueRow) =>
+  const duplicate = (issue: IssueRow, original: { id: string; key: string }) =>
     run(
       issue,
       () => markTriageDuplicate({ projectId: issue.projectId, id: issue.id, originalId: original.id }),
@@ -184,6 +185,15 @@ export function TriageView({
           </div>
         )}
       </div>
+
+      {canWrite && selected && (
+        <TriageSuggestions
+          issue={selected}
+          mutations={mutations}
+          pending={pending}
+          onDuplicate={(original) => duplicate(selected, original)}
+        />
+      )}
 
       <div className="flex min-h-0 flex-1">
         <ul aria-label="Triage issues" className="flex min-w-0 flex-1 flex-col self-start">

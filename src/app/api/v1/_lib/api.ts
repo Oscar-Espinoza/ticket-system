@@ -1,24 +1,24 @@
 // Shared plumbing for the /api/v1 route handlers (the `_lib` folder is private,
-// not routed). Every handler goes: API key → user → project membership + role
-// → issue-service / reads scoped to that project. Non-members get 404 (the same
+// not routed). Every handler goes: API key / OAuth token → user (+ token scope:
+// GET needs `read`, writes need `write`) → project membership + role →
+// issue-service / reads scoped to that project. Non-members get 404 (the same
 // as a missing project, so ids can't be probed); a too-low role gets 403.
 
-import { eq } from 'drizzle-orm';
-
-import { db } from '@/lib/db';
-import { projects } from '@/db/schema';
-import { apiError, authenticateApiRequest } from '@/lib/api-auth';
+import { apiError, authenticateApiRequest, missingScope } from '@/lib/api-auth';
 import { ProjectAccessError, requireProjectMember } from '@/lib/project-access';
 import { roleAllows, type AccessLevel, type ProjectRole } from '@/lib/roles';
 import type { IssueRow } from '@/lib/issue-model';
 import type { IssueServiceError } from '@/lib/issue-service';
-import { getIssueByKey } from '@/lib/tickets';
+import { getTicketById } from '@/lib/tickets';
+import { resolveIssueKey } from '@/lib/graphql/issue-key';
 import { absoluteIssueUrl } from '@/lib/integrations/app-url';
 
 export interface ApiCaller {
   userId: string;
   keyId: string;
 }
+
+const READ_METHODS = new Set(['GET', 'HEAD']);
 
 type Handler<P> = (req: Request, caller: ApiCaller, params: P) => Promise<Response>;
 
@@ -29,6 +29,8 @@ export function apiRoute<P extends Record<string, string> = Record<string, never
   return async (req: Request, ctx: { params: Promise<P> }): Promise<Response> => {
     const auth = await authenticateApiRequest(req);
     if (!auth.ok) return auth.response;
+    const denied = missingScope(auth, READ_METHODS.has(req.method) ? 'read' : 'write');
+    if (denied) return denied;
     try {
       return await handler(req, { userId: auth.userId, keyId: auth.keyId }, await ctx.params);
     } catch (err) {
@@ -62,31 +64,22 @@ export async function projectAccess(
   }
 }
 
-const ISSUE_KEY = /^([A-Za-z]{1,10})-(\d{1,9})$/;
-
-/** Resolve "APP-12" to an issue the caller may access at `level`. */
+/** Resolve "APP-12" (or a pre-move alias) to an issue the caller may access at `level`. */
 export async function issueByKey(
   userId: string,
   key: string,
   level: AccessLevel,
 ): Promise<{ ok: true; issue: IssueRow; role: ProjectRole } | { ok: false; response: Response }> {
   const notFound = { ok: false as const, response: apiError(404, 'Issue not found.') };
-  const match = key.match(ISSUE_KEY);
-  if (!match) return notFound;
+  const ref = await resolveIssueKey(key);
+  if (!ref) return notFound;
 
-  const [project] = await db
-    .select({ id: projects.id })
-    .from(projects)
-    .where(eq(projects.ticketKey, match[1].toUpperCase()))
-    .limit(1);
-  if (!project) return notFound;
-
-  const access = await projectAccess(userId, project.id, level);
+  const access = await projectAccess(userId, ref.projectId, level);
   if (!access.ok) {
     // Hide which keys exist from non-members.
     return access.response.status === 404 ? notFound : access;
   }
-  const issue = await getIssueByKey(project.id, Number(match[2]));
+  const issue = await getTicketById(ref.projectId, ref.id);
   return issue ? { ok: true, issue, role: access.role } : notFound;
 }
 
@@ -102,6 +95,7 @@ export function serializeIssue(issue: IssueRow) {
     state: { id: issue.state.id, name: issue.state.name, type: issue.state.type },
     priority: issue.priority,
     estimate: issue.estimate,
+    startDate: issue.startDate,
     dueDate: issue.dueDate,
     assignee: issue.assignee,
     creator: issue.creator,

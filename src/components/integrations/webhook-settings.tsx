@@ -1,15 +1,31 @@
 'use client';
 
-import { useState, useTransition } from 'react';
-import { KeyRound, Loader2, MoreHorizontal, Pencil, Plus, Send, Trash2, Webhook } from 'lucide-react';
+import { useEffect, useState, useTransition } from 'react';
+import {
+  ChevronRight,
+  History,
+  KeyRound,
+  Loader2,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  RotateCw,
+  Send,
+  Trash2,
+  Webhook,
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 import {
   createWebhook,
   deleteWebhook,
+  retryWebhookDeliveries,
   revealWebhookSecret,
   sendWebhookTest,
+  listWebhookDeliveries,
+  redeliverWebhookDelivery,
   updateWebhook,
+  type WebhookDeliveryView,
   type WebhookView,
 } from '@/app/actions/integrations';
 import { relativeTime } from '@/components/issues/issue-properties';
@@ -44,7 +60,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { EmptyState } from '@/components/ui-icons';
+import { EmptyState, Skeleton } from '@/components/ui-icons';
 import { WEBHOOK_EVENT_TYPES } from '@/lib/integrations/event-types';
 import { cn } from '@/lib/utils';
 import { CopyField } from './copy-field';
@@ -62,7 +78,15 @@ export function WebhookSettings({
   const [editing, setEditing] = useState<Editing>(null);
   const [secret, setSecret] = useState<{ value: string; isNew: boolean } | null>(null);
   const [deleting, setDeleting] = useState<WebhookView | null>(null);
+  const [viewing, setViewing] = useState<WebhookView | null>(null);
   const [, startTransition] = useTransition();
+
+  // Lazy retries: opening this page resends the project's due deliveries (after
+  // the response) — there's no background queue on the free tier.
+  const hasHooks = initial.length > 0;
+  useEffect(() => {
+    if (hasHooks) void retryWebhookDeliveries({ projectId }).catch(() => undefined);
+  }, [projectId, hasHooks]);
 
   const replace = (hook: WebhookView) =>
     setHooks((prev) => prev.map((h) => (h.id === hook.id ? hook : h)));
@@ -156,7 +180,13 @@ export function WebhookSettings({
                     ? 'All events'
                     : `${hook.events.length} event${hook.events.length === 1 ? '' : 's'}`}
                   {' · '}
-                  <LastDelivery hook={hook} />
+                  <button
+                    type="button"
+                    className="hover:text-foreground hover:underline"
+                    onClick={() => setViewing(hook)}
+                  >
+                    <LastDelivery hook={hook} />
+                  </button>
                 </p>
               </div>
               <Switch
@@ -172,6 +202,10 @@ export function WebhookSettings({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  <DropdownMenuItem onSelect={() => setViewing(hook)}>
+                    <History />
+                    Recent deliveries
+                  </DropdownMenuItem>
                   <DropdownMenuItem onSelect={() => setEditing({ mode: 'edit', hook })}>
                     <Pencil />
                     Edit
@@ -208,6 +242,15 @@ export function WebhookSettings({
             setEditing(null);
             if (newSecret) setSecret({ value: newSecret, isNew: true });
           }}
+        />
+      )}
+
+      {viewing && (
+        <WebhookDeliveries
+          projectId={projectId}
+          hook={viewing}
+          onClose={() => setViewing(null)}
+          onWebhookChange={replace}
         />
       )}
 
@@ -321,7 +364,8 @@ function WebhookDialog({
           <DialogHeader>
             <DialogTitle>{hook ? 'Edit webhook' : 'Add webhook'}</DialogTitle>
             <DialogDescription>
-              Deliveries time out after 5 seconds and are not retried.
+              Deliveries time out after 5 seconds. Failures are retried after 1 min, 5 min,
+              30 min, 2 h and 12 h.
             </DialogDescription>
           </DialogHeader>
 
@@ -381,6 +425,176 @@ function WebhookDialog({
             </Button>
           </DialogFooter>
         </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Delivery log
+// ---------------------------------------------------------------------------
+
+function deliveryOutcome(d: WebhookDeliveryView): { label: string; tone: 'ok' | 'pending' | 'failed' } {
+  if (d.deliveredAt) return { label: 'Delivered', tone: 'ok' };
+  if (d.nextAttemptAt) {
+    const at = new Date(d.nextAttemptAt);
+    return {
+      label: at.getTime() <= Date.now() ? 'Retry due' : `Retrying ${relativeTime(at)}`,
+      tone: 'pending',
+    };
+  }
+  return { label: d.attempt > 1 ? `Gave up after ${d.attempt} attempts` : 'Failed', tone: 'failed' };
+}
+
+function WebhookDeliveries({
+  projectId,
+  hook,
+  onClose,
+  onWebhookChange,
+}: {
+  projectId: string;
+  hook: WebhookView;
+  onClose: () => void;
+  onWebhookChange: (hook: WebhookView) => void;
+}) {
+  const [deliveries, setDeliveries] = useState<WebhookDeliveryView[] | null>(null);
+  const [open, setOpen] = useState<string | null>(null);
+  const [sending, setSending] = useState<string | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    listWebhookDeliveries({ projectId, webhookId: hook.id }).then(
+      (result) => {
+        if (!live) return;
+        if (result.ok) setDeliveries(result.deliveries);
+        else {
+          toast.error(result.error);
+          setDeliveries([]);
+        }
+      },
+      () => live && setDeliveries([]),
+    );
+    return () => {
+      live = false;
+    };
+  }, [projectId, hook.id]);
+
+  async function resend(delivery: WebhookDeliveryView) {
+    setSending(delivery.id);
+    const result = await redeliverWebhookDelivery({
+      projectId,
+      webhookId: hook.id,
+      deliveryId: delivery.id,
+    });
+    setSending(null);
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
+    setDeliveries((prev) => prev?.map((d) => (d.id === delivery.id ? result.delivery : d)) ?? null);
+    onWebhookChange(result.webhook);
+    if (result.delivery.deliveredAt) toast.success(`Delivered (HTTP ${result.delivery.status})`);
+    else toast.error(result.delivery.error ?? 'Delivery failed');
+  }
+
+  return (
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Recent deliveries</DialogTitle>
+          <DialogDescription className="truncate font-mono text-xs" title={hook.url}>
+            {hook.url}
+          </DialogDescription>
+        </DialogHeader>
+
+        {deliveries === null ? (
+          <div className="flex flex-col gap-2 py-2" aria-busy="true">
+            {Array.from({ length: 4 }, (_, i) => (
+              <Skeleton key={i} />
+            ))}
+          </div>
+        ) : deliveries.length === 0 ? (
+          <EmptyState
+            className="py-8"
+            icon={<History />}
+            title="No deliveries yet"
+            description="Deliveries appear here as issue events are sent. Try “Send test”."
+          />
+        ) : (
+          <ul className="-mx-1 max-h-[60vh] divide-y divide-border overflow-y-auto">
+            {deliveries.map((d) => {
+              const outcome = deliveryOutcome(d);
+              const expanded = open === d.id;
+              return (
+                <li key={d.id} className="px-1">
+                  <div className="flex items-center gap-2 py-2">
+                    <button
+                      type="button"
+                      className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                      aria-expanded={expanded}
+                      onClick={() => setOpen(expanded ? null : d.id)}
+                    >
+                      <ChevronRight
+                        className={cn(
+                          'size-3.5 shrink-0 text-muted-foreground transition-transform',
+                          expanded && 'rotate-90',
+                        )}
+                      />
+                      <span
+                        aria-hidden="true"
+                        className={cn(
+                          'size-2 shrink-0 rounded-full',
+                          outcome.tone === 'ok'
+                            ? 'bg-emerald-500'
+                            : outcome.tone === 'pending'
+                              ? 'bg-amber-500'
+                              : 'bg-red-500',
+                        )}
+                      />
+                      <span className="truncate font-mono text-xs">{d.eventType}</span>
+                      <span className="shrink-0 text-xs text-muted-foreground">
+                        {d.status === null ? 'Not sent' : d.status === 0 ? 'No response' : `HTTP ${d.status}`}
+                      </span>
+                      <span className="ml-auto shrink-0 text-xs text-muted-foreground">
+                        {outcome.label}
+                        {d.attempt > 1 && outcome.tone === 'ok' ? ` · attempt ${d.attempt}` : ''}
+                        {' · '}
+                        <span title={new Date(d.createdAt).toLocaleString()}>
+                          {relativeTime(new Date(d.createdAt))}
+                        </span>
+                      </span>
+                    </button>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label="Redeliver"
+                      title="Redeliver"
+                      disabled={sending !== null}
+                      onClick={() => resend(d)}
+                    >
+                      {sending === d.id ? <Loader2 className="animate-spin" /> : <RotateCw />}
+                    </Button>
+                  </div>
+                  {expanded && (
+                    <div className="mb-2 ml-5 flex flex-col gap-2">
+                      {d.error && !d.deliveredAt && (
+                        <p className="text-xs text-destructive">{d.error}</p>
+                      )}
+                      <p className="text-xs text-muted-foreground">
+                        {d.attempt} attempt{d.attempt === 1 ? '' : 's'}
+                        {d.deliveredAt &&
+                          ` · delivered ${new Date(d.deliveredAt).toLocaleString()}`}
+                      </p>
+                      <pre className="max-h-64 overflow-auto rounded-md bg-muted px-3 py-2 font-mono text-[0.7rem] leading-relaxed">
+                        {JSON.stringify(d.payload, null, 2)}
+                      </pre>
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </DialogContent>
     </Dialog>
   );

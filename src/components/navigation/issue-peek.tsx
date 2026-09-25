@@ -95,7 +95,7 @@ export function IssuePeek({
 
           <div className="max-h-[50vh] overflow-y-auto border-t border-border pt-3 text-sm">
             {issue.description?.trim() ? (
-              <Markdown>{issue.description}</Markdown>
+              <Markdown embeds={false}>{issue.description}</Markdown>
             ) : (
               <p className="text-muted-foreground">No description.</p>
             )}

@@ -7,18 +7,26 @@
 // `summary` for the activity timeline and notifications.
 
 import { revalidatePath } from 'next/cache';
-import { eq } from 'drizzle-orm';
+import { asc, eq } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
-import { workflowStates } from '@/db/schema';
+import { labels, projectMembers, users, workflowStates } from '@/db/schema';
 import { authorizeProjectAction } from '@/lib/action-auth';
 import { emitIssueEvent } from '@/lib/events';
 import { updateIssueFields } from '@/lib/issue-service';
 import type { IssuePatch, IssueRow, Priority, WorkflowState } from '@/lib/issue-model';
 import { isPriority } from '@/lib/issue-model';
+import { stripMentions } from '@/lib/mentions';
 import { createIssueRelation } from '@/lib/relations';
+import { findSimilarIssues } from '@/lib/similarity';
 import { getTicketById } from '@/lib/tickets';
-import { TRIAGE_REASON_MAX, acceptStates, declineState } from '@/lib/triage';
+import {
+  TRIAGE_REASON_MAX,
+  acceptStates,
+  declineState,
+  suggestTriage,
+  type TriageSuggestions,
+} from '@/lib/triage';
 
 export type TriageActionResult = { ok: true; warning?: string } | { ok: false; error: string };
 
@@ -148,4 +156,54 @@ export async function markTriageDuplicate(input: {
   if (!result.ok) return result;
   revalidateProject(input.projectId);
   return result;
+}
+
+export type TriageSuggestionsResult =
+  | { ok: true; suggestions: TriageSuggestions }
+  | { ok: false; error: string };
+
+/** How many similar issues vote on the suggestions. */
+const SUGGESTION_NEIGHBORS = 8;
+
+/**
+ * Heuristic suggestions (labels, assignee, priority, likely duplicate) for a
+ * triage issue, voted by its most similar issues. Read level: anyone who can
+ * see the queue sees them; applying goes through the normal write actions.
+ */
+export async function getTriageSuggestions(input: {
+  projectId: string;
+  id: string;
+}): Promise<TriageSuggestionsResult> {
+  const authz = await authorizeProjectAction(input?.projectId, 'read');
+  if (!authz.ok) return authz;
+  const found = await triageIssue(input.projectId, input.id);
+  if ('error' in found) return { ok: false, error: found.error };
+  const { issue } = found;
+
+  const [similar, [projectLabels, members]] = await Promise.all([
+    findSimilarIssues(authz.userId, input.projectId, {
+      title: issue.title,
+      description: issue.description ? stripMentions(issue.description) : null,
+      excludeIds: [issue.id],
+      limit: SUGGESTION_NEIGHBORS,
+      minScore: 0.25,
+    }),
+    db.batch([
+      db
+        .select({ id: labels.id, name: labels.name, color: labels.color })
+        .from(labels)
+        .where(eq(labels.projectId, input.projectId))
+        .orderBy(asc(labels.name)),
+      db
+        .select({ id: users.id, name: users.name, image: users.image })
+        .from(projectMembers)
+        .innerJoin(users, eq(projectMembers.userId, users.id))
+        .where(eq(projectMembers.projectId, input.projectId)),
+    ]),
+  ]);
+
+  return {
+    ok: true,
+    suggestions: suggestTriage(issue, similar, { labels: projectLabels, members }),
+  };
 }

@@ -4,7 +4,9 @@
 // inbox. No raw HTML (skipHtml), URLs pass react-markdown's default protocol
 // filter, external links open in a new tab without referrer / opener.
 // Mentions (`@[Name](user:ID)`) render as chips; the current project's issue
-// keys (`APP-12`) link to their permalink.
+// keys (`APP-12`) link to their permalink. A top-level paragraph holding only
+// an allowlisted link (Figma, YouTube, Loom, Google Docs, Miro) renders as an
+// embed — the same rule the editor uses.
 
 import { memo, useMemo, type ReactNode } from 'react';
 import Link from 'next/link';
@@ -15,6 +17,8 @@ import type { ListItem, Parent, PhrasingContent, Root, RootContent } from 'mdast
 import { useOptionalProjectData } from '@/components/project/project-data';
 import { issuePath } from '@/lib/issue-links';
 import { cn } from '@/lib/utils';
+import { EmbedFrame } from './embed-frame';
+import { embedFor } from './embeds';
 import { toggleTaskAt } from './text-edits';
 
 const MENTION_PROTOCOL = 'user:';
@@ -84,6 +88,20 @@ function remarkTaskOffsets() {
     });
 }
 
+/** Top-level paragraphs that are just an autolinked embeddable URL → embed placeholder. */
+function remarkEmbeds() {
+  return (tree: Root) => {
+    for (const node of tree.children) {
+      if (node.type !== 'paragraph' || node.children.length !== 1) continue;
+      const [link] = node.children;
+      if (link.type !== 'link' || link.children.length !== 1) continue;
+      const [text] = link.children;
+      if (text.type !== 'text' || text.value !== link.url || !embedFor(link.url)) continue;
+      node.data = { ...node.data, hName: 'div', hProperties: { dataEmbed: link.url } };
+    }
+  };
+}
+
 function urlTransform(url: string) {
   return url.startsWith(MENTION_PROTOCOL) ? url : defaultUrlTransform(url);
 }
@@ -98,17 +116,23 @@ export function MentionChip({ children }: { children: ReactNode }) {
   );
 }
 
-const PROSE = cn(
+/** Typography shared by the renderer and the rich editor. */
+export const PROSE_BASE = cn(
   'min-w-0 text-sm leading-relaxed break-words',
-  '[&>*+*]:mt-2.5 [&_li+li]:mt-1 [&_li>p]:inline',
+  '[&>*+*]:mt-2.5 [&_li+li]:mt-1',
   '[&_h1]:text-lg [&_h1]:font-semibold [&_h2]:text-base [&_h2]:font-semibold [&_h3]:font-semibold [&_h4]:font-medium [&_h5]:font-medium [&_h6]:font-medium',
-  '[&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_.contains-task-list]:list-none [&_.contains-task-list]:pl-1',
+  '[&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5',
   '[&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-3 [&_blockquote]:text-muted-foreground',
   '[&_:not(pre)>code]:rounded [&_:not(pre)>code]:bg-muted [&_:not(pre)>code]:px-1 [&_:not(pre)>code]:py-px [&_:not(pre)>code]:font-mono [&_:not(pre)>code]:text-[0.85em]',
   '[&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:bg-muted [&_pre]:p-3 [&_pre]:font-mono [&_pre]:text-xs',
   '[&_a]:text-primary [&_a]:underline-offset-2 [&_a:hover]:underline',
   '[&_hr]:border-border [&_img]:max-h-96 [&_img]:max-w-full [&_img]:rounded-md',
   '[&_table]:w-full [&_table]:border-collapse [&_table]:text-xs [&_td]:border [&_td]:border-border [&_td]:px-2 [&_td]:py-1 [&_th]:border [&_th]:border-border [&_th]:px-2 [&_th]:py-1 [&_th]:text-left [&_th]:font-medium',
+);
+
+const PROSE = cn(
+  PROSE_BASE,
+  '[&_li>p]:inline [&_.contains-task-list]:list-none [&_.contains-task-list]:pl-1',
 );
 
 export interface MarkdownProps {
@@ -118,6 +142,8 @@ export interface MarkdownProps {
   ticketKey?: string;
   /** Makes task checkboxes interactive; receives the updated source. */
   onToggleTask?: (nextSource: string) => void;
+  /** Render lone Figma / YouTube / … links as embeds (default true; off for compact previews). */
+  embeds?: boolean;
   className?: string;
 }
 
@@ -126,6 +152,7 @@ export const Markdown = memo(function Markdown({
   projectId,
   ticketKey,
   onToggleTask,
+  embeds = true,
   className,
 }: MarkdownProps) {
   const projectData = useOptionalProjectData();
@@ -133,13 +160,18 @@ export const Markdown = memo(function Markdown({
   const key = ticketKey ?? projectData?.project.ticketKey;
 
   const remarkPlugins = useMemo<NonNullable<Options['remarkPlugins']>>(() => {
-    const plugins: NonNullable<Options['remarkPlugins']> = [remarkGfm, remarkMentions, remarkTaskOffsets];
+    const plugins: NonNullable<Options['remarkPlugins']> = [
+      remarkGfm,
+      remarkMentions,
+      remarkTaskOffsets,
+    ];
+    if (embeds) plugins.push(remarkEmbeds);
     // Keys are validated as uppercase letters on save; the guard keeps the RegExp safe regardless.
     if (keyProject && key && /^[A-Z][A-Z0-9]*$/.test(key)) {
       plugins.push([remarkIssueKeys, { ticketKey: key, projectId: keyProject }]);
     }
     return plugins;
-  }, [keyProject, key]);
+  }, [keyProject, key, embeds]);
 
   const components = useMemo<Components>(
     () => ({
@@ -171,6 +203,12 @@ export const Markdown = memo(function Markdown({
             }}
           />
         );
+      },
+      div: ({ node, ...props }) => {
+        const url = node?.properties?.dataEmbed;
+        const embed = typeof url === 'string' ? embedFor(url) : null;
+        if (embed && typeof url === 'string') return <EmbedFrame embed={embed} url={url} />;
+        return <div {...props} />;
       },
       img: ({ src, alt }) =>
         // User-supplied external images; next/image would need every host allow-listed.

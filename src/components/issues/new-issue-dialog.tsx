@@ -13,6 +13,7 @@ import { TemplateMenu } from '@/components/productivity/template-menu';
 import { templateProps, type IssueTemplate } from '@/components/productivity/templates-store';
 import { useDraftAutosave } from '@/components/productivity/use-draft-autosave';
 import { useProjectData, useProjectPermission } from '@/components/project/project-data';
+import { PossibleDuplicates } from '@/components/similar/possible-duplicates';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -247,6 +248,7 @@ export function NewIssueDialog({
               aria-invalid={error ? true : undefined}
               aria-describedby={error ? `${uid}-error` : undefined}
             />
+            <PossibleDuplicates projectId={project.id} title={title} enabled={open && canWrite} />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor={`${uid}-description`}>Description</Label>

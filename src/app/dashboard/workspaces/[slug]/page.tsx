@@ -6,9 +6,9 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { and, asc, desc, eq, inArray, isNull, ne, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNotNull, isNull, ne, or, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
-import { Building2, Target } from 'lucide-react';
+import { Building2, ScrollText, ShieldCheck, Target } from 'lucide-react';
 
 import { getSession } from '@/lib/session';
 import { db } from '@/lib/db';
@@ -65,10 +65,18 @@ export default async function WorkspacePage({
         ticketKey: projects.ticketKey,
         viewerRole: viewer.role,
         memberCount: sql<number>`(select cast(count(*) as int) from ${projectMembers} where ${projectMembers.projectId} = ${projects.id})`,
+        parentId: projects.parentId,
+        visibility: projects.visibility,
       })
       .from(projects)
       .leftJoin(viewer, and(eq(viewer.projectId, projects.id), eq(viewer.userId, userId)))
-      .where(eq(projects.workspaceId, workspaceId))
+      // Private teams the viewer isn't in never reach the browser.
+      .where(
+        and(
+          eq(projects.workspaceId, workspaceId),
+          or(isNotNull(viewer.id), eq(projects.visibility, 'workspace')),
+        ),
+      )
       .orderBy(asc(projects.name)),
     // Open issues, only in projects the viewer is a member of (the join gates it).
     db
@@ -177,6 +185,22 @@ export default async function WorkspacePage({
             Initiatives
           </Link>
         </Button>
+        {isAdmin && (
+          <>
+            <Button variant="outline" size="sm" asChild>
+              <Link href={`/dashboard/workspaces/${membership.slug}/security`}>
+                <ShieldCheck />
+                Security
+              </Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link href={`/dashboard/workspaces/${membership.slug}/audit`}>
+                <ScrollText />
+                Audit log
+              </Link>
+            </Button>
+          </>
+        )}
         <WorkspaceActions
           workspace={{ id: workspaceId, name: membership.name }}
           role={membership.role}

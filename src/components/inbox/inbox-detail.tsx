@@ -13,6 +13,7 @@ import { PickerPopover } from '@/components/issue-pickers/picker-popover';
 import { relativeTime } from '@/components/issues/issue-properties';
 import { PRIORITY_LABEL, type IssueRow } from '@/lib/issue-model';
 import { issuePath } from '@/lib/issue-links';
+import { notificationPath } from '@/lib/notifications/types';
 import type { InboxGroup } from './inbox-groups';
 import { NotificationGlyph, notificationSentence } from './notification-glyph';
 import { formatWhen, snoozePresets } from './when-options';
@@ -40,6 +41,9 @@ export function InboxDetail({
   const key = issue?.key ?? latest.data.key ?? '';
   const title = issue?.title ?? latest.data.title ?? 'Notification';
   const href = issue ? issuePath(issue.projectId, issue.key) : null;
+  // Pulse and other project-level notifications have no issue; they may carry a link.
+  const standalone = !group.ticketId;
+  const standaloneHref = standalone ? notificationPath(null, latest.data) : null;
 
   return (
     <div className="flex min-h-full flex-col">
@@ -89,10 +93,21 @@ export function InboxDetail({
               </Link>
             </Button>
           )}
+          {standaloneHref && standaloneHref !== '/dashboard/inbox' && (
+            <Button asChild variant="outline" size="sm" className="ml-1">
+              <Link href={standaloneHref}>
+                Open
+                <ArrowUpRight />
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
 
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-6">
+        {standalone && latest.data.title && (
+          <h2 className="text-lg font-medium leading-snug">{latest.data.title}</h2>
+        )}
         <ol className="flex flex-col gap-3" aria-label="Notifications">
           {group.items.map((item) => (
             <li key={item.id} className="flex gap-3">
@@ -116,43 +131,52 @@ export function InboxDetail({
                     {item.data.excerpt}
                   </p>
                 )}
+                {Array.isArray(item.data.lines) && item.data.lines.length > 0 && (
+                  <ul className="mt-2 flex list-disc flex-col gap-1 pl-5 text-sm text-muted-foreground">
+                    {item.data.lines.map((line, index) => (
+                      <li key={index}>{String(line)}</li>
+                    ))}
+                  </ul>
+                )}
               </div>
             </li>
           ))}
         </ol>
 
-        <article className="flex flex-col gap-4 rounded-lg border border-border p-5">
-          <h2 className="text-lg font-medium leading-snug">
-            {href ? (
-              <Link href={href} className="hover:underline">
-                {title}
-              </Link>
-            ) : (
-              title
-            )}
-          </h2>
-          {issue ? (
-            <>
-              <IssueFacts issue={issue} />
-              {issue.description?.trim() ? (
-                <Markdown
-                  projectId={issue.projectId}
-                  ticketKey={issue.key.slice(0, issue.key.lastIndexOf('-'))}
-                  className="text-sm"
-                >
-                  {issue.description}
-                </Markdown>
+        {!standalone && (
+          <article className="flex flex-col gap-4 rounded-lg border border-border p-5">
+            <h2 className="text-lg font-medium leading-snug">
+              {href ? (
+                <Link href={href} className="hover:underline">
+                  {title}
+                </Link>
               ) : (
-                <p className="text-sm text-muted-foreground">No description.</p>
+                title
               )}
-            </>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              This issue is no longer available — it was deleted, or you are no longer a member of its
-              project.
-            </p>
-          )}
-        </article>
+            </h2>
+            {issue ? (
+              <>
+                <IssueFacts issue={issue} />
+                {issue.description?.trim() ? (
+                  <Markdown
+                    projectId={issue.projectId}
+                    ticketKey={issue.key.slice(0, issue.key.lastIndexOf('-'))}
+                    className="text-sm"
+                  >
+                    {issue.description}
+                  </Markdown>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No description.</p>
+                )}
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                This issue is no longer available — it was deleted, or you are no longer a member of its
+                project.
+              </p>
+            )}
+          </article>
+        )}
       </div>
     </div>
   );

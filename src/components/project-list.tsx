@@ -41,6 +41,7 @@ export const getProjectsForUser = cache(async (userId: string) =>
       id: projects.id,
       name: projects.name,
       ticketKey: projects.ticketKey,
+      parentId: projects.parentId,
       createdAt: projects.createdAt,
       role: projectMembers.role,
       // T-02-09: cast to int — PostgreSQL count() returns bigint, which Drizzle
@@ -64,6 +65,7 @@ export const getProjectsForUser = cache(async (userId: string) =>
       projects.id,
       projects.name,
       projects.ticketKey,
+      projects.parentId,
       projects.createdAt,
       projectMembers.role,
     )

@@ -10,6 +10,10 @@
 // Offline is read-only: writes need the server; queuing them is out of scope.
 // Signed-in pages are cached for offline reading, so signing out (or visiting
 // /login, /signup) wipes the page cache.
+//
+// Web Push (D11): `push` shows the notification, `notificationclick` focuses or
+// opens its URL. Registered as /sw.js?mode=push (dev only, when enabling push)
+// it does push alone — no precache, no fetch handling, so dev bundles stay fresh.
 
 const VERSION = 'v1';
 const STATIC_CACHE = `static-${VERSION}`;
@@ -25,8 +29,14 @@ const PRECACHE = [
 ];
 // Visiting these (client-side navigations included) or signing out wipes pages.
 const SIGNED_OUT_PATHS = ['/login', '/signup', '/api/auth/sign-out'];
+const PUSH_ONLY = new URL(self.location.href).searchParams.get('mode') === 'push';
+const INBOX_URL = '/dashboard/inbox';
 
 self.addEventListener('install', (event) => {
+  if (PUSH_ONLY) {
+    event.waitUntil(self.skipWaiting());
+    return;
+  }
   event.waitUntil(
     caches
       .open(STATIC_CACHE)
@@ -109,6 +119,7 @@ async function networkFirstPage(event, url) {
 }
 
 self.addEventListener('fetch', (event) => {
+  if (PUSH_ONLY) return;
   const { request } = event;
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
@@ -131,4 +142,62 @@ self.addEventListener('fetch', (event) => {
     return;
   }
   if (request.mode === 'navigate') event.respondWith(networkFirstPage(event, url));
+});
+
+// ---------------------------------------------------------------------------
+// Web Push — payload shape: src/lib/push.ts (PushPayload)
+// ---------------------------------------------------------------------------
+
+self.addEventListener('push', (event) => {
+  let payload = {};
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch {
+    payload = { body: event.data ? event.data.text() : undefined };
+  }
+  const title = typeof payload.title === 'string' && payload.title ? payload.title : 'New notification';
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body: typeof payload.body === 'string' ? payload.body : undefined,
+      tag: typeof payload.tag === 'string' ? payload.tag : undefined,
+      // A new update on the same issue replaces the old one but still alerts.
+      renotify: typeof payload.tag === 'string',
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
+      data: { url: typeof payload.url === 'string' ? payload.url : INBOX_URL },
+    }),
+  );
+});
+
+/** Same-origin absolute URL for a notification, falling back to the inbox. */
+function targetUrl(raw) {
+  try {
+    const url = new URL(raw || INBOX_URL, self.location.origin);
+    if (url.origin === self.location.origin) return url.href;
+  } catch {
+    // fall through
+  }
+  return new URL(INBOX_URL, self.location.origin).href;
+}
+
+async function openNotificationUrl(href) {
+  const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+  const same = windows.find((client) => client.url === href);
+  if (same) return same.focus();
+  const app = windows.find((client) => new URL(client.url).origin === self.location.origin);
+  if (app && 'navigate' in app) {
+    try {
+      // navigate() only works on clients this worker controls.
+      const navigated = await app.navigate(href);
+      if (navigated) return navigated.focus();
+    } catch {
+      // uncontrolled tab: open a new one instead
+    }
+  }
+  return self.clients.openWindow(href);
+}
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(openNotificationUrl(targetUrl(event.notification.data && event.notification.data.url)));
 });

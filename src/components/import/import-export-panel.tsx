@@ -5,8 +5,10 @@ import { Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AsanaImport } from './asana-import';
 import { CsvImport } from './csv-import';
 import { GitHubImport } from './github-import';
+import { ShortcutImport } from './shortcut-import';
 
 export function ImportExportPanel({
   projectId,
@@ -49,8 +51,8 @@ export function ImportExportPanel({
         <div>
           <h2 className="text-base font-medium">Import</h2>
           <p className="text-sm text-muted-foreground">
-            Bring issues in from a spreadsheet, Jira or GitHub. Imported issues are created by
-            you and show up in activity like any other.
+            Bring issues in from a spreadsheet, Jira, GitHub, Asana or Shortcut. Imported issues
+            are created by you and show up in activity like any other.
           </p>
         </div>
         {canImport ? (
@@ -59,6 +61,8 @@ export function ImportExportPanel({
               <TabsTrigger value="csv">CSV</TabsTrigger>
               <TabsTrigger value="jira">Jira</TabsTrigger>
               <TabsTrigger value="github">GitHub Issues</TabsTrigger>
+              <TabsTrigger value="asana">Asana</TabsTrigger>
+              <TabsTrigger value="shortcut">Shortcut</TabsTrigger>
             </TabsList>
             <TabsContent value="csv" className="pt-3">
               <CsvImport projectId={projectId} preset="csv" />
@@ -68,6 +72,12 @@ export function ImportExportPanel({
             </TabsContent>
             <TabsContent value="github" className="pt-3">
               <GitHubImport projectId={projectId} />
+            </TabsContent>
+            <TabsContent value="asana" className="pt-3">
+              <AsanaImport projectId={projectId} />
+            </TabsContent>
+            <TabsContent value="shortcut" className="pt-3">
+              <ShortcutImport projectId={projectId} />
             </TabsContent>
           </Tabs>
         ) : (

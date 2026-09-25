@@ -19,14 +19,21 @@ import {
   cycleTotals,
   findNextCycle,
   getCycle,
+  getProjectCycles,
   loadCycleHistory,
 } from '@/lib/cycles';
 import { IssuesView } from '@/components/issues/issues-view';
 import { BurndownChart } from '@/components/cycles/cycle-charts';
 import { CycleBreakdown } from '@/components/cycles/cycle-breakdown';
+import { CapacityMeter } from '@/components/cycles/cycle-capacity';
 import { CycleHeader } from '@/components/cycles/cycle-header';
 import { CycleProgressBar, CycleStats } from '@/components/cycles/cycle-stats';
-import { cycleName, cycleStatus, percent } from '@/components/cycles/cycle-utils';
+import {
+  cycleCapacity,
+  cycleName,
+  cycleStatus,
+  percent,
+} from '@/components/cycles/cycle-utils';
 
 type Params = Promise<{ id: string; cycleId: string }>;
 
@@ -45,7 +52,7 @@ export default async function CyclePage({ params }: { params: Params }) {
   const cycle = await getCycle(id, cycleId);
   if (!cycle) notFound();
 
-  const [issues, history, next, cookieStore] = await Promise.all([
+  const [issues, history, next, cookieStore, allCycles] = await Promise.all([
     queryIssues(
       and(
         eq(tickets.projectId, id),
@@ -57,6 +64,7 @@ export default async function CyclePage({ params }: { params: Params }) {
     loadCycleHistory(id),
     cycle.completedAt ? null : findNextCycle(id, cycle),
     cookies(),
+    getProjectCycles(id),
   ]);
 
   const now = new Date();
@@ -64,6 +72,15 @@ export default async function CyclePage({ params }: { params: Params }) {
   const totals = cycleTotals(history, cycle, now);
   const estimatesEnabled = data.project.estimateScale !== 'none';
   const canWrite = roleAllows(data.project.role, 'write');
+  // Only plans (current / upcoming) are measured against recent throughput.
+  const capacity =
+    status === 'past'
+      ? null
+      : cycleCapacity(
+          allCycles
+            .filter((c) => c.id !== cycle.id && cycleStatus(c, now) === 'past')
+            .map((c) => cycleTotals(history, c, now)),
+        );
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-5">
@@ -88,6 +105,14 @@ export default async function CyclePage({ params }: { params: Params }) {
       <div className="flex flex-col gap-3">
         <CycleProgressBar totals={totals} className="max-w-xl" />
         <CycleStats totals={totals} showPoints={estimatesEnabled} />
+        {capacity && (
+          <CapacityMeter
+            totals={totals}
+            capacity={capacity}
+            estimatesEnabled={estimatesEnabled}
+            className="max-w-xl"
+          />
+        )}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">

@@ -8,10 +8,10 @@
 // (getGitHubToken via userOctokit) — the token never leaves the server.
 
 import { revalidatePath } from 'next/cache';
-import { and, desc, eq, isNull } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
-import { githubPullRequests, projects, tickets, users, workflowStates } from '@/db/schema';
+import { projects, tickets, users, workflowStates } from '@/db/schema';
 import { authorizeProjectAction } from '@/lib/action-auth';
 import { emitIssueEvent } from '@/lib/events';
 import { getTicketById } from '@/lib/tickets';
@@ -212,60 +212,6 @@ export async function createBranch(input: {
     console.error('[github] createBranch failed', githubMessage(err));
     return { ok: false, error: describeGithubError(err, project.repo) };
   }
-}
-
-// ---------------------------------------------------------------------------
-// Linked pull requests
-// ---------------------------------------------------------------------------
-
-export interface LinkedPullRequest {
-  id: string;
-  repo: string;
-  number: number;
-  title: string;
-  url: string;
-  state: 'open' | 'closed' | 'merged';
-  draft: boolean;
-  branch: string | null;
-  authorLogin: string | null;
-  updatedAt: Date;
-}
-
-export async function getLinkedPullRequests(input: {
-  projectId: string;
-  ticketId: string;
-}): Promise<{ ok: true; pullRequests: LinkedPullRequest[] } | Fail> {
-  const authz = await authorizeProjectAction(input.projectId, 'read');
-  if (!authz.ok) return authz;
-  if (typeof input.ticketId !== 'string') return { ok: false, error: 'Issue not found.' };
-  const rows = await db
-    .select({
-      id: githubPullRequests.id,
-      repo: githubPullRequests.repo,
-      number: githubPullRequests.number,
-      title: githubPullRequests.title,
-      url: githubPullRequests.url,
-      state: githubPullRequests.state,
-      draft: githubPullRequests.draft,
-      branch: githubPullRequests.branch,
-      authorLogin: githubPullRequests.authorLogin,
-      updatedAt: githubPullRequests.updatedAt,
-    })
-    .from(githubPullRequests)
-    .where(
-      and(
-        eq(githubPullRequests.projectId, input.projectId),
-        eq(githubPullRequests.ticketId, input.ticketId),
-      ),
-    )
-    .orderBy(desc(githubPullRequests.updatedAt));
-  return {
-    ok: true,
-    pullRequests: rows.map((row) => ({
-      ...row,
-      state: row.state === 'merged' || row.state === 'closed' ? row.state : 'open',
-    })),
-  };
 }
 
 // ---------------------------------------------------------------------------

@@ -13,7 +13,8 @@ import {
 import { isPendingIssue } from '@/components/issues/use-issue-mutations';
 import { useProjectData, useProjectPermission } from '@/components/project/project-data';
 import { Avatar, PriorityIcon, StateIcon } from '@/components/ui-icons';
-import { CycleChip, EpicChip, MilestoneChip, SubIssueChip } from '@/components/views/property-chips';
+import { SlaChip } from '@/components/sla/sla-chip';
+import { CycleChip, EpicChip, MilestoneChip, StartDateChip, SubIssueChip } from '@/components/views/property-chips';
 import { useSubIssueCount } from '@/components/views/view-context';
 import type { IssueRow } from '@/lib/issue-model';
 import { cn } from '@/lib/utils';
@@ -34,6 +35,9 @@ export function BoardCardContent({
     (show.labels && issue.labels.length > 0) ||
     (show.estimate && issue.estimate !== null && project.estimateScale !== 'none') ||
     (show.dueDate && issue.dueDate !== null) ||
+    (show.startDate && issue.startDate !== null) ||
+    // SlaChip renders nothing without a deadline (and hides itself when closed).
+    (show.sla && issue.slaDueAt !== null) ||
     (show.cycle && issue.cycleId !== null) ||
     (show.epic && issue.epicId !== null) ||
     (show.milestone && issue.milestoneId !== null) ||
@@ -68,7 +72,9 @@ export function BoardCardContent({
           )}
           {showSubCount && <SubIssueChip count={subIssues} />}
           {show.estimate && <EstimateChip scale={project.estimateScale} value={issue.estimate} />}
+          {show.startDate && <StartDateChip startDate={issue.startDate} />}
           {show.dueDate && <DueDateChip dueDate={issue.dueDate} stateType={issue.state.type} />}
+          {show.sla && <SlaChip issue={issue} />}
           {show.cycle && <CycleChip cycleId={issue.cycleId} />}
           {show.epic && <EpicChip epicId={issue.epicId} />}
           {show.milestone && <MilestoneChip epicId={issue.epicId} milestoneId={issue.milestoneId} />}

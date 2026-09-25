@@ -28,11 +28,12 @@ import {
 import type { BatchItem } from 'drizzle-orm/batch';
 
 import { db } from '@/lib/db';
-import { activities, cycles, tickets, workflowStates } from '@/db/schema';
+import { activities, cycles, projects, tickets, workflowStates } from '@/db/schema';
 import { bulkUpdate, BULK_MAX, type IssueActor } from '@/lib/issue-service';
 import {
   DAY_MS,
   EMPTY_TOTALS,
+  MAX_COOLDOWN_WEEKS,
   UPCOMING_CYCLES,
   alignOnOrAfter,
   alignOnOrBefore,
@@ -131,34 +132,47 @@ export async function insertCycles(
  * changes re-lay those through rescheduleUpcomingCycles); otherwise a fresh
  * cadence starts on the most recent `weekday` (project.cycle_start_weekday).
  * Gaps (nobody opened the project for weeks) are skipped whole-cycle, so no
- * empty past cycles are created.
+ * empty past cycles are created. Consecutive cycles are `cooldownWeeks` apart
+ * (project.cycle_cooldown_weeks, read when not passed).
  */
 export async function ensureUpcomingCycles(
   projectId: string,
   durationWeeks: number,
   now: Date,
   weekday: number,
+  cooldownWeeks?: number,
 ): Promise<CycleRow[]> {
-  const rows = await getProjectCycles(projectId);
+  const [rows, cooldownRaw] = await Promise.all([
+    getProjectCycles(projectId),
+    cooldownWeeks ?? getCooldownWeeks(projectId),
+  ]);
   const duration = clampWeeks(durationWeeks) * WEEK_MS;
+  const cooldown = clampCooldown(cooldownRaw) * WEEK_MS;
+  const period = duration + cooldown;
   const t = now.getTime();
 
   const lastEnd = rows.length ? Math.max(...rows.map((row) => row.endsAt.getTime())) : null;
   const hasOpen = rows.some((row) => !row.completedAt && row.endsAt.getTime() > t);
   let cursor: number;
   if (lastEnd !== null && hasOpen) {
-    cursor = lastEnd;
+    cursor = lastEnd + cooldown;
   } else {
     // Fresh cadence: no cycles yet, or every cycle is over.
     cursor = alignOnOrBefore(now, weekday).getTime();
-    if (lastEnd !== null && cursor < lastEnd) cursor = alignOnOrAfter(lastEnd, weekday).getTime();
+    if (lastEnd !== null && cursor < lastEnd + cooldown) {
+      cursor = alignOnOrAfter(lastEnd + cooldown, weekday).getTime();
+    }
   }
-  if (cursor + duration <= t) cursor += Math.floor((t - cursor) / duration) * duration;
+  if (cursor + duration <= t) {
+    cursor += Math.floor((t - cursor) / period) * period;
+    // Landed inside a cooldown: the next cycle starts after it.
+    if (cursor + duration <= t) cursor += period;
+  }
 
   const slots: { startsAt: Date; endsAt: Date }[] = [];
   const push = () => {
     slots.push({ startsAt: new Date(cursor), endsAt: new Date(cursor + duration) });
-    cursor += duration;
+    cursor += period;
   };
   if (cursor <= t && !rows.some((row) => isCurrentCycle(row, now))) push();
   let upcoming = rows.filter((row) => !row.completedAt && row.startsAt.getTime() > t).length;
@@ -170,40 +184,49 @@ export async function ensureUpcomingCycles(
 }
 
 /**
- * Re-lay the cycles that haven't started yet after a duration / weekday change:
- * consecutively from the current cycle's end (moved forward to the chosen
- * weekday when needed — at most 6 extra days), else from the next `weekday`.
+ * Re-lay the cycles that haven't started yet after a duration / weekday /
+ * cooldown change: from the current cycle's end (moved forward to the chosen
+ * weekday when needed — at most 6 extra days) plus the cooldown, else from the
+ * next `weekday` that also respects the last cycle's cooldown.
  */
 export async function rescheduleUpcomingCycles(
   projectId: string,
   durationWeeks: number,
   weekday: number,
   now: Date = new Date(),
+  cooldownWeeks = 0,
 ): Promise<void> {
   const rows = await getProjectCycles(projectId);
   const duration = clampWeeks(durationWeeks) * WEEK_MS;
+  const cooldown = clampCooldown(cooldownWeeks) * WEEK_MS;
   const current = rows.find((row) => isCurrentCycle(row, now));
   const upcoming = rows.filter((row) => !row.completedAt && row.startsAt > now);
 
   const statements: BatchItem<'pg'>[] = [];
   let anchor: number;
   if (current) {
-    anchor = alignOnOrAfter(current.endsAt, weekday).getTime();
-    if (anchor !== current.endsAt.getTime()) {
+    const end = alignOnOrAfter(current.endsAt, weekday).getTime();
+    if (end !== current.endsAt.getTime()) {
       statements.push(
         db
           .update(cycles)
-          .set({ endsAt: new Date(anchor) })
+          .set({ endsAt: new Date(end) })
           .where(and(eq(cycles.id, current.id), eq(cycles.projectId, projectId))),
       );
     }
+    anchor = end + cooldown;
   } else {
     anchor = alignOnOrAfter(utcDay(now).getTime() + DAY_MS, weekday).getTime();
+    const started = rows.filter((row) => row.startsAt <= now);
+    if (started.length && cooldown > 0) {
+      const lastEnd = Math.max(...started.map((row) => row.endsAt.getTime()));
+      if (lastEnd + cooldown > anchor) anchor = alignOnOrAfter(lastEnd + cooldown, weekday).getTime();
+    }
   }
 
   upcoming.forEach((row, i) => {
-    const startsAt = new Date(anchor + i * duration);
-    const endsAt = new Date(anchor + (i + 1) * duration);
+    const startsAt = new Date(anchor + i * (duration + cooldown));
+    const endsAt = new Date(startsAt.getTime() + duration);
     if (startsAt.getTime() === row.startsAt.getTime() && endsAt.getTime() === row.endsAt.getTime()) {
       return;
     }
@@ -215,6 +238,19 @@ export async function rescheduleUpcomingCycles(
     );
   });
   if (statements.length) await db.batch(statements as [BatchItem<'pg'>, ...BatchItem<'pg'>[]]);
+}
+
+async function getCooldownWeeks(projectId: string): Promise<number> {
+  const [row] = await db
+    .select({ weeks: projects.cycleCooldownWeeks })
+    .from(projects)
+    .where(eq(projects.id, projectId))
+    .limit(1);
+  return row?.weeks ?? 0;
+}
+
+function clampCooldown(weeks: number): number {
+  return Math.min(MAX_COOLDOWN_WEEKS, Math.max(0, Math.round(weeks) || 0));
 }
 
 function clampWeeks(weeks: number): number {

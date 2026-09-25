@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import Link from 'next/link';
 import { ExternalLink, Loader2, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -19,6 +20,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { customersPath } from '@/components/customers/customer-model';
 import { CopyField } from './copy-field';
 
 export function IntakeSettings({
@@ -72,6 +74,13 @@ export function IntakeSettings({
             Anyone with the link can submit a request without an account. Requests arrive as
             issues in {triageEnabled ? 'Triage' : 'your default state'}
             {triageEnabled ? '' : ' (turn on triage in Cycles & triage to review them first)'}.
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            When the submitter&rsquo;s email domain matches one of your{' '}
+            <Link href={customersPath(projectId)} className="underline-offset-2 hover:underline">
+              customers
+            </Link>
+            , the request is linked to that customer automatically.
           </p>
         </div>
       </div>
