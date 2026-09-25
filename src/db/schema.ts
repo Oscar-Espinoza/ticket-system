@@ -153,6 +153,26 @@ export const workspaceMembers = pgTable(
   (table) => [unique().on(table.workspaceId, table.userId)],
 );
 
+export const workspaceInvitations = pgTable(
+  'workspace_invitation',
+  {
+    id: text('id').primaryKey(),
+    workspaceId: text('workspace_id')
+      .notNull()
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
+    email: text('email').notNull(),
+    role: text('role', { enum: ['admin', 'member'] }).notNull().default('member'),
+    token: text('token').notNull().unique(),
+    invitedById: text('invited_by_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    acceptedAt: timestamp('accepted_at'),
+    expiresAt: timestamp('expires_at').notNull(),
+    createdAt: timestamp('created_at').notNull(),
+  },
+  (table) => [index('workspace_invitation_workspace_idx').on(table.workspaceId)],
+);
+
 // ---------------------------------------------------------------------------
 // Projects (Linear "teams")
 // ---------------------------------------------------------------------------
@@ -176,6 +196,10 @@ export const projects = pgTable('project', {
   cyclesEnabled: boolean('cycles_enabled').notNull().default(false),
   cycleDurationWeeks: integer('cycle_duration_weeks').notNull().default(2),
   cycleAutoCreate: boolean('cycle_auto_create').notNull().default(true),
+  /** 0 = Sunday … 6 = Saturday (Date#getUTCDay). */
+  cycleStartWeekday: integer('cycle_start_weekday').notNull().default(1),
+  /** Move unfinished issues into the next cycle when a cycle auto-completes. */
+  cycleAutoRollover: boolean('cycle_auto_rollover').notNull().default(true),
   /** 'none' | 'linear' | 'fibonacci' | 'exponential' | 'tshirt' */
   estimateScale: text('estimate_scale').notNull().default('none'),
   triageEnabled: boolean('triage_enabled').notNull().default(false),
@@ -188,6 +212,8 @@ export const projects = pgTable('project', {
   // Intake form + integrations
   intakeToken: text('intake_token').unique(),
   slackWebhookUrl: text('slack_webhook_url'),
+  /** Slack event kinds to post (see SLACK_EVENTS); null = all. */
+  slackEvents: jsonb('slack_events').$type<string[]>(),
 
   // GitHub
   githubRepo: text('github_repo'), // "owner/name"
