@@ -5,58 +5,58 @@ first linear-parity build). Paid items moved to `.planning/PAID-FEATURES.md`.
 Build plan: `.planning/features/10-MASTER-PLAN-2.md`.
 
 ## Core sync & editing
-- [ ] Local-first sync (offline edits outbox, cross-tab sync, server-sent live updates)
-- [ ] WYSIWYG editor (slash commands, image paste, embeds)
-- [ ] Collaborative real-time editing of descriptions
-- [ ] Project documents / docs
+- [x] Local-first sync (offline edits outbox, cross-tab sync, server-sent live updates)
+- [x] WYSIWYG editor (slash commands, image paste, embeds)
+- [x] Collaborative real-time editing of descriptions
+- [x] Project documents / docs
 
 ## Teams & structure
-- [ ] Issues moving between teams
-- [ ] Cross-team projects (epics spanning projects)
-- [ ] Sub-teams / team hierarchy
-- [ ] Private teams
-- [ ] Project templates
-- [ ] Project labels
-- [ ] Project dependencies
+- [x] Issues moving between teams
+- [x] Cross-team projects (epics spanning projects)
+- [x] Sub-teams / team hierarchy
+- [x] Private teams
+- [x] Project templates
+- [x] Project labels
+- [x] Project dependencies
 
 ## Issues
-- [ ] Recurring issues
-- [ ] SLAs
-- [ ] Time in status
-- [ ] Cycle capacity / cooldown periods
+- [x] Recurring issues
+- [x] SLAs
+- [x] Time in status
+- [x] Cycle capacity / cooldown periods
 
 ## Customers & intake
-- [ ] Customer entities (customers, revenue, request tracking)
-- [ ] Linear Asks (Slack intake)
+- [x] Customer entities (customers, revenue, request tracking)
+- [x] Linear Asks (Slack intake)
 
 ## Views & insights
-- [ ] Dashboards
-- [ ] Pulse / project update digests
-- [ ] Issue timeline view
-- [ ] Search query syntax
+- [x] Dashboards
+- [x] Pulse / project update digests
+- [x] Issue timeline view
+- [x] Search query syntax
 
 ## Smart features (free heuristics — LLM versions are in PAID-FEATURES.md)
-- [ ] Triage suggestions
-- [ ] Duplicate detection
+- [x] Triage suggestions
+- [x] Duplicate detection
 
 ## Integrations & API
-- [ ] GraphQL API
-- [ ] OAuth apps
-- [ ] Webhook retries
-- [ ] GitLab / Bitbucket
-- [ ] PR review and CI status on issues
-- [ ] Figma embeds / Sentry integration
-- [ ] Import from Asana / Shortcut
+- [x] GraphQL API
+- [x] OAuth apps
+- [x] Webhook retries
+- [x] GitLab / Bitbucket
+- [x] PR review and CI status on issues
+- [x] Figma embeds / Sentry integration
+- [x] Import from Asana / Shortcut
 
 ## Notifications
-- [ ] Web push notifications
-- [ ] Email digests
-- [ ] Per-user Slack notifications
+- [x] Web push notifications
+- [x] Email digests
+- [x] Per-user Slack notifications
 
 ## Security & admin
-- [ ] SAML SSO / SCIM
-- [ ] Two-factor authentication
-- [ ] Audit log export
+- [x] SAML SSO / SCIM
+- [x] Two-factor authentication
+- [x] Audit log export
 
 ## Moved to PAID-FEATURES.md
 AI summaries · native desktop app · native mobile apps · Zapier · Intercom / Zendesk / Front
