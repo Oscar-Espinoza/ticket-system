@@ -36,3 +36,14 @@ export interface WorkspaceMemberRow {
   image: string | null;
   role: WorkspaceRole;
 }
+
+/** A pending workspace invitation (admins only see these). */
+export interface WorkspaceInvitationRow {
+  id: string;
+  email: string;
+  role: Exclude<WorkspaceRole, 'owner'>;
+  /** ISO string. */
+  expiresAt: string;
+  url: string;
+  invitedByName: string | null;
+}

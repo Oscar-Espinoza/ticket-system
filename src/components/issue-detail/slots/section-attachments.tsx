@@ -1,7 +1,7 @@
 'use client';
 
 // Owner: B4. Files and links. Uploads go to POST /api/attachments (multipart,
-// ≤ 5 MB); the whole section is a drop target. Files open through the
+// ≤ 4 MB); the whole section is a drop target. Files open through the
 // membership-checked GET /api/attachments/[id].
 
 import { useEffect, useRef, useState, type DragEvent, type FormEvent } from 'react';
@@ -27,6 +27,7 @@ import {
   isPreviewableImage,
   parseLinkUrl,
   type AttachmentView,
+  MAX_ATTACHMENT_LABEL,
 } from '@/components/issue-hierarchy/attachment-utils';
 import { SectionHeader } from '@/components/issue-hierarchy/issue-ref-row';
 import { relativeTime } from '@/components/issues/issue-properties';
@@ -61,7 +62,7 @@ async function uploadFile(projectId: string, ticketId: string, file: File) {
   body.set('file', file);
   const response = await fetch('/api/attachments', { method: 'POST', body });
   // The platform itself answers 413 (as HTML) above its own body limit.
-  if (response.status === 413) throw new Error(`${file.name} is too large (max 5 MB).`);
+  if (response.status === 413) throw new Error(`${file.name} is too large (max ${MAX_ATTACHMENT_LABEL}).`);
   const result = (await response.json().catch(() => null)) as
     | { ok: true; attachment: AttachmentView }
     | { ok: false; error: string }
@@ -100,7 +101,7 @@ export function SectionAttachments({ issue, mutations }: { issue: IssueRow; muta
     if (!canWrite || files.length === 0) return;
     const accepted = files.filter((file) => {
       if (file.size === 0) toast.error(`${file.name} is empty.`);
-      else if (file.size > MAX_ATTACHMENT_BYTES) toast.error(`${file.name} is larger than 5 MB.`);
+      else if (file.size > MAX_ATTACHMENT_BYTES) toast.error(`${file.name} is larger than ${MAX_ATTACHMENT_LABEL}.`);
       else return true;
       return false;
     });
@@ -228,7 +229,7 @@ export function SectionAttachments({ issue, mutations }: { issue: IssueRow; muta
               variant="ghost"
               size="icon-xs"
               aria-label="Upload files"
-              title="Upload files (max 5 MB each)"
+              title={`Upload files (max ${MAX_ATTACHMENT_LABEL} each)`}
               onClick={() => fileInput.current?.click()}
             >
               <Paperclip />
@@ -273,7 +274,7 @@ export function SectionAttachments({ issue, mutations }: { issue: IssueRow; muta
 
       {dragging && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-md bg-background/70 text-sm font-medium">
-          Drop to attach (max 5 MB each)
+          Drop to attach (max {MAX_ATTACHMENT_LABEL} each)
         </div>
       )}
     </section>

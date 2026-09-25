@@ -99,11 +99,23 @@ async function findIssues(projectId: string, numbers: number[], branch?: string)
   return queryIssues(and(eq(tickets.projectId, projectId), isNull(tickets.deletedAt), or(...match)));
 }
 
-async function moveIssues(project: SyncProject, issues: IssueRow[], target: WorkflowState | null, states: WorkflowState[]) {
+async function moveIssues(
+  project: SyncProject,
+  issues: IssueRow[],
+  target: WorkflowState | null,
+  states: WorkflowState[],
+  eventData?: (issue: IssueRow) => Record<string, unknown> | undefined,
+) {
   if (!target) return;
   for (const issue of issues) {
     if (!shouldAdvance(issue.state, target, states)) continue;
-    const result = await updateIssueFields(SYSTEM_ACTOR, project.id, issue.id, { stateId: target.id });
+    const result = await updateIssueFields(
+      SYSTEM_ACTOR,
+      project.id,
+      issue.id,
+      { stateId: target.id },
+      { eventData: eventData?.(issue) },
+    );
     if (!result.ok) console.error(`[github] could not move ${issue.key}: ${result.error}`);
   }
 }
@@ -186,6 +198,7 @@ export async function syncPullRequest(project: SyncProject, payload: PullRequest
   // Events only on transitions, so GitHub redeliveries stay idempotent.
   const events: IssueEventInput[] = [];
   const base = { number: pr.number, url: pr.html_url, repo, title: pr.title };
+  const mergedNow = new Set<string>();
   for (const issue of linked) {
     const before = previous.get(issue.id);
     const common = { projectId: project.id, ticketId: issue.id, actorId: null };
@@ -198,6 +211,7 @@ export async function syncPullRequest(project: SyncProject, payload: PullRequest
       });
     }
     if (state === 'merged' && before !== 'merged') {
+      mergedNow.add(issue.id);
       events.push({
         ...common,
         type: GITHUB_EVENT.prMerged,
@@ -220,7 +234,14 @@ export async function syncPullRequest(project: SyncProject, payload: PullRequest
     // an issue someone reopened by hand.
     if (payload.action !== 'closed') return;
     const target = resolveAutomationState(project.githubPrMergeStateId, states, defaultPrMergeState);
-    await moveIssues(project, autoIssues, target, states);
+    // Subscribers were just notified "Merged PR #N" (github.pr_merged above);
+    // viaPullRequest tells the notification dispatcher not to send a second
+    // "marked it Done" for the move. Only for merges announced in THIS
+    // delivery — a redelivery that re-closes a reopened issue still notifies.
+    const via = { number: pr.number, url: pr.html_url, repo };
+    await moveIssues(project, autoIssues, target, states, (issue) =>
+      mergedNow.has(issue.id) ? { viaPullRequest: via } : undefined,
+    );
   } else if (pr.state === 'open' && !pr.draft) {
     // edited / synchronize only move issues this delivery linked for the first
     // time — otherwise every push would undo a manual move back to In Progress.

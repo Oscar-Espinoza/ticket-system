@@ -10,12 +10,7 @@ import { eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { projects } from '@/db/schema';
 import { authorizeProjectAction } from '@/lib/action-auth';
-import {
-  deriveStartWeekday,
-  ensureUpcomingCycles,
-  getProjectCycles,
-  rescheduleUpcomingCycles,
-} from '@/lib/cycles';
+import { ensureUpcomingCycles, getProjectCycles, rescheduleUpcomingCycles } from '@/lib/cycles';
 import { AUTOMATION_MONTHS } from '@/components/cycles/cycle-utils';
 
 export type SettingsActionResult = { ok: true } | { ok: false; error: string };
@@ -28,6 +23,8 @@ export interface PlanningSettingsInput {
   /** 0 = Sunday … 6 = Saturday */
   startWeekday: number;
   autoCreate: boolean;
+  /** Move unfinished issues to the next cycle when a cycle auto-completes. */
+  autoRollover: boolean;
   triageEnabled: boolean;
 }
 
@@ -55,7 +52,10 @@ export async function updatePlanningSettings(
 
   const [[before], existing] = await Promise.all([
     db
-      .select({ durationWeeks: projects.cycleDurationWeeks })
+      .select({
+        durationWeeks: projects.cycleDurationWeeks,
+        startWeekday: projects.cycleStartWeekday,
+      })
       .from(projects)
       .where(eq(projects.id, projectId))
       .limit(1),
@@ -68,7 +68,9 @@ export async function updatePlanningSettings(
     .set({
       cyclesEnabled,
       cycleDurationWeeks: duration,
+      cycleStartWeekday: weekday,
       cycleAutoCreate: autoCreate,
+      cycleAutoRollover: input.autoRollover === true,
       triageEnabled: input.triageEnabled === true,
       updatedAt: new Date(),
     })
@@ -78,7 +80,7 @@ export async function updatePlanningSettings(
     try {
       const cadenceChanged =
         existing.length > 0 &&
-        (before.durationWeeks !== duration || deriveStartWeekday(existing) !== weekday);
+        (before.durationWeeks !== duration || before.startWeekday !== weekday);
       if (cadenceChanged) await rescheduleUpcomingCycles(projectId, duration, weekday);
       if (autoCreate) await ensureUpcomingCycles(projectId, duration, new Date(), weekday);
     } catch (err) {

@@ -32,7 +32,6 @@ import { activities, cycles, tickets, workflowStates } from '@/db/schema';
 import { bulkUpdate, BULK_MAX, type IssueActor } from '@/lib/issue-service';
 import {
   DAY_MS,
-  DEFAULT_START_WEEKDAY,
   EMPTY_TOTALS,
   UPCOMING_CYCLES,
   alignOnOrAfter,
@@ -69,13 +68,6 @@ export async function getCycle(projectId: string, cycleId: string): Promise<Cycl
     .where(and(eq(cycles.projectId, projectId), eq(cycles.id, cycleId)))
     .limit(1);
   return row ?? null;
-}
-
-/** The weekday new cycles start on: the latest cycle's, else Monday. */
-export function deriveStartWeekday(rows: Pick<CycleRow, 'startsAt'>[]): number {
-  let latest: Date | null = null;
-  for (const row of rows) if (!latest || row.startsAt > latest) latest = row.startsAt;
-  return latest ? latest.getUTCDay() : DEFAULT_START_WEEKDAY;
 }
 
 export function isCurrentCycle(row: CycleRow, now: Date): boolean {
@@ -134,16 +126,18 @@ export async function insertCycles(
 // ---------------------------------------------------------------------------
 
 /**
- * Keep a current cycle and UPCOMING_CYCLES upcoming ones scheduled, continuing
- * the cadence from the latest cycle (or from the most recent `weekday` when the
- * project has none). Gaps (nobody opened the project for weeks) are skipped
- * whole-cycle, so no empty past cycles are created.
+ * Keep a current cycle and UPCOMING_CYCLES upcoming ones scheduled. While a
+ * cycle is open the cadence continues from the latest cycle's end (weekday
+ * changes re-lay those through rescheduleUpcomingCycles); otherwise a fresh
+ * cadence starts on the most recent `weekday` (project.cycle_start_weekday).
+ * Gaps (nobody opened the project for weeks) are skipped whole-cycle, so no
+ * empty past cycles are created.
  */
 export async function ensureUpcomingCycles(
   projectId: string,
   durationWeeks: number,
-  now: Date = new Date(),
-  weekday?: number,
+  now: Date,
+  weekday: number,
 ): Promise<CycleRow[]> {
   const rows = await getProjectCycles(projectId);
   const duration = clampWeeks(durationWeeks) * WEEK_MS;
@@ -152,13 +146,12 @@ export async function ensureUpcomingCycles(
   const lastEnd = rows.length ? Math.max(...rows.map((row) => row.endsAt.getTime())) : null;
   const hasOpen = rows.some((row) => !row.completedAt && row.endsAt.getTime() > t);
   let cursor: number;
-  if (lastEnd !== null && (hasOpen || weekday === undefined)) {
+  if (lastEnd !== null && hasOpen) {
     cursor = lastEnd;
   } else {
-    // Fresh cadence (no cycles yet, or an explicit weekday with nothing open).
-    const day = weekday ?? DEFAULT_START_WEEKDAY;
-    cursor = alignOnOrBefore(now, day).getTime();
-    if (lastEnd !== null && cursor < lastEnd) cursor = alignOnOrAfter(lastEnd, day).getTime();
+    // Fresh cadence: no cycles yet, or every cycle is over.
+    cursor = alignOnOrBefore(now, weekday).getTime();
+    if (lastEnd !== null && cursor < lastEnd) cursor = alignOnOrAfter(lastEnd, weekday).getTime();
   }
   if (cursor + duration <= t) cursor += Math.floor((t - cursor) / duration) * duration;
 
@@ -302,11 +295,16 @@ export async function completeCycle(
   return { ok: true, moved, next };
 }
 
-/** Automation: complete every cycle whose end has passed (completedAt = its end). */
+/**
+ * Automation: complete every cycle whose end has passed (completedAt = its
+ * end). `rollover` = project.cycle_auto_rollover: move unfinished issues into
+ * the next cycle, or leave them in the completed one.
+ */
 export async function completeEndedCycles(
   actor: IssueActor,
   projectId: string,
-  now: Date = new Date(),
+  now: Date,
+  { rollover }: { rollover: boolean },
 ): Promise<void> {
   const ended = await db
     .select({ id: cycles.id, endsAt: cycles.endsAt })
@@ -322,7 +320,7 @@ export async function completeEndedCycles(
   for (const cycle of ended) {
     const result = await completeCycle(actor, projectId, cycle.id, {
       completedAt: cycle.endsAt,
-      rollover: true,
+      rollover,
     });
     if (!result.ok) console.error('[cycles] complete failed', cycle.id, result.error);
   }

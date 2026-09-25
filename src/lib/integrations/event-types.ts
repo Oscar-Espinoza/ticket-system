@@ -42,26 +42,35 @@ export function isSlackEventKind(value: unknown): value is SlackEventKind {
 export const SLACK_URL_PREFIX = 'https://hooks.slack.com/';
 
 export interface SlackSetting {
+  /** The webhook URL, never with a fragment. */
   url: string;
   events: SlackEventKind[];
 }
 
-// The project table has only `slack_webhook_url`, so the event toggles live in
-// the URL fragment (`…#events=created,commented`). fetch never sends the
-// fragment, and these two functions are the only code that reads or writes it.
-export function parseSlackSetting(stored: string | null | undefined): SlackSetting | null {
-  if (!stored) return null;
-  const hash = stored.indexOf('#');
-  if (hash === -1) return { url: stored, events: ALL_SLACK_KINDS };
-  const params = new URLSearchParams(stored.slice(hash + 1));
-  const raw = params.get('events');
-  const events =
-    raw === null ? ALL_SLACK_KINDS : raw.split(',').filter(isSlackEventKind);
-  return { url: stored.slice(0, hash), events };
+/** Known kinds in canonical order; unknown strings dropped. */
+export function normalizeSlackEvents(events: readonly unknown[]): SlackEventKind[] {
+  return ALL_SLACK_KINDS.filter((kind) => events.includes(kind));
 }
 
-export function formatSlackSetting({ url, events }: SlackSetting): string {
-  const base = url.split('#')[0];
-  const kinds = ALL_SLACK_KINDS.filter((kind) => events.includes(kind));
-  return `${base}#events=${kinds.join(',')}`;
+/**
+ * The effective Slack setting from `project.slack_webhook_url` +
+ * `project.slack_events` (null = all kinds). Before the column existed the
+ * toggles rode in the URL fragment (`…#events=created,commented`); such a
+ * fragment is still honoured while `slack_events` is null, and the next save
+ * rewrites both columns without it.
+ */
+export function parseSlackSetting(
+  stored: string | null | undefined,
+  events: readonly string[] | null | undefined,
+): SlackSetting | null {
+  if (!stored) return null;
+  const hash = stored.indexOf('#');
+  const url = hash === -1 ? stored : stored.slice(0, hash);
+  if (!url) return null;
+  if (events) return { url, events: normalizeSlackEvents(events) };
+  if (hash !== -1) {
+    const legacy = new URLSearchParams(stored.slice(hash + 1)).get('events');
+    if (legacy !== null) return { url, events: normalizeSlackEvents(legacy.split(',')) };
+  }
+  return { url, events: ALL_SLACK_KINDS };
 }

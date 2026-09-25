@@ -249,7 +249,7 @@ export function IssueList({
 
   return (
     <DragDropProvider sensors={sensors} {...sortable.handlers}>
-      <div data-issue-list className="flex flex-col">
+      <div data-issue-list data-dragging={sortable.dragging || undefined} className="flex flex-col">
         {sections.map((section) => {
           if (section.parent && collapsed.has(section.parent.id)) return null;
           const showHeader = section.group.kind !== 'none';

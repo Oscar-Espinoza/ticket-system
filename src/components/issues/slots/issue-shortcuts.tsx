@@ -45,10 +45,6 @@ import { registerHotkeys, type Hotkey } from '@/lib/hotkeys';
 import type { IssueRow } from '@/lib/issue-model';
 import { registerPaletteCommands, type PaletteCommand } from '@/lib/palette-commands';
 
-const isEditable = (target: EventTarget | null) =>
-  target instanceof Element &&
-  !!target.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])');
-
 const LAYER =
   '[role="dialog"][data-state="open"], [role="alertdialog"][data-state="open"], [data-radix-popper-content-wrapper]';
 const hasOpenLayer = () => !!document.querySelector(LAYER);
@@ -116,7 +112,10 @@ export function IssueShortcuts({
   });
 
   useEffect(() => {
-    const has = (event: KeyboardEvent) => !event.shiftKey && target() !== null;
+    // Bare-letter keys ignore Shift in the registry, so they stand down for it:
+    // ⇧A / ⇧D are separate shortcuts below.
+    const hasTarget = () => target() !== null;
+    const has = (event: KeyboardEvent) => !event.shiftKey && hasTarget();
     const edit = (key: string, kind: IssueCommand, description: string): Hotkey => ({
       key,
       scope: 'Issue',
@@ -137,7 +136,15 @@ export function IssueShortcuts({
         when: has,
         handler: () => act('copyId'),
       },
-      { key: '⇧,', mod: true, scope: 'Issue', description: 'Copy issue link', passive: true },
+      {
+        mod: true,
+        shift: true,
+        key: ',',
+        scope: 'Issue',
+        description: 'Copy issue link',
+        when: hasTarget,
+        handler: () => act('copyLink'),
+      },
     ];
     if (canWrite) {
       keys.unshift(
@@ -166,8 +173,15 @@ export function IssueShortcuts({
         },
         edit('l', 'labels', 'Change labels'),
         ...(hasEstimates ? [edit('e', 'estimate', 'Set estimate')] : []),
-        { key: '⇧D', scope: 'Issue', description: 'Set due date', passive: true },
-        { key: '⇧A', scope: 'Issue', description: 'Archive issue', passive: true },
+        { ...edit('d', 'dueDate', 'Set due date'), shift: true, when: hasTarget },
+        {
+          key: 'a',
+          shift: true,
+          scope: 'Issue',
+          description: 'Archive issue',
+          when: hasTarget,
+          handler: () => act('archive'),
+        },
         {
           mod: true,
           key: 'Backspace',
@@ -178,33 +192,7 @@ export function IssueShortcuts({
         },
       );
     }
-    const unregister = registerHotkeys(keys);
-
-    // The registry ignores Shift (letters match case-insensitively), so Shift
-    // combos are matched here by physical key, with the registry's guards.
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.defaultPrevented || !event.shiftKey || event.altKey) return;
-      if (isEditable(event.target)) return;
-      const mod = event.metaKey || event.ctrlKey;
-      let action: (() => void) | null = null;
-      if (mod && event.code === 'Comma') action = () => act('copyLink');
-      else if (!mod && canWrite && !hasOpenLayer()) {
-        if (event.code === 'KeyD') {
-          action = () => {
-            const issue = target();
-            if (issue) open('dueDate', issue);
-          };
-        } else if (event.code === 'KeyA') action = () => act('archive');
-      }
-      if (!action || !target()) return;
-      event.preventDefault();
-      action();
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => {
-      unregister();
-      window.removeEventListener('keydown', onKeyDown);
-    };
+    return registerHotkeys(keys);
   }, [canWrite, hasEstimates]);
 
   // ------------------------------------------------------------------ palette

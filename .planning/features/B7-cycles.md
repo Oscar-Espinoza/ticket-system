@@ -29,10 +29,15 @@ issues, and a Cycle property on issues.
 - Dates are UTC day boundaries: `startsAt` 00:00Z of the first day, `endsAt`
   00:00Z of the day after the last (exclusive) — consecutive cycles share an edge.
 - Status: completed (`completedAt`), current (starts ≤ now < ends), upcoming, past.
-- Start weekday has no column: it is derived from the latest cycle's start
-  (Monday by default). Changing it (or the duration) reschedules upcoming
-  cycles that haven't started, consecutively from the current cycle's end
-  (the current cycle's end moves to the next chosen weekday when needed).
+- Start weekday = `project.cycle_start_weekday` (0 = Sunday … 6, UTC; default
+  Monday — C3, migration 0005). Changing it (or the duration) reschedules
+  upcoming cycles that haven't started, consecutively from the current cycle's
+  end (the current cycle's end moves to the next chosen weekday when needed).
+  A fresh cadence (no open cycles) starts on the column's weekday.
+- Auto-rollover = `project.cycle_auto_rollover` (default on; C3): the daily
+  automation always completes ended cycles, but only moves their unfinished
+  issues to the next cycle when it's on. Settings form: "Roll over unfinished
+  issues" switch.
 - `src/lib/cycles.ts` (server): `cycleStatus`, `ensureUpcomingCycles`,
   `rescheduleUpcomingCycles`, `completeCycle` (+ rollover via issue service),
   stats/history loaders. Pure date/name/status helpers live in
@@ -48,4 +53,5 @@ issues, and a Cycle property on issues.
 Overlapping dates → field error. Editing a completed cycle's dates is blocked.
 Unique (project, number) race on auto-create → caught, logged. Cycle ids from
 another project → not found. Disabling cycles keeps data; pages show the empty
-state. Missing columns (auto-rollover flag, start weekday) → integration request.
+state. (The start weekday / auto-rollover columns requested here landed in
+migration 0005 — see C3-integration-fixes.md.)

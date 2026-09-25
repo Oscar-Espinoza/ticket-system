@@ -18,6 +18,7 @@ import { prepareIssueEvents, publishIssueEvents } from '@/lib/events';
 import {
   ATTACHMENT_TITLE_MAX,
   MAX_ATTACHMENT_BYTES,
+  MAX_ATTACHMENT_LABEL,
   linkTitle,
   normalizeContentType,
   parseLinkUrl,
@@ -120,7 +121,7 @@ export async function addFileAttachment(
 ): Promise<AttachmentResult> {
   if (input.bytes.byteLength === 0) return { ok: false, error: 'The file is empty.' };
   if (input.bytes.byteLength > MAX_ATTACHMENT_BYTES) {
-    return { ok: false, error: 'Files can be at most 5 MB.' };
+    return { ok: false, error: `Files can be at most ${MAX_ATTACHMENT_LABEL}.` };
   }
   const issue = await loadIssue(projectId, input.ticketId);
   if (!issue) return { ok: false, error: 'Issue not found.' };

@@ -113,6 +113,38 @@ export async function restoreIssue(input: IssueRef): Promise<TicketActionResult>
   return toResult(result);
 }
 
+type IssueRefs = { projectId: string; ids: string[] };
+
+// Batched lifecycle: one authorization, one write batch (≤ BULK_MAX ids).
+async function lifecycleMany(
+  input: IssueRefs,
+  change: typeof issues.archiveMany,
+): Promise<BulkTicketActionResult> {
+  const authz = await authorizeProjectAction(input?.projectId, 'write');
+  if (!authz.ok) return authz;
+  const result = await change({ userId: authz.userId }, input.projectId, input.ids);
+  if (!result.ok) return result;
+  revalidateProject(input.projectId);
+  return { ok: true, tickets: result.issues };
+}
+
+export async function archiveIssues(input: IssueRefs): Promise<BulkTicketActionResult> {
+  return lifecycleMany(input, issues.archiveMany);
+}
+
+export async function unarchiveIssues(input: IssueRefs): Promise<BulkTicketActionResult> {
+  return lifecycleMany(input, issues.unarchiveMany);
+}
+
+/** Soft delete several issues (trash, restorable). */
+export async function deleteTickets(input: IssueRefs): Promise<BulkTicketActionResult> {
+  return lifecycleMany(input, issues.softDeleteMany);
+}
+
+export async function restoreIssues(input: IssueRefs): Promise<BulkTicketActionResult> {
+  return lifecycleMany(input, issues.restoreMany);
+}
+
 /** Permanent delete — project admins only. */
 export async function purgeIssue(input: IssueRef): Promise<TicketActionResult> {
   const authz = await authorizeProjectAction(input?.projectId, 'admin');

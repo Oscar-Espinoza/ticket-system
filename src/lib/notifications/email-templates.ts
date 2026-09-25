@@ -2,6 +2,8 @@
 // clients ignore stylesheets, so styles are inline and the markup is a table-free
 // single column that degrades to readable text.
 
+import { appUrl } from '@/lib/integrations/app-url';
+
 export interface EmailItem {
   /** "Ana assigned you" */
   sentence: string;
@@ -17,16 +19,6 @@ export interface RenderedEmail {
   html: string;
 }
 
-/** Absolute origin for links that leave the browser. */
-export function appOrigin(): string {
-  const url =
-    process.env.NEXT_PUBLIC_APP_URL ||
-    process.env.BETTER_AUTH_URL ||
-    (process.env.VERCEL_PROJECT_PRODUCTION_URL
-      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-      : 'http://localhost:3000');
-  return url.replace(/\/+$/, '');
-}
 
 export function escapeHtml(value: string): string {
   return value
@@ -99,5 +91,5 @@ export function testEmail(name: string, settingsUrl: string): RenderedEmail {
 }
 
 export function settingsUrl(): string {
-  return `${appOrigin()}/dashboard/settings/notifications`;
+  return `${appUrl()}/dashboard/settings/notifications`;
 }

@@ -12,7 +12,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, gt, isNull, sql } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import {
@@ -20,6 +20,7 @@ import {
   projects,
   users,
   workflowStates,
+  workspaceInvitations,
   workspaceMembers,
   workspaces,
 } from '@/db/schema';
@@ -27,10 +28,12 @@ import { getSession } from '@/lib/session';
 import { authorizeProjectAction } from '@/lib/action-auth';
 import { getSharedProjects } from '@/lib/project-access';
 import {
+  getPendingWorkspaceInvite,
   getWorkspaceMembership,
-  signWorkspaceInvite,
-  verifyWorkspaceInvite,
+  newWorkspaceInviteToken,
   WORKSPACE_INVITE_TTL_MS,
+  workspaceInviteUrl,
+  type WorkspaceInviteRole,
   type WorkspaceMembership,
   type WorkspaceRole,
 } from '@/lib/workspace-access';
@@ -315,8 +318,9 @@ const inviteRolesFor = (role: WorkspaceRole): readonly WorkspaceRole[] =>
 
 /**
  * Add someone by email. A person who already shares a project with you is
- * added directly; anyone else gets an emailed invitation link. The reply
- * doesn't say whether an account exists for the address.
+ * added directly; anyone else gets an emailed, single-use invitation link
+ * (a workspace_invitation row — re-inviting replaces the pending one). The
+ * reply doesn't say whether an account exists for the address.
  */
 export async function inviteWorkspaceMember(input: {
   workspaceId: string;
@@ -367,31 +371,148 @@ export async function inviteWorkspaceMember(input: {
     return { ok: true, added: true };
   }
 
-  const token = signWorkspaceInvite({
-    workspaceId,
-    email,
+  const token = newWorkspaceInviteToken();
+  const now = new Date();
+  // Re-inviting a pending address replaces its row (fresh token and expiry).
+  try {
+    await db.batch([
+      db
+        .delete(workspaceInvitations)
+        .where(
+          and(
+            eq(workspaceInvitations.workspaceId, workspaceId),
+            eq(workspaceInvitations.email, email),
+            isNull(workspaceInvitations.acceptedAt),
+          ),
+        ),
+      db.insert(workspaceInvitations).values({
+        id: crypto.randomUUID(),
+        workspaceId,
+        email,
+        role,
+        token,
+        invitedById: authz.userId,
+        expiresAt: new Date(now.getTime() + WORKSPACE_INVITE_TTL_MS),
+        createdAt: now,
+      }),
+    ]);
+  } catch (err) {
+    if (isUniqueViolation(err)) return { ok: false, error: 'Could not create the invitation, try again.' };
+    throw err;
+  }
+
+  const emailed = await sendWorkspaceInviteEmail({
+    to: email,
+    workspaceName: authz.membership.name,
+    inviterId: authz.userId,
     role,
-    exp: Date.now() + WORKSPACE_INVITE_TTL_MS,
+    token,
   });
-  const url = `${process.env.NEXT_PUBLIC_APP_URL ?? ''}/invite/workspace/${token}`;
+  revalidateWorkspace(authz.membership.slug);
+  return { ok: true, added: false, emailed, url: workspaceInviteUrl(token) };
+}
+
+async function sendWorkspaceInviteEmail(opts: {
+  to: string;
+  workspaceName: string;
+  inviterId: string;
+  role: WorkspaceInviteRole;
+  token: string;
+}): Promise<boolean> {
   const [inviter] = await db
     .select({ name: users.name })
     .from(users)
-    .where(eq(users.id, authz.userId))
+    .where(eq(users.id, opts.inviterId))
     .limit(1);
   const inviterName = inviter?.name ?? 'A teammate';
-  const emailed = await sendEmail({
-    to: email,
-    subject: `${inviterName} invited you to the ${authz.membership.name} workspace`,
+  return sendEmail({
+    to: opts.to,
+    subject: `${inviterName} invited you to the ${opts.workspaceName} workspace`,
     text: [
-      `${inviterName} invited you to join the ${authz.membership.name} workspace as ${role === 'admin' ? 'an admin' : 'a member'}.`,
+      `${inviterName} invited you to join the ${opts.workspaceName} workspace as ${opts.role === 'admin' ? 'an admin' : 'a member'}.`,
       '',
-      `Accept the invitation: ${url}`,
+      `Accept the invitation: ${workspaceInviteUrl(opts.token)}`,
       '',
-      `Sign in (or sign up) with ${email} to accept. The link expires in 7 days.`,
+      `Sign in (or sign up) with ${opts.to} to accept. The link expires in 7 days.`,
     ].join('\n'),
   });
-  return { ok: true, added: false, emailed, url };
+}
+
+/** A pending invitation of the caller's workspace that the caller may manage. */
+async function manageableInvitation(
+  authz: { membership: WorkspaceMembership },
+  invitationId: unknown,
+) {
+  if (typeof invitationId !== 'string' || !invitationId) return null;
+  const [row] = await db
+    .select({
+      id: workspaceInvitations.id,
+      email: workspaceInvitations.email,
+      role: workspaceInvitations.role,
+      token: workspaceInvitations.token,
+    })
+    .from(workspaceInvitations)
+    .where(
+      and(
+        eq(workspaceInvitations.id, invitationId),
+        eq(workspaceInvitations.workspaceId, authz.membership.workspaceId),
+        isNull(workspaceInvitations.acceptedAt),
+      ),
+    )
+    .limit(1);
+  // Admins handle member invitations; admin invitations are the owner's.
+  return row && inviteRolesFor(authz.membership.role).includes(row.role) ? row : null;
+}
+
+/** New 7-day expiry (same token, so the earlier email keeps working) + a fresh email. */
+export async function resendWorkspaceInvitation(input: {
+  workspaceId: string;
+  invitationId: string;
+}): Promise<WorkspaceActionResult> {
+  const authz = await authorizeWorkspace(input?.workspaceId, 'admin');
+  if (isError(authz)) return authz;
+  const invitation = await manageableInvitation(authz, input.invitationId);
+  if (!invitation) return { ok: false, error: 'Invitation not found.' };
+
+  await db
+    .update(workspaceInvitations)
+    .set({ expiresAt: new Date(Date.now() + WORKSPACE_INVITE_TTL_MS), invitedById: authz.userId })
+    .where(
+      and(
+        eq(workspaceInvitations.id, invitation.id),
+        eq(workspaceInvitations.workspaceId, authz.membership.workspaceId),
+      ),
+    );
+  const emailed = await sendWorkspaceInviteEmail({
+    to: invitation.email,
+    workspaceName: authz.membership.name,
+    inviterId: authz.userId,
+    role: invitation.role,
+    token: invitation.token,
+  });
+  revalidateWorkspace(authz.membership.slug);
+  return { ok: true, emailed, url: workspaceInviteUrl(invitation.token) };
+}
+
+export async function revokeWorkspaceInvitation(input: {
+  workspaceId: string;
+  invitationId: string;
+}): Promise<WorkspaceActionResult> {
+  const authz = await authorizeWorkspace(input?.workspaceId, 'admin');
+  if (isError(authz)) return authz;
+  const invitation = await manageableInvitation(authz, input.invitationId);
+  if (!invitation) return { ok: false, error: 'Invitation not found.' };
+
+  await db
+    .delete(workspaceInvitations)
+    .where(
+      and(
+        eq(workspaceInvitations.id, invitation.id),
+        eq(workspaceInvitations.workspaceId, authz.membership.workspaceId),
+      ),
+    );
+  revalidateWorkspace(authz.membership.slug);
+  return { ok: true };
 }
 
 /** Owner only: switch a non-owner member between admin and member. */
@@ -474,18 +595,36 @@ export async function acceptWorkspaceInvite(
   const session = await getSession();
   if (!session?.user) return { error: 'Not authenticated' };
 
-  const claims = verifyWorkspaceInvite(((formData.get('token') as string | null) ?? '').trim());
-  if (!claims) return { error: 'invalid' };
-  if (claims.email.toLowerCase() !== session.user.email.toLowerCase()) {
+  const invite = await getPendingWorkspaceInvite(
+    ((formData.get('token') as string | null) ?? '').trim(),
+  );
+  if (!invite) return { error: 'invalid' };
+  if (invite.email.toLowerCase() !== session.user.email.toLowerCase()) {
     return { error: 'wrong-account' };
   }
 
   const [workspace] = await db
     .select({ slug: workspaces.slug })
     .from(workspaces)
-    .where(eq(workspaces.id, claims.workspaceId))
+    .where(eq(workspaces.id, invite.workspaceId))
     .limit(1);
   if (!workspace) return { error: 'invalid' };
+
+  // Claim first so the link is single use: of two concurrent accepts (or a
+  // revoke racing an accept) exactly one UPDATE matches.
+  const now = new Date();
+  const claimed = await db
+    .update(workspaceInvitations)
+    .set({ acceptedAt: now })
+    .where(
+      and(
+        eq(workspaceInvitations.id, invite.id),
+        isNull(workspaceInvitations.acceptedAt),
+        gt(workspaceInvitations.expiresAt, now),
+      ),
+    )
+    .returning({ id: workspaceInvitations.id });
+  if (claimed.length === 0) return { error: 'invalid' };
 
   try {
     // Existing members keep their role (the unique pair makes this a no-op).
@@ -493,14 +632,19 @@ export async function acceptWorkspaceInvite(
       .insert(workspaceMembers)
       .values({
         id: crypto.randomUUID(),
-        workspaceId: claims.workspaceId,
+        workspaceId: invite.workspaceId,
         userId: session.user.id,
-        role: claims.role,
-        createdAt: new Date(),
+        role: invite.role,
+        createdAt: now,
       })
       .onConflictDoNothing();
   } catch (err) {
-    if (!isUniqueViolation(err)) throw err;
+    // Give the invitation back so the person can retry.
+    await db
+      .update(workspaceInvitations)
+      .set({ acceptedAt: null })
+      .where(eq(workspaceInvitations.id, invite.id));
+    throw err;
   }
 
   revalidatePath('/dashboard', 'layout');

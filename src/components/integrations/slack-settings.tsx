@@ -22,7 +22,7 @@ export function SlackSettings({
   events: savedEvents,
 }: {
   projectId: string;
-  /** Saved webhook URL (without the event fragment), '' when not connected. */
+  /** Saved webhook URL, '' when not connected. */
   url: string;
   events: SlackEventKind[];
 }) {

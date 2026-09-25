@@ -6,10 +6,11 @@ import { revalidatePath } from 'next/cache';
 
 import { authorizeProjectAction } from '@/lib/action-auth';
 import { addFileAttachment } from '@/lib/attachments';
-import { MAX_ATTACHMENT_BYTES } from '@/components/issue-hierarchy/attachment-utils';
+import { MAX_ATTACHMENT_BYTES, MAX_ATTACHMENT_LABEL } from '@/components/issue-hierarchy/attachment-utils';
 
 // Multipart boundaries + the other fields.
 const FORM_OVERHEAD = 64 * 1024;
+const TOO_LARGE = `Files can be at most ${MAX_ATTACHMENT_LABEL}.`;
 
 function fail(error: string, status: number) {
   return Response.json({ ok: false, error }, { status });
@@ -18,7 +19,7 @@ function fail(error: string, status: number) {
 export async function POST(request: Request) {
   // Reject oversized bodies before buffering them.
   const length = Number(request.headers.get('content-length'));
-  if (length > MAX_ATTACHMENT_BYTES + FORM_OVERHEAD) return fail('Files can be at most 5 MB.', 413);
+  if (length > MAX_ATTACHMENT_BYTES + FORM_OVERHEAD) return fail(TOO_LARGE, 413);
 
   let form: FormData;
   try {
@@ -33,7 +34,7 @@ export async function POST(request: Request) {
 
   const file = form.get('file');
   if (!(file instanceof File)) return fail('No file received.', 400);
-  if (file.size > MAX_ATTACHMENT_BYTES) return fail('Files can be at most 5 MB.', 413);
+  if (file.size > MAX_ATTACHMENT_BYTES) return fail(TOO_LARGE, 413);
 
   const result = await addFileAttachment(authz.userId, projectId as string, {
     ticketId: form.get('ticketId'),

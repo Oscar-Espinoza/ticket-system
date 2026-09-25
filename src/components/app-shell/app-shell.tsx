@@ -4,8 +4,8 @@
 
 import type { ReactNode } from 'react';
 
+import { NavigationCommands } from '@/components/navigation/navigation-commands';
 import { getProjectsForUser } from '@/components/project-list';
-import { DENSITY_BOOT_SCRIPT, DENSITY_CSS } from '@/lib/density';
 import { ShellFrame } from './shell-frame';
 import { InboxBadge } from './slots/inbox-badge';
 import { SidebarFavorites } from './slots/sidebar-favorites';
@@ -35,10 +35,8 @@ export async function AppShell({
 
   return (
     <>
-      <script dangerouslySetInnerHTML={{ __html: DENSITY_BOOT_SCRIPT }} />
-      <style href="app-density" precedence="default">
-        {DENSITY_CSS}
-      </style>
+      {/* Outside the sidebar so palette commands survive a collapsed sidebar. */}
+      <NavigationCommands />
       <ShellFrame
         projects={projects.map((p) => ({
           id: p.id,

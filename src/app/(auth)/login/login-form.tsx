@@ -30,8 +30,9 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { authHref } from '../safe-redirect';
 
-export function LoginForm() {
+export function LoginForm({ redirectTo }: { redirectTo: string }) {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -47,7 +48,7 @@ export function LoginForm() {
     // error before redirecting — surface the OAuth failure copy in that case.
     const { error } = await authClient.signIn.social({
       provider: 'github',
-      callbackURL: '/dashboard',
+      callbackURL: redirectTo,
     });
     if (error) {
       setFormError('GitHub sign-in failed. Try again or use email and password.');
@@ -73,7 +74,7 @@ export function LoginForm() {
     const { error } = await authClient.signIn.email({
       email,
       password,
-      callbackURL: '/dashboard',
+      callbackURL: redirectTo,
     });
 
     if (error) {
@@ -87,7 +88,7 @@ export function LoginForm() {
       return;
     }
 
-    router.push('/dashboard');
+    router.push(redirectTo);
     router.refresh();
   }
 
@@ -169,7 +170,7 @@ export function LoginForm() {
 
         <p className="text-center text-sm text-muted-foreground">
           Don&apos;t have an account?{' '}
-          <Link href="/signup" className="underline underline-offset-4">
+          <Link href={authHref('/signup', redirectTo)} className="underline underline-offset-4">
             Sign up
           </Link>
         </p>

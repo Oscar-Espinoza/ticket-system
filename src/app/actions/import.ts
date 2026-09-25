@@ -2,8 +2,9 @@
 
 // Issue import (CSV, Jira CSV, GitHub Issues). The client parses and maps rows
 // into ImportRecords and sends them here in chunks; everything is re-validated
-// against the project before issue-service.createIssue writes it (so activity,
-// notifications, Slack and webhooks see imported issues like any other).
+// against the project before issue-service.createIssue writes it. Created
+// issues land in activity like any other, but with `source: 'import'` so
+// Slack, outgoing webhooks and notifications skip them (no flood per row).
 
 import { revalidatePath } from 'next/cache';
 import { and, eq, or, sql } from 'drizzle-orm';
@@ -275,16 +276,21 @@ export async function importIssues(input: {
     const who = record.assignee?.toLowerCase();
     const state = resolveState(stateRows, record);
     try {
-      const created = await createIssue({ userId: authz.userId }, projectId, {
-        title: record.title,
-        description: withFooter(record.description, record.source),
-        stateId: state?.id,
-        priority: record.priority ?? 'none',
-        assigneeId: (who && (byEmail.get(who) ?? byName.get(who))) || null,
-        labelIds: record.labels.flatMap((l) => labelIds.get(l.name.toLowerCase()) ?? []),
-        estimate: snapEstimate(project.estimateScale, record.estimate),
-        dueDate: record.dueDate,
-      });
+      const created = await createIssue(
+        { userId: authz.userId },
+        projectId,
+        {
+          title: record.title,
+          description: withFooter(record.description, record.source),
+          stateId: state?.id,
+          priority: record.priority ?? 'none',
+          assigneeId: (who && (byEmail.get(who) ?? byName.get(who))) || null,
+          labelIds: record.labels.flatMap((l) => labelIds.get(l.name.toLowerCase()) ?? []),
+          estimate: snapEstimate(project.estimateScale, record.estimate),
+          dueDate: record.dueDate,
+        },
+        { source: 'import' },
+      );
       if (created.ok) result.created++;
       else result.failed.push({ index, title: record.title, error: created.error });
     } catch (err) {

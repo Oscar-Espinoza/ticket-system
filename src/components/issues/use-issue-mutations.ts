@@ -5,10 +5,15 @@ import { toast } from 'sonner';
 
 import {
   archiveIssue,
+  archiveIssues,
   bulkUpdateIssues,
   createTicket,
   deleteTicket,
+  deleteTickets,
   restoreIssue,
+  restoreIssues,
+  unarchiveIssue,
+  unarchiveIssues,
   updateIssue,
 } from '@/app/actions/tickets';
 import { useProjectData } from '@/components/project/project-data';
@@ -56,6 +61,13 @@ export function applyIssuePatch(issue: IssueRow, patch: IssuePatch, data: PatchD
     next.labels = data.labels
       .filter((label) => ids.has(label.id))
       .map(({ id, name, color }) => ({ id, name, color }));
+  } else if (patch.addLabelIds !== undefined || patch.removeLabelIds !== undefined) {
+    const remove = new Set(patch.removeLabelIds);
+    const kept = issue.labels.filter((l) => !remove.has(l.id));
+    const added = data.labels
+      .filter((l) => patch.addLabelIds?.includes(l.id) && !kept.some((k) => k.id === l.id))
+      .map(({ id, name, color }) => ({ id, name, color }));
+    next.labels = [...kept, ...added];
   }
 
   let epicId = patch.epicId;
@@ -85,6 +97,10 @@ export function patchChangesIssue(issue: IssueRow, patch: IssuePatch): boolean {
         const next = new Set(value as string[]);
         return current.size !== next.size || [...next].some((id) => !current.has(id));
       }
+      case 'addLabelIds':
+        return (value as string[]).some((id) => !issue.labels.some((l) => l.id === id));
+      case 'removeLabelIds':
+        return (value as string[]).some((id) => issue.labels.some((l) => l.id === id));
       default:
         return value !== (issue as unknown as Record<string, unknown>)[field];
     }
@@ -94,7 +110,7 @@ export function patchChangesIssue(issue: IssueRow, patch: IssuePatch): boolean {
 type Op =
   | { type: 'add'; issue: IssueRow }
   | { type: 'patch'; ids: string[]; patch: IssuePatch; data: PatchData }
-  | { type: 'upsert'; issue: IssueRow };
+  | { type: 'upsert'; issues: IssueRow[] };
 
 function reduce(issues: IssueRow[], op: Op): IssueRow[] {
   switch (op.type) {
@@ -104,10 +120,14 @@ function reduce(issues: IssueRow[], op: Op): IssueRow[] {
       const ids = new Set(op.ids);
       return issues.map((i) => (ids.has(i.id) ? applyIssuePatch(i, op.patch, op.data) : i));
     }
-    case 'upsert':
-      return issues.some((i) => i.id === op.issue.id)
-        ? issues.map((i) => (i.id === op.issue.id ? op.issue : i))
-        : [op.issue, ...issues];
+    case 'upsert': {
+      const byId = new Map(op.issues.map((i) => [i.id, i]));
+      const known = new Set(issues.map((i) => i.id));
+      return [
+        ...op.issues.filter((i) => !known.has(i.id)),
+        ...issues.map((i) => byId.get(i.id) ?? i),
+      ];
+    }
   }
 }
 
@@ -131,6 +151,12 @@ export interface IssueMutations {
   archive: (issue: IssueRow, onDone?: () => void) => void;
   /** Soft delete — move to trash (toast with Undo). */
   remove: (issue: IssueRow, onDone?: () => void) => void;
+  /** Archive several in one server call, one undo entry, one toast. */
+  archiveMany: (issues: IssueRow[], onDone?: () => void) => void;
+  /** Trash several in one server call, one undo entry, one toast. */
+  removeMany: (issues: IssueRow[], onDone?: () => void) => void;
+  /** Back out of the archive (undo = archive). Trashed issues use `restore`. */
+  unarchive: (issue: IssueRow, onDone?: () => void) => void;
   /** Out of trash / archive. */
   restore: (issue: IssueRow, onDone?: () => void) => void;
 }
@@ -156,12 +182,18 @@ const FIELD_WORDS: Record<IssueField, string> = {
   milestoneId: 'milestone',
   sortOrder: 'order',
   labelIds: 'labels',
+  addLabelIds: 'labels',
+  removeLabelIds: 'labels',
 };
 
 function describePatch(patch: IssuePatch): string {
-  const words = (Object.keys(patch) as IssueField[])
-    .filter((field) => patch[field] !== undefined && FIELD_WORDS[field])
-    .map((field) => FIELD_WORDS[field]);
+  const words = [
+    ...new Set(
+      (Object.keys(patch) as IssueField[])
+        .filter((field) => patch[field] !== undefined && FIELD_WORDS[field])
+        .map((field) => FIELD_WORDS[field]),
+    ),
+  ];
   return words.length > 0 ? `${words.join(', ')} change` : 'change';
 }
 
@@ -172,8 +204,15 @@ export function inversePatch(issue: IssueRow, patch: IssuePatch): IssuePatch {
     if (patch[field] === undefined) continue;
     if (field === 'assigneeId') inverse.assigneeId = issue.assignee?.id ?? null;
     else if (field === 'labelIds') inverse.labelIds = issue.labels.map((l) => l.id);
+    else if (field === 'addLabelIds' || field === 'removeLabelIds') continue;
     else (inverse as Record<string, unknown>)[field] = (issue as unknown as Record<string, unknown>)[field];
   }
+  // Deltas invert add ↔ remove, limited to the labels this issue actually changed.
+  const has = (id: string) => issue.labels.some((l) => l.id === id);
+  const added = patch.addLabelIds?.filter((id) => !has(id)) ?? [];
+  const removed = patch.removeLabelIds?.filter(has) ?? [];
+  if (added.length) inverse.removeLabelIds = added;
+  if (removed.length) inverse.addLabelIds = removed;
   // A milestone implies its epic; restore the pair together so it stays valid.
   if (patch.epicId !== undefined || patch.milestoneId !== undefined) {
     inverse.epicId = issue.epicId;
@@ -272,13 +311,26 @@ export function useIssueMutations(
   function archive(issue: IssueRow, onDone?: () => void, track = true) {
     if (isPendingIssue(issue)) return;
     run(
-      { type: 'upsert', issue: { ...issue, archivedAt: new Date() } },
+      { type: 'upsert', issues: [{ ...issue, archivedAt: new Date() }] },
       () => archiveIssue({ projectId: issue.projectId, id: issue.id }),
       () => {
         if (track) {
-          const id = pushUndo(`archiving ${issue.key}`, () => restore(issue, undefined, false));
+          const id = pushUndo(`archiving ${issue.key}`, () => unarchive(issue, undefined, false));
           toast.success(`Archived ${issue.key}`, { action: undoToastAction(id) });
         }
+        onDone?.();
+      },
+    );
+  }
+
+  function unarchive(issue: IssueRow, onDone?: () => void, track = true) {
+    if (isPendingIssue(issue)) return;
+    const unarchived = { ...issue, archivedAt: null };
+    run(
+      { type: 'upsert', issues: [unarchived] },
+      () => unarchiveIssue({ projectId: issue.projectId, id: issue.id }),
+      () => {
+        if (track) pushUndo(`unarchiving ${issue.key}`, () => archive(unarchived, undefined, false));
         onDone?.();
       },
     );
@@ -287,7 +339,7 @@ export function useIssueMutations(
   function remove(issue: IssueRow, onDone?: () => void, track = true) {
     if (isPendingIssue(issue)) return;
     run(
-      { type: 'upsert', issue: { ...issue, deletedAt: new Date() } },
+      { type: 'upsert', issues: [{ ...issue, deletedAt: new Date() }] },
       () => deleteTicket({ projectId: issue.projectId, id: issue.id }),
       () => {
         if (track) {
@@ -303,7 +355,7 @@ export function useIssueMutations(
     if (isPendingIssue(issue)) return;
     const restored = { ...issue, archivedAt: null, deletedAt: null };
     run(
-      { type: 'upsert', issue: restored },
+      { type: 'upsert', issues: [restored] },
       () => restoreIssue({ projectId: issue.projectId, id: issue.id }),
       () => {
         if (track && issue.deletedAt) {
@@ -314,6 +366,51 @@ export function useIssueMutations(
         onDone?.();
       },
     );
+  }
+
+  /** One optimistic op + one server call for several issues' archive / trash state. */
+  function lifecycleMany(
+    issues: IssueRow[],
+    next: (issue: IssueRow) => IssueRow,
+    action: typeof archiveIssues,
+    onSuccess?: () => void,
+  ) {
+    run(
+      { type: 'upsert', issues: issues.map(next) },
+      () => action({ projectId: data.project.id, ids: issues.map((i) => i.id) }),
+      onSuccess,
+    );
+  }
+
+  function archiveMany(issues: IssueRow[], onDone?: () => void) {
+    const targets = issues.filter((i) => !isPendingIssue(i) && !i.archivedAt);
+    if (targets.length <= 1) {
+      if (targets[0]) archive(targets[0], onDone);
+      return;
+    }
+    lifecycleMany(targets, (i) => ({ ...i, archivedAt: new Date() }), archiveIssues, () => {
+      const id = pushUndo(`archiving ${targets.length} issues`, () =>
+        lifecycleMany(targets, (i) => ({ ...i, archivedAt: null }), unarchiveIssues),
+      );
+      toast.success(`Archived ${targets.length} issues`, { action: undoToastAction(id) });
+      onDone?.();
+    });
+  }
+
+  function removeMany(issues: IssueRow[], onDone?: () => void) {
+    const targets = issues.filter((i) => !isPendingIssue(i) && !i.deletedAt);
+    if (targets.length <= 1) {
+      if (targets[0]) remove(targets[0], onDone);
+      return;
+    }
+    lifecycleMany(targets, (i) => ({ ...i, deletedAt: new Date() }), deleteTickets, () => {
+      // Like `remove`'s undo: restore clears the archive flag too.
+      const id = pushUndo(`moving ${targets.length} issues to trash`, () =>
+        lifecycleMany(targets, (i) => ({ ...i, archivedAt: null, deletedAt: null }), restoreIssues),
+      );
+      toast.success(`Moved ${targets.length} issues to trash`, { action: undoToastAction(id) });
+      onDone?.();
+    });
   }
 
   return {
@@ -388,7 +485,10 @@ export function useIssueMutations(
     update: (issue, patch) => update(issue, patch),
     bulkUpdate: (issues, patch) => bulkUpdate(issues, patch),
     archive: (issue, onDone) => archive(issue, onDone),
+    unarchive: (issue, onDone) => unarchive(issue, onDone),
     remove: (issue, onDone) => remove(issue, onDone),
+    archiveMany,
+    removeMany,
     restore: (issue, onDone) => restore(issue, onDone),
   };
 }

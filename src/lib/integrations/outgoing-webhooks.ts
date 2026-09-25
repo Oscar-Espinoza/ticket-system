@@ -5,6 +5,11 @@
 // Receivers verify `X-Webhook-Signature: sha256=<hex>` = HMAC-SHA256(secret,
 // raw body). There is no retry queue on the free tier: a failed delivery is
 // recorded in lastStatus (0 = network error / timeout / refused URL) and dropped.
+//
+// Not delivered: bulk imports (`data.bulk` — a 500-row CSV must not fire 500
+// requests at every receiver) and project-level audit events without a ticket
+// (member / workflow / epic changes) unless they are a listed webhook type
+// (`issue.purged`, whose issue is gone). Receivers get issue events only.
 
 import { createHmac, randomBytes } from 'node:crypto';
 import { and, eq, inArray } from 'drizzle-orm';
@@ -13,6 +18,7 @@ import { db } from '@/lib/db';
 import { webhooks } from '@/db/schema';
 import type { StoredIssueEvent } from '@/lib/events';
 import { issueSummary, loadEventContext } from '@/lib/integrations/event-context';
+import { isWebhookEventType } from '@/lib/integrations/event-types';
 import { isDeliverableUrl } from '@/lib/integrations/url-guard';
 
 const TIMEOUT_MS = 5000;
@@ -63,7 +69,14 @@ export async function sendWebhook(
   }
 }
 
-async function run(events: StoredIssueEvent[]) {
+function deliverable(event: StoredIssueEvent): boolean {
+  if (event.data.bulk === true) return false;
+  return event.ticketId !== null || isWebhookEventType(event.type);
+}
+
+async function run(all: StoredIssueEvent[]) {
+  const events = all.filter(deliverable);
+  if (events.length === 0) return;
   const projectIds = [...new Set(events.map((e) => e.projectId))];
   const hooks = await db
     .select({

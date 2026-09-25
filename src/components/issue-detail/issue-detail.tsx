@@ -38,11 +38,13 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, PriorityIcon, StateIcon } from '@/components/ui-icons';
 import { formatEstimate } from '@/lib/estimates';
+import { formatHotkey } from '@/lib/hotkeys';
 import { issueUrl } from '@/lib/issue-links';
 import { PRIORITY_LABEL, type IssueRow } from '@/lib/issue-model';
 import { cn } from '@/lib/utils';
@@ -63,6 +65,10 @@ import { SectionAttachments } from './slots/section-attachments';
 import { SectionPullRequests } from './slots/section-pull-requests';
 import { SectionRelations } from './slots/section-relations';
 import { SectionSubIssues } from './slots/section-sub-issues';
+
+// Menu hints for the shortcuts IssueShortcuts registers (B10).
+const COPY_LINK_KEY = { mod: true, shift: true, key: ',' };
+const COPY_ID_KEY = { mod: true, key: '.' };
 
 const dateFormat = new Intl.DateTimeFormat('en', {
   dateStyle: 'medium',
@@ -136,14 +142,16 @@ export function IssueDetail({
               <MoreHorizontal />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-52">
+          <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuItem onSelect={() => copy(issueUrl(project.id, issue.key), 'link')}>
               <Link2 />
               Copy link
+              <DropdownMenuShortcut>{formatHotkey(COPY_LINK_KEY)}</DropdownMenuShortcut>
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => copy(issue.key, issue.key)}>
               <Hash />
               Copy ID
+              <DropdownMenuShortcut>{formatHotkey(COPY_ID_KEY)}</DropdownMenuShortcut>
             </DropdownMenuItem>
             <MenuExtraItems issue={issue} mutations={mutations} />
             {canWrite && (

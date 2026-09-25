@@ -1,19 +1,24 @@
 'use client';
 
 // Workspace › Members: roster (→ member profiles), role select (owner only),
-// remove (admins remove members, the owner removes admins too) and an invite
-// dialog. The server re-checks every rule in src/app/actions/workspaces.ts.
+// remove (admins remove members, the owner removes admins too), an invite
+// dialog and the pending invitations (resend / copy link / revoke — admins
+// manage member invitations, the owner all). The server re-checks every rule
+// in src/app/actions/workspaces.ts.
 
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { Loader2, MoreHorizontal, UserMinus, UserPlus } from 'lucide-react';
+import { Copy, Loader2, Mail, MoreHorizontal, Send, UserMinus, UserPlus, X } from 'lucide-react';
 
 import {
   inviteWorkspaceMember,
   removeWorkspaceMember,
+  resendWorkspaceInvitation,
+  revokeWorkspaceInvitation,
   updateWorkspaceMemberRole,
 } from '@/app/actions/workspaces';
+import { relativeTime } from '@/components/issues/issue-properties';
 import { Avatar, LabelChip } from '@/components/ui-icons';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,6 +35,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -39,18 +45,48 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { WORKSPACE_ROLE_LABEL, type WorkspaceMemberRow, type WorkspaceRole } from './workspace-types';
+import {
+  WORKSPACE_ROLE_LABEL,
+  type WorkspaceInvitationRow,
+  type WorkspaceMemberRow,
+  type WorkspaceRole,
+} from './workspace-types';
 
 const ROLE_ORDER: Record<WorkspaceRole, number> = { owner: 0, admin: 1, member: 2 };
+
+async function copyText(text: string, what: string) {
+  try {
+    await navigator.clipboard.writeText(text);
+    toast.success(`${what} copied`);
+  } catch {
+    toast.error('Copy failed — your browser blocked clipboard access');
+  }
+}
+
+/** Toast after an invite / resend; offers the link when email is off. */
+function announceSent(email: string, result: { emailed?: boolean; url?: string }) {
+  if (result.emailed || !result.url) {
+    toast.success(`Invitation sent to ${email}`);
+    return;
+  }
+  const url = result.url;
+  toast.success('Invitation created', {
+    description: 'Email isn’t configured on this server — share the link yourself.',
+    action: { label: 'Copy link', onClick: () => void copyText(url, 'Invite link') },
+  });
+}
 
 export function WorkspaceMembers({
   workspaceId,
   members,
+  invitations,
   viewerId,
   role,
 }: {
   workspaceId: string;
   members: WorkspaceMemberRow[];
+  /** Pending invitations; always empty for non-admins. */
+  invitations: WorkspaceInvitationRow[];
   viewerId: string;
   role: WorkspaceRole;
 }) {
@@ -83,6 +119,23 @@ export function WorkspaceMembers({
           />
         ))}
       </ul>
+      {invitations.length > 0 && (
+        <div className="mt-6">
+          <h3 className="mb-2 text-sm font-medium text-muted-foreground">
+            Pending invitations · {invitations.length}
+          </h3>
+          <ul className="flex flex-col divide-y divide-border/60 rounded-lg border">
+            {invitations.map((invitation) => (
+              <InvitationRow
+                key={invitation.id}
+                workspaceId={workspaceId}
+                invitation={invitation}
+                viewerRole={role}
+              />
+            ))}
+          </ul>
+        </div>
+      )}
       <InviteDialog
         open={inviteOpen}
         onClose={() => setInviteOpen(false)}
@@ -187,6 +240,88 @@ function MemberRow({
   );
 }
 
+function InvitationRow({
+  workspaceId,
+  invitation,
+  viewerRole,
+}: {
+  workspaceId: string;
+  invitation: WorkspaceInvitationRow;
+  viewerRole: WorkspaceRole;
+}) {
+  const [isPending, startTransition] = useTransition();
+  // Rendered from a server snapshot; "expired" is recomputed on each render.
+  const expiresAt = new Date(invitation.expiresAt);
+  // eslint-disable-next-line react-hooks/purity -- display-only comparison against the clock
+  const expired = expiresAt.getTime() <= Date.now();
+  const manageable = viewerRole === 'owner' || (viewerRole === 'admin' && invitation.role === 'member');
+
+  function resend() {
+    startTransition(async () => {
+      const result = await resendWorkspaceInvitation({ workspaceId, invitationId: invitation.id });
+      if (!result.ok) toast.error(result.error);
+      else announceSent(invitation.email, result);
+    });
+  }
+
+  function revoke() {
+    startTransition(async () => {
+      const result = await revokeWorkspaceInvitation({ workspaceId, invitationId: invitation.id });
+      if (!result.ok) toast.error(result.error);
+      else toast.success(`Invitation for ${invitation.email} revoked`);
+    });
+  }
+
+  return (
+    <li className="flex min-h-11 items-center gap-3 px-3 py-2">
+      <Mail className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm">{invitation.email}</span>
+        <span className="block truncate text-xs text-muted-foreground">
+          {expired ? 'Expired' : `Expires ${relativeTime(expiresAt)}`}
+          {invitation.invitedByName && ` · invited by ${invitation.invitedByName}`}
+        </span>
+      </span>
+      <LabelChip color={expired ? 'destructive' : 'default'}>
+        {expired ? 'Expired' : WORKSPACE_ROLE_LABEL[invitation.role]}
+      </LabelChip>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={`Actions for the invitation to ${invitation.email}`}
+            disabled={isPending}
+          >
+            {isPending ? <Loader2 className="animate-spin" /> : <MoreHorizontal />}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          {manageable && (
+            <DropdownMenuItem onSelect={resend}>
+              <Send />
+              {expired ? 'Renew and resend' : 'Resend email'}
+            </DropdownMenuItem>
+          )}
+          <DropdownMenuItem onSelect={() => void copyText(invitation.url, 'Invite link')}>
+            <Copy />
+            Copy invite link
+          </DropdownMenuItem>
+          {manageable && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem variant="destructive" onSelect={revoke}>
+                <X />
+                Revoke invitation
+              </DropdownMenuItem>
+            </>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </li>
+  );
+}
+
 function InviteDialog({
   open,
   onClose,
@@ -219,24 +354,8 @@ function InviteDialog({
         setError(result.error);
         return;
       }
-      if (result.added) {
-        toast.success('Added to the workspace');
-      } else if (result.emailed || !result.url) {
-        toast.success(`Invitation sent to ${value}`);
-      } else {
-        const url = result.url;
-        toast.success('Invitation created', {
-          description: 'Email isn’t configured on this server — share the link yourself.',
-          action: {
-            label: 'Copy link',
-            onClick: () =>
-              void navigator.clipboard.writeText(url).then(
-                () => toast.success('Invite link copied'),
-                () => toast.error('Copy failed'),
-              ),
-          },
-        });
-      }
+      if (result.added) toast.success('Added to the workspace');
+      else announceSent(value, result);
       close();
     });
   }

@@ -98,7 +98,7 @@ Bulk select + multi-edit (touches list/board after B5), integration fixes,
 ## External-service decisions ($0 budget)
 
 - Email: Resend free tier via REST, only when `RESEND_API_KEY` is set; otherwise logged.
-- Attachments: stored base64 in Postgres (`attachment_blob`), 5 MB cap.
+- Attachments: stored base64 in Postgres (`attachment_blob`), 4 MB cap (Vercel Hobby body limit).
 - Real-time + presence: polling a cheap change-token endpoint (no websockets on Vercel Hobby).
 - Automations / reminders: run lazily on page load (throttled), not by cron.
 - Mobile app: installable PWA + offline shell (no native app).

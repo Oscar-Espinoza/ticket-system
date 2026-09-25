@@ -35,12 +35,21 @@ const DETAIL_NOUN: Record<string, string> = {
   initiatives: 'Initiative',
 };
 
+// A malformed escape (e.g. a hand-typed "%") must not crash the whole shell.
+function decode(segment: string) {
+  try {
+    return decodeURIComponent(segment);
+  } catch {
+    return segment;
+  }
+}
+
 function projectCrumbs(rest: string[], base: string): Crumb[] {
   const [section, detail, sub] = rest;
   if (!section) return [{ label: 'Issues' }];
   // Issue permalink: the key itself (e.g. "APP-12") is the best label.
   if (section === 'issues' && detail) {
-    return [{ label: 'Issues', href: base }, { label: decodeURIComponent(detail).toUpperCase() }];
+    return [{ label: 'Issues', href: base }, { label: decode(detail).toUpperCase() }];
   }
   const crumbs: Crumb[] = [
     { label: labelFor(PROJECT_SECTIONS, section) ?? section, href: `${base}/${section}` },
@@ -73,7 +82,7 @@ export function Breadcrumb({ projects }: { projects: BreadcrumbProject[] }) {
     crumbs.push({ label: 'Settings', href: '/dashboard/settings' });
     if (id) crumbs.push({ label: labelFor(ACCOUNT_SETTINGS_NAV, id) ?? id });
   } else if (area === 'workspaces' && id) {
-    crumbs.push({ label: decodeURIComponent(id), href: `/dashboard/workspaces/${id}` });
+    crumbs.push({ label: decode(id), href: `/dashboard/workspaces/${id}` });
     if (rest[0] === 'initiatives') {
       crumbs.push({ label: 'Initiatives', href: `/dashboard/workspaces/${id}/initiatives` });
       if (rest[1]) crumbs.push({ label: DETAIL_NOUN.initiatives });

@@ -2,6 +2,11 @@
 // batch of stored events: turns issue events into inbox rows (assignee,
 // subscribers, @mentions) and emails them to users who opted in. Never throws —
 // the mutation that produced the events already succeeded.
+//
+// Skipped on purpose: project-level events (ticketId null — member, workflow,
+// epic changes), imports (`data.bulk`: creator / assignee are still
+// subscribed, nobody is notified) and the state move of a PR merge
+// (`data.viaPullRequest`: the github.pr_merged notification already covers it).
 
 import { eq, inArray } from 'drizzle-orm';
 
@@ -14,7 +19,8 @@ import { issuePath } from '@/lib/issue-links';
 import { stripMentions } from '@/lib/mentions';
 import { ensureSubscribed, getSubscriberIdsByTicket } from '@/lib/subscriptions';
 import { isClosed } from '@/lib/workflow';
-import { appOrigin, notificationEmail, settingsUrl, type EmailItem } from './email-templates';
+import { notificationEmail, settingsUrl, type EmailItem } from './email-templates';
+import { appUrl } from '@/lib/integrations/app-url';
 import {
   describeNotification,
   prefEnabled,
@@ -156,7 +162,7 @@ async function dispatch(events: StoredIssueEvent[]) {
     switch (event.type) {
       case 'issue.created': {
         subscribe(ticket.creatorId ?? event.actorId, ticket.assigneeId);
-        add(ticket.assigneeId, 'assigned');
+        if (event.data.bulk !== true) add(ticket.assigneeId, 'assigned');
         break;
       }
       case 'issue.updated': {
@@ -167,7 +173,7 @@ async function dispatch(events: StoredIssueEvent[]) {
             add(assigneeId, 'assigned');
           } else if (change.field === 'stateId') {
             const state = stateOf(change.to);
-            if (!state) continue;
+            if (!state || event.data.viaPullRequest) continue;
             const type = isClosed(state.type) ? 'completed' : 'status_changed';
             for (const userId of subscribers()) add(userId, type, { state });
           }
@@ -274,7 +280,7 @@ async function emailRecipients(rows: NotificationInsert[], personById: Map<strin
   }
   if (byUser.size === 0) return;
 
-  const origin = appOrigin();
+  const origin = appUrl();
   const settings = settingsUrl();
   const emailed: string[] = [];
 

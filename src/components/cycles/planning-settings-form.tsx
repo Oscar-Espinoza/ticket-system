@@ -26,6 +26,7 @@ export interface PlanningSettings {
   durationWeeks: number;
   startWeekday: number;
   autoCreate: boolean;
+  autoRollover: boolean;
   triageEnabled: boolean;
 }
 
@@ -174,10 +175,18 @@ export function PlanningSettingsForm({
             onChange={(checked) => set('autoCreate', checked)}
             disabled={disabled || !values.cyclesEnabled}
           />
-          <p className="text-xs text-muted-foreground">
-            When a cycle ends it is completed automatically and its unfinished issues move to the
-            next cycle.
-          </p>
+          <ToggleRow
+            id="cycle-auto-rollover"
+            label="Roll over unfinished issues"
+            description={
+              values.autoRollover
+                ? 'When a cycle ends it is completed automatically and its unfinished issues move to the next cycle.'
+                : 'When a cycle ends it is completed automatically; unfinished issues stay in it.'
+            }
+            checked={values.autoRollover}
+            onChange={(checked) => set('autoRollover', checked)}
+            disabled={disabled || !values.cyclesEnabled}
+          />
         </fieldset>
       </section>
 

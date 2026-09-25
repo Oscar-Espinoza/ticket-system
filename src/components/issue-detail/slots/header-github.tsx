@@ -85,12 +85,9 @@ export function HeaderGithub({ issue, mutations }: { issue: IssueRow; mutations:
   const onCreate = useEffectEvent(create);
 
   useEffect(() => {
-    // Shift turns "." into ">" on most layouts; match either, gated on the
-    // physical key so ⌘> on other layouts doesn't fire.
-    const when = (event: KeyboardEvent) => event.shiftKey && event.code === 'Period';
+    // Shift hotkeys also match the physical key, so ⌘⇧. works where Shift turns "." into ">".
     const unregisterKeys = registerHotkeys([
-      { key: '.', mod: true, scope: 'Issue', description: 'Copy git branch name', when, handler: () => onCopy() },
-      { key: '>', mod: true, scope: 'Issue', description: 'Copy git branch name', when, handler: () => onCopy() },
+      { key: '.', mod: true, shift: true, scope: 'Issue', description: 'Copy git branch name', handler: () => onCopy() },
     ]);
     const unregisterCommands = registerPaletteCommands([
       { id: 'github.copy-branch', label: 'Copy git branch name', section: 'Issue', keywords: ['git', 'branch'], run: () => onCopy() },

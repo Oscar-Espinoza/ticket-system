@@ -11,9 +11,8 @@ import { db } from '@/lib/db';
 import { projects, webhooks } from '@/db/schema';
 import { authorizeProjectAction } from '@/lib/action-auth';
 import {
-  formatSlackSetting,
-  isSlackEventKind,
   isWebhookEventType,
+  normalizeSlackEvents,
   parseSlackSetting,
   SLACK_URL_PREFIX,
 } from '@/lib/integrations/event-types';
@@ -103,7 +102,7 @@ export async function saveSlackSettings(input: {
   if (!url) {
     await db
       .update(projects)
-      .set({ slackWebhookUrl: null, updatedAt: new Date() })
+      .set({ slackWebhookUrl: null, slackEvents: null, updatedAt: new Date() })
       .where(eq(projects.id, projectId));
     revalidate(projectId);
     return { ok: true, connected: false };
@@ -122,11 +121,13 @@ export async function saveSlackSettings(input: {
     return { ok: false, error: 'Enter a valid URL.', field: 'url' };
   }
   if (!Array.isArray(input.events)) return { ok: false, error: 'Invalid events.', field: 'events' };
-  const events = input.events.filter(isSlackEventKind);
+  const events = normalizeSlackEvents(input.events);
 
+  // Both columns on every save — this is also what drops a legacy
+  // `#events=` fragment from rows written before slack_events existed.
   await db
     .update(projects)
-    .set({ slackWebhookUrl: formatSlackSetting({ url, events }), updatedAt: new Date() })
+    .set({ slackWebhookUrl: url, slackEvents: events, updatedAt: new Date() })
     .where(eq(projects.id, projectId));
   revalidate(projectId);
   return { ok: true, connected: true };
@@ -137,11 +138,15 @@ export async function sendSlackTest(input: { projectId: string }): Promise<Resul
   if (denied) return denied;
 
   const [project] = await db
-    .select({ name: projects.name, slackWebhookUrl: projects.slackWebhookUrl })
+    .select({
+      name: projects.name,
+      slackWebhookUrl: projects.slackWebhookUrl,
+      slackEvents: projects.slackEvents,
+    })
     .from(projects)
     .where(eq(projects.id, input.projectId))
     .limit(1);
-  const setting = parseSlackSetting(project?.slackWebhookUrl);
+  const setting = parseSlackSetting(project?.slackWebhookUrl, project?.slackEvents);
   if (!project || !setting) return { ok: false, error: 'Save a Slack webhook URL first.' };
 
   const status = await sendSlackMessage(setting.url, {

@@ -3,8 +3,13 @@
 
 import type { IssueUser } from '@/lib/issue-model';
 
-/** Per-file cap; bytes are stored base64 in Postgres (free tier). */
-export const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
+/**
+ * Per-file cap; bytes are stored base64 in Postgres (free tier). 4 MB because
+ * Vercel Hobby rejects request bodies over 4.5 MB (file + multipart overhead).
+ */
+export const MAX_ATTACHMENT_BYTES = 4 * 1024 * 1024;
+/** The cap as user-facing copy ("4 MB"). */
+export const MAX_ATTACHMENT_LABEL = `${MAX_ATTACHMENT_BYTES / (1024 * 1024)} MB`;
 export const ATTACHMENT_TITLE_MAX = 255;
 export const ATTACHMENT_URL_MAX = 2048;
 

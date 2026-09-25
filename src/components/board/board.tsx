@@ -190,7 +190,11 @@ export default function Board({
 
   return (
     <DragDropProvider sensors={sensors} {...sortable.handlers}>
-      <div data-board className="-mx-4 flex flex-1 flex-col overflow-auto px-4 pb-4 sm:-mx-6 sm:px-6">
+      <div
+        data-board
+        data-dragging={sortable.dragging || undefined}
+        className="-mx-4 flex flex-1 flex-col overflow-auto px-4 pb-4 sm:-mx-6 sm:px-6"
+      >
         <div className="sticky top-0 z-10 flex w-max bg-background" style={{ gap: COLUMN_GAP }}>
           {groups.map((group) => (
             <ColumnHeader key={group.id} group={group} onCreate={onCreate} />

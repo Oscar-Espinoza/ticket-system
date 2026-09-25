@@ -17,8 +17,6 @@ export const WEEKDAYS = [
   'Saturday',
 ] as const;
 
-/** Monday — the start weekday until a project has cycles to derive it from. */
-export const DEFAULT_START_WEEKDAY = 1;
 export const CYCLE_DURATIONS = [1, 2, 3, 4, 5, 6, 7, 8] as const;
 /** Auto-create keeps this many upcoming cycles scheduled. */
 export const UPCOMING_CYCLES = 2;

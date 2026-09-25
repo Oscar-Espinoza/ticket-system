@@ -108,10 +108,10 @@ export function DisplayMenu({
     () =>
       registerHotkeys([
         {
-          key: 'V',
+          key: 'v',
+          shift: true,
           scope: 'Issues',
-          description: 'Display options (Shift+V)',
-          when: (event) => event.shiftKey,
+          description: 'Display options',
           handler: () => toggle(),
         },
       ]),

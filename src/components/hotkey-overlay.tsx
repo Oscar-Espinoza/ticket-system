@@ -31,8 +31,13 @@ export function HotkeyOverlay({
 
   const order: string[] = [];
   const byScope = new Map<string, Hotkey[]>();
+  // The same shortcut can be registered by two mounted instances (list + pane).
+  const seen = new Set<string>();
   for (const hotkey of hotkeys) {
     const scope = hotkey.scope ?? 'Global';
+    const id = `${scope}\u0000${formatHotkey(hotkey)}\u0000${hotkey.description}`;
+    if (seen.has(id)) continue;
+    seen.add(id);
     if (!byScope.has(scope)) {
       byScope.set(scope, []);
       order.push(scope);
@@ -59,7 +64,7 @@ export function HotkeyOverlay({
               <ul className="flex flex-col gap-1.5">
                 {byScope.get(scope)!.map((hotkey) => (
                   <li
-                    key={`${hotkey.scope ?? 'Global'}-${hotkey.key}-${hotkey.description}`}
+                    key={`${formatHotkey(hotkey)}-${hotkey.description}`}
                     className="flex items-center justify-between gap-4 text-sm"
                   >
                     <span className="text-foreground">{hotkey.description}</span>

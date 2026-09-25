@@ -1,16 +1,14 @@
-// Workspace invitation landing page. PUBLIC route. The token is a signed,
-// stateless claim (src/lib/workspace-access.ts): invalid or expired tokens get
-// a generic message; a signed-in user with a different email sees why they
-// can't accept. Joining is the explicit POST in acceptWorkspaceInvite.
+// Workspace invitation landing page. PUBLIC route. The token names a pending
+// workspace_invitation row (src/lib/workspace-access.ts): unknown, expired,
+// revoked or used tokens all get the same generic message; a signed-in user
+// with a different email sees why they can't accept. Joining is the explicit
+// POST in acceptWorkspaceInvite.
 
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { eq } from 'drizzle-orm';
 
 import { getSession } from '@/lib/session';
-import { db } from '@/lib/db';
-import { workspaces } from '@/db/schema';
-import { verifyWorkspaceInvite } from '@/lib/workspace-access';
+import { getPendingWorkspaceInvite } from '@/lib/workspace-access';
 import {
   Card,
   CardContent,
@@ -29,19 +27,13 @@ export default async function WorkspaceInvitePage({
   params: Promise<{ token: string }>;
 }) {
   const [{ token }, session] = await Promise.all([params, getSession()]);
-  const claims = verifyWorkspaceInvite(decodeURIComponent(token));
-  const [workspace] = claims
-    ? await db
-        .select({ name: workspaces.name })
-        .from(workspaces)
-        .where(eq(workspaces.id, claims.workspaceId))
-        .limit(1)
-    : [];
+  const invite = await getPendingWorkspaceInvite(decodeURIComponent(token));
 
   const user = session?.user;
-  const valid = Boolean(claims && workspace);
-  const mismatch = valid && user && claims!.email.toLowerCase() !== user.email.toLowerCase();
-  const roleLabel = claims?.role === 'admin' ? 'an admin' : 'a member';
+  const valid = invite !== null;
+  const mismatch = valid && user && invite.email.toLowerCase() !== user.email.toLowerCase();
+  const roleLabel = invite?.role === 'admin' ? 'an admin' : 'a member';
+  const workspaceName = invite?.workspaceName;
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
@@ -50,7 +42,8 @@ export default async function WorkspaceInvitePage({
           <CardHeader>
             <CardTitle className="text-xl font-medium">Invalid invite link</CardTitle>
             <CardDescription className="mt-2 text-sm text-muted-foreground">
-              This invitation is invalid or has expired. Ask a workspace admin for a new one.
+              This invitation is invalid, has expired or was already used. Ask a workspace admin
+              for a new one.
             </CardDescription>
           </CardHeader>
         )}
@@ -60,8 +53,8 @@ export default async function WorkspaceInvitePage({
             <CardHeader>
               <CardTitle className="text-xl font-medium">You’ve been invited</CardTitle>
               <CardDescription className="mt-2 text-sm text-muted-foreground">
-                Sign in with <strong className="text-foreground">{claims!.email}</strong> to join
-                the {workspace!.name} workspace as {roleLabel}.
+                Sign in with <strong className="text-foreground">{invite!.email}</strong> to join
+                the {workspaceName} workspace as {roleLabel}.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -85,7 +78,7 @@ export default async function WorkspaceInvitePage({
               <CardTitle className="text-xl font-medium">Wrong account</CardTitle>
               <CardDescription className="mt-2 text-sm text-muted-foreground">
                 This invitation was sent to{' '}
-                <strong className="text-foreground">{claims!.email}</strong>, but you’re signed in
+                <strong className="text-foreground">{invite!.email}</strong>, but you’re signed in
                 as <strong className="text-foreground">{user.email}</strong>.
               </CardDescription>
             </CardHeader>
@@ -100,7 +93,7 @@ export default async function WorkspaceInvitePage({
         {valid && user && !mismatch && (
           <>
             <CardHeader>
-              <CardTitle className="text-xl font-medium">Join {workspace!.name}</CardTitle>
+              <CardTitle className="text-xl font-medium">Join {workspaceName}</CardTitle>
               <CardDescription className="mt-2 text-sm text-muted-foreground">
                 You’ve been invited to this workspace as {roleLabel}.
               </CardDescription>

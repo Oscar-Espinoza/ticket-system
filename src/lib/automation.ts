@@ -29,6 +29,8 @@ type ProjectSettings = {
   cyclesEnabled: boolean;
   cycleAutoCreate: boolean;
   cycleDurationWeeks: number;
+  cycleStartWeekday: number;
+  cycleAutoRollover: boolean;
 };
 
 /** Claim today's run: the row comes back only for the one request that wins. */
@@ -48,6 +50,8 @@ async function claimRun(projectId: string): Promise<ProjectSettings | null> {
       cyclesEnabled: projects.cyclesEnabled,
       cycleAutoCreate: projects.cycleAutoCreate,
       cycleDurationWeeks: projects.cycleDurationWeeks,
+      cycleStartWeekday: projects.cycleStartWeekday,
+      cycleAutoRollover: projects.cycleAutoRollover,
     });
   return row ?? null;
 }
@@ -154,9 +158,16 @@ async function cycleUpkeep(projectId: string, settings: ProjectSettings) {
   const now = new Date();
   // Create first, so ended cycles have a next cycle to roll issues into.
   if (settings.cycleAutoCreate) {
-    await ensureUpcomingCycles(projectId, settings.cycleDurationWeeks, now);
+    await ensureUpcomingCycles(
+      projectId,
+      settings.cycleDurationWeeks,
+      now,
+      settings.cycleStartWeekday,
+    );
   }
-  await completeEndedCycles(SYSTEM_ACTOR, projectId, now);
+  await completeEndedCycles(SYSTEM_ACTOR, projectId, now, {
+    rollover: settings.cycleAutoRollover,
+  });
 }
 
 async function step(name: string, run: () => Promise<void>) {

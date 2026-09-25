@@ -17,6 +17,13 @@ import {
 import { useDisplayOptions, type DisplayProperty } from '@/components/issues/display-options';
 import { DueDateChip, EstimateChip, LabelChips, relativeTime } from '@/components/issues/issue-properties';
 import type { IssueViewProps } from '@/components/issues/views';
+import {
+  SelectCheckbox,
+  handleSelectionClick,
+  preventShiftSelect,
+  useIssueSelection,
+  useSelectedIds,
+} from '@/components/issues/selection';
 import { isPendingIssue } from '@/components/issues/use-issue-mutations';
 import { useProjectData, useProjectPermission } from '@/components/project/project-data';
 import { Avatar, EmptyState, PriorityIcon, StateIcon } from '@/components/ui-icons';
@@ -273,6 +280,8 @@ export default function TableView({ issues, mutations, selectedId, onSelect }: I
   const columns = useColumns().filter((c) => c.id === 'title' || display.properties[c.id]);
   const [cursorId, setCursorId] = useState<string | null>(null);
   const rows = useRef(new Map<string, HTMLTableRowElement>());
+  const selection = useIssueSelection();
+  const selectedIds = useSelectedIds();
 
   const focusRow = (id: string) => {
     setCursorId(id);
@@ -302,11 +311,29 @@ export default function TableView({ issues, mutations, selectedId, onSelect }: I
     return <EmptyState title="No issues" description="Nothing to show in this view." />;
   }
 
+  const selectableIds = issues.filter((i) => !isPendingIssue(i)).map((i) => i.id);
+  const selectedCount = selectableIds.filter((id) => selectedIds.has(id)).length;
+  const allChecked =
+    selectedCount === 0 ? false : selectedCount === selectableIds.length ? true : 'mixed';
+
   return (
     <div className="max-h-[calc(100dvh-14rem)] min-h-0 overflow-auto rounded-md border border-border">
       <table className="w-full border-separate border-spacing-0 text-sm" aria-label="Issues">
         <thead>
           <tr>
+            {selection.enabled && (
+              <th
+                scope="col"
+                className="sticky top-0 z-10 h-8 w-8 min-w-8 border-b border-border bg-background pl-2.5"
+              >
+                <SelectCheckbox
+                  checked={allChecked}
+                  tabIndex={0}
+                  label={allChecked === true ? 'Deselect all issues' : 'Select all issues'}
+                  onToggle={() => selection.set(allChecked === true ? [] : selectableIds)}
+                />
+              </th>
+            )}
             {columns.map((column) => {
               const sorted = column.orderBy !== undefined && display.orderBy === column.orderBy;
               return (
@@ -351,6 +378,8 @@ export default function TableView({ issues, mutations, selectedId, onSelect }: I
               },
             };
             const active = issue.id === selectedId;
+            const checked = selectedIds.has(issue.id);
+            const selectable = selection.enabled && !isPendingIssue(issue);
             return (
               <tr
                 key={issue.id}
@@ -361,9 +390,14 @@ export default function TableView({ issues, mutations, selectedId, onSelect }: I
                 tabIndex={0}
                 data-issue-row={issue.id}
                 aria-current={active ? 'true' : undefined}
+                aria-selected={selection.enabled ? checked : undefined}
                 aria-label={`${issue.key} ${issue.title}, ${issue.state.name}`}
                 onFocus={() => setCursorId(issue.id)}
-                onClick={onSelect ? () => onSelect(issue) : undefined}
+                onMouseDown={preventShiftSelect}
+                onClick={(event) => {
+                  if (selectable && handleSelectionClick(selection, event, issue.id)) return;
+                  onSelect?.(issue);
+                }}
                 onKeyDown={(event) => {
                   if (event.target !== event.currentTarget) return;
                   if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
@@ -377,9 +411,29 @@ export default function TableView({ issues, mutations, selectedId, onSelect }: I
                 className={cn(
                   'group outline-none focus-visible:bg-accent/60 hover:bg-accent/40',
                   active && 'bg-accent/40',
+                  checked && 'bg-primary/10 hover:bg-primary/15',
                   onSelect && 'cursor-pointer',
                 )}
               >
+                {selection.enabled && (
+                  <td className="h-9 w-8 min-w-8 border-b border-border/60 pl-2.5">
+                    {selectable && (
+                      <SelectCheckbox
+                        checked={checked}
+                        label={`Select ${issue.key}`}
+                        onToggle={(event) =>
+                          event.shiftKey
+                            ? selection.extendTo(issue.id, event.currentTarget)
+                            : selection.toggle(issue.id)
+                        }
+                        className={cn(
+                          selectedIds.size === 0 &&
+                            'opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100',
+                        )}
+                      />
+                    )}
+                  </td>
+                )}
                 {columns.map((column) => (
                   <td
                     key={column.id}

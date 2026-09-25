@@ -6,7 +6,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { and, asc, eq, inArray, isNull, ne, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull, ne, or, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { Building2, Target } from 'lucide-react';
 
@@ -18,10 +18,11 @@ import {
   tickets,
   users,
   workflowStates,
+  workspaceInvitations,
   workspaceMembers,
   workspaces,
 } from '@/db/schema';
-import { getWorkspaceMembership } from '@/lib/workspace-access';
+import { getWorkspaceMembership, workspaceInviteUrl } from '@/lib/workspace-access';
 import { Button } from '@/components/ui/button';
 import { LabelChip } from '@/components/ui-icons';
 import { WorkspaceActions } from '@/components/workspaces/workspace-actions';
@@ -54,8 +55,9 @@ export default async function WorkspacePage({
 
   const viewer = alias(projectMembers, 'viewer_member');
   const otherWorkspace = alias(workspaces, 'other_workspace');
+  const isAdmin = membership.role !== 'member';
 
-  const [projectRows, openRows, memberRows, eligibleRows] = await db.batch([
+  const [projectRows, openRows, memberRows, eligibleRows, invitationRows] = await db.batch([
     db
       .select({
         id: projects.id,
@@ -117,6 +119,27 @@ export default async function WorkspacePage({
         ),
       )
       .orderBy(asc(projects.name)),
+    // Pending invitations (expired ones included, so they can be renewed) —
+    // tokens are credentials, so only admins get rows back.
+    db
+      .select({
+        id: workspaceInvitations.id,
+        email: workspaceInvitations.email,
+        role: workspaceInvitations.role,
+        token: workspaceInvitations.token,
+        expiresAt: workspaceInvitations.expiresAt,
+        invitedByName: users.name,
+      })
+      .from(workspaceInvitations)
+      .leftJoin(users, eq(workspaceInvitations.invitedById, users.id))
+      .where(
+        and(
+          eq(workspaceInvitations.workspaceId, workspaceId),
+          isNull(workspaceInvitations.acceptedAt),
+          isAdmin ? undefined : sql`false`,
+        ),
+      )
+      .orderBy(desc(workspaceInvitations.createdAt)),
   ]);
 
   const openByProject = new Map(openRows.map((row) => [row.projectId, row.count]));
@@ -124,7 +147,11 @@ export default async function WorkspacePage({
     ...project,
     openCount: project.viewerRole ? (openByProject.get(project.id) ?? 0) : null,
   }));
-  const isAdmin = membership.role !== 'member';
+  const invitations = invitationRows.map(({ token, expiresAt, ...row }) => ({
+    ...row,
+    expiresAt: expiresAt.toISOString(),
+    url: workspaceInviteUrl(token),
+  }));
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-10">
@@ -166,6 +193,7 @@ export default async function WorkspacePage({
       <WorkspaceMembers
         workspaceId={workspaceId}
         members={memberRows}
+        invitations={invitations}
         viewerId={userId}
         role={membership.role}
       />

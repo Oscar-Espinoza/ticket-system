@@ -31,3 +31,5 @@ Disconnect. Toasts for results.
 ## Edge cases
 Slack mrkdwn escaping (`& < >`). Actor null → "Automation". Purged issues skipped.
 Bulk updates collapse into one message. Invalid/blank URL → field error; blank Save = disconnect.
+
+> **Superseded (Wave C):** see `C3-integration-fixes.md` — Slack event toggles now live in `project.slack_events`, not the URL fragment.

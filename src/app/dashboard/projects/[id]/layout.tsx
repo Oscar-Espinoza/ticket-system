@@ -10,6 +10,7 @@ import { notFound, redirect } from 'next/navigation';
 import { after } from 'next/server';
 
 import { DisplayOptionsProvider } from '@/components/issues/display-options';
+import { FavoriteButton } from '@/components/navigation/favorite-button';
 import { ProjectDataProvider } from '@/components/project/project-data';
 import { ProjectTabs } from '@/components/project/project-tabs';
 import { LiveUpdates } from '@/components/project/slots/live-updates';
@@ -59,6 +60,7 @@ export default async function ProjectLayout({
             <LabelChip dot={false} className="font-mono">
               {data.project.ticketKey}
             </LabelChip>
+            <FavoriteButton targetType="project" targetId={id} className="-ml-1" />
           </div>
           <ProjectTabs projectId={id} />
           {children}

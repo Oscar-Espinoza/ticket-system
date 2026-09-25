@@ -12,6 +12,15 @@ import { CycleChip, EpicChip, MilestoneChip, SubIssueChip } from '@/components/v
 import { useSubIssueCount } from '@/components/views/view-context';
 import { useDisplayOptions } from './display-options';
 import { DueDateChip, EstimateChip, LabelChips, relativeTime } from './issue-properties';
+import {
+  SelectCheckbox,
+  handleSelectionClick,
+  preventShiftSelect,
+  useHasSelection,
+  useIsSelected,
+  useIssueSelection,
+} from './selection';
+import { isPendingIssue } from './use-issue-mutations';
 
 export { relativeTime };
 
@@ -60,6 +69,10 @@ export function IssueRow({
   const canWrite = useProjectPermission('write');
   const [{ properties: show, showSubIssues }] = useDisplayOptions();
   const subIssues = useSubIssueCount(issue.id);
+  const selection = useIssueSelection();
+  const selected = useIsSelected(issue.id);
+  const anySelected = useHasSelection();
+  const selectable = selection.enabled && !isPendingIssue(issue);
 
   // Pickers hand focus back to the row, not their trigger, so j/k keep working.
   const refocusRow = (event: Event) => {
@@ -75,15 +88,35 @@ export function IssueRow({
       data-active={active}
       aria-label={`${issue.key} ${issue.title}, ${issue.state.name}`}
       aria-current={active ? 'true' : undefined}
+      aria-selected={selection.enabled ? selected : undefined}
       onFocus={onFocus}
-      onClick={onSelect}
+      onMouseDown={preventShiftSelect}
+      onClick={(event) => {
+        if (selectable && handleSelectionClick(selection, event, issue.id)) return;
+        onSelect?.();
+      }}
       className={cn(
         'group flex h-9 items-center gap-3 rounded-md px-2 text-sm outline-none transition-colors',
         'hover:bg-accent/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
         active && 'bg-accent/40',
+        selected && 'bg-primary/10 hover:bg-primary/15',
         onSelect && 'cursor-pointer',
       )}
     >
+      {selection.enabled && !selectable && <span aria-hidden="true" className="size-4 shrink-0" />}
+      {selectable && (
+        <SelectCheckbox
+          checked={selected}
+          label={`Select ${issue.key}`}
+          onToggle={(event) =>
+            event.shiftKey ? selection.extendTo(issue.id, event.currentTarget) : selection.toggle(issue.id)
+          }
+          // Hover / focus reveal; always shown once anything is selected.
+          className={cn(
+            !anySelected && 'opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100',
+          )}
+        />
+      )}
       {show.priority && !canWrite && <PriorityIcon priority={issue.priority} size={14} />}
       {show.priority && canWrite && (
         <PriorityPicker

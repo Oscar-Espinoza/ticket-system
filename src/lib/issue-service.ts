@@ -148,16 +148,21 @@ function normalizePatch(input: unknown): { ok: true; patch: IssuePatch } | Issue
     }
     patch.sortOrder = raw.sortOrder;
   }
-  if (raw.labelIds !== undefined) {
-    if (
-      !Array.isArray(raw.labelIds) ||
-      !raw.labelIds.every((id) => typeof id === 'string' && id.length > 0)
-    ) {
-      return fail('Invalid label.', 'labelIds');
+  for (const field of ['labelIds', 'addLabelIds', 'removeLabelIds'] as const) {
+    const value = raw[field];
+    if (value === undefined) continue;
+    if (!Array.isArray(value) || !value.every((id) => typeof id === 'string' && id.length > 0)) {
+      return fail('Invalid label.', field);
     }
-    const ids = [...new Set(raw.labelIds as string[])];
-    if (ids.length > LABELS_MAX) return fail(`At most ${LABELS_MAX} labels.`, 'labelIds');
-    patch.labelIds = ids;
+    const ids = [...new Set(value as string[])];
+    if (ids.length > LABELS_MAX) return fail(`At most ${LABELS_MAX} labels.`, field);
+    patch[field] = ids;
+  }
+  if (patch.labelIds && (patch.addLabelIds || patch.removeLabelIds)) {
+    return fail('Send either labelIds or addLabelIds / removeLabelIds, not both.', 'labelIds');
+  }
+  if (patch.addLabelIds?.some((id) => patch.removeLabelIds?.includes(id))) {
+    return fail("A label can't be both added and removed.", 'addLabelIds');
   }
   return { ok: true, patch };
 }
@@ -202,6 +207,11 @@ async function loadContext(
   issueIds: string[],
 ): Promise<Context | null> {
   const src = alias(tickets, 'src');
+  const labelIds = [
+    ...(patch.labelIds ?? []),
+    ...(patch.addLabelIds ?? []),
+    ...(patch.removeLabelIds ?? []),
+  ];
   // New target id OR the ids the issues currently point at (for "from" names).
   const refCond = (
     column: AnyPgColumn,
@@ -261,8 +271,8 @@ async function loadContext(
       .select({ id: labels.id, name: labels.name, color: labels.color })
       .from(labels)
       .where(
-        patch.labelIds?.length
-          ? and(eq(labels.projectId, projectId), inArray(labels.id, patch.labelIds))
+        labelIds.length
+          ? and(eq(labels.projectId, projectId), inArray(labels.id, labelIds))
           : NOTHING,
       ),
     db
@@ -362,10 +372,14 @@ async function loadContext(
 interface Resolved {
   state?: WorkflowState;
   labels?: IssueLabel[];
+  /** addLabelIds / removeLabelIds, applied per issue. */
+  labelDelta?: { add: IssueLabel[]; remove: Set<string> };
   assignee?: IssueUser | null;
   /** Epic implied by the milestone (a milestone always belongs to one epic). */
   milestoneEpicId?: string;
 }
+
+const byName = (a: IssueLabel, b: IssueLabel) => a.name.localeCompare(b.name);
 
 function resolvePatch(ctx: Context, patch: IssuePatch): { ok: true; resolved: Resolved } | IssueServiceError {
   const resolved: Resolved = {};
@@ -388,7 +402,14 @@ function resolvePatch(ctx: Context, patch: IssuePatch): { ok: true; resolved: Re
   if (patch.labelIds !== undefined) {
     const found = patch.labelIds.map((id) => ctx.labels.get(id));
     if (found.some((label) => !label)) return fail('Invalid label.', 'labelIds');
-    resolved.labels = (found as IssueLabel[]).sort((a, b) => a.name.localeCompare(b.name));
+    resolved.labels = (found as IssueLabel[]).sort(byName);
+  }
+  if (patch.addLabelIds !== undefined || patch.removeLabelIds !== undefined) {
+    const add = (patch.addLabelIds ?? []).map((id) => ctx.labels.get(id));
+    if (add.some((label) => !label)) return fail('Invalid label.', 'addLabelIds');
+    const remove = patch.removeLabelIds ?? [];
+    if (remove.some((id) => !ctx.labels.has(id))) return fail('Invalid label.', 'removeLabelIds');
+    resolved.labelDelta = { add: add as IssueLabel[], remove: new Set(remove) };
   }
   if (patch.assigneeId !== undefined) {
     if (patch.assigneeId !== null && !ctx.assignee) {
@@ -448,6 +469,15 @@ function applyToIssue(
     next.assignee = resolved.assignee;
   }
   if (resolved.labels) next.labels = resolved.labels;
+  else if (resolved.labelDelta) {
+    const { add, remove } = resolved.labelDelta;
+    const kept = old.labels.filter((l) => !remove.has(l.id));
+    const added = add.filter((l) => !kept.some((k) => k.id === l.id));
+    // Unchanged issues keep their array: no change entry, no write.
+    if (added.length || kept.length !== old.labels.length) {
+      next.labels = [...kept, ...added].sort(byName);
+    }
+  }
 
   let epicId = patch.epicId;
   let milestoneId = patch.milestoneId;
@@ -496,7 +526,7 @@ function applyToIssue(
       named(ctx.milestones.get(next.milestoneId ?? '')),
     );
   }
-  if (resolved.labels) {
+  if (next.labels !== old.labels) {
     const before = new Set(old.labels.map((l) => l.id));
     const after = new Set(next.labels.map((l) => l.id));
     const describe = (l: IssueLabel) => ({ id: l.id, name: l.name, color: l.color });
@@ -519,16 +549,29 @@ function applyToIssue(
 // Create
 // ---------------------------------------------------------------------------
 
+export interface CreateIssueOptions {
+  /**
+   * 'import' marks the `issue.created` event `data.bulk: true`: it is still
+   * recorded in activity, but Slack, outgoing webhooks and notifications skip
+   * it so a CSV import doesn't flood them.
+   */
+  source?: 'import';
+}
+
 export async function createIssue(
   actor: IssueActor,
   projectId: string,
   input: CreateIssueInput,
+  opts?: CreateIssueOptions,
 ): Promise<IssueResult> {
   if (!projectId) return fail('Project not found.');
   const normalized = normalizePatch(input);
   if (!normalized.ok) return normalized;
   const patch = normalized.patch;
   if (patch.title === undefined) return fail('Title is required.', 'title');
+  if (patch.addLabelIds || patch.removeLabelIds) {
+    return fail('Use labelIds when creating an issue.', 'labelIds');
+  }
 
   const ctx = await loadContext(projectId, actor.userId, patch, []);
   if (!ctx) return fail('Project not found.');
@@ -624,7 +667,11 @@ export async function createIssue(
     ticketId: id,
     actorId: actor.userId,
     type: ISSUE_EVENT.created,
-    data: { key: issue.key, title: issue.title },
+    data: {
+      key: issue.key,
+      title: issue.title,
+      ...(opts?.source === 'import' ? { bulk: true } : {}),
+    },
   });
   return { ok: true, issue };
 }
@@ -638,11 +685,21 @@ export async function createIssue(
  * issues can't be edited; archived ones can. Issues the patch doesn't change
  * are returned untouched and get no activity.
  */
+export interface UpdateIssueOptions {
+  /**
+   * Extra fields merged into each `issue.updated` event's data (e.g. the
+   * GitHub sync's `viaPullRequest`, which lets dispatchers tell an automated
+   * move from a manual one). Can't override key / title / changes.
+   */
+  eventData?: Record<string, unknown>;
+}
+
 export async function bulkUpdate(
   actor: IssueActor,
   projectId: string,
   ids: string[],
   patch: IssuePatch,
+  opts?: UpdateIssueOptions,
 ): Promise<IssuesResult> {
   if (!projectId) return NOT_FOUND;
   if (!Array.isArray(ids) || !ids.every((id) => typeof id === 'string' && id)) return NOT_FOUND;
@@ -670,6 +727,9 @@ export async function bulkUpdate(
     (r) => r.changes.length > 0 || r.next.sortOrder !== r.old.sortOrder,
   );
   if (changed.length === 0) return { ok: true, issues };
+  if (changed.some((r) => r.next.labels !== r.old.labels && r.next.labels.length > LABELS_MAX)) {
+    return fail(`At most ${LABELS_MAX} labels.`, 'addLabelIds');
+  }
 
   const statements: BatchItem<'pg'>[] = changed.map(({ old, set }) =>
     db
@@ -691,6 +751,27 @@ export async function bulkUpdate(
         ),
       );
     }
+  } else if (relabeled.length && check.resolved.labelDelta) {
+    const { remove } = check.resolved.labelDelta;
+    if (remove.size) {
+      statements.push(
+        db
+          .delete(issueLabels)
+          .where(
+            and(
+              inArray(issueLabels.ticketId, relabeled.map((r) => r.old.id)),
+              inArray(issueLabels.labelId, [...remove]),
+            ),
+          ),
+      );
+    }
+    const rows = relabeled.flatMap((r) => {
+      const had = new Set(r.old.labels.map((l) => l.id));
+      return r.next.labels
+        .filter((l) => !had.has(l.id))
+        .map((l) => ({ ticketId: r.old.id, labelId: l.id }));
+    });
+    if (rows.length) statements.push(db.insert(issueLabels).values(rows).onConflictDoNothing());
   }
 
   const events: IssueEventInput[] = changed
@@ -700,7 +781,7 @@ export async function bulkUpdate(
       ticketId: r.old.id,
       actorId: actor.userId,
       type: ISSUE_EVENT.updated,
-      data: { key: r.old.key, title: r.next.title, changes: r.changes },
+      data: { ...opts?.eventData, key: r.old.key, title: r.next.title, changes: r.changes },
     }));
   const prepared = events.length ? prepareIssueEvents(events) : null;
   if (prepared) statements.push(prepared.insert);
@@ -717,8 +798,9 @@ export async function updateIssueFields(
   projectId: string,
   id: string,
   patch: IssuePatch,
+  opts?: UpdateIssueOptions,
 ): Promise<IssueResult> {
-  const result = await bulkUpdate(actor, projectId, [id], patch);
+  const result = await bulkUpdate(actor, projectId, [id], patch, opts);
   if (!result.ok) return result;
   const [issue] = result.issues;
   return issue ? { ok: true, issue } : NOT_FOUND;
@@ -730,79 +812,126 @@ export async function updateIssueFields(
 
 type Lifecycle = 'archive' | 'unarchive' | 'softDelete' | 'restore';
 
+/**
+ * Archive / unarchive / trash / restore several issues of a project in one
+ * batch (all-or-nothing). Issues already in the target state are returned
+ * untouched and get no activity.
+ */
 async function changeLifecycle(
   actor: IssueActor,
   projectId: string,
-  id: string,
+  ids: string[],
   kind: Lifecycle,
-): Promise<IssueResult> {
-  if (!projectId || typeof id !== 'string' || !id) return NOT_FOUND;
-  const [old] = await queryIssues(and(eq(tickets.projectId, projectId), eq(tickets.id, id)), {
-    limit: 1,
-  });
-  if (!old) return NOT_FOUND;
+): Promise<IssuesResult> {
+  if (!projectId) return NOT_FOUND;
+  if (!Array.isArray(ids) || !ids.every((id) => typeof id === 'string' && id)) return NOT_FOUND;
+  const uniqueIds = [...new Set(ids)];
+  if (uniqueIds.length === 0) return { ok: true, issues: [] };
+  if (uniqueIds.length > BULK_MAX) return fail(`At most ${BULK_MAX} issues at a time.`);
+
+  const olds = await queryIssues(
+    and(eq(tickets.projectId, projectId), inArray(tickets.id, uniqueIds)),
+  );
+  if (olds.length !== uniqueIds.length) return NOT_FOUND;
 
   const now = new Date();
-  let set: Pick<TicketSet, 'archivedAt' | 'deletedAt'>;
+  const changes: { old: IssueRow; set: Pick<TicketSet, 'archivedAt' | 'deletedAt'> }[] = [];
   let type: string;
   switch (kind) {
     case 'archive':
-      if (old.deletedAt) return NOT_FOUND;
-      if (old.archivedAt) return { ok: true, issue: old };
-      set = { archivedAt: now };
+      if (olds.some((old) => old.deletedAt)) return NOT_FOUND;
       type = ISSUE_EVENT.archived;
+      for (const old of olds) if (!old.archivedAt) changes.push({ old, set: { archivedAt: now } });
       break;
     case 'unarchive':
-      if (!old.archivedAt) return { ok: true, issue: old };
-      set = { archivedAt: null };
       type = ISSUE_EVENT.unarchived;
+      for (const old of olds) if (old.archivedAt) changes.push({ old, set: { archivedAt: null } });
       break;
     case 'softDelete':
-      if (old.deletedAt) return { ok: true, issue: old };
-      set = { deletedAt: now };
       type = ISSUE_EVENT.deleted;
+      for (const old of olds) if (!old.deletedAt) changes.push({ old, set: { deletedAt: now } });
       break;
     case 'restore':
-      if (!old.deletedAt && !old.archivedAt) return { ok: true, issue: old };
-      set = { deletedAt: null, archivedAt: null };
       type = ISSUE_EVENT.restored;
+      for (const old of olds) {
+        if (old.deletedAt || old.archivedAt) {
+          changes.push({ old, set: { deletedAt: null, archivedAt: null } });
+        }
+      }
       break;
   }
+  if (changes.length === 0) return { ok: true, issues: olds };
 
-  const { stored, insert } = prepareIssueEvents([
-    {
+  const { stored, insert } = prepareIssueEvents(
+    changes.map(({ old }) => ({
       projectId,
       ticketId: old.id,
       actorId: actor.userId,
       type,
       data: { key: old.key, title: old.title },
-    },
-  ]);
+    })),
+  );
+  // Every change in one kind shares its `set`, so one UPDATE covers them all.
   await db.batch([
     db
       .update(tickets)
-      .set({ ...set, updatedAt: now })
-      .where(and(eq(tickets.id, old.id), eq(tickets.projectId, projectId))),
+      .set({ ...changes[0].set, updatedAt: now })
+      .where(
+        and(
+          eq(tickets.projectId, projectId),
+          inArray(tickets.id, changes.map(({ old }) => old.id)),
+        ),
+      ),
     insert,
   ]);
   publishIssueEvents(stored);
-  return { ok: true, issue: { ...old, ...set, updatedAt: now } as IssueRow };
+
+  const nextById = new Map(
+    changes.map(({ old, set }) => [old.id, { ...old, ...set, updatedAt: now } as IssueRow]),
+  );
+  return { ok: true, issues: olds.map((old) => nextById.get(old.id) ?? old) };
+}
+
+async function changeOne(
+  actor: IssueActor,
+  projectId: string,
+  id: string,
+  kind: Lifecycle,
+): Promise<IssueResult> {
+  if (typeof id !== 'string' || !id) return NOT_FOUND;
+  const result = await changeLifecycle(actor, projectId, [id], kind);
+  if (!result.ok) return result;
+  const [issue] = result.issues;
+  return issue ? { ok: true, issue } : NOT_FOUND;
 }
 
 /** Hide from lists; still reachable by key / archive page. */
 export const archive = (actor: IssueActor, projectId: string, id: string) =>
-  changeLifecycle(actor, projectId, id, 'archive');
+  changeOne(actor, projectId, id, 'archive');
 
 export const unarchive = (actor: IssueActor, projectId: string, id: string) =>
-  changeLifecycle(actor, projectId, id, 'unarchive');
+  changeOne(actor, projectId, id, 'unarchive');
 
 /** Move to trash (deletedAt). Restorable until purged. */
 export const softDelete = (actor: IssueActor, projectId: string, id: string) =>
-  changeLifecycle(actor, projectId, id, 'softDelete');
+  changeOne(actor, projectId, id, 'softDelete');
 
 /** Back to the active list: clears deletedAt AND archivedAt. */
 export const restore = (actor: IssueActor, projectId: string, id: string) =>
-  changeLifecycle(actor, projectId, id, 'restore');
+  changeOne(actor, projectId, id, 'restore');
+
+// Batched twins (≤ BULK_MAX ids, all-or-nothing, one write batch).
+export const archiveMany = (actor: IssueActor, projectId: string, ids: string[]) =>
+  changeLifecycle(actor, projectId, ids, 'archive');
+
+export const unarchiveMany = (actor: IssueActor, projectId: string, ids: string[]) =>
+  changeLifecycle(actor, projectId, ids, 'unarchive');
+
+export const softDeleteMany = (actor: IssueActor, projectId: string, ids: string[]) =>
+  changeLifecycle(actor, projectId, ids, 'softDelete');
+
+export const restoreMany = (actor: IssueActor, projectId: string, ids: string[]) =>
+  changeLifecycle(actor, projectId, ids, 'restore');
 
 /**
  * Permanent delete. Callers must require admin. The issue's own activity rows

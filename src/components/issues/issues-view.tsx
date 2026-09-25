@@ -30,10 +30,12 @@ import {
   type DisplayOptions,
   type ViewLayout,
 } from './display-options';
+import { IssueContextMenu } from './issue-context-menu';
 import { IssueFilters, IssueFiltersProvider, setSearchParams, useIssueFilters, useSetIssueFilters } from './issue-filters';
 import { NewIssueDialog } from './new-issue-dialog';
 import { BulkBar } from './slots/bulk-bar';
 import { IssueShortcuts } from './slots/issue-shortcuts';
+import { IssueSelectionProvider } from './selection';
 import { ListOverlay } from './slots/list-overlay';
 import { ToolbarExtra } from './slots/toolbar-extra';
 import { isPendingIssue, useIssueMutations } from './use-issue-mutations';
@@ -262,52 +264,63 @@ function IssuesViewBody({
 
   return (
     <IssuesViewContextProvider value={context}>
-      <div className="flex min-h-0 flex-1 flex-col">
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <ViewSwitcher views={ISSUE_VIEWS} current={view.id} onChange={switchView} />
-          {savedView && (
-            <span
-              className="inline-flex h-7 max-w-48 items-center gap-1.5 rounded-md bg-secondary px-2 text-xs font-medium"
-              title={dirty ? `${savedView.name} (unsaved changes)` : savedView.name}
-            >
-              <Layers2 className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
-              <span className="truncate">{savedView.name}</span>
-              {dirty && (
-                <span className="size-1.5 shrink-0 rounded-full bg-primary" aria-label="Unsaved changes" />
+      <IssueSelectionProvider issues={listed}>
+        <div className="group/issues flex min-h-0 flex-1 flex-col">
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <ViewSwitcher views={ISSUE_VIEWS} current={view.id} onChange={switchView} />
+            {savedView && (
+              <span
+                className="inline-flex h-7 max-w-48 items-center gap-1.5 rounded-md bg-secondary px-2 text-xs font-medium"
+                title={dirty ? `${savedView.name} (unsaved changes)` : savedView.name}
+              >
+                <Layers2 className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                <span className="truncate">{savedView.name}</span>
+                {dirty && (
+                  <span className="size-1.5 shrink-0 rounded-full bg-primary" aria-label="Unsaved changes" />
+                )}
+              </span>
+            )}
+            <IssueFilters />
+            <div className="ml-auto flex items-center gap-2">
+              <ToolbarExtra issues={listed} savedView={savedView ?? null} />
+              <DisplayMenu views={ISSUE_VIEWS} layout={view.id} onLayoutChange={switchView} />
+              {canWrite && (
+                <Button size="sm" onClick={() => openCreate()}>
+                  <Plus />
+                  New issue
+                </Button>
               )}
-            </span>
-          )}
-          <IssueFilters />
-          <div className="ml-auto flex items-center gap-2">
-            <ToolbarExtra issues={listed} savedView={savedView ?? null} />
-            <DisplayMenu views={ISSUE_VIEWS} layout={view.id} onLayoutChange={switchView} />
-            {canWrite && (
-              <Button size="sm" onClick={() => openCreate()}>
-                <Plus />
-                New issue
-              </Button>
+            </div>
+          </div>
+
+          <div className="flex min-h-0 flex-1">
+            {/* Selection ranges, ⌘A and the context menu are scoped to this wrapper. */}
+            <IssueContextMenu issues={listed} mutations={mutations}>
+              {/* Room for the floating bulk bar so it never hides the last rows. */}
+              <div
+                data-issue-view
+                className="flex min-w-0 flex-1 flex-col group-has-[[data-bulk-bar]]/issues:pb-16"
+              >
+                {body}
+              </div>
+            </IssueContextMenu>
+            {selected && (
+              <IssueDetailPane issue={selected} mutations={mutations} onClose={closeIssue} />
             )}
           </div>
+
+          <IssueShortcuts issues={listed} mutations={mutations} selectedIssue={selected} />
+          <ListOverlay issues={listed} onOpen={selectIssue} />
+          <BulkBar issues={listed} mutations={mutations} />
+
+          <NewIssueDialog
+            open={create.open}
+            defaults={create.defaults}
+            onOpenChange={(open) => setCreate((c) => ({ ...c, open }))}
+            onCreate={mutations.create}
+          />
         </div>
-
-        <div className="flex min-h-0 flex-1">
-          <div className="flex min-w-0 flex-1 flex-col">{body}</div>
-          {selected && (
-            <IssueDetailPane issue={selected} mutations={mutations} onClose={closeIssue} />
-          )}
-        </div>
-
-        <IssueShortcuts issues={listed} mutations={mutations} selectedIssue={selected} />
-        <ListOverlay issues={listed} onOpen={selectIssue} />
-        <BulkBar issues={listed} mutations={mutations} />
-
-        <NewIssueDialog
-          open={create.open}
-          defaults={create.defaults}
-          onOpenChange={(open) => setCreate((c) => ({ ...c, open }))}
-          onCreate={mutations.create}
-        />
-      </div>
+      </IssueSelectionProvider>
     </IssuesViewContextProvider>
   );
 }

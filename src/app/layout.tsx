@@ -1,8 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { OfflineBanner } from "@/components/pwa/offline-banner";
 import { RegisterServiceWorker } from "@/components/pwa/register-sw";
+import { DENSITY_BOOT_SCRIPT, DENSITY_CSS } from "@/lib/density";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -58,11 +60,20 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-      // next-themes applies the .dark class to <html>; SSR must not strip it.
+      // next-themes (.dark) and the density script (data-density) touch <html>
+      // before hydration; SSR must not strip them.
       suppressHydrationWarning
     >
+      <head>
+        {/* Density runs before first paint on every page. The root layout never
+            re-renders on soft navigation, so the script is only ever SSR'd. */}
+        <script dangerouslySetInnerHTML={{ __html: DENSITY_BOOT_SCRIPT }} />
+        <style dangerouslySetInnerHTML={{ __html: DENSITY_CSS }} />
+      </head>
       <body className="min-h-full flex flex-col">
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          <TooltipProvider>{children}</TooltipProvider>
+        </ThemeProvider>
         <RegisterServiceWorker />
         <OfflineBanner />
       </body>

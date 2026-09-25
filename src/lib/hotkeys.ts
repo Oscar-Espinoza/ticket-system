@@ -5,6 +5,11 @@ export interface Hotkey {
   key: string;
   /** True for ⌘K / Ctrl+K (matches either meta or ctrl). */
   mod?: boolean;
+  /**
+   * Requires Shift (⇧D, ⌘⇧,). Hotkeys without it ignore Shift, so `?` (typed
+   * with Shift) and letters keep matching — guard with `when` if Shift must be up.
+   */
+  shift?: boolean;
   /** Human text for the `?` overlay and registry consumers. */
   description: string;
   /** Overlay grouping label (default "Global"). */
@@ -67,15 +72,24 @@ export function registerHotkeys(hotkeys: Hotkey[]): () => void {
   };
 }
 
-/** Display form: "⌘K" on Mac, "Ctrl+K" elsewhere. */
-export function formatHotkey(hotkey: { mod?: boolean; key: string }): string {
+/** Display form: "⌘⇧K" on Mac, "Ctrl+Shift+K" elsewhere. */
+export function formatHotkey(hotkey: {
+  mod?: boolean;
+  shift?: boolean;
+  key: string;
+}): string {
   const isMac =
     typeof navigator !== 'undefined' &&
     /Mac|iPhone|iPad/.test(navigator.userAgent);
   const mod = hotkey.mod ? (isMac ? '⌘' : 'Ctrl+') : '';
+  const shift = hotkey.shift ? (isMac ? '⇧' : 'Shift+') : '';
   const key =
-    hotkey.key.length === 1 ? hotkey.key.toUpperCase() : hotkey.key;
-  return `${mod}${key}`;
+    hotkey.key === ' ' || hotkey.key === 'Space'
+      ? 'Space'
+      : hotkey.key.length === 1
+        ? hotkey.key.toUpperCase()
+        : hotkey.key;
+  return `${mod}${shift}${key}`;
 }
 
 function isEditable(target: EventTarget | null): boolean {
@@ -96,9 +110,38 @@ function hasOpenLayer(): boolean {
   );
 }
 
+const CODE_KEYS: Record<string, string> = {
+  Comma: ',',
+  Period: '.',
+  Slash: '/',
+  Semicolon: ';',
+  Quote: "'",
+  BracketLeft: '[',
+  BracketRight: ']',
+  Backslash: '\\',
+  Minus: '-',
+  Equal: '=',
+  Backquote: '`',
+};
+
+/** The unshifted character of the physical key (KeyD → d, Comma → ,). */
+function codeKey(code: string): string | undefined {
+  if (/^Key[A-Z]$/.test(code)) return code.slice(3).toLowerCase();
+  if (/^Digit\d$/.test(code)) return code.slice(5);
+  return CODE_KEYS[code];
+}
+
 function matches(hotkey: Hotkey, event: KeyboardEvent): boolean {
   const norm = (s: string) => (s.length === 1 ? s.toLowerCase() : s);
-  if (norm(hotkey.key) !== norm(event.key)) return false;
+  const key = norm(hotkey.key);
+  if (hotkey.shift) {
+    if (!event.shiftKey) return false;
+    // Shift changes event.key for punctuation (⇧, types "<" on US layouts), so
+    // fall back to the physical key.
+    if (key !== norm(event.key) && key !== codeKey(event.code)) return false;
+  } else if (key !== norm(event.key)) {
+    return false;
+  }
   const mod = event.metaKey || event.ctrlKey;
   if (!!hotkey.mod !== mod) return false;
   if (event.altKey) return false;

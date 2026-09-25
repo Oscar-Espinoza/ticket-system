@@ -51,7 +51,7 @@ export default async function IntegrationsSettingsPage({
 
   const [[project], hooks] = await Promise.all([
     db
-      .select({ slackWebhookUrl: projects.slackWebhookUrl })
+      .select({ slackWebhookUrl: projects.slackWebhookUrl, slackEvents: projects.slackEvents })
       .from(projects)
       .where(eq(projects.id, id))
       .limit(1),
@@ -69,7 +69,7 @@ export default async function IntegrationsSettingsPage({
       .where(eq(webhooks.projectId, id))
       .orderBy(asc(webhooks.createdAt)),
   ]);
-  const slack = parseSlackSetting(project?.slackWebhookUrl);
+  const slack = parseSlackSetting(project?.slackWebhookUrl, project?.slackEvents);
 
   return (
     <>

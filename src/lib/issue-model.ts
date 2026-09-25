@@ -124,7 +124,8 @@ export interface IssueRow {
 
 /**
  * A change to one or more issues. Absent keys are untouched; `null` clears.
- * `labelIds` is the full replacement set.
+ * `labelIds` is the full replacement set; `addLabelIds` / `removeLabelIds` are
+ * per-issue deltas (keep the rest) and can't be combined with `labelIds`.
  */
 export interface IssuePatch {
   title?: string;
@@ -140,12 +141,15 @@ export interface IssuePatch {
   milestoneId?: string | null;
   sortOrder?: number;
   labelIds?: string[];
+  addLabelIds?: string[];
+  removeLabelIds?: string[];
 }
 
 export type IssueField = keyof IssuePatch;
 
 /** Everything an issue can be created with; only `title` is required. */
-export interface CreateIssueInput extends Omit<IssuePatch, 'title'> {
+export interface CreateIssueInput
+  extends Omit<IssuePatch, 'title' | 'addLabelIds' | 'removeLabelIds'> {
   title: string;
 }
 
@@ -163,6 +167,8 @@ export const ISSUE_PATCH_FIELDS: IssueField[] = [
   'milestoneId',
   'sortOrder',
   'labelIds',
+  'addLabelIds',
+  'removeLabelIds',
 ];
 
 // ---------------------------------------------------------------------------

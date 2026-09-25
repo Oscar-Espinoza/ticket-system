@@ -10,7 +10,7 @@ import { projects } from '@/db/schema';
 import { getSession } from '@/lib/session';
 import { getMemberProject } from '@/lib/project-access';
 import { roleAllows } from '@/lib/roles';
-import { deriveStartWeekday, getProjectCycles } from '@/lib/cycles';
+import { getProjectCycles } from '@/lib/cycles';
 import { PlanningSettingsForm } from '@/components/cycles/planning-settings-form';
 
 export const metadata: Metadata = { title: 'Cycles & triage' };
@@ -30,7 +30,9 @@ export default async function PlanningSettingsPage({
       .select({
         cyclesEnabled: projects.cyclesEnabled,
         durationWeeks: projects.cycleDurationWeeks,
+        startWeekday: projects.cycleStartWeekday,
         autoCreate: projects.cycleAutoCreate,
+        autoRollover: projects.cycleAutoRollover,
         triageEnabled: projects.triageEnabled,
       })
       .from(projects)
@@ -48,7 +50,7 @@ export default async function PlanningSettingsPage({
       </p>
       <PlanningSettingsForm
         projectId={id}
-        initial={{ ...project, startWeekday: deriveStartWeekday(cycleRows) }}
+        initial={project}
         canEdit={roleAllows(membership.role, 'admin')}
         hasCycles={cycleRows.length > 0}
       />

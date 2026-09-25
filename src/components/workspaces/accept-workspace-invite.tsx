@@ -13,7 +13,7 @@ import {
 import { Button } from '@/components/ui/button';
 
 const ERROR_MESSAGE: Record<NonNullable<AcceptWorkspaceInviteState['error']>, string> = {
-  invalid: 'This invitation is invalid or has expired.',
+  invalid: 'This invitation is invalid, has expired or was already used.',
   'wrong-account': 'This invitation was sent to a different email address.',
   'Not authenticated': 'Your session expired. Sign in again to join.',
 };

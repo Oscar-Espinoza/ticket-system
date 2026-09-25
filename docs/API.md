@@ -167,7 +167,9 @@ curl -H "Authorization: Bearer $TICKETS_KEY" "$TICKETS_URL/issues/APP-42"
 ### `PATCH /issues/:key`
 
 Requires write access. Send only the fields to change; `null` clears a field;
-`labelIds` replaces the whole label set. Trashed issues can't be edited (404).
+`labelIds` replaces the whole label set, while `addLabelIds` / `removeLabelIds`
+add or remove labels and keep the rest (use one style or the other, not both).
+Trashed issues can't be edited (404).
 
 ```bash
 curl -X PATCH -H "Authorization: Bearer $TICKETS_KEY" -H "Content-Type: application/json" \

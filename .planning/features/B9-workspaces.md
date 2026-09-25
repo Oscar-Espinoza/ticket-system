@@ -43,3 +43,5 @@ Slug collision → field error. Deleting a workspace un-groups its projects
 (`set null`) and cascades initiatives. Owner can't leave. Moving a project from
 another workspace only needs project admin — the project admin decides where
 their project lives.
+
+> **Superseded (Wave C):** see `C3-integration-fixes.md` — workspace invites now use the `workspace_invitation` table (listable, revocable, single use).

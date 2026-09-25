@@ -4,6 +4,12 @@ import { useSortable } from '@dnd-kit/react/sortable';
 
 import { useDisplayOptions } from '@/components/issues/display-options';
 import { DueDateChip, EstimateChip, LabelChips } from '@/components/issues/issue-properties';
+import {
+  handleSelectionClick,
+  preventShiftSelect,
+  useIsSelected,
+  useIssueSelection,
+} from '@/components/issues/selection';
 import { isPendingIssue } from '@/components/issues/use-issue-mutations';
 import { useProjectData, useProjectPermission } from '@/components/project/project-data';
 import { Avatar, PriorityIcon, StateIcon } from '@/components/ui-icons';
@@ -91,6 +97,8 @@ export function BoardCard({
   onSelect?: () => void;
 }) {
   const canWrite = useProjectPermission('write');
+  const selection = useIssueSelection();
+  const selected = useIsSelected(issue.id);
   const { ref, isDragSource } = useSortable({
     id,
     index,
@@ -107,7 +115,13 @@ export function BoardCard({
       data-board-card={issue.id}
       aria-label={`${issue.key} ${issue.title}, ${issue.state.name}.${canWrite ? ' Press Space to move.' : ''}`}
       aria-current={active ? 'true' : undefined}
-      onClick={onSelect}
+      aria-selected={selection.enabled ? selected : undefined}
+      onMouseDown={preventShiftSelect}
+      onClick={(event) => {
+        // ⌘/Ctrl+click toggles, Shift+click selects the range (board order: column by column).
+        if (!isPendingIssue(issue) && handleSelectionClick(selection, event, issue.id)) return;
+        onSelect?.();
+      }}
       onKeyDown={(event) => {
         if (event.key === 'Enter' && onSelect && event.target === event.currentTarget) {
           event.preventDefault();
@@ -118,6 +132,7 @@ export function BoardCard({
         'rounded-md outline-none transition-shadow',
         'hover:ring-1 hover:ring-ring/40 focus-visible:ring-2 focus-visible:ring-ring',
         active && 'ring-2 ring-ring',
+        selected && 'ring-2 ring-primary/70 [&>div]:bg-[color-mix(in_oklch,var(--card),var(--primary)_6%)]',
         onSelect && 'cursor-pointer',
         isDragSource && 'opacity-40',
       )}

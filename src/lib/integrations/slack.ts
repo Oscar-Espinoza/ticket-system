@@ -1,7 +1,8 @@
 // Slack dispatcher — called by emitIssueEvent after the response. Posts the
 // project's selected events (see SLACK_EVENTS) to its incoming webhook as ONE
 // Block Kit message per project per dispatch, so a bulk edit is one message,
-// not fifty. Never throws: Slack being down must not surface anywhere.
+// not fifty. Imports (`data.bulk`) and project-level events (no ticket) are
+// never posted. Never throws: Slack being down must not surface anywhere.
 
 import { and, inArray, isNotNull } from 'drizzle-orm';
 
@@ -51,6 +52,7 @@ export async function sendSlackMessage(url: string, message: SlackMessage): Prom
 }
 
 function slackKind(event: StoredIssueEvent): SlackEventKind | null {
+  if (!event.ticketId || event.data.bulk === true) return null;
   switch (event.type) {
     case 'issue.created':
       return 'created';
@@ -129,26 +131,36 @@ function buildMessage(
   return { text: items.length > 1 ? `${fallback} (+${items.length - 1})` : fallback, blocks };
 }
 
-async function run(events: StoredIssueEvent[]) {
-  const projectIds = [...new Set(events.map((e) => e.projectId))];
+async function run(all: StoredIssueEvent[]) {
+  // Classify first: most batches (edits, project-level events) post nothing,
+  // and then there is no need to look up the projects' Slack settings at all.
+  const kinds = all.flatMap((event) => {
+    const kind = slackKind(event);
+    return kind ? [{ event, kind }] : [];
+  });
+  if (kinds.length === 0) return;
+  const projectIds = [...new Set(kinds.map(({ event }) => event.projectId))];
   const rows = await db
-    .select({ id: projects.id, name: projects.name, slackWebhookUrl: projects.slackWebhookUrl })
+    .select({
+      id: projects.id,
+      name: projects.name,
+      slackWebhookUrl: projects.slackWebhookUrl,
+      slackEvents: projects.slackEvents,
+    })
     .from(projects)
     .where(and(inArray(projects.id, projectIds), isNotNull(projects.slackWebhookUrl)));
   if (rows.length === 0) return;
 
   const targets = new Map(
     rows.flatMap((row) => {
-      const setting = parseSlackSetting(row.slackWebhookUrl);
+      const setting = parseSlackSetting(row.slackWebhookUrl, row.slackEvents);
       return setting ? [[row.id, { name: row.name, ...setting }] as const] : [];
     }),
   );
 
-  const selected = events.flatMap((event) => {
-    const target = targets.get(event.projectId);
-    const kind = slackKind(event);
-    return target && kind && target.events.includes(kind) ? [{ event, kind }] : [];
-  });
+  const selected = kinds.filter(({ event, kind }) =>
+    targets.get(event.projectId)?.events.includes(kind),
+  );
   if (selected.length === 0) return;
 
   const ctx = await loadEventContext(selected.map((s) => s.event));

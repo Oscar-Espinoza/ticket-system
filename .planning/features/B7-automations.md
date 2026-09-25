@@ -16,9 +16,10 @@
    canceled state (not "Duplicate"), then an `issue.auto_closed` event with
    `summary: "auto-closed after N months of inactivity"`.
 4. **Trash purge**: `deleted_at` older than 30 days → `purge(SYSTEM_ACTOR, …)`.
-5. **Cycles** (when enabled): auto-create upcoming cycles (if auto-create is on),
-   complete ended cycles (`completedAt = endsAt`) and roll unfinished issues
-   into the next cycle when one exists.
+5. **Cycles** (when enabled): auto-create upcoming cycles (if auto-create is on,
+   fresh cadences aligned to `project.cycle_start_weekday`), complete ended
+   cycles (`completedAt = endsAt`) and — when `project.cycle_auto_rollover` is
+   on (default) — roll unfinished issues into the next cycle when one exists.
 Each step is capped per run (100 archives / purges, 250 closes) and wrapped in
 its own try/catch; leftovers are handled on the next day's run.
 

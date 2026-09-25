@@ -54,9 +54,9 @@ export function IssueBin({ mode, issues: serverIssues }: { mode: Mode; issues: I
     : visible;
 
   const restore = (issue: IssueRow) =>
-    mutations.restore(issue, () =>
-      toast.success(mode === 'archive' ? `Unarchived ${issue.key}` : `Restored ${issue.key}`),
-    );
+    mode === 'archive'
+      ? mutations.unarchive(issue, () => toast.success(`Unarchived ${issue.key}`))
+      : mutations.restore(issue, () => toast.success(`Restored ${issue.key}`));
 
   const purge = (issue: IssueRow) => {
     setConfirm(null);
