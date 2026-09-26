@@ -9,6 +9,7 @@ import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 import { db } from '@/lib/db';
 import {
   cycles,
+  dashboards,
   epics,
   favorites,
   initiatives,
@@ -24,6 +25,7 @@ import type { FavoriteTarget } from '@/lib/favorite-targets';
 import { issuePath } from '@/lib/issue-links';
 import type { StateType } from '@/lib/issue-model';
 import { viewVisibleTo } from '@/lib/views';
+import { dashboardVisibleTo } from '@/lib/dashboards';
 
 export interface SidebarFavorite {
   /** favorite row id */
@@ -60,7 +62,7 @@ export async function getSidebarFavorites(userId: string): Promise<SidebarFavori
   const member = (projectId: AnyPgColumn) =>
     and(eq(projectMembers.projectId, projectId), eq(projectMembers.userId, userId));
 
-  const [projectRows, issueRows, viewRows, epicRows, cycleRows, initiativeRows] = await db.batch([
+  const [projectRows, issueRows, viewRows, epicRows, cycleRows, initiativeRows, dashboardRows] = await db.batch([
     db
       .select({ id: projects.id, name: projects.name, color: projects.color })
       .from(projects)
@@ -113,6 +115,10 @@ export async function getSidebarFavorites(userId: string): Promise<SidebarFavori
         ),
       )
       .where(inArray(initiatives.id, idsOf('initiative'))),
+    db
+      .select({ id: dashboards.id, name: dashboards.name })
+      .from(dashboards)
+      .where(and(inArray(dashboards.id, idsOf('dashboard')), dashboardVisibleTo(userId))),
   ]);
 
   const resolved = new Map<string, Omit<SidebarFavorite, 'id'>>();
@@ -154,6 +160,9 @@ export async function getSidebarFavorites(userId: string): Promise<SidebarFavori
       label: i.name,
       href: `/dashboard/workspaces/${i.slug}/initiatives/${i.id}`,
     });
+  }
+  for (const d of dashboardRows) {
+    put('dashboard', d.id, { label: d.name, href: `/dashboard/dashboards/${d.id}` });
   }
 
   return rows.flatMap((row) => {

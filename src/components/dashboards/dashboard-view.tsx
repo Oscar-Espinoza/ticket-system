@@ -4,6 +4,7 @@
 // widgets. The owner edits in place — every change is applied optimistically
 // and saved with updateDashboard (reverted with a toast if it fails).
 
+import { FavoriteButton } from '@/components/navigation/favorite-button';
 import { useEffect, useEffectEvent, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -210,6 +211,7 @@ export function DashboardView({
           <h1 className="flex items-center gap-2 truncate text-xl font-medium">
             <LayoutDashboard className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
             <span className="truncate">{dashboard.name}</span>
+            <FavoriteButton targetType="dashboard" targetId={dashboard.id} />
           </h1>
           <p className="truncate text-xs text-muted-foreground">
             {dashboard.projectName ?? 'All your projects'}

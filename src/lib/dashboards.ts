@@ -36,7 +36,7 @@ export interface DashboardSummary {
 }
 
 /** SQL: the viewer may see this dashboard row. */
-function dashboardVisibleTo(userId: string): SQL {
+export function dashboardVisibleTo(userId: string): SQL {
   const member = alias(projectMembers, 'dashboard_member');
   const isMember = exists(
     db

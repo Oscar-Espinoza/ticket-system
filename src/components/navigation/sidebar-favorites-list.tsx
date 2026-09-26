@@ -4,7 +4,7 @@
 // revalidates the dashboard layout, which re-renders this list from the server.
 
 import { useOptimistic, useTransition } from 'react';
-import { Box, FolderKanban, Layers, RefreshCcw, Target, X } from 'lucide-react';
+import { Box, FolderKanban, Layers, LayoutDashboard, RefreshCcw, Target, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { toggleFavorite } from '@/app/actions/favorites';
@@ -20,6 +20,7 @@ const TYPE_ICON: Record<FavoriteTarget, React.ReactNode> = {
   epic: <Box />,
   cycle: <RefreshCcw />,
   initiative: <Target />,
+  dashboard: <LayoutDashboard />,
 };
 
 function icon(item: SidebarFavorite) {

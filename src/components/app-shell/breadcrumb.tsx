@@ -33,6 +33,9 @@ const DETAIL_NOUN: Record<string, string> = {
   epics: 'Epic',
   views: 'View',
   initiatives: 'Initiative',
+  docs: 'Doc',
+  customers: 'Customer',
+  dashboards: 'Dashboard',
 };
 
 // A malformed escape (e.g. a hand-typed "%") must not crash the whole shell.
@@ -86,6 +89,8 @@ export function Breadcrumb({ projects }: { projects: BreadcrumbProject[] }) {
     if (rest[0] === 'initiatives') {
       crumbs.push({ label: 'Initiatives', href: `/dashboard/workspaces/${id}/initiatives` });
       if (rest[1]) crumbs.push({ label: DETAIL_NOUN.initiatives });
+    } else if (rest[0] === 'security' || rest[0] === 'audit') {
+      crumbs.push({ label: rest[0] === 'security' ? 'Security' : 'Audit log' });
     }
   } else if (area === 'people') {
     crumbs.push({ label: 'People' });

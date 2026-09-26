@@ -6,6 +6,7 @@ export const FAVORITE_TARGETS = [
   'epic',
   'cycle',
   'initiative',
+  'dashboard',
 ] as const;
 export type FavoriteTarget = (typeof FAVORITE_TARGETS)[number];
 

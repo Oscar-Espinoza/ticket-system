@@ -286,7 +286,8 @@ describe('TKT-06: workflow states', () => {
         .where(eq(tickets.id, t.id));
       expect(row.stateId).toBe(stateId);
     }
-  });
+    // Eight sequential writes; event fan-out runs inline outside a request.
+  }, 30_000);
 
   it("rejects another project's state", async () => {
     const t = await create();

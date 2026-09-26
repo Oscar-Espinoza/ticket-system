@@ -254,7 +254,9 @@ export class CollabProvider {
 
   private async loop() {
     while (!this.stopped) {
-      if (document.visibilityState === 'hidden') {
+      // Hidden tabs pause polling, but only after the first sync, so a doc
+      // opened in a background tab still loads.
+      if (document.visibilityState === 'hidden' && this.snapshot.synced) {
         await this.waitVisible();
         continue;
       }

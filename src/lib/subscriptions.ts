@@ -12,10 +12,17 @@ export async function ensureSubscribed(ticketId: string, userIds: (string | null
   const ids = [...new Set(userIds.filter((id): id is string => !!id))];
   if (ids.length === 0) return;
   const now = new Date();
-  await db
-    .insert(issueSubscribers)
-    .values(ids.map((userId) => ({ ticketId, userId, createdAt: now })))
-    .onConflictDoNothing();
+  try {
+    await db
+      .insert(issueSubscribers)
+      .values(ids.map((userId) => ({ ticketId, userId, createdAt: now })))
+      .onConflictDoNothing();
+  } catch (err) {
+    // The issue (or a user) was purged between the event and this deferred
+    // fan-out: nothing left to subscribe to.
+    const code = (err as { code?: string })?.code ?? (err as { cause?: { code?: string } })?.cause?.code;
+    if (code !== '23503') throw err;
+  }
 }
 
 export async function unsubscribe(ticketId: string, userId: string) {

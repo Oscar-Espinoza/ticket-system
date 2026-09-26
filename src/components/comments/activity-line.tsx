@@ -130,6 +130,14 @@ function describeChange(change: IssueChange, actorId: string | null, data: Proje
       ) : (
         'removed the due date'
       );
+    case 'startDate':
+      return isDateString(change.to) ? (
+        <>
+          set the start date to <V>{formatDueDate(change.to)}</V>
+        </>
+      ) : (
+        'removed the start date'
+      );
     case 'parentId':
       return to ? (
         <>

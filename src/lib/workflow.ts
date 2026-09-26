@@ -69,7 +69,15 @@ export function stateTransitionTimestamps(
   current: StateTimestamps,
   now: Date = new Date(),
 ): StateTimestamps {
-  if (from === to) return current;
+  // Copy only the timestamps: callers pass whole issue rows as `current`, and
+  // returning it would spread every old field (incl. stateId) over the update.
+  if (from === to) {
+    return {
+      startedAt: current.startedAt,
+      completedAt: current.completedAt,
+      canceledAt: current.canceledAt,
+    };
+  }
   switch (to) {
     case 'started':
       return { startedAt: current.startedAt ?? now, completedAt: null, canceledAt: null };

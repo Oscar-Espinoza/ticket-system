@@ -31,6 +31,7 @@ type ProjectSettings = {
   cycleDurationWeeks: number;
   cycleStartWeekday: number;
   cycleAutoRollover: boolean;
+  cycleCooldownWeeks: number;
 };
 
 /** Claim today's run: the row comes back only for the one request that wins. */
@@ -52,6 +53,7 @@ async function claimRun(projectId: string): Promise<ProjectSettings | null> {
       cycleDurationWeeks: projects.cycleDurationWeeks,
       cycleStartWeekday: projects.cycleStartWeekday,
       cycleAutoRollover: projects.cycleAutoRollover,
+      cycleCooldownWeeks: projects.cycleCooldownWeeks,
     });
   return row ?? null;
 }
@@ -163,6 +165,7 @@ async function cycleUpkeep(projectId: string, settings: ProjectSettings) {
       settings.cycleDurationWeeks,
       now,
       settings.cycleStartWeekday,
+      settings.cycleCooldownWeeks,
     );
   }
   await completeEndedCycles(SYSTEM_ACTOR, projectId, now, {
