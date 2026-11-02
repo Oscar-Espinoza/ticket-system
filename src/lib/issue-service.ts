@@ -704,7 +704,46 @@ export interface CreateIssueOptions {
    * it so a CSV import doesn't flood them.
    */
   source?: 'import';
+  /**
+   * Client-chosen issue id (a UUID) that makes the create idempotent: if an
+   * issue with this id already exists in the project and was created by the
+   * same user, it is returned instead of creating a second one. The offline
+   * outbox sends one per create so a replay after a lost response can't
+   * duplicate the issue.
+   */
+  id?: string;
 }
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export const isIssueUuid = (value: unknown): value is string =>
+  typeof value === 'string' && UUID_RE.test(value);
+
+/** The issue an earlier attempt with the same client id created, or why it can't be reused. */
+async function existingCreate(
+  actor: IssueActor,
+  projectId: string,
+  id: string,
+): Promise<IssueResult | null> {
+  const [row] = await db
+    .select({ projectId: tickets.projectId, creatorId: tickets.creatorId })
+    .from(tickets)
+    .where(eq(tickets.id, id))
+    .limit(1);
+  if (!row) return null;
+  if (row.projectId !== projectId || row.creatorId !== actor.userId) {
+    return fail('This issue id is already in use.');
+  }
+  const [issue] = await queryIssues(and(eq(tickets.id, id), eq(tickets.projectId, projectId)));
+  return issue ? { ok: true, issue } : fail('This issue id is already in use.');
+}
+
+const isUniqueViolation = (err: unknown): boolean => {
+  for (let e: unknown = err; e && typeof e === 'object'; e = (e as { cause?: unknown }).cause) {
+    if ((e as { code?: unknown }).code === '23505') return true;
+  }
+  return false;
+};
 
 export async function createIssue(
   actor: IssueActor,
@@ -719,6 +758,12 @@ export async function createIssue(
   if (patch.title === undefined) return fail('Title is required.', 'title');
   if (patch.addLabelIds || patch.removeLabelIds) {
     return fail('Use labelIds when creating an issue.', 'labelIds');
+  }
+  if (opts?.id !== undefined && !isIssueUuid(opts.id)) return fail('Invalid issue id.');
+  const requestedId = opts?.id?.toLowerCase();
+  if (requestedId) {
+    const replay = await existingCreate(actor, projectId, requestedId);
+    if (replay) return replay;
   }
 
   const ctx = await loadContext(projectId, actor.userId, patch, []);
@@ -737,7 +782,7 @@ export async function createIssue(
     { startedAt: null, completedAt: null, canceledAt: null },
     now,
   );
-  const id = crypto.randomUUID();
+  const id = requestedId ?? crypto.randomUUID();
   const labelList = resolved.labels ?? [];
   const slaDueAt = slaDeadline(ctx.project.slaPolicy, patch.priority ?? 'none', now);
   const epicId = resolved.milestoneEpicId ?? patch.epicId ?? null;
@@ -777,13 +822,24 @@ export async function createIssue(
     updatedAt: now,
   });
 
-  const [[bumped]] = labelList.length
-    ? await db.batch([
-        bump,
-        insert,
-        db.insert(issueLabels).values(labelList.map((l) => ({ ticketId: id, labelId: l.id }))),
-      ])
-    : await db.batch([bump, insert]);
+  let bumped: { number: number } | undefined;
+  try {
+    [[bumped]] = labelList.length
+      ? await db.batch([
+          bump,
+          insert,
+          db.insert(issueLabels).values(labelList.map((l) => ({ ticketId: id, labelId: l.id }))),
+        ])
+      : await db.batch([bump, insert]);
+  } catch (err) {
+    // A concurrent attempt with the same client id won the insert (the batch
+    // rolled back, counter included): answer with that issue.
+    if (requestedId && isUniqueViolation(err)) {
+      const replay = await existingCreate(actor, projectId, requestedId);
+      if (replay) return replay;
+    }
+    throw err;
+  }
   if (!bumped) return fail('Project not found.');
 
   const issue: IssueRow = {

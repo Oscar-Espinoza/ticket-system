@@ -19,7 +19,11 @@ export type BulkTicketActionResult =
   | { ok: true; tickets: IssueRow[] }
   | { ok: false; error: string; field?: IssueField };
 
-export type CreateTicketInput = issues.CreateIssueInput & { projectId: string };
+export type CreateTicketInput = issues.CreateIssueInput & {
+  projectId: string;
+  /** Idempotency key: a client-chosen UUID for the new issue (see CreateIssueOptions.id). */
+  clientId?: string;
+};
 
 function revalidateProject(projectId: string) {
   // 'layout': every page under the project (issues, views, cycles, …).
@@ -36,8 +40,13 @@ function toResult(result: issues.IssueResult | issues.PurgeResult): TicketAction
 export async function createTicket(input: CreateTicketInput): Promise<TicketActionResult> {
   const authz = await authorizeProjectAction(input?.projectId, 'write');
   if (!authz.ok) return authz;
-  const { projectId, ...fields } = input;
-  const result = await issues.createIssue({ userId: authz.userId }, projectId, fields);
+  const { projectId, clientId, ...fields } = input;
+  const result = await issues.createIssue(
+    { userId: authz.userId },
+    projectId,
+    fields,
+    clientId === undefined ? undefined : { id: clientId },
+  );
   if (result.ok) revalidateProject(projectId);
   return toResult(result);
 }

@@ -5,6 +5,11 @@
 // action, later, so authorization/validation run as usual and the last write
 // wins. Ops the server rejects are dropped with a toast.
 //
+// Every call goes through runOutboxCall with the queue owner's id: the server
+// refuses ("suspends") a call whose session belongs to someone else, and the op
+// stays queued for its owner. Creates carry a client-chosen issue id, so a
+// replay after a lost response returns the issue the first attempt created.
+//
 // Shared by every tab: one IndexedDB store, a BroadcastChannel to tell other
 // tabs to re-read it, and a Web Lock so only one tab drains at a time. If
 // IndexedDB is unavailable (private mode, blocked, quota) the first failure
@@ -15,7 +20,9 @@ import { toast } from 'sonner';
 
 import type { IssuePatch, IssueRow } from '@/lib/issue-model';
 
-import { runOutboxAction, type OutboxActionName, type OutboxArgs, type OutboxResult } from './actions';
+import { runOutboxCall, type OutboxSuspended } from '@/app/actions/sync';
+
+import type { OutboxActionName, OutboxArgs, OutboxResult } from './actions';
 import { broadcastOutboxChanged, broadcastProjectChanged, onOutboxChanged } from './broadcast';
 
 /** How a queued op shows up on the issue list until it has synced. */
@@ -181,13 +188,26 @@ let started = false;
 let flushing = false;
 let retryTimer: ReturnType<typeof setTimeout> | undefined;
 let retryDelay = RETRY_MIN_MS;
+/** The server said this tab's session isn't the queue owner's; wait for a wake event. */
+let suspended = false;
+let suspendWarnedAt = 0;
+
+function warnSuspended(message: string) {
+  // Every focus retries once; don't repeat the same warning each time.
+  if (Date.now() - suspendWarnedAt < 60_000) return;
+  suspendWarnedAt = Date.now();
+  toast.warning(message);
+}
 
 function start() {
   if (started || typeof window === 'undefined') return;
   started = true;
   loaded = reload();
   onOutboxChanged(() => void reload());
-  const wake = () => void flush();
+  const wake = () => {
+    suspended = false;
+    void flush();
+  };
   window.addEventListener('online', wake);
   window.addEventListener('focus', wake);
   document.addEventListener('visibilitychange', () => {
@@ -201,6 +221,7 @@ export function setSyncUser(userId: string) {
   start();
   if (currentUser === userId) return;
   currentUser = userId;
+  suspended = false;
   void loaded.then(() => flush());
 }
 
@@ -212,6 +233,20 @@ function isNetworkError(error: unknown) {
 function friendlyError(error: string) {
   return error === 'Forbidden' ? "you don't have permission to do that in this project" : error;
 }
+
+const isSuspended = (result: object): result is OutboxSuspended =>
+  'suspended' in result && (result as OutboxSuspended).suspended === true;
+
+/** Give a create its idempotency key before the first attempt, so every retry reuses it. */
+function withClientId<N extends OutboxActionName>(call: OutboxCall<N>): OutboxCall<N> {
+  if (call.action !== 'createTicket') return call;
+  const args = call.args as OutboxArgs<'createTicket'>;
+  if (args.clientId) return call;
+  return { ...call, args: { ...args, clientId: crypto.randomUUID() } as OutboxArgs<N> };
+}
+
+const send = <N extends OutboxActionName>(call: Pick<OutboxCall<N>, 'userId' | 'action' | 'args'>) =>
+  runOutboxCall({ queueOwner: call.userId, action: call.action, args: call.args });
 
 async function enqueue(call: OutboxCall): Promise<Queued> {
   await addItem({ ...call, attempts: 0, createdAt: Date.now() });
@@ -225,12 +260,21 @@ async function enqueue(call: OutboxCall): Promise<Queued> {
  * nothing is waiting, otherwise (or when the request fails on the network)
  * queued — so ops always reach the server in the order they were made.
  */
-export async function perform<N extends OutboxActionName>(call: OutboxCall<N>): Promise<OutboxResult<N> | Queued> {
+export async function perform<N extends OutboxActionName>(
+  original: OutboxCall<N>,
+): Promise<OutboxResult<N> | Queued> {
+  const call = withClientId(original);
   setSyncUser(call.userId);
   await loaded;
   if (!navigator.onLine || pendingFor(call.userId).length > 0) return enqueue(call);
   try {
-    const result = await runOutboxAction(call.action, call.args);
+    const result = await send(call);
+    if (isSuspended(result)) {
+      // This page's user isn't the session's: keep the change for its owner.
+      suspended = true;
+      warnSuspended('You’re signed in as a different account in another tab — reload to continue.');
+      return enqueue(call);
+    }
     if (result.ok) broadcastProjectChanged(call.projectId);
     return result;
   } catch (error) {
@@ -247,7 +291,7 @@ export function isQueued(result: object): result is Queued {
 export async function flush(): Promise<void> {
   clearTimeout(retryTimer);
   // Offline: the `online` listener resumes.
-  if (flushing || !currentUser || !navigator.onLine) return;
+  if (flushing || suspended || !currentUser || !navigator.onLine) return;
   flushing = true;
   try {
     if ('locks' in navigator && navigator.locks) {
@@ -263,7 +307,7 @@ export async function flush(): Promise<void> {
   } finally {
     flushing = false;
   }
-  if (currentUser && pendingFor(currentUser).length > 0) {
+  if (!suspended && currentUser && pendingFor(currentUser).length > 0) {
     retryTimer = setTimeout(() => void flush(), retryDelay);
     retryDelay = Math.min(retryDelay * 2, RETRY_MAX_MS);
   } else {
@@ -281,9 +325,9 @@ async function drain() {
       const head = (await readAll()).find((item) => item.userId === user);
       if (!head) break;
 
-      let result: OutboxResult<OutboxActionName>;
+      let result: OutboxResult<OutboxActionName> | OutboxSuspended;
       try {
-        result = await runOutboxAction(head.action, head.args);
+        result = await send(head);
       } catch (error) {
         if (isNetworkError(error)) break;
         if (head.attempts + 1 < MAX_ATTEMPTS) {
@@ -297,6 +341,12 @@ async function drain() {
         continue;
       }
 
+      if (isSuspended(result)) {
+        // Wrong (or no) session for this queue: leave it intact for its owner.
+        suspended = true;
+        warnSuspended('Offline changes are waiting for their account — sign in as that user to sync them.');
+        break;
+      }
       await deleteItem(head.seq);
       await changed();
       if (result.ok) {
