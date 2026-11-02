@@ -111,8 +111,13 @@ export function useCollabEditor({
     initFor.current = editor;
     const { projection } = snapshot;
     const { stored, winner } = reconcileTarget(projection, initial.current.markdown, initial.current.truth);
+    // Mark the stored markdown adopted only once the doc's copy of it is
+    // durable on the server: the next editor will trust the doc after this.
     const adopted = (value: string) => {
-      if (projection && projection.source !== 'collab' && snapshot.canWrite) onAdoptedRef.current?.(value);
+      if (!projection || projection.source === 'collab' || !snapshot.canWrite) return;
+      void provider.whenPersisted().then((persisted) => {
+        if (persisted) onAdoptedRef.current?.(value);
+      });
     };
 
     const run = async () => {
@@ -143,7 +148,11 @@ export function useCollabEditor({
         return 'ready' as const;
       }
       if (text && !parsed) return 'lossy' as const;
-      if (snapshot.canWrite && !initial.current.hasPeers) {
+      // An issue's external edit (API, Slack, raw mode) is newer than every
+      // open copy of the doc, so it is applied even with peers present (they
+      // receive it as a normal change); otherwise their next snapshot save
+      // would overwrite it. Without a projection (no source info), only when alone.
+      if (snapshot.canWrite && (projection || !initial.current.hasPeers)) {
         // A local Yjs change like any other: the others receive it too.
         if (parsed) editor.commands.setContent(parsed.doc);
         else editor.commands.clearContent(true);

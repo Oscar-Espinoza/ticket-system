@@ -126,6 +126,30 @@ export class CollabProvider {
 
   getSnapshot = () => this.snapshot;
 
+  /** A local update was dropped without reaching the server (lost write permission). */
+  private dropped = false;
+
+  /**
+   * Resolves true once every local change made so far has been accepted by
+   * the server, false if one was dropped or `timeoutMs` passes first.
+   */
+  whenPersisted(timeoutMs = 10_000): Promise<boolean> {
+    const settled = () => !this.pushing && !this.holding && this.queue.length === 0 && this.pushTimer === null;
+    if (settled()) return Promise.resolve(!this.dropped);
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => {
+        unsubscribe();
+        resolve(false);
+      }, timeoutMs);
+      const unsubscribe = this.subscribe(() => {
+        if (!settled()) return;
+        clearTimeout(timer);
+        unsubscribe();
+        resolve(!this.dropped);
+      });
+    });
+  }
+
   private set(patch: Partial<CollabSnapshot>) {
     const next = { ...this.snapshot, ...patch };
     if ((Object.keys(patch) as (keyof CollabSnapshot)[]).every((k) => next[k] === this.snapshot[k])) return;
@@ -311,6 +335,7 @@ export class CollabProvider {
     if (this.pushing || this.holding || this.queue.length === 0 || !this.snapshot.synced) return;
     if (!this.snapshot.canWrite) {
       // Read-only viewers: local edits (shouldn't happen) never leave the tab.
+      this.dropped = true;
       this.queue = [];
       this.set({ pending: false });
       return;
@@ -326,8 +351,11 @@ export class CollabProvider {
     } catch (err) {
       if (this.stopped) return;
       if (err instanceof HttpError && err.status === 403) {
+        this.dropped = true;
         this.set({ canWrite: false });
-      } else if (!(err instanceof HttpError && PERMANENT.has(err.status))) {
+      } else if (err instanceof HttpError && PERMANENT.has(err.status)) {
+        this.dropped = true;
+      } else {
         // Keep it (merged with anything typed meanwhile) and retry with backoff.
         this.queue.unshift(update);
         this.pushDelay = Math.min(this.pushDelay * 2 + 500, 30_000);
