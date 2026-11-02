@@ -493,7 +493,7 @@ function RequestsTimeline({
                 )}
                 {request.issue ? (
                   <Link
-                    href={issuePath(projectId, request.issue.key)}
+                    href={issuePath(request.issue.projectId, request.issue.key)}
                     className="flex w-fit max-w-full items-center gap-2 rounded-md border border-border px-2 py-1 text-sm hover:bg-accent/50"
                   >
                     <StatusIcon

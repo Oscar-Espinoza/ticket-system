@@ -18,7 +18,7 @@ import {
   workflowStates,
 } from '@/db/schema';
 import type { IssueRow, StateType } from '@/lib/issue-model';
-import { queryIssues } from '@/lib/tickets';
+import { memberOfIssueProject, queryIssues } from '@/lib/tickets';
 import {
   isCustomerStatus,
   isImportance,
@@ -106,7 +106,11 @@ export async function getProjectCustomers(
         open: sql<number>`(count(distinct ${tickets.id}) filter (where ${openIssueFilter}))::int`,
       })
       .from(customerRequests)
-      .leftJoin(tickets, eq(customerRequests.ticketId, tickets.id))
+      // Issues moved into projects the viewer can't see don't count (or leak their state).
+      .leftJoin(
+        tickets,
+        and(eq(customerRequests.ticketId, tickets.id), memberOfIssueProject(userId)),
+      )
       .leftJoin(workflowStates, eq(tickets.stateId, workflowStates.id))
       .where(
         and(
@@ -167,6 +171,7 @@ export const getCustomerDetail = cache(async function getCustomerDetail(
         body: customerRequests.body,
         createdAt: customerRequests.createdAt,
         ticketId: tickets.id,
+        ticketProjectId: tickets.projectId,
         number: tickets.ticketNumber,
         title: tickets.title,
         archivedAt: tickets.archivedAt,
@@ -177,8 +182,14 @@ export const getCustomerDetail = cache(async function getCustomerDetail(
         ticketKey: projects.ticketKey,
       })
       .from(customerRequests)
-      .innerJoin(projects, eq(customerRequests.projectId, projects.id))
-      .leftJoin(tickets, eq(customerRequests.ticketId, tickets.id))
+      // The linked issue may have moved to another (possibly private) project:
+      // only join it when the viewer is a member of the issue's CURRENT project,
+      // and take its key prefix from that project.
+      .leftJoin(
+        tickets,
+        and(eq(customerRequests.ticketId, tickets.id), memberOfIssueProject(userId)),
+      )
+      .leftJoin(projects, eq(tickets.projectId, projects.id))
       .leftJoin(workflowStates, eq(tickets.stateId, workflowStates.id))
       .where(
         and(
@@ -200,9 +211,10 @@ export const getCustomerDetail = cache(async function getCustomerDetail(
     body: r.body,
     createdAt: r.createdAt,
     issue:
-      r.ticketId && r.number !== null && !r.deletedAt
+      r.ticketId && r.ticketProjectId && r.ticketKey && r.number !== null && !r.deletedAt
         ? {
             id: r.ticketId,
+            projectId: r.ticketProjectId,
             key: `${r.ticketKey}-${r.number}`,
             title: r.title ?? '',
             stateType: (r.stateType ?? 'backlog') as StateType,
@@ -217,11 +229,7 @@ export const getCustomerDetail = cache(async function getCustomerDetail(
   const issueRows =
     order.length > 0
       ? await queryIssues(
-          and(
-            eq(tickets.projectId, projectId),
-            inArray(tickets.id, order),
-            isNull(tickets.deletedAt),
-          ),
+          and(inArray(tickets.id, order), isNull(tickets.deletedAt), memberOfIssueProject(userId)),
         )
       : [];
   const byId = new Map(issueRows.map((issue) => [issue.id, issue]));

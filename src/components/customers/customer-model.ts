@@ -68,6 +68,8 @@ export interface CustomerListRow extends CustomerRow {
 
 export interface LinkedIssueRef {
   id: string;
+  /** The issue's current project (it may have moved since the request was filed). */
+  projectId: string;
   key: string;
   title: string;
   stateType: StateType;
