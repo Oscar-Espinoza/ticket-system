@@ -14,6 +14,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } fr
 import type { Editor } from '@tiptap/react';
 
 import { announceDescriptionMentions } from '@/app/actions/comments';
+import { markDescriptionProjected } from '@/app/actions/tickets';
 import { CollabAvatars, CollabStatusBadge } from '@/components/collab/collab-avatars';
 import { collabColor, useCollab, useCollabPeers } from '@/components/collab/use-collab';
 import { useCollabEditor } from '@/components/collab/use-collab-editor';
@@ -46,10 +47,7 @@ export function DescriptionEditor({
     setEditingState(value);
   };
 
-  const commit = (next: string) => {
-    const value = next.trim();
-    if (value === saved) return;
-    mutations.update(issue, { description: value || null });
+  const announce = (value: string) => {
     if (newMentionIds(saved, value).length > 0) {
       announceDescriptionMentions({
         projectId: issue.projectId,
@@ -60,6 +58,21 @@ export function DescriptionEditor({
         // Best effort: the description itself is saved by the update above.
       });
     }
+  };
+
+  const commit = (next: string) => {
+    const value = next.trim();
+    if (value === saved) return;
+    mutations.update(issue, { description: value || null });
+    announce(value);
+  };
+
+  // Snapshot saves of the collaborative doc (as you type, and on open when the
+  // doc is newer than the stored markdown).
+  const commitCollab = (next: string) => {
+    const value = next.trim();
+    mutations.saveCollabDescription(issue, value || null);
+    if (value !== saved) announce(value);
   };
 
   const finish = () => {
@@ -80,7 +93,7 @@ export function DescriptionEditor({
           key={issue.id}
           issue={issue}
           saved={saved}
-          onSave={commit}
+          onSave={commitCollab}
           onClose={close}
           onUnavailable={() => setSingleUser(issue.id)}
         />
@@ -177,6 +190,11 @@ function CollaborativeDescription({
     truth: 'markdown',
     hasPeers: peers.length > 0,
     onSave,
+    onAdopted: (markdown) => {
+      void markDescriptionProjected({ projectId: issue.projectId, id: issue.id, markdown }).catch(() => {
+        // Best effort: until marked, the next editor adopts the same markdown again.
+      });
+    },
   });
 
   const unavailable = state === 'lossy' || (snapshot.status === 'error' && !snapshot.synced);

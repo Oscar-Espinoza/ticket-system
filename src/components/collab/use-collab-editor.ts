@@ -3,9 +3,14 @@
 // Glue between a synced collaborative doc and the markdown snapshot stored on
 // the row (issue.description / document.content):
 // - empty key → seed the Y.Doc from the markdown (server accepts one seed);
-// - diverged → issue descriptions: the markdown wins when nobody else is in
-//   the doc (API / Slack / raw-mode edits happened meanwhile); documents: the
-//   collaborative state wins and the snapshot is re-saved;
+// - diverged → issue descriptions: decided by who wrote the stored markdown
+//   last (snapshot.projection, read at sync time — never the page's possibly
+//   stale copy): 'collab' = our own projection, so the doc is at least as new
+//   and wins (the snapshot is re-saved; this heals a save lost after its Yjs
+//   update reached the server); anything else = an API / Slack / raw-mode edit
+//   the doc never saw, so the markdown wins when nobody else is in the doc and
+//   is then marked adopted (onAdopted). Documents: the collaborative state wins
+//   and the snapshot is re-saved;
 // - local typing (never remote steps) saves the snapshot `delay` ms after it
 //   stops, flushed on unmount — so N collaborators don't all save each change.
 
@@ -17,6 +22,7 @@ import * as Y from 'yjs';
 
 import { keepsText, normalizeParsed, tidyMarkdown } from '@/components/editor/markdown-io';
 import { serializeMarkdown } from '@/components/editor/rich-editor';
+import type { CollabProjection } from '@/lib/collab/codec';
 import type { CollabProvider, CollabSnapshot } from '@/lib/collab/provider';
 
 /** The markdown as the rich editor would store it, or null if it would lose text. */
@@ -43,6 +49,21 @@ function seedUpdate(editor: Editor, doc: JSONContent): Uint8Array {
 
 export type CollabEditorState = 'pending' | 'ready' | 'lossy';
 
+/**
+ * What to reconcile the opened doc against. Issue keys carry the server's
+ * current description and its last writer (projection): our own projection
+ * means the doc is at least as new; any other writer means the doc never saw
+ * that edit. Without a projection (documents) the caller's choice stands.
+ */
+export function reconcileTarget(
+  projection: CollabProjection | undefined,
+  markdown: string,
+  truth: 'markdown' | 'collab',
+): { stored: string; winner: 'markdown' | 'collab' } {
+  if (!projection) return { stored: markdown, winner: truth };
+  return { stored: projection.markdown, winner: projection.source === 'collab' ? 'collab' : 'markdown' };
+}
+
 export function useCollabEditor({
   provider,
   snapshot,
@@ -51,6 +72,7 @@ export function useCollabEditor({
   truth,
   hasPeers,
   onSave,
+  onAdopted,
   delay = 1500,
 }: {
   provider: CollabProvider | null;
@@ -62,6 +84,8 @@ export function useCollabEditor({
   truth: 'markdown' | 'collab';
   hasPeers: boolean;
   onSave: (markdown: string) => void;
+  /** The doc now holds the stored markdown (issue keys): record that it was adopted. */
+  onAdopted?: (markdown: string) => void;
   delay?: number;
 }): { state: CollabEditorState; onChange: (markdown: string) => void } {
   const [state, setState] = useState<CollabEditorState>('pending');
@@ -73,9 +97,11 @@ export function useCollabEditor({
   const baseline = useRef<string | null>(null);
   const initFor = useRef<Editor | null>(null);
   const onSaveRef = useRef(onSave);
+  const onAdoptedRef = useRef(onAdopted);
   const initial = useRef({ markdown, hasPeers, truth });
   useEffect(() => {
     onSaveRef.current = onSave;
+    onAdoptedRef.current = onAdopted;
     initial.current = { ...initial.current, hasPeers };
   });
 
@@ -83,7 +109,11 @@ export function useCollabEditor({
   useEffect(() => {
     if (!editor || !provider || !snapshot.synced || initFor.current === editor) return;
     initFor.current = editor;
-    const { markdown: stored, truth: winner } = initial.current;
+    const { projection } = snapshot;
+    const { stored, winner } = reconcileTarget(projection, initial.current.markdown, initial.current.truth);
+    const adopted = (value: string) => {
+      if (projection && projection.source !== 'collab' && snapshot.canWrite) onAdoptedRef.current?.(value);
+    };
 
     const run = async () => {
       const text = stored.trim();
@@ -95,12 +125,16 @@ export function useCollabEditor({
           if (snapshot.canWrite && !(await provider.seed(seedUpdate(editor, parsed.doc)))) return 'ready' as const;
         }
         baseline.current = parsed?.normalized ?? text;
+        adopted(stored);
         return 'ready' as const;
       }
       const current = serializeMarkdown(editor);
       const expected = parsed?.normalized ?? text;
       baseline.current = expected;
-      if (current === expected) return 'ready' as const;
+      if (current === expected) {
+        adopted(stored);
+        return 'ready' as const;
+      }
       if (winner === 'collab') {
         if (snapshot.canWrite) {
           baseline.current = current;
@@ -113,6 +147,7 @@ export function useCollabEditor({
         // A local Yjs change like any other: the others receive it too.
         if (parsed) editor.commands.setContent(parsed.doc);
         else editor.commands.clearContent(true);
+        adopted(stored);
       }
       return 'ready' as const;
     };
@@ -123,6 +158,8 @@ export function useCollabEditor({
       .then((result) => {
         if (initFor.current === editor && !editor.isDestroyed) setState(result);
       });
+    // snapshot.projection is set once, with `synced`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editor, provider, snapshot.synced, snapshot.empty, snapshot.canWrite]);
 
   // Debounced snapshot saves from local changes only (typing during a seed

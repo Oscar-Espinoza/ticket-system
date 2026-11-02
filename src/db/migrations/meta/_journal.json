@@ -71,6 +71,13 @@
       "when": 1793634884532,
       "tag": "0009_durable_webhook_dispatch",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793635190600,
+      "tag": "0010_description_source",
+      "breakpoints": true
     }
   ]
 }

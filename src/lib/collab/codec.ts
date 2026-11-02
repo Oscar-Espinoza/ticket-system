@@ -57,6 +57,17 @@ export interface CollabSyncResponse {
   awareness: CollabRow[];
   /** False for guests and archived docs: follow along read-only. */
   canWrite: boolean;
+  /**
+   * Issue keys only: the description stored on the row right now, and who
+   * wrote it last ('collab' = this doc's own projection). Editors reconcile
+   * against this, never against the page's possibly stale copy.
+   */
+  projection?: CollabProjection;
+}
+
+export interface CollabProjection {
+  markdown: string;
+  source: 'collab' | 'external' | null;
 }
 
 /** GET ?after= — long-poll. */

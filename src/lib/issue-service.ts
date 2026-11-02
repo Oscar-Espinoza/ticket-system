@@ -917,6 +917,12 @@ export interface UpdateIssueOptions {
    * move from a manual one). Can't override key / title / changes.
    */
   eventData?: Record<string, unknown>;
+  /**
+   * 'collab': the description is the collaborative editor's projection of its
+   * Yjs doc. Every other description write marks it 'external', which makes
+   * the next editor adopt the markdown instead of the (older) Yjs state.
+   */
+  descriptionSource?: 'collab';
 }
 
 export async function bulkUpdate(
@@ -956,10 +962,16 @@ export async function bulkUpdate(
     return fail(`At most ${LABELS_MAX} labels.`, 'addLabelIds');
   }
 
-  const statements: BatchItem<'pg'>[] = changed.map(({ old, set }) =>
+  const statements: BatchItem<'pg'>[] = changed.map(({ old, set, changes }) =>
     db
       .update(tickets)
-      .set({ ...set, updatedAt: now })
+      .set({
+        ...set,
+        ...(changes.some((c) => c.field === 'description')
+          ? { descriptionSource: opts?.descriptionSource ?? 'external' }
+          : {}),
+        updatedAt: now,
+      })
       .where(and(eq(tickets.id, old.id), eq(tickets.projectId, projectId))),
   );
 
@@ -1016,6 +1028,33 @@ export async function bulkUpdate(
 
   const nextById = new Map(changed.map((r) => [r.old.id, { ...r.next, updatedAt: now }]));
   return { ok: true, issues: issues.map((issue) => nextById.get(issue.id) ?? issue) };
+}
+
+/**
+ * The collaborative editor adopted the stored description into its doc (or
+ * found them equal): mark it 'collab' — only if the description is still
+ * exactly `markdown`, so a concurrent external write isn't hidden.
+ */
+export async function markDescriptionProjected(
+  projectId: string,
+  id: string,
+  markdown: string,
+): Promise<boolean> {
+  if (!projectId || typeof id !== 'string' || !id || typeof markdown !== 'string') return false;
+  const text = markdown.trim() || null;
+  const rows = await db
+    .update(tickets)
+    .set({ descriptionSource: 'collab' })
+    .where(
+      and(
+        eq(tickets.id, id),
+        eq(tickets.projectId, projectId),
+        isNull(tickets.deletedAt),
+        text === null ? isNull(tickets.description) : eq(tickets.description, text),
+      ),
+    )
+    .returning({ id: tickets.id });
+  return rows.length > 0;
 }
 
 export async function updateIssueFields(

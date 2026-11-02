@@ -182,6 +182,11 @@ export interface IssueMutations {
   issues: IssueRow[];
   create: (input: CreateIssueInput, callbacks?: CreateCallbacks) => void;
   update: (issue: IssueRow, patch: IssuePatch) => void;
+  /**
+   * Save the collaborative editor's projection of its doc as the description
+   * (marked 'collab', so later editors trust the doc over this snapshot).
+   */
+  saveCollabDescription: (issue: IssueRow, description: string | null) => void;
   bulkUpdate: (issues: IssueRow[], patch: IssuePatch) => void;
   /** Archive (toast with Undo). */
   archive: (issue: IssueRow, onDone?: () => void) => void;
@@ -308,6 +313,28 @@ export function useIssueMutations(
         toast.error('Something went wrong — the change was not saved.');
       }
     });
+  }
+
+  function saveCollabDescription(issue: IssueRow, description: string | null) {
+    if (isPendingIssue(issue)) return;
+    const patch: IssuePatch = { description };
+    // Sent even when it looks unchanged here: the server marks the source.
+    const inverse = inversePatch(issue, patch);
+    run(
+      { type: 'patch', ids: [issue.id], patch, data },
+      {
+        projectId: issue.projectId,
+        action: 'updateIssue',
+        args: { projectId: issue.projectId, id: issue.id, patch, descriptionSource: 'collab' },
+        overlay: { kind: 'patch', ids: [issue.id], patch },
+        label: `${describePatch(patch)} on ${issue.key}`,
+      },
+      () => {
+        if (!patchChangesIssue(issue, patch)) return;
+        const after = applyIssuePatch(issue, patch, data);
+        pushUndo(`${describePatch(patch)} on ${issue.key}`, () => update(after, inverse, false));
+      },
+    );
   }
 
   function update(issue: IssueRow, patch: IssuePatch, track = true) {
@@ -606,6 +633,7 @@ export function useIssueMutations(
     },
 
     update: (issue, patch) => update(issue, patch),
+    saveCollabDescription,
     bulkUpdate: (issues, patch) => bulkUpdate(issues, patch),
     archive: (issue, onDone) => archive(issue, onDone),
     unarchive: (issue, onDone) => unarchive(issue, onDone),

@@ -18,6 +18,7 @@ import {
   toBase64,
   type CollabPollResponse,
   type CollabPostBody,
+  type CollabProjection,
   type CollabPostResponse,
   type CollabRow,
   type CollabSyncResponse,
@@ -42,6 +43,8 @@ export interface CollabSnapshot {
   canWrite: boolean;
   /** Unsent local changes. */
   pending: boolean;
+  /** Issue keys: the stored description at the first sync (see CollabSyncResponse). */
+  projection?: CollabProjection;
 }
 
 /** Full resync this often while connected: heals ids that committed out of order. */
@@ -212,7 +215,11 @@ export class CollabProvider {
     this.lastId = Math.max(this.lastId, res.lastId);
     this.lastFullSync = Date.now();
     const first = !this.snapshot.synced;
-    this.set({ synced: true, canWrite: res.canWrite, ...(first ? { empty: res.empty } : {}) });
+    this.set({
+      synced: true,
+      canWrite: res.canWrite,
+      ...(first ? { empty: res.empty, projection: res.projection } : {}),
+    });
     if (first) {
       // Anything typed before the first sync waited for the write permission.
       if (this.queue.length) this.schedulePush();

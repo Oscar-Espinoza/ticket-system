@@ -31,6 +31,20 @@ import {
   seedState,
 } from '@/lib/collab/store';
 import { getSession } from '@/lib/session';
+import { db } from '@/lib/db';
+import { tickets } from '@/db/schema';
+import { eq } from 'drizzle-orm';
+import type { CollabProjection } from '@/lib/collab/codec';
+
+/** The issue's stored description (access was checked by authorize). */
+async function readIssueProjection(ticketId: string): Promise<CollabProjection | undefined> {
+  const [row] = await db
+    .select({ description: tickets.description, source: tickets.descriptionSource })
+    .from(tickets)
+    .where(eq(tickets.id, ticketId))
+    .limit(1);
+  return row ? { markdown: row.description ?? '', source: row.source ?? null } : undefined;
+}
 
 export const maxDuration = 30;
 
@@ -85,8 +99,15 @@ export async function GET(request: Request, ctx: Ctx) {
       vector = fromBase64(sv);
     }
     try {
-      const state = await readFullState(key, vector);
-      return json({ ...state, canWrite: auth.access.canWrite } satisfies CollabSyncResponse);
+      const [state, projection] = await Promise.all([
+        readFullState(key, vector),
+        auth.access.kind === 'issue' ? readIssueProjection(auth.access.id) : undefined,
+      ]);
+      return json({
+        ...state,
+        canWrite: auth.access.canWrite,
+        ...(projection ? { projection } : {}),
+      } satisfies CollabSyncResponse);
     } catch (err) {
       // A malformed state vector makes diffUpdate throw.
       console.error('[collab] sync failed', err);

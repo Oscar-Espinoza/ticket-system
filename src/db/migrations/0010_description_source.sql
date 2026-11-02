@@ -1,0 +1,1 @@
+ALTER TABLE "ticket" ADD COLUMN "description_source" text;

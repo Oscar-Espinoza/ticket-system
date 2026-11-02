@@ -55,6 +55,8 @@ export async function updateIssue(input: {
   projectId: string;
   id: string;
   patch: IssuePatch;
+  /** Set by the collaborative description editor for its own snapshot saves. */
+  descriptionSource?: 'collab';
 }): Promise<TicketActionResult> {
   const authz = await authorizeProjectAction(input?.projectId, 'write');
   if (!authz.ok) return authz;
@@ -63,6 +65,7 @@ export async function updateIssue(input: {
     input.projectId,
     input.id,
     input.patch,
+    input.descriptionSource === 'collab' ? { descriptionSource: 'collab' } : undefined,
   );
   if (result.ok) revalidateProject(input.projectId);
   return toResult(result);
@@ -161,4 +164,15 @@ export async function purgeIssue(input: IssueRef): Promise<TicketActionResult> {
   const result = await issues.purge({ userId: authz.userId }, input.projectId, input.id);
   if (result.ok) revalidateProject(input.projectId);
   return toResult(result);
+}
+
+/** The collaborative editor adopted the stored description (see markDescriptionProjected). */
+export async function markDescriptionProjected(input: {
+  projectId: string;
+  id: string;
+  markdown: string;
+}): Promise<{ ok: boolean }> {
+  const authz = await authorizeProjectAction(input?.projectId, 'write');
+  if (!authz.ok) return { ok: false };
+  return { ok: await issues.markDescriptionProjected(input.projectId, input.id, input.markdown) };
 }

@@ -417,6 +417,13 @@ export const tickets = pgTable(
     ticketNumber: integer('ticket_number').notNull(), // per-project sequential number
     title: text('title').notNull(),
     description: text('description'),
+    /**
+     * Who last wrote `description`: 'collab' = the collaborative editor's own
+     * projection of the Yjs doc (the doc is at least as new), 'external' = any
+     * other writer (API, raw editor, Slack, import), so the doc must adopt it.
+     * null = before this was tracked (treated as 'external').
+     */
+    descriptionSource: text('description_source', { enum: ['collab', 'external'] }),
     stateId: text('state_id')
       .notNull()
       .references(() => workflowStates.id, { onDelete: 'restrict' }),
