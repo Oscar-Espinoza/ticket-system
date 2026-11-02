@@ -62,7 +62,7 @@ describe.skipIf(!localDb)('durable webhook dispatch (review finding #9)', () => 
       .select()
       .from(activities)
       .where(and(eq(activities.ticketId, created.issue.id), eq(activities.type, 'issue.created')));
-    expect(event.webhookPending).toBe(true);
+    expect(event.webhookPendingProjectId).toBe(project);
     expect(event.data).toMatchObject({ key: created.issue.key, title: 'Durable' });
 
     // Two sweeps racing (cron + a lazy one): one delivery row, one request.
@@ -74,7 +74,7 @@ describe.skipIf(!localDb)('durable webhook dispatch (review finding #9)', () => 
     expect(received.filter((r) => r.delivery === event.id).length).toBe(1);
 
     const [after] = await db.select().from(activities).where(eq(activities.id, event.id));
-    expect(after.webhookPending).toBe(false);
+    expect(after.webhookPendingProjectId).toBeNull();
     // Sweeping again doesn't resend it.
     await sweepPendingEvents({ now: later() });
     expect(received.filter((r) => r.delivery === event.id).length).toBe(1);
@@ -92,7 +92,7 @@ describe.skipIf(!localDb)('durable webhook dispatch (review finding #9)', () => 
     if (!moved.ok) return;
 
     const rows = await db
-      .select({ projectId: activities.projectId, data: activities.data, pending: activities.webhookPending })
+      .select({ projectId: activities.projectId, data: activities.data, pending: activities.webhookPendingProjectId })
       .from(activities)
       .where(eq(activities.type, 'issue.moved'));
     const mine = rows.filter((r) => r.data.fromKey === created.issue.key);
@@ -101,6 +101,30 @@ describe.skipIf(!localDb)('durable webhook dispatch (review finding #9)', () => 
     const inTarget = mine.find((r) => r.projectId === dst)!;
     expect(inSource.data).toMatchObject({ toKey: moved.issue.key, summary: `moved ${created.issue.key} to ${moved.issue.key}` });
     expect(inTarget.data).toMatchObject({ key: moved.issue.key, toKey: moved.issue.key });
-    expect(inTarget.pending).toBe(true);
+    expect(inTarget.pending).toBe(dst);
+  });
+
+  it('a pending event still goes to the project it happened in after the issue moves (Astra review #5)', async () => {
+    const user = await makeUser('mvh');
+    const src = await makeProject(user, 'MHS');
+    const dst = await makeProject(user, 'MHD');
+    const hookId = crypto.randomUUID();
+    await db.insert(webhooks).values({
+      id: hookId,
+      projectId: src,
+      url,
+      secret: 'shh',
+      events: ['issue.created'],
+      createdAt: new Date(),
+    });
+    const created = await issues.createIssue({ userId: user }, src, { title: 'Moved before sweep' });
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+    const moved = await issues.moveIssue({ userId: user }, src, created.issue.id, dst);
+    expect(moved.ok).toBe(true);
+
+    await sweepPendingEvents({ now: later() });
+    const rows = await db.select().from(webhookDeliveries).where(eq(webhookDeliveries.webhookId, hookId));
+    expect(rows.map((r) => r.eventType)).toEqual(['issue.created']);
   });
 });

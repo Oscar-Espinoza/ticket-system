@@ -5,7 +5,7 @@
 // not fail the mutation that already happened.
 //
 // Webhook delivery is durable: events receivers may need are written with
-// `webhook_pending = true` (atomically with the mutation when the writer uses
+// `webhook_pending_project_id` set (atomically with the mutation when the writer uses
 // prepareIssueEvents in its batch). The after-response dispatcher clears it
 // when it has created the delivery rows; if it never runs (crash, timeout, DB
 // blip) the sweep in outgoing-webhooks picks the event up later.
@@ -131,7 +131,10 @@ export function prepareIssueEvents(events: IssueEventInput[]) {
 
 /** Activity rows for stored events, flagged for the durable webhook sweep. */
 export function activityRows(stored: StoredIssueEvent[]) {
-  return stored.map((event) => ({ ...event, webhookPending: isWebhookDeliverable(event) }));
+  return stored.map((event) => ({
+    ...event,
+    webhookPendingProjectId: isWebhookDeliverable(event) ? event.projectId : null,
+  }));
 }
 
 /** Schedule the after-response fan-out for events already written. */

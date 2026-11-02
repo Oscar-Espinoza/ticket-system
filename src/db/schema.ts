@@ -605,17 +605,21 @@ export const activities = pgTable(
     type: text('type').notNull(),
     data: jsonb('data').$type<Record<string, unknown>>().notNull().default({}),
     /**
-     * Written true (in the mutation's own transaction) for events outgoing
-     * webhooks may need; cleared once their webhook_delivery rows exist. A
-     * crash between the two leaves it true, and the sweep materializes it.
+     * Set (in the mutation's own transaction) for events outgoing webhooks may
+     * need: the project whose webhooks receive it — fixed at write time, so a
+     * later move of the issue (which rewrites project_id) can't redirect it.
+     * Cleared once its webhook_delivery rows exist; a crash in between leaves
+     * it set, and the sweep materializes it. null = nothing pending.
      */
-    webhookPending: boolean('webhook_pending').notNull().default(false),
+    webhookPendingProjectId: text('webhook_pending_project_id'),
     createdAt: timestamp('created_at').notNull(),
   },
   (table) => [
     index('activity_ticket_idx').on(table.ticketId, table.createdAt),
     index('activity_project_idx').on(table.projectId, table.createdAt),
-    index('activity_webhook_pending_idx').on(table.createdAt).where(sql`webhook_pending`),
+    index('activity_webhook_pending_idx')
+      .on(table.createdAt)
+      .where(sql`webhook_pending_project_id is not null`),
   ],
 );
 

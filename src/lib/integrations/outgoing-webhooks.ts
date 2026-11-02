@@ -14,7 +14,7 @@
 // conditional UPDATE … RETURNING, so concurrent runners never double-send.
 //
 // Events are not lost between the mutation and the delivery log: deliverable
-// events are stored with activity.webhook_pending = true, cleared in the same
+// events are stored with activity.webhook_pending_project_id set, cleared in the same
 // batch that inserts their delivery rows (unique per event and receiver, so the
 // after-response dispatcher and the sweep can't both create one). Pending
 // events older than a couple of minutes are swept lazily and by the cron.
@@ -25,7 +25,7 @@
 // (`issue.purged`, whose issue is gone). Receivers get issue events only.
 
 import { createHmac, randomBytes } from 'node:crypto';
-import { and, asc, desc, eq, inArray, isNull, lt, lte, type SQL } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNotNull, isNull, lt, lte, type SQL } from 'drizzle-orm';
 import type { BatchItem } from 'drizzle-orm/batch';
 
 import { db } from '@/lib/db';
@@ -196,7 +196,7 @@ async function sendBatch(hook: WebhookTarget, rows: Pick<DeliveryRow, 'id' | 'at
 // New events
 // ---------------------------------------------------------------------------
 
-/** Whether a webhook could receive this event (stored as activity.webhook_pending). */
+/** Whether a webhook could receive this event (stored as activity.webhook_pending_project_id). */
 export function isWebhookDeliverable(event: Pick<StoredIssueEvent, 'data' | 'ticketId' | 'type'>): boolean {
   if (event.data?.bulk === true) return false;
   return event.ticketId !== null || isWebhookEventType(event.type);
@@ -204,7 +204,7 @@ export function isWebhookDeliverable(event: Pick<StoredIssueEvent, 'data' | 'tic
 
 /** Events no longer pending: their delivery rows exist (or nobody listens). */
 const clearPending = (eventIds: string[]) =>
-  db.update(activities).set({ webhookPending: false }).where(inArray(activities.id, eventIds));
+  db.update(activities).set({ webhookPendingProjectId: null }).where(inArray(activities.id, eventIds));
 
 async function run(all: StoredIssueEvent[]) {
   const events = all.filter(isWebhookDeliverable);
@@ -326,12 +326,15 @@ export async function sweepPendingEvents(
     // poison row can't block the sweep forever.
     await db
       .update(activities)
-      .set({ webhookPending: false })
-      .where(and(eq(activities.webhookPending, true), lt(activities.createdAt, new Date(now - SWEEP_GIVE_UP_MS))));
+      .set({ webhookPendingProjectId: null })
+      .where(
+        and(isNotNull(activities.webhookPendingProjectId), lt(activities.createdAt, new Date(now - SWEEP_GIVE_UP_MS))),
+      );
     const rows = await db
       .select({
         id: activities.id,
-        projectId: activities.projectId,
+        // The project the event was emitted in, not where the issue is now.
+        projectId: activities.webhookPendingProjectId,
         ticketId: activities.ticketId,
         actorId: activities.actorId,
         type: activities.type,
@@ -339,11 +342,11 @@ export async function sweepPendingEvents(
         createdAt: activities.createdAt,
       })
       .from(activities)
-      .where(and(eq(activities.webhookPending, true), lt(activities.createdAt, cutoff)))
+      .where(and(isNotNull(activities.webhookPendingProjectId), lt(activities.createdAt, cutoff)))
       .orderBy(asc(activities.createdAt))
       .limit(options.limit ?? 200);
     if (rows.length === 0) return 0;
-    await run(rows);
+    await run(rows.flatMap((row) => (row.projectId ? [{ ...row, projectId: row.projectId }] : [])));
     return rows.length;
   } catch (err) {
     console.error('[webhooks] sweep failed', err);

@@ -35,6 +35,6 @@ Run targeted files, e.g. `npx vitest run src/tests/url-guard.test.ts`.
 ## Upgrading an existing deployment
 
 Run `npm run db:migrate` against the database before deploying new code.
-Migrations 0009 (durable webhook dispatch) and 0010 (description source)
-come with the 2026-11 security and reliability fixes; see
+Migration 0009 (durable webhook dispatch, description source) comes with
+the 2026-11 security and reliability fixes; see
 `docs/reports/2026-09-25-architecture-security-review.md` for what they fix.
