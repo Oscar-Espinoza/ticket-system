@@ -738,12 +738,16 @@ async function existingCreate(
   return issue ? { ok: true, issue } : fail('This issue id is already in use.');
 }
 
-const isUniqueViolation = (err: unknown): boolean => {
+const hasPgCode = (err: unknown, code: string): boolean => {
   for (let e: unknown = err; e && typeof e === 'object'; e = (e as { cause?: unknown }).cause) {
-    if ((e as { code?: unknown }).code === '23505') return true;
+    if ((e as { code?: unknown }).code === code) return true;
   }
   return false;
 };
+
+const isUniqueViolation = (err: unknown) => hasPgCode(err, '23505');
+/** moveIssue's guard statement divides by zero when the tree changed under it. */
+const isMoveConflict = (err: unknown) => hasPgCode(err, '22012') || hasPgCode(err, '40P01');
 
 export async function createIssue(
   actor: IssueActor,
@@ -1368,7 +1372,44 @@ export async function moveIssue(
       .set({ projectId: toProjectId })
       .where(inArray(notifications.ticketId, treeIds)),
   ];
-  const [[bumped]] = await db.batch([bump, ...statements]);
+  // Runs first in the transaction: locks the planned rows and aborts the whole
+  // batch (division by zero → 22012) unless the tree is still exactly what was
+  // read — every planned issue still in the source project, and the subtree
+  // under the root (re-walked now) is the same set. A concurrent move that
+  // committed first, or a sub-issue attached/detached meanwhile, means no
+  // dependent row (labels, activity, PRs, inbox) is rewritten.
+  const treeIdList = sql.join(
+    treeIds.map((treeId) => sql`${treeId}`),
+    sql`, `,
+  );
+  const guard = db.execute(sql`
+    select 1 / (case when
+      (select count(*) from (
+        select ${tickets.id} from ${tickets}
+        where ${tickets.id} in (${treeIdList}) and ${tickets.projectId} = ${fromProjectId}
+        for update
+      ) locked) = ${count}
+      and (
+        with recursive tree(id, depth) as (
+          select t.id, 0 from ${tickets} t where t.id = ${id} and t.project_id = ${fromProjectId}
+          union all
+          select c.id, tree.depth + 1 from ${tickets} c join tree on c.parent_id = tree.id
+          where tree.depth < 50
+        )
+        select count(*) = ${count} and count(*) filter (where id in (${treeIdList})) = ${count} from tree
+      )
+    then 1 else 0 end) as ok
+  `);
+  let bumped: { number: number } | undefined;
+  try {
+    const results = await db.batch([guard, bump, ...statements]);
+    [bumped] = results[1] as { number: number }[];
+  } catch (err) {
+    if (isMoveConflict(err)) {
+      return fail('The issue changed while it was being moved (moved, or sub-issues changed). Try again.');
+    }
+    throw err;
+  }
   if (!bumped) return fail('Project not found.');
 
   const keyOf = (i: number) => `${target.ticketKey}-${bumped.number - (count - 1 - i)}`;
