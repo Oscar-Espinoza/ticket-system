@@ -39,11 +39,11 @@ import type { CollabProjection } from '@/lib/collab/codec';
 /** The issue's stored description (access was checked by authorize). */
 async function readIssueProjection(ticketId: string): Promise<CollabProjection | undefined> {
   const [row] = await db
-    .select({ description: tickets.description, source: tickets.descriptionSource })
+    .select({ description: tickets.description, source: tickets.descriptionSource, rev: tickets.descriptionRev })
     .from(tickets)
     .where(eq(tickets.id, ticketId))
     .limit(1);
-  return row ? { markdown: row.description ?? '', source: row.source ?? null } : undefined;
+  return row ? { markdown: row.description ?? '', source: row.source ?? null, rev: row.rev } : undefined;
 }
 
 export const maxDuration = 30;

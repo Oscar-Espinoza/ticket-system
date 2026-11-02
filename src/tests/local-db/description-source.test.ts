@@ -17,16 +17,20 @@ const source = async (id: string) =>
 
 describe('reconcileTarget (review finding #6)', () => {
   it('trusts the doc only over its own projection, and reads the server copy', () => {
-    expect(reconcileTarget({ markdown: 'server', source: 'collab' }, 'stale page', 'markdown')).toEqual({
+    expect(reconcileTarget({ markdown: 'server', source: 'collab', rev: 3 }, 'stale page', 'markdown')).toEqual({
       stored: 'server',
       winner: 'collab',
     });
-    expect(reconcileTarget({ markdown: 'api edit', source: 'external' }, 'stale page', 'markdown')).toEqual({
+    expect(reconcileTarget({ markdown: 'api edit', source: 'external', rev: 4 }, 'stale page', 'markdown')).toEqual({
       stored: 'api edit',
       winner: 'markdown',
     });
-    expect(reconcileTarget({ markdown: 'legacy', source: null }, 'x', 'markdown').winner).toBe('markdown');
+    expect(reconcileTarget({ markdown: 'legacy', source: null, rev: 0 }, 'x', 'markdown').winner).toBe('markdown');
     expect(reconcileTarget(undefined, 'doc', 'collab')).toEqual({ stored: 'doc', winner: 'collab' });
+    // The doc already adopted external revision 4 (another editor, marker in flight): trust the doc.
+    expect(reconcileTarget({ markdown: 'api edit', source: 'external', rev: 4 }, 'x', 'markdown', 4).winner).toBe('collab');
+    // A later external write (rev 5), even one restoring older text, is new to the doc.
+    expect(reconcileTarget({ markdown: 'api edit', source: 'external', rev: 5 }, 'x', 'markdown', 4).winner).toBe('markdown');
   });
 });
 
@@ -44,6 +48,13 @@ describe.skipIf(!localDb)('description source tracking (review finding #6)', () 
 
     await issues.updateIssueFields({ userId: user }, project, id, { description: 'from the API' });
     expect(await source(id)).toBe('external');
+    const rev = async () =>
+      (await db.select({ r: tickets.descriptionRev }).from(tickets).where(eq(tickets.id, id)))[0].r;
+    expect(await rev()).toBe(1);
+    await issues.updateIssueFields({ userId: user }, project, id, { description: 'from the doc again' }, { descriptionSource: 'collab' });
+    expect(await rev()).toBe(1);
+    await issues.updateIssueFields({ userId: user }, project, id, { description: 'from the API' });
+    expect(await rev()).toBe(2);
 
     // A title-only edit doesn't touch the marker.
     await issues.updateIssueFields({ userId: user }, project, id, { title: 'Renamed' });

@@ -1,5 +1,5 @@
 {
-  "id": "3da24b60-c277-486f-a595-17c1153576a5",
+  "id": "93d060cb-8475-4f02-a789-d6a851ac73e0",
   "prevId": "cea21666-e6b2-46b9-a5b0-9929997f04d0",
   "version": "7",
   "dialect": "postgresql",
@@ -5079,6 +5079,13 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "description_rev": {
+          "name": "description_rev",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
         },
         "state_id": {
           "name": "state_id",

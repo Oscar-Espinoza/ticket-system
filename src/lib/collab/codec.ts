@@ -68,6 +68,8 @@ export interface CollabSyncResponse {
 export interface CollabProjection {
   markdown: string;
   source: 'collab' | 'external' | null;
+  /** ticket.description_rev: bumped by every external write. */
+  rev: number;
 }
 
 /** GET ?after= — long-poll. */

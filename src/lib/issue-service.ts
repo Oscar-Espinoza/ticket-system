@@ -999,7 +999,9 @@ export async function bulkUpdate(
       .set({
         ...set,
         ...(changes.some((c) => c.field === 'description')
-          ? { descriptionSource: opts?.descriptionSource ?? 'external' }
+          ? opts?.descriptionSource === 'collab'
+            ? { descriptionSource: 'collab' as const }
+            : { descriptionSource: 'external' as const, descriptionRev: sql`${tickets.descriptionRev} + 1` }
           : {}),
         updatedAt: now,
       })

@@ -38,10 +38,20 @@ function parseMarkdown(editor: Editor, markdown: string): { doc: JSONContent; no
   }
 }
 
-function seedUpdate(editor: Editor, doc: JSONContent): Uint8Array {
+/**
+ * Inside the Y.Doc: the ticket.description_rev it adopted. Written in the same
+ * Yjs transaction as the adopted content, so it is persisted exactly when that
+ * content is, and every later editor can tell "the doc already contains this
+ * external edit (and maybe newer work)" from "the doc never saw it".
+ */
+const META = 'collab-meta';
+const ADOPTED_REV = 'adoptedRev';
+
+function seedUpdate(editor: Editor, doc: JSONContent, adopted: number | null): Uint8Array {
   const scratch = new Y.Doc();
   // 'default' is the Collaboration extension's fragment name.
   prosemirrorJSONToYXmlFragment(editor.schema, doc, scratch.getXmlFragment('default'));
+  if (adopted !== null) scratch.getMap(META).set(ADOPTED_REV, adopted);
   const update = Y.encodeStateAsUpdate(scratch);
   scratch.destroy();
   return update;
@@ -59,9 +69,15 @@ export function reconcileTarget(
   projection: CollabProjection | undefined,
   markdown: string,
   truth: 'markdown' | 'collab',
+  docAdoptedRev: number | null = null,
 ): { stored: string; winner: 'markdown' | 'collab' } {
   if (!projection) return { stored: markdown, winner: truth };
-  return { stored: projection.markdown, winner: projection.source === 'collab' ? 'collab' : 'markdown' };
+  const fromCollab =
+    projection.source === 'collab' ||
+    // The doc already adopted this very external write (another editor did;
+    // its server marker may still be in flight): the doc is at least as new.
+    (docAdoptedRev !== null && docAdoptedRev === projection.rev);
+  return { stored: projection.markdown, winner: fromCollab ? 'collab' : 'markdown' };
 }
 
 export function useCollabEditor({
@@ -110,7 +126,16 @@ export function useCollabEditor({
     if (!editor || !provider || !snapshot.synced || initFor.current === editor) return;
     initFor.current = editor;
     const { projection } = snapshot;
-    const { stored, winner } = reconcileTarget(projection, initial.current.markdown, initial.current.truth);
+    const meta = provider.doc.getMap(META);
+    const docRev = meta.get(ADOPTED_REV);
+    const docAdoptedRev = typeof docRev === 'number' ? docRev : null;
+    const { stored, winner } = reconcileTarget(
+      projection,
+      initial.current.markdown,
+      initial.current.truth,
+      docAdoptedRev,
+    );
+    const adoptedRev = projection ? projection.rev : null;
     // Mark the stored markdown adopted only once the doc's copy of it is
     // durable on the server: the next editor will trust the doc after this.
     const adopted = (value: string) => {
@@ -127,7 +152,9 @@ export function useCollabEditor({
         if (text) {
           if (!parsed) return 'lossy' as const;
           // Lost the race to another seeder → we caught up with theirs instead.
-          if (snapshot.canWrite && !(await provider.seed(seedUpdate(editor, parsed.doc)))) return 'ready' as const;
+          if (snapshot.canWrite && !(await provider.seed(seedUpdate(editor, parsed.doc, adoptedRev)))) {
+            return 'ready' as const;
+          }
         }
         baseline.current = parsed?.normalized ?? text;
         adopted(stored);
@@ -137,6 +164,7 @@ export function useCollabEditor({
       const expected = parsed?.normalized ?? text;
       baseline.current = expected;
       if (current === expected) {
+        if (adoptedRev !== null && snapshot.canWrite && docAdoptedRev !== adoptedRev) meta.set(ADOPTED_REV, adoptedRev);
         adopted(stored);
         return 'ready' as const;
       }
@@ -148,14 +176,19 @@ export function useCollabEditor({
         return 'ready' as const;
       }
       if (text && !parsed) return 'lossy' as const;
-      // An issue's external edit (API, Slack, raw mode) is newer than every
-      // open copy of the doc, so it is applied even with peers present (they
-      // receive it as a normal change); otherwise their next snapshot save
-      // would overwrite it. Without a projection (no source info), only when alone.
+      // An issue's external edit (API, Slack, raw mode) that the doc hasn't
+      // adopted yet (reconcileTarget checked the doc's own marker) is newer
+      // than every open copy, so it is applied even with peers present — they
+      // receive it as a normal change; otherwise their next snapshot save
+      // would overwrite it. Without a projection (no source info), only alone.
       if (snapshot.canWrite && (projection || !initial.current.hasPeers)) {
-        // A local Yjs change like any other: the others receive it too.
-        if (parsed) editor.commands.setContent(parsed.doc);
-        else editor.commands.clearContent(true);
+        // One Yjs transaction: the content and the marker that it was adopted
+        // are persisted together (y-prosemirror syncs inside it).
+        provider.doc.transact(() => {
+          if (parsed) editor.commands.setContent(parsed.doc);
+          else editor.commands.clearContent(true);
+          if (adoptedRev !== null) meta.set(ADOPTED_REV, adoptedRev);
+        });
         adopted(stored);
       }
       return 'ready' as const;

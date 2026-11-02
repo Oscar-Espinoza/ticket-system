@@ -424,6 +424,12 @@ export const tickets = pgTable(
      * null = before this was tracked (treated as 'external').
      */
     descriptionSource: text('description_source', { enum: ['collab', 'external'] }),
+    /**
+     * Bumped by every 'external' description write. A collaborative doc
+     * records the revision it adopted (inside the Y.Doc), so an editor can
+     * tell whether the doc already contains the stored external edit.
+     */
+    descriptionRev: integer('description_rev').notNull().default(0),
     stateId: text('state_id')
       .notNull()
       .references(() => workflowStates.id, { onDelete: 'restrict' }),
