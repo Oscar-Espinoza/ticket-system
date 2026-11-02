@@ -33,7 +33,7 @@ import { activities, webhookDeliveries, webhooks } from '@/db/schema';
 import type { StoredIssueEvent } from '@/lib/events';
 import { issueSummary, loadEventContext } from '@/lib/integrations/event-context';
 import { isWebhookEventType } from '@/lib/integrations/event-types';
-import { isDeliverableUrl, postGuarded } from '@/lib/integrations/url-guard';
+import { guardedRequest, isDeliverableUrl } from '@/lib/integrations/url-guard';
 
 const TIMEOUT_MS = 5000;
 const MINUTE = 60_000;
@@ -101,9 +101,9 @@ export async function sendWebhook(
   try {
     // Pinned to the DNS answer the guard approved; redirects are never followed
     // (a redirect could point anywhere, including internal hosts).
-    const res = await postGuarded(
-      hook.url,
-      {
+    const res = await guardedRequest(hook.url, {
+      method: 'POST',
+      headers: {
         'Content-Type': 'application/json',
         'User-Agent': 'TicketSystem-Webhooks/1.0',
         'X-Webhook-Event': payload.type,
@@ -112,8 +112,8 @@ export async function sendWebhook(
         'X-Webhook-Signature': signWebhookBody(hook.secret, body),
       },
       body,
-      TIMEOUT_MS,
-    );
+      timeoutMs: TIMEOUT_MS,
+    });
     return {
       status: res.status,
       error: isSuccess(res.status)

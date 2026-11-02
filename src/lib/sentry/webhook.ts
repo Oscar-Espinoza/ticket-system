@@ -21,6 +21,7 @@ import { createIssue, DESCRIPTION_MAX, SYSTEM_ACTOR, TITLE_MAX } from '@/lib/iss
 import { defaultNewIssueState, firstStateOfType } from '@/lib/workflow';
 import { hmacHex, safeEqual } from '@/lib/vcs/secrets';
 import type { StateType } from '@/lib/issue-model';
+import { guardedRequest } from '@/lib/integrations/url-guard';
 
 export const SENTRY_EVENT = { resolved: 'sentry.resolved' } as const;
 
@@ -105,13 +106,14 @@ function fromIssue(data: Record<string, unknown>): SentryIssueInfo | null {
 async function fetchIssue(apiUrl: string | null, id: string, token: string): Promise<SentryIssueInfo | null> {
   if (!apiUrl || !/^https:\/\/[^/]+\/api\/0\//.test(apiUrl) || !apiUrl.includes(`/issues/${id}`)) return null;
   try {
-    const response = await fetch(apiUrl, {
+    // The host comes from the payload (self-hosted Sentry): same SSRF guard as webhooks.
+    const response = await guardedRequest(apiUrl, {
       headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
-      signal: AbortSignal.timeout(5_000),
-      cache: 'no-store',
+      timeoutMs: 5_000,
+      maxBytes: 2 * 1024 * 1024,
     });
-    if (!response.ok) return null;
-    const issue = (await response.json()) as Record<string, unknown>;
+    if (response.status < 200 || response.status >= 300) return null;
+    const issue = JSON.parse(response.body) as Record<string, unknown>;
     return fromIssue({ issue: { ...issue, web_url: issue.permalink ?? issue.web_url } });
   } catch (err) {
     console.error('[sentry] issue lookup failed', err);

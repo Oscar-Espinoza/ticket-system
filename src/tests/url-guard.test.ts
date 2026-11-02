@@ -96,3 +96,63 @@ describe('production URL checks', () => {
     expect(await isDeliverableUrl('https://8.8.8.8/hook')).toBe(true);
   });
 });
+
+describe('guardedRequest', () => {
+  it('has an absolute deadline: a receiver trickling headers can’t hold it open (Sol review #6)', async () => {
+    const { createServer } = await import('node:net');
+    const { guardedRequest } = await import('@/lib/integrations/url-guard');
+    const sockets: import('node:net').Socket[] = [];
+    const server = createServer((socket) => {
+      sockets.push(socket);
+      socket.write('HTTP/1.1 200 OK\r\n');
+      const drip = setInterval(() => socket.write('X-Drip: 1\r\n'), 100);
+      socket.on('close', () => clearInterval(drip));
+    });
+    await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
+    const port = (server.address() as import('node:net').AddressInfo).port;
+    const started = Date.now();
+    await expect(guardedRequest(`http://127.0.0.1:${port}/`, { timeoutMs: 400 })).rejects.toMatchObject({
+      name: 'TimeoutError',
+    });
+    expect(Date.now() - started).toBeLessThan(2000);
+    sockets.forEach((s) => s.destroy());
+    await new Promise<void>((r) => server.close(() => r()));
+  });
+
+  it('does not follow redirects and caps the body', async () => {
+    const { createServer } = await import('node:http');
+    const { guardedRequest } = await import('@/lib/integrations/url-guard');
+    const server = createServer((req, res) => {
+      if (req.url === '/redirect') res.writeHead(302, { Location: 'http://169.254.169.254/' }).end();
+      else res.writeHead(200).end('x'.repeat(5000));
+    });
+    await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
+    const base = `http://127.0.0.1:${(server.address() as import('node:net').AddressInfo).port}`;
+    expect((await guardedRequest(`${base}/redirect`, { timeoutMs: 2000 })).status).toBe(302);
+    await expect(guardedRequest(`${base}/big`, { timeoutMs: 2000, maxBytes: 100 })).rejects.toThrow('too large');
+    expect((await guardedRequest(`${base}/big`, { timeoutMs: 2000, maxBytes: 10_000 })).body.length).toBe(5000);
+    await new Promise<void>((r) => server.close(() => r()));
+  });
+
+  describe('in production', () => {
+    beforeEach(() => vi.stubEnv('NODE_ENV', 'production'));
+    afterEach(() => vi.unstubAllEnvs());
+
+    it('refuses private targets, including mapped IPv6 (Sol review #1, GitLab)', async () => {
+      const { guardedRequest } = await import('@/lib/integrations/url-guard');
+      const { normalizeGitlabUrl } = await import('@/lib/vcs/gitlab');
+      for (const url of ['https://[::ffff:127.0.0.1]:8443/', 'https://[::ffff:a9fe:a9fe]/', 'https://10.0.0.5/']) {
+        await expect(guardedRequest(url, { timeoutMs: 1000 })).rejects.toThrow(/Refused/);
+        expect(normalizeGitlabUrl(url)).toBeNull();
+      }
+      expect(normalizeGitlabUrl('http://[::ffff:127.0.0.1]:8080')).toBeNull();
+      expect(normalizeGitlabUrl('https://gitlab.example.com')).toBe('https://gitlab.example.com');
+    });
+
+    it('lets self-hosters opt in to private targets', async () => {
+      vi.stubEnv('ALLOW_PRIVATE_OUTGOING_URLS', 'true');
+      const { normalizeGitlabUrl } = await import('@/lib/vcs/gitlab');
+      expect(normalizeGitlabUrl('http://10.0.0.5')).toBe('http://10.0.0.5');
+    });
+  });
+});

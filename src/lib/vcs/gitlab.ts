@@ -1,7 +1,7 @@
 // GitLab REST v4 (gitlab.com or self-hosted): project lookup and project hook
 // lifecycle with a personal / project access token (`api` scope). Server-only.
 
-import { isUnreachableUrl } from '@/lib/github/webhooks';
+import { checkOutgoingUrl } from '@/lib/integrations/url-guard';
 import { requestJson, VcsHttpError } from '@/lib/vcs/http';
 
 export const GITLAB_DEFAULT_URL = 'https://gitlab.com';
@@ -20,7 +20,7 @@ export function normalizeGitlabUrl(input: unknown): string | null {
     return null;
   }
   if (url.protocol !== 'https:' && url.protocol !== 'http:') return null;
-  if (url.username || url.password || isUnreachableUrl(url.href)) return null;
+  if (url.username || url.password || !checkOutgoingUrl(url.href).ok) return null;
   return `${url.origin}${url.pathname.replace(/\/+$/, '')}`;
 }
 

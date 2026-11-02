@@ -13,7 +13,10 @@ import { request as httpRequest } from 'node:http';
 import { request as httpsRequest } from 'node:https';
 import { isIP, type LookupFunction } from 'node:net';
 
-const strict = () => process.env.NODE_ENV === 'production';
+// Self-hosters on an internal network (a GitLab on 10.x, a webhook receiver on
+// the LAN) can opt out with ALLOW_PRIVATE_OUTGOING_URLS=true.
+const strict = () =>
+  process.env.NODE_ENV === 'production' && process.env.ALLOW_PRIVATE_OUTGOING_URLS !== 'true';
 
 export const URL_MAX = 2000;
 
@@ -190,41 +193,82 @@ export const guardedLookup: LookupFunction = (hostname, options, callback) => {
   });
 };
 
-export type GuardedResponse = { status: number; statusText: string };
+export type GuardedResponse = { status: number; statusText: string; body: string };
+
+export interface GuardedRequestInit {
+  method?: string;
+  headers?: Record<string, string>;
+  body?: string;
+  /** Whole request, connect to last body byte. */
+  timeoutMs: number;
+  /** Response body bytes to keep (0 = discard the body). Larger bodies fail. */
+  maxBytes?: number;
+}
+
+export class GuardedRequestError extends Error {}
 
 /**
- * POSTs `body` to a URL that already passed `isDeliverableUrl`, pinning the
- * connection to a guarded DNS answer. Never follows redirects. Throws on
- * network errors and on timeout (error name `TimeoutError`).
+ * The only way server code should call a user- or admin-supplied URL: the URL
+ * must pass checkOutgoingUrl, the socket connects only to an address
+ * guardedLookup approved (no DNS rebinding), redirects are never followed, the
+ * whole exchange has an absolute deadline and the body a size cap. Throws
+ * GuardedRequestError (name `TimeoutError` on timeout) instead of answering.
  */
-export function postGuarded(
-  rawUrl: string,
-  headers: Record<string, string>,
-  body: string,
-  timeoutMs: number,
-): Promise<GuardedResponse> {
-  const url = new URL(rawUrl);
+export function guardedRequest(rawUrl: string, init: GuardedRequestInit): Promise<GuardedResponse> {
+  const check = checkOutgoingUrl(rawUrl);
+  if (!check.ok) return Promise.reject(new GuardedRequestError(`Refused: ${check.error}`));
+  const url = new URL(check.url);
+  const host = url.hostname.replace(/^\[|\]$/g, '');
+  if (strict() && isIP(host) && isPrivateAddress(host)) {
+    return Promise.reject(new GuardedRequestError('Refused: the URL points to a non-public address.'));
+  }
   const send = url.protocol === 'https:' ? httpsRequest : httpRequest;
+  const maxBytes = init.maxBytes ?? 0;
   return new Promise((resolve, reject) => {
-    const req = send(
-      url,
-      {
-        method: 'POST',
-        headers: { ...headers, 'Content-Length': String(Buffer.byteLength(body)) },
-        lookup: guardedLookup,
-        timeout: timeoutMs,
-      },
-      (res) => {
-        res.resume(); // drain and discard: we never read the body
-        resolve({ status: res.statusCode ?? 0, statusText: res.statusMessage ?? '' });
-      },
-    );
-    req.on('timeout', () => {
-      const err = new Error('Timed out');
+    let settled = false;
+    const finish = (fn: () => void) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(deadline);
+      fn();
+    };
+    const headers = { ...init.headers };
+    if (init.body !== undefined) headers['Content-Length'] = String(Buffer.byteLength(init.body));
+    const req = send(url, { method: init.method ?? 'GET', headers, lookup: guardedLookup }, (res) => {
+      const status = res.statusCode ?? 0;
+      const statusText = res.statusMessage ?? '';
+      if (maxBytes === 0) {
+        // Status is all we need: drop the connection rather than drain a body
+        // a slow receiver could trickle forever.
+        res.destroy();
+        finish(() => resolve({ status, statusText, body: '' }));
+        return;
+      }
+      const chunks: Buffer[] = [];
+      let size = 0;
+      res.on('data', (chunk: Buffer) => {
+        size += chunk.length;
+        if (size > maxBytes) {
+          res.destroy();
+          finish(() => reject(new GuardedRequestError('Response too large.')));
+          return;
+        }
+        chunks.push(chunk);
+      });
+      res.on('end', () =>
+        finish(() => resolve({ status, statusText, body: Buffer.concat(chunks).toString('utf8') })),
+      );
+      res.on('error', (err) => finish(() => reject(new GuardedRequestError(err.message))));
+    });
+    const deadline = setTimeout(() => {
+      const err = new GuardedRequestError(`Timed out after ${init.timeoutMs / 1000} s.`);
       err.name = 'TimeoutError';
       req.destroy(err);
-    });
-    req.on('error', reject);
-    req.end(body);
+      finish(() => reject(err));
+    }, init.timeoutMs);
+    req.on('error', (err) =>
+      finish(() => reject(err instanceof GuardedRequestError ? err : new GuardedRequestError(err.message))),
+    );
+    req.end(init.body);
   });
 }

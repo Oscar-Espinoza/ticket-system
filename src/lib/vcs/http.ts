@@ -2,6 +2,7 @@
 // Asana / Shortcut importers): JSON in and out, timeout, errors carry the HTTP
 // status and the provider's own message. Server-only.
 
+import { guardedRequest, type GuardedResponse } from '@/lib/integrations/url-guard';
 import { VCS_PROVIDER_LABEL, type VcsProvider } from '@/lib/vcs/providers';
 
 export class VcsHttpError extends Error {
@@ -31,30 +32,40 @@ function messageOf(body: unknown): string | null {
   return null;
 }
 
+/** Largest JSON body we read from a provider (project lists, imports). */
+const MAX_RESPONSE_BYTES = 8 * 1024 * 1024;
+
 export async function requestJson<T>(
   url: string,
   init: RequestInit & { headers: Record<string, string>; timeoutMs?: number },
 ): Promise<T> {
-  const { timeoutMs = 10_000, ...rest } = init;
-  let response: Response;
+  const { timeoutMs = 10_000, method, body: payload, headers } = init;
+  if (payload !== undefined && payload !== null && typeof payload !== 'string') {
+    throw new VcsHttpError(0, 'Only JSON string bodies are supported.');
+  }
+  let response: GuardedResponse;
   try {
-    response = await fetch(url, {
-      ...rest,
-      headers: { Accept: 'application/json', 'Content-Type': 'application/json', ...rest.headers },
-      signal: AbortSignal.timeout(timeoutMs),
-      cache: 'no-store',
+    // Admin-supplied hosts (self-hosted GitLab): same SSRF guard as webhooks.
+    response = await guardedRequest(url, {
+      method: method ?? 'GET',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json', ...(headers as Record<string, string>) },
+      body: payload ?? undefined,
+      timeoutMs,
+      maxBytes: MAX_RESPONSE_BYTES,
     });
   } catch (err) {
     throw new VcsHttpError(0, err instanceof Error ? err.message : String(err));
   }
-  const text = await response.text();
+  const text = response.body;
   let body: unknown = null;
   try {
     body = text ? JSON.parse(text) : null;
   } catch {
     body = text;
   }
-  if (!response.ok) throw new VcsHttpError(response.status, messageOf(body) ?? response.statusText);
+  if (response.status < 200 || response.status >= 300) {
+    throw new VcsHttpError(response.status, messageOf(body) ?? response.statusText);
+  }
   return body as T;
 }
 
