@@ -3,15 +3,19 @@
 // cron) authorize first. Every query is scoped by id AND projectId where the
 // caller supplied them.
 //
-// Runs are idempotent: a due schedule is claimed by moving `next_run_at`
-// forward with a conditional update (`where next_run_at = <what we read>`)
-// BEFORE the issue is created, so overlapping or retried runs create at most
-// one issue per occurrence. Missed occurrences collapse into one issue.
+// Runs are idempotent and recoverable: each occurrence has a deterministic
+// issue id (from the schedule id and its due time). The issue is created first
+// — an existing issue with that id means an earlier run already did — and only
+// then is `next_run_at` advanced with a conditional update (`where
+// next_run_at = <what we read>`). A run that dies in between leaves the
+// occurrence due, and the next run finds its issue instead of creating a
+// second one or skipping it. Missed occurrences collapse into one issue.
 
+import { createHash } from 'node:crypto';
 import { and, asc, eq, inArray, lte, ne } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
-import { notifications, projectMembers, recurringIssues, userProfiles } from '@/db/schema';
+import { notifications, projectMembers, recurringIssues, tickets, userProfiles } from '@/db/schema';
 import { createIssue, SYSTEM_ACTOR, type IssueActor, type IssueResult } from '@/lib/issue-service';
 import type { CreateIssueInput } from '@/lib/issue-model';
 import { deliverToChannels } from '@/lib/notifications/channels';
@@ -100,7 +104,7 @@ async function actorFor(row: RecurringRow): Promise<IssueActor> {
  * from it). Stale default ids (deleted labels, departed assignees) are dropped
  * rather than failing the run.
  */
-export async function createFromSchedule(row: RecurringRow, day: Date): Promise<IssueResult> {
+export async function createFromSchedule(row: RecurringRow, day: Date, id?: string): Promise<IssueResult> {
   const [props, actor] = await Promise.all([
     sanitizeIssueDefaults(row.projectId, row.data, TEMPLATE_FIELDS),
     actorFor(row),
@@ -112,7 +116,15 @@ export async function createFromSchedule(row: RecurringRow, day: Date): Promise<
     description: row.description,
     ...(dueInDays !== null ? { dueDate: toDateInput(day.getTime() + dueInDays * DAY_MS) } : {}),
   };
-  return createIssue(actor, row.projectId, input);
+  return createIssue(actor, row.projectId, input, id ? { id } : undefined);
+}
+
+/** The issue id of one occurrence: the same for every run that handles it. */
+export function occurrenceIssueId(scheduleId: string, dueAt: Date): string {
+  const hex = createHash('sha256').update(`recurring:${scheduleId}:${dueAt.toISOString()}`).digest('hex');
+  // RFC 9562 layout, version 8 (custom), variant 10.
+  const variant = ((parseInt(hex[16], 16) & 0x3) | 0x8).toString(16);
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-8${hex.slice(13, 16)}-${variant}${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
 }
 
 /** Tell the schedule's owner (the issue's creator, so dispatch skips them). */
@@ -181,37 +193,48 @@ export async function runDueRecurringIssues(
       broken.push(row.id);
       continue;
     }
-    const [claimed] = await db
-      .update(recurringIssues)
-      .set({ nextRunAt: next, lastRunAt: now })
-      .where(
-        and(
-          eq(recurringIssues.id, row.id),
-          eq(recurringIssues.nextRunAt, row.nextRunAt),
-          eq(recurringIssues.enabled, true),
-        ),
-      )
-      .returning({ id: recurringIssues.id });
-    if (!claimed) continue; // another run got it
-
     // A caught-up occurrence counts from today, so its due date isn't already past.
     const day = new Date(Math.max(utcDay(row.nextRunAt).getTime(), utcDay(now).getTime()));
+    const issueId = occurrenceIssueId(row.id, row.nextRunAt);
     try {
-      const created = await createFromSchedule(row, day);
-      if (!created.ok) throw new Error(created.error);
+      // 1. The occurrence's issue: an earlier (interrupted) run may have made it.
+      const [existing] = await db
+        .select({ id: tickets.id })
+        .from(tickets)
+        // By id only: the issue may have been moved to another project since.
+        .where(eq(tickets.id, issueId))
+        .limit(1);
+      let issue: { id: string; key: string; title: string } | null = null;
+      if (!existing) {
+        const created = await createFromSchedule(row, day, issueId);
+        if (!created.ok) throw new Error(created.error);
+        issue = created.issue;
+      }
+
+      // 2. Only now advance the schedule. Losing this race means another run
+      //    handled the same occurrence (same issue id, so still one issue).
+      const [claimed] = await db
+        .update(recurringIssues)
+        .set({ nextRunAt: next, lastRunAt: now })
+        .where(
+          and(
+            eq(recurringIssues.id, row.id),
+            eq(recurringIssues.nextRunAt, row.nextRunAt),
+            eq(recurringIssues.enabled, true),
+          ),
+        )
+        .returning({ id: recurringIssues.id });
+      if (!claimed) continue;
       result.created++;
-      await notifyOwner(row, created.issue).catch((err) =>
-        console.error('[recurring] notify failed', row.id, err),
-      );
+      if (issue) {
+        await notifyOwner(row, issue).catch((err) =>
+          console.error('[recurring] notify failed', row.id, err),
+        );
+      }
     } catch (err) {
+      // The schedule wasn't advanced, so the next run retries this occurrence.
       result.failed++;
       console.error('[recurring] create failed', row.id, err);
-      // Give the occurrence back so the next run retries it.
-      await db
-        .update(recurringIssues)
-        .set({ nextRunAt: row.nextRunAt, lastRunAt: row.lastRunAt })
-        .where(and(eq(recurringIssues.id, row.id), eq(recurringIssues.nextRunAt, next)))
-        .catch((e) => console.error('[recurring] release failed', row.id, e));
     }
   }
 
