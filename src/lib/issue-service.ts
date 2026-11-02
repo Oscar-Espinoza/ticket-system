@@ -750,6 +750,30 @@ const isUniqueViolation = (err: unknown) => hasPgCode(err, '23505');
 /** moveIssue's guard statement divides by zero when the tree changed under it. */
 const isMoveConflict = (err: unknown) => hasPgCode(err, '22012') || hasPgCode(err, '40P01');
 
+const STALE_ISSUE = 'The issue changed meanwhile (it was moved to another project). Reload and try again.';
+
+/**
+ * First statement of a write batch: locks `ids` and aborts the whole batch
+ * (division by zero → 22012, see isMoveConflict) unless every one of them is
+ * still in `projectId`. A concurrent move takes FOR UPDATE on the same rows,
+ * so the two serialize: whichever runs second sees the other's result. Writes
+ * use 'update'; parent / reference checks use 'share'.
+ */
+function assertIssuesInProject(ids: string[], projectId: string, lock: 'update' | 'share' = 'update') {
+  const unique = [...new Set(ids)];
+  const list = sql.join(
+    unique.map((id) => sql`${id}`),
+    sql`, `,
+  );
+  return db.execute(sql`
+    select 1 / (case when (select count(*) from (
+      select ${tickets.id} from ${tickets}
+      where ${tickets.id} in (${list}) and ${tickets.projectId} = ${projectId}
+      for ${sql.raw(lock === 'update' ? 'update' : 'share')}
+    ) held) = ${unique.length} then 1 else 0 end) as ok
+  `);
+}
+
 export async function createIssue(
   actor: IssueActor,
   projectId: string,
@@ -844,17 +868,24 @@ export async function createIssue(
     data: sql`jsonb_build_object('key', ${ctx.project.ticketKey}::text || '-' || (${counter})::text) || ${JSON.stringify(created.data)}::jsonb`,
   });
 
+  // The parent must still be in this project when the child is inserted (a
+  // concurrent move would otherwise leave the child behind under it).
+  const parentGuard = patch.parentId ? [assertIssuesInProject([patch.parentId], projectId, 'share')] : [];
   let bumped: { number: number } | undefined;
   try {
-    [[bumped]] = labelList.length
-      ? await db.batch([
-          bump,
-          insert,
-          db.insert(issueLabels).values(labelList.map((l) => ({ ticketId: id, labelId: l.id }))),
-          activityInsert,
-        ])
-      : await db.batch([bump, insert, activityInsert]);
+    const items: BatchItem<'pg'>[] = [
+      ...parentGuard,
+      bump,
+      insert,
+      ...(labelList.length
+        ? [db.insert(issueLabels).values(labelList.map((l) => ({ ticketId: id, labelId: l.id })))]
+        : []),
+      activityInsert,
+    ];
+    const results = await db.batch(items as [BatchItem<'pg'>, ...BatchItem<'pg'>[]]);
+    [bumped] = results[parentGuard.length] as { number: number }[];
   } catch (err) {
+    if (isMoveConflict(err)) return fail('The parent issue was moved meanwhile. Reload and try again.', 'parentId');
     // A concurrent attempt with the same client id won the insert (the batch
     // rolled back, counter included): answer with that issue.
     if (requestedId && isUniqueViolation(err)) {
@@ -1023,7 +1054,22 @@ export async function bulkUpdate(
   const prepared = events.length ? prepareIssueEvents(events) : null;
   if (prepared) statements.push(prepared.insert);
 
-  await db.batch(statements as [BatchItem<'pg'>, ...BatchItem<'pg'>[]]);
+  // Nothing above may land unless every changed issue is still in this project
+  // (a concurrent move would otherwise get the labels / activity of a stale
+  // plan); a new parent must be here too.
+  const newParents = [
+    ...new Set(
+      changed.flatMap((r) => (r.next.parentId && r.next.parentId !== r.old.parentId ? [r.next.parentId] : [])),
+    ),
+  ];
+  const guards: BatchItem<'pg'>[] = [assertIssuesInProject(changed.map((r) => r.old.id), projectId)];
+  if (newParents.length) guards.push(assertIssuesInProject(newParents, projectId, 'share'));
+  try {
+    await db.batch([...guards, ...statements] as [BatchItem<'pg'>, ...BatchItem<'pg'>[]]);
+  } catch (err) {
+    if (isMoveConflict(err)) return fail(STALE_ISSUE);
+    throw err;
+  }
   if (prepared) publishIssueEvents(prepared.stored);
 
   const nextById = new Map(changed.map((r) => [r.old.id, { ...r.next, updatedAt: now }]));
@@ -1136,18 +1182,24 @@ async function changeLifecycle(
     })),
   );
   // Every change in one kind shares its `set`, so one UPDATE covers them all.
-  await db.batch([
-    db
-      .update(tickets)
-      .set({ ...changes[0].set, updatedAt: now })
-      .where(
-        and(
-          eq(tickets.projectId, projectId),
-          inArray(tickets.id, changes.map(({ old }) => old.id)),
+  try {
+    await db.batch([
+      assertIssuesInProject(changes.map(({ old }) => old.id), projectId),
+      db
+        .update(tickets)
+        .set({ ...changes[0].set, updatedAt: now })
+        .where(
+          and(
+            eq(tickets.projectId, projectId),
+            inArray(tickets.id, changes.map(({ old }) => old.id)),
+          ),
         ),
-      ),
-    insert,
-  ]);
+      insert,
+    ]);
+  } catch (err) {
+    if (isMoveConflict(err)) return fail(STALE_ISSUE);
+    throw err;
+  }
   publishIssueEvents(stored);
 
   const nextById = new Map(
@@ -1220,10 +1272,16 @@ export async function purge(actor: IssueActor, projectId: string, id: string): P
       data: { ticketId: old.id, key: `${old.key}-${old.number}`, title: old.title },
     },
   ]);
-  await db.batch([
-    db.delete(tickets).where(and(eq(tickets.id, old.id), eq(tickets.projectId, projectId))),
-    insert,
-  ]);
+  try {
+    await db.batch([
+      assertIssuesInProject([old.id], projectId),
+      db.delete(tickets).where(and(eq(tickets.id, old.id), eq(tickets.projectId, projectId))),
+      insert,
+    ]);
+  } catch (err) {
+    if (isMoveConflict(err)) return fail(STALE_ISSUE);
+    throw err;
+  }
   publishIssueEvents(stored);
   return { ok: true };
 }
