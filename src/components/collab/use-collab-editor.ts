@@ -156,6 +156,9 @@ export function useCollabEditor({
             return 'ready' as const;
           }
         }
+        // Nothing to seed (empty description): still record the adopted
+        // revision, so a later joiner doesn't clear text typed after this.
+        if (!text && adoptedRev !== null && snapshot.canWrite) meta.set(ADOPTED_REV, adoptedRev);
         baseline.current = parsed?.normalized ?? text;
         adopted(stored);
         return 'ready' as const;
