@@ -346,8 +346,8 @@ function SsoForm({
         <p>
           <span className="font-medium text-foreground">Domain verification.</span>{' '}
           {proofOptional
-            ? 'Skipped in development. In production, prove the domain with this DNS record (or save from an admin account whose verified email is on it):'
-            : 'Add this DNS TXT record, or save from an admin account whose verified email is on the domain:'}
+            ? 'Skipped in development. In production, prove the domain with this DNS record (keep it published — SSO stops trusting the domain if it is removed):'
+            : 'Add this DNS TXT record and keep it published — SSO stops trusting the domain if it is removed:'}
         </p>
         <p className="font-mono">
           {txtRecord.label}.{domainPreview} TXT

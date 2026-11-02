@@ -6,10 +6,14 @@
 // Trust model: the plugins' self-service provider CRUD is disabled
 // (auth.ts `disabledPaths`) — otherwise any signed-in user could register an
 // IdP for any domain. Only workspace owners/admins configure a provider, for a
-// domain they proved (DNS TXT or their own verified email), and every SSO /
+// domain they proved with a DNS TXT record, and every SSO /
 // SCIM identity must have an email on that domain (assertIdentityDomain). With
 // that in place the IdP is the authority for the domain, so it may link to
-// existing accounts on it (see ssoCallbackContext).
+// existing accounts on it (see ssoCallbackContext). Mailbox verification is
+// NOT domain proof: any employee could otherwise claim the whole company domain
+// and impersonate coworkers. The TXT record is re-checked (cached) whenever the
+// IdP's domain authority is used, so providers saved before DNS proof was
+// mandatory, or whose record was removed, lose that authority.
 //
 // Server-only. Imported by src/lib/auth.ts — never import auth.ts / session.ts.
 
@@ -145,6 +149,25 @@ export async function hasDomainTxtRecord(domain: string, workspaceId: string): P
 
 /** Local IdPs (Keycloak on localhost, test domains) can't publish DNS. */
 export const domainProofOptional = () => process.env.NODE_ENV !== 'production';
+
+const PROOF_TTL_OK_MS = 10 * 60_000;
+const PROOF_TTL_MISSING_MS = 60_000;
+const proofCache = new Map<string, { proven: boolean; expires: number }>();
+
+/**
+ * Whether `workspaceId` currently proves control of `domain` (its TXT record is
+ * published). Cached briefly so sign-in doesn't hit DNS on every request.
+ */
+export async function isDomainProven(domain: string, workspaceId: string): Promise<boolean> {
+  if (domainProofOptional()) return true;
+  const key = `${workspaceId}:${domain}`;
+  const hit = proofCache.get(key);
+  if (hit && hit.expires > Date.now()) return hit.proven;
+  const proven = await hasDomainTxtRecord(domain, workspaceId);
+  proofCache.set(key, { proven, expires: Date.now() + (proven ? PROOF_TTL_OK_MS : PROOF_TTL_MISSING_MS) });
+  if (proofCache.size > 1000) proofCache.delete(proofCache.keys().next().value!);
+  return proven;
+}
 
 // ---------------------------------------------------------------------------
 // OIDC discovery (at save time)
@@ -301,7 +324,17 @@ async function ssoLink(providerId: string) {
   return row ?? null;
 }
 
-/** Workspace of a SCIM providerId (+ its SSO domain when SSO is configured). */
+/** ssoLink, but null unless the workspace currently proves the domain via DNS. */
+async function provenSsoLink(providerId: string) {
+  const link = await ssoLink(providerId);
+  if (!link || !(await isDomainProven(link.domain, link.workspaceId))) return null;
+  return link;
+}
+
+/**
+ * Workspace of a SCIM providerId (+ its SSO domain when SSO is configured and
+ * the domain is currently proven; otherwise `domain` is null).
+ */
 async function scimLink(providerId: string) {
   const [row] = await db
     .select({ workspaceId: workspaceSso.workspaceId, domain: ssoProviders.domain })
@@ -309,7 +342,11 @@ async function scimLink(providerId: string) {
     .leftJoin(ssoProviders, eq(ssoProviders.providerId, workspaceSso.ssoProviderId))
     .where(eq(workspaceSso.scimProviderId, providerId))
     .limit(1);
-  return row ?? null;
+  if (!row) return null;
+  if (row.domain && !(await isDomainProven(row.domain, row.workspaceId))) {
+    return { workspaceId: row.workspaceId, domain: null };
+  }
+  return row;
 }
 
 /** Enforced SSO covering this email's domain (or a parent domain), if any. */
@@ -327,7 +364,9 @@ export async function enforcedSsoForEmail(email: string) {
       ),
     )
     .limit(1);
-  return row ?? null;
+  // An unproven domain claim must not lock real owners out of password sign-in.
+  if (!row || !(await isDomainProven(row.domain, row.workspaceId))) return null;
+  return row;
 }
 
 // ---------------------------------------------------------------------------
@@ -447,6 +486,9 @@ export async function assertIdentityDomain(
   if (isSsoProviderId(account.providerId)) {
     const link = await ssoLink(account.providerId);
     if (!link) throw APIError.from('FORBIDDEN', { code: 'SSO_NOT_CONFIGURED', message: 'sso_not_configured' });
+    if (!(await isDomainProven(link.domain, link.workspaceId))) {
+      throw APIError.from('FORBIDDEN', { code: 'SSO_DOMAIN_NOT_VERIFIED', message: 'sso_domain_not_verified' });
+    }
     domain = link.domain;
   } else if (isScimProviderId(account.providerId)) {
     domain = (await scimLink(account.providerId))?.domain ?? null;
@@ -547,7 +589,7 @@ export async function ssoCallbackContext(
   options: { account?: { accountLinking?: Record<string, unknown> } },
 ) {
   if (!path || !SSO_CALLBACK_PATHS.has(path) || !isSsoProviderId(providerId)) return null;
-  if (!(await ssoLink(providerId))) return null;
+  if (!(await provenSsoLink(providerId))) return null;
   return {
     options: {
       account: {

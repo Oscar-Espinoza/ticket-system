@@ -9,10 +9,12 @@ with Okta Developer, Keycloak (self-hosted) or any SAML 2.0 / OIDC IdP.
 - **Single sign-on**: protocol toggle (SAML | OIDC); email domain; SAML: IdP
   metadata XML *or* SSO URL + IdP entity ID + X.509 cert; OIDC: issuer, client
   id, client secret (blank on edit = keep). Copy boxes: ACS URL, SP entity ID /
-  metadata URL, OIDC redirect URI. Domain proof: admin's verified email is on
-  the domain, or DNS TXT `_ticket-system.<domain>` =
-  `ticket-system-verification=<hmac(workspaceId)>` (skipped outside
-  production for local IdPs). Remove (confirm). **Enforce SSO** switch — needs
+  metadata URL, OIDC redirect URI. Domain proof: DNS TXT `_ticket-system.<domain>` =
+  `ticket-system-verification=<hmac(workspaceId)>`, required on every save and
+  re-checked (cached) whenever the IdP's domain authority is used (sign-in,
+  account linking, enforcement). A verified mailbox is not domain proof — see
+  docs/reports/2026-09-25-architecture-security-review.md #1. Skipped outside
+  production for local IdPs. Remove (confirm). **Enforce SSO** switch — needs
   the admin to have signed in with SSO once when their own email is on the
   domain (lock-out guard).
 - **SCIM**: base URL `…/api/auth/scim/v2`, generate / rotate token (shown once),

@@ -314,17 +314,16 @@ export async function saveWorkspaceSso(input: SaveSsoInput): Promise<SecurityRes
     .where(eq(ssoProviders.providerId, urls.providerId))
     .limit(1);
 
-  // Domain proof (skipped for an unchanged domain): the admin's own verified
-  // address, or the DNS TXT record. Development skips it for local IdPs.
-  if (existing?.domain !== domain && !domainProofOptional()) {
-    const ownsByEmail = authz.emailVerified && emailDomain(authz.email) === domain;
-    if (!ownsByEmail && !(await hasDomainTxtRecord(domain, workspaceId))) {
-      return {
-        ok: false,
-        error: `Verify ${domain} first: add the ${DOMAIN_TXT_LABEL}.${domain} TXT record shown below, then save again.`,
-        field: 'domain',
-      };
-    }
+  // Domain proof: the DNS TXT record, always — also for an unchanged domain, so
+  // a provider saved before DNS proof was mandatory can't be edited without it.
+  // A verified mailbox is NOT proof of the domain (any employee has one).
+  // Development skips it for local IdPs.
+  if (!domainProofOptional() && !(await hasDomainTxtRecord(domain, workspaceId))) {
+    return {
+      ok: false,
+      error: `Verify ${domain} first: add the ${DOMAIN_TXT_LABEL}.${domain} TXT record shown below, then save again.`,
+      field: 'domain',
+    };
   }
 
   // One workspace per domain (including parent/sub-domains): sign-in routes by domain.
@@ -424,6 +423,16 @@ export async function setSsoEnforced(input: {
   const view = await getWorkspaceSso(workspaceId);
   if (!view.provider) return { ok: false, error: 'Set up SSO first.' };
   if (view.enforced === enforced) return { ok: true };
+  if (
+    enforced &&
+    !domainProofOptional() &&
+    !(await hasDomainTxtRecord(view.provider.domain, workspaceId))
+  ) {
+    return {
+      ok: false,
+      error: `Publish the ${DOMAIN_TXT_LABEL}.${view.provider.domain} TXT record before requiring SSO.`,
+    };
+  }
   // Lock-out guard: an admin on the domain must have used SSO successfully.
   if (
     enforced &&
