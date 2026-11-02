@@ -16,7 +16,7 @@ import {
   tickets,
   users,
 } from '@/db/schema';
-import { emitIssueEvent, ISSUE_EVENT } from '@/lib/events';
+import { emitIssueEvent, ISSUE_EVENT, prepareIssueEvents, publishIssueEvents } from '@/lib/events';
 import type { IssueUser } from '@/lib/issue-model';
 import { extractMentionIds, newMentionIds, stripMentions } from '@/lib/mentions';
 import { ensureSubscribed } from '@/lib/subscriptions';
@@ -253,11 +253,10 @@ export async function createCommentAs(
     createdAt: now,
     updatedAt: now,
   };
-  await db.insert(comments).values(comment);
-
-  await Promise.all([
-    ensureSubscribed(issue.id, [actor.userId, ...mentions]),
-    emitIssueEvent({
+  // The comment.created activity commits with the comment, so a crash after
+  // the write can't lose the event (the webhook sweep relies on that row).
+  const { stored, insert } = prepareIssueEvents([
+    {
       projectId,
       ticketId: issue.id,
       actorId: actor.userId,
@@ -271,8 +270,11 @@ export async function createCommentAs(
         mentions,
         summary: comment.parentId ? 'replied to a comment' : 'commented',
       },
-    }),
+    },
   ]);
+  await db.batch([db.insert(comments).values(comment), insert]);
+  publishIssueEvents(stored);
+  await ensureSubscribed(issue.id, [actor.userId, ...mentions]);
 
   return {
     ok: true,
@@ -306,14 +308,8 @@ export async function updateCommentAs(
   const mentions = (
     await projectMemberIds(projectId, newMentionIds(existing.body, body))
   ).filter((id) => id !== actor.userId);
-  await db
-    .update(comments)
-    .set({ body, editedAt: now, updatedAt: now })
-    .where(eq(comments.id, existing.id));
-
-  await Promise.all([
-    ensureSubscribed(existing.ticketId, mentions),
-    emitIssueEvent({
+  const { stored, insert } = prepareIssueEvents([
+    {
       projectId,
       ticketId: existing.ticketId,
       actorId: actor.userId,
@@ -327,8 +323,14 @@ export async function updateCommentAs(
         mentions,
         summary: 'edited a comment',
       },
-    }),
+    },
   ]);
+  await db.batch([
+    db.update(comments).set({ body, editedAt: now, updatedAt: now }).where(eq(comments.id, existing.id)),
+    insert,
+  ]);
+  publishIssueEvents(stored);
+  await ensureSubscribed(existing.ticketId, mentions);
   return { ok: true, editedAt: now };
 }
 
@@ -343,14 +345,17 @@ export async function deleteCommentAs(
     return { ok: false, error: 'You can only delete your own comments.' };
   }
   // Replies and reactions cascade.
-  await db.delete(comments).where(eq(comments.id, existing.id));
-  await emitIssueEvent({
-    projectId,
-    ticketId: existing.ticketId,
-    actorId: actor.userId,
-    type: COMMENT_EVENT.deleted,
-    data: { key: existing.key, title: existing.title, commentId: existing.id, summary: 'deleted a comment' },
-  });
+  const { stored, insert } = prepareIssueEvents([
+    {
+      projectId,
+      ticketId: existing.ticketId,
+      actorId: actor.userId,
+      type: COMMENT_EVENT.deleted,
+      data: { key: existing.key, title: existing.title, commentId: existing.id, summary: 'deleted a comment' },
+    },
+  ]);
+  await db.batch([db.delete(comments).where(eq(comments.id, existing.id)), insert]);
+  publishIssueEvents(stored);
   return { ok: true };
 }
 

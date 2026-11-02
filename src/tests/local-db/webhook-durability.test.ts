@@ -18,6 +18,7 @@ import { db } from '@/lib/db';
 import { activities, webhookDeliveries, webhooks } from '@/db/schema';
 import * as issues from '@/lib/issue-service';
 import { sweepPendingEvents } from '@/lib/integrations/outgoing-webhooks';
+import { createCommentAs } from '@/lib/comments';
 import { localDb, makeProject, makeUser } from './fixtures';
 
 let server: Server;
@@ -126,5 +127,22 @@ describe.skipIf(!localDb)('durable webhook dispatch (review finding #9)', () => 
     await sweepPendingEvents({ now: later() });
     const rows = await db.select().from(webhookDeliveries).where(eq(webhookDeliveries.webhookId, hookId));
     expect(rows.map((r) => r.eventType)).toEqual(['issue.created']);
+  });
+
+  it('a comment and its comment.created event commit together (Astra review #4)', async () => {
+    const user = await makeUser('cm');
+    const project = await makeProject(user, 'CMT');
+    const created = await issues.createIssue({ userId: user }, project, { title: 'Discuss' });
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+    const result = await createCommentAs({ userId: user }, project, { ticketId: created.issue.id, body: 'First!' });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const [event] = await db
+      .select()
+      .from(activities)
+      .where(and(eq(activities.ticketId, created.issue.id), eq(activities.type, 'comment.created')));
+    expect(event.data).toMatchObject({ commentId: result.comment.id });
+    expect(event.webhookPendingProjectId).toBe(project);
   });
 });
