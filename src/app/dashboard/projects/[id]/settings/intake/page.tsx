@@ -4,7 +4,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { desc, eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 import { Inbox } from 'lucide-react';
 
 import { getSession } from '@/lib/session';
@@ -12,12 +13,15 @@ import { getMemberProject } from '@/lib/project-access';
 import { db } from '@/lib/db';
 import { customerRequests, customers, projects, tickets, workflowStates } from '@/db/schema';
 import { roleAllows } from '@/lib/roles';
+import { memberOfIssueProject } from '@/lib/tickets';
 import { issuePath } from '@/lib/issue-links';
 import { appUrl } from '@/lib/integrations/app-url';
 import { IntakeSettings } from '@/components/integrations/intake-settings';
 import { customerPath } from '@/components/customers/customer-model';
 import { EmptyState, StatusIcon } from '@/components/ui-icons';
 import { Separator } from '@/components/ui/separator';
+
+const issueProject = alias(projects, 'issue_project');
 
 export const metadata: Metadata = { title: 'Intake form' };
 
@@ -49,6 +53,9 @@ export default async function IntakeSettingsPage({
         email: customerRequests.email,
         body: customerRequests.body,
         createdAt: customerRequests.createdAt,
+        linkedTicketId: customerRequests.ticketId,
+        ticketProjectId: tickets.projectId,
+        ticketKey: issueProject.ticketKey,
         number: tickets.ticketNumber,
         title: tickets.title,
         deletedAt: tickets.deletedAt,
@@ -59,7 +66,13 @@ export default async function IntakeSettingsPage({
         customerName: customers.name,
       })
       .from(customerRequests)
-      .leftJoin(tickets, eq(customerRequests.ticketId, tickets.id))
+      // The issue may have moved to a project the viewer can't see: join it
+      // only through membership of its current project, keyed by that project.
+      .leftJoin(
+        tickets,
+        and(eq(customerRequests.ticketId, tickets.id), memberOfIssueProject(session.user.id)),
+      )
+      .leftJoin(issueProject, eq(issueProject.id, tickets.projectId))
       .leftJoin(workflowStates, eq(tickets.stateId, workflowStates.id))
       .leftJoin(customers, eq(customerRequests.customerId, customers.id))
       .where(eq(customerRequests.projectId, id))
@@ -102,15 +115,16 @@ export default async function IntakeSettingsPage({
       ) : (
         <ul className="divide-y divide-border rounded-lg border border-border">
           {requests.map((request) => {
-            const key = request.number !== null ? `${membership.ticketKey}-${request.number}` : null;
+            const key =
+              request.number !== null && request.ticketKey ? `${request.ticketKey}-${request.number}` : null;
             const excerpt =
               request.body.length > EXCERPT ? `${request.body.slice(0, EXCERPT)}…` : request.body;
             return (
               <li key={request.id} className="flex flex-col gap-1 px-3 py-2.5">
                 <div className="flex items-center gap-2 text-sm">
-                  {key && request.stateType ? (
+                  {key && request.stateType && request.ticketProjectId ? (
                     <Link
-                      href={issuePath(id, key)}
+                      href={issuePath(request.ticketProjectId, key)}
                       className="flex min-w-0 items-center gap-2 hover:underline"
                     >
                       <StatusIcon
@@ -126,7 +140,9 @@ export default async function IntakeSettingsPage({
                       )}
                     </Link>
                   ) : (
-                    <span className="text-muted-foreground">Issue deleted</span>
+                    <span className="text-muted-foreground">
+                      {request.linkedTicketId ? 'Issue moved to a team you’re not in' : 'Issue deleted'}
+                    </span>
                   )}
                   <time
                     dateTime={request.createdAt.toISOString()}
