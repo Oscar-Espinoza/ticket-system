@@ -283,6 +283,9 @@ export async function perform<N extends OutboxActionName>(
   }
 }
 
+/** Every stored op, in queue order (diagnostics and tests). */
+export const peekOutbox = (): Promise<OutboxItem[]> => readAll();
+
 export function isQueued(result: object): result is Queued {
   return 'queued' in result;
 }
@@ -322,8 +325,15 @@ async function drain() {
       if (!navigator.onLine) break;
       const user = currentUser;
       // Re-read every time: other tabs may have added (or finished) ops.
-      const head = (await readAll()).find((item) => item.userId === user);
+      let head = (await readAll()).find((item) => item.userId === user);
       if (!head) break;
+      // Creates queued before ops had idempotency keys: key them, durably,
+      // before the first replay (we hold the lock, so no other tab sends it).
+      const keyed = withClientId(head);
+      if (keyed !== head) {
+        await putItem(keyed as OutboxItem);
+        head = keyed as OutboxItem;
+      }
 
       let result: OutboxResult<OutboxActionName> | OutboxSuspended;
       try {

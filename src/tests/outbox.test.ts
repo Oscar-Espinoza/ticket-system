@@ -97,3 +97,28 @@ describe('offline outbox', () => {
     expect([...server.created.values()]).toEqual([{ title: 'Queued by A', by: 'user-a' }]);
   });
 });
+
+describe('offline outbox: queues from before idempotency keys (Sol review #7)', () => {
+  it('keys a stored create durably before its first replay', async () => {
+    server.calls.length = 0;
+    server.created.clear();
+    server.sessionUser = 'user-a';
+    nav.onLine = false;
+    // Queue it, then strip the key as an old build would have stored it.
+    await outbox.perform(createCall('user-a', 'Old build'));
+    // (No IndexedDB in tests: the memory queue hands out the stored objects.)
+    const items = await outbox.peekOutbox();
+    for (const item of items) delete (item.args as { clientId?: string }).clientId;
+    nav.onLine = true;
+    server.loseNextResponse = true;
+    await outbox.flush();
+    await new Promise((r) => setTimeout(r, 10));
+    await outbox.flush();
+    await new Promise((r) => setTimeout(r, 10));
+    const creates = server.calls.filter((c) => c.action === 'createTicket');
+    expect(creates.length).toBe(2);
+    expect(creates[0].args.clientId).toBeTruthy();
+    expect(creates[1].args.clientId).toBe(creates[0].args.clientId);
+    expect(server.created.size).toBe(1);
+  });
+});
