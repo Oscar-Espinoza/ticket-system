@@ -35,6 +35,7 @@ import {
   assertPasswordSignInAllowed,
   canGenerateScimToken,
   enforcedSsoForEmail,
+  ssoSessionAllowed,
   handleScimActiveChange,
   isNonSsoSignIn,
   onIdentityCreated,
@@ -251,6 +252,7 @@ export const auth = betterAuth({
         // Backstop for "Enforce SSO" on GitHub sign-in (email unknown until
         // the OAuth callback). Returning false fails the sign-in.
         before: async (session, ctx) => {
+          if (ctx && !(await ssoSessionAllowed(ctx.path, ctx.params?.providerId))) return false;
           if (!ctx || !isNonSsoSignIn(ctx.path)) return;
           const user = await ctx.context.internalAdapter.findUserById(session.userId);
           if (user && (await enforcedSsoForEmail(user.email))) return false;

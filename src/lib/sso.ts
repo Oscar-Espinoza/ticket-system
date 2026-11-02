@@ -324,13 +324,6 @@ async function ssoLink(providerId: string) {
   return row ?? null;
 }
 
-/** ssoLink, but null unless the workspace currently proves the domain via DNS. */
-async function provenSsoLink(providerId: string) {
-  const link = await ssoLink(providerId);
-  if (!link || !(await isDomainProven(link.domain, link.workspaceId))) return null;
-  return link;
-}
-
 /**
  * Workspace of a SCIM providerId (+ its SSO domain when SSO is configured and
  * the domain is currently proven; otherwise `domain` is null).
@@ -570,6 +563,20 @@ export async function assertPasswordSignInAllowed(email: unknown) {
 
 // --- SSO callback trust ------------------------------------------------------
 
+const SSO_DOMAIN_NOT_VERIFIED_ERROR = () =>
+  APIError.from('FORBIDDEN', { code: 'SSO_DOMAIN_NOT_VERIFIED', message: 'sso_domain_not_verified' });
+
+/**
+ * session.create backstop: a session minted by an SSO callback needs the
+ * provider's domain to be proven right now. Returns false to refuse it.
+ */
+export async function ssoSessionAllowed(path: string | undefined, providerId: unknown): Promise<boolean> {
+  if (!path || !SSO_CALLBACK_PATHS.has(path) || !isSsoProviderId(providerId)) return true;
+  const link = await ssoLink(providerId);
+  if (!link) return false;
+  return isDomainProven(link.domain, link.workspaceId);
+}
+
 const SSO_CALLBACK_PATHS = new Set([
   '/sso/callback/:providerId',
   '/sso/saml2/sp/acs/:providerId',
@@ -589,7 +596,12 @@ export async function ssoCallbackContext(
   options: { account?: { accountLinking?: Record<string, unknown> } },
 ) {
   if (!path || !SSO_CALLBACK_PATHS.has(path) || !isSsoProviderId(providerId)) return null;
-  if (!(await provenSsoLink(providerId))) return null;
+  const link = await ssoLink(providerId);
+  if (!link) return null;
+  // An IdP whose domain isn't (or is no longer) proven signs nobody in — also
+  // not through identities it linked earlier (no account is created then, so
+  // assertIdentityDomain never runs).
+  if (!(await isDomainProven(link.domain, link.workspaceId))) throw SSO_DOMAIN_NOT_VERIFIED_ERROR();
   return {
     options: {
       account: {

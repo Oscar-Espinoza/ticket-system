@@ -55,13 +55,19 @@ describe('SSO domain proof (review finding #1)', () => {
     expect(await sso.enforcedSsoForEmail('someone@corp2.example')).toBeNull();
   });
 
-  it('does not upgrade account linking for an unproven provider', async () => {
+  it('refuses SSO callbacks and sessions for an unproven provider, even for linked identities', async () => {
     rows = [{ workspaceId: 'ws-f', domain: 'corp3.example' }];
     resolveTxt.mockResolvedValue([]);
-    expect(await sso.ssoCallbackContext('/sso/callback/:providerId', 'sso-ws-f', {})).toBeNull();
+    await expect(sso.ssoCallbackContext('/sso/callback/:providerId', 'sso-ws-f', {})).rejects.toMatchObject({
+      body: { code: 'SSO_DOMAIN_NOT_VERIFIED' },
+    });
+    expect(await sso.ssoSessionAllowed('/sso/saml2/sp/acs/:providerId', 'sso-ws-f')).toBe(false);
+    // Non-SSO sign-ins are not this check's business.
+    expect(await sso.ssoSessionAllowed('/sign-in/email', undefined)).toBe(true);
 
     rows = [{ workspaceId: 'ws-g', domain: 'corp4.example' }];
     resolveTxt.mockResolvedValue([[sso.domainVerificationValue('ws-g')]]);
     expect(await sso.ssoCallbackContext('/sso/callback/:providerId', 'sso-ws-g', {})).not.toBeNull();
+    expect(await sso.ssoSessionAllowed('/sso/callback/:providerId', 'sso-ws-g')).toBe(true);
   });
 });
