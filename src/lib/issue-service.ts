@@ -40,9 +40,10 @@ import {
 } from '@/db/schema';
 import {
   ISSUE_EVENT,
-  emitIssueEvent,
+  activityRows,
   prepareIssueEvents,
   publishIssueEvents,
+  toStored,
   type IssueChange,
   type IssueEventInput,
 } from '@/lib/events';
@@ -826,6 +827,23 @@ export async function createIssue(
     updatedAt: now,
   });
 
+  // The issue.created activity commits with the issue (its key is computed
+  // from the same bumped counter), so the event can't be lost after a
+  // successful create — the webhook sweep relies on that row.
+  const [created] = toStored([
+    {
+      projectId,
+      ticketId: id,
+      actorId: actor.userId,
+      type: ISSUE_EVENT.created,
+      data: { title: patch.title, ...(opts?.source === 'import' ? { bulk: true } : {}) },
+    },
+  ]);
+  const activityInsert = db.insert(activities).values({
+    ...activityRows([created])[0],
+    data: sql`jsonb_build_object('key', ${ctx.project.ticketKey}::text || '-' || (${counter})::text) || ${JSON.stringify(created.data)}::jsonb`,
+  });
+
   let bumped: { number: number } | undefined;
   try {
     [[bumped]] = labelList.length
@@ -833,8 +851,9 @@ export async function createIssue(
           bump,
           insert,
           db.insert(issueLabels).values(labelList.map((l) => ({ ticketId: id, labelId: l.id }))),
+          activityInsert,
         ])
-      : await db.batch([bump, insert]);
+      : await db.batch([bump, insert, activityInsert]);
   } catch (err) {
     // A concurrent attempt with the same client id won the insert (the batch
     // rolled back, counter included): answer with that issue.
@@ -878,17 +897,7 @@ export async function createIssue(
     updatedAt: now,
   };
 
-  await emitIssueEvent({
-    projectId,
-    ticketId: id,
-    actorId: actor.userId,
-    type: ISSUE_EVENT.created,
-    data: {
-      key: issue.key,
-      title: issue.title,
-      ...(opts?.source === 'import' ? { bulk: true } : {}),
-    },
-  });
+  publishIssueEvents([{ ...created, data: { key: issue.key, ...created.data } }]);
   return { ok: true, issue };
 }
 
@@ -1400,9 +1409,58 @@ export async function moveIssue(
       )
     then 1 else 0 end) as ok
   `);
+  // The moved events commit with the move (keys come from the bumped counter
+  // inside the transaction), so a crash right after the commit can't lose
+  // them — the webhook sweep relies on the rows.
+  const keySql = (i: number) =>
+    sql`${target.ticketKey}::text || '-' || (${counter} - ${count - 1 - i}::int)::text`;
+  const moveEvents = toStored([
+    {
+      projectId: fromProjectId,
+      ticketId: null,
+      actorId: actor.userId,
+      type: ISSUE_MOVED_EVENT,
+      data: {
+        ticketId: root.id,
+        key: root.key,
+        title: root.title,
+        fromKey: root.key,
+        toProjectId,
+        moved: count,
+      },
+    },
+    ...ordered.map((old, i) => ({
+      projectId: toProjectId,
+      ticketId: old.id,
+      actorId: actor.userId,
+      type: ISSUE_MOVED_EVENT,
+      data: {
+        title: old.title,
+        fromKey: old.key,
+        fromProjectId,
+        toProjectId,
+        droppedLabels: old.labels
+          .filter((l) => !labelByName.has(l.name.toLowerCase()))
+          .map((l) => l.name),
+        ...(i > 0 ? { withParent: root.key } : {}),
+        summary: `moved from ${old.key}`,
+      },
+    })),
+  ]);
+  const eventRows = activityRows(moveEvents);
+  const eventInsert = db.insert(activities).values(
+    eventRows.map((row, n) => ({
+      ...row,
+      data:
+        n === 0
+          ? sql`${JSON.stringify(row.data)}::jsonb || jsonb_build_object('toKey', ${keySql(0)}, 'summary', ${`moved ${root.key} to `}::text || ${keySql(0)})`
+          : sql`${JSON.stringify(row.data)}::jsonb || jsonb_build_object('key', ${keySql(n - 1)}, 'toKey', ${keySql(n - 1)})`,
+    })),
+  );
+
   let bumped: { number: number } | undefined;
   try {
-    const results = await db.batch([guard, bump, ...statements]);
+    const results = await db.batch([guard, bump, ...statements, eventInsert]);
     [bumped] = results[1] as { number: number }[];
   } catch (err) {
     if (isMoveConflict(err)) {
@@ -1415,43 +1473,15 @@ export async function moveIssue(
   const keyOf = (i: number) => `${target.ticketKey}-${bumped.number - (count - 1 - i)}`;
   const droppedLabels = [...dropped].sort();
   const toKey = keyOf(0);
-  await emitIssueEvent([
-    {
-      projectId: fromProjectId,
-      ticketId: null,
-      actorId: actor.userId,
-      type: ISSUE_MOVED_EVENT,
-      data: {
-        ticketId: root.id,
-        key: root.key,
-        title: root.title,
-        fromKey: root.key,
-        toKey,
-        toProjectId,
-        moved: count,
-        summary: `moved ${root.key} to ${toKey}`,
-      },
-    },
-    ...ordered.map((old, i) => ({
-      projectId: toProjectId,
-      ticketId: old.id,
-      actorId: actor.userId,
-      type: ISSUE_MOVED_EVENT,
-      data: {
-        key: keyOf(i),
-        title: old.title,
-        fromKey: old.key,
-        toKey: keyOf(i),
-        fromProjectId,
-        toProjectId,
-        droppedLabels: old.labels
-          .filter((l) => !labelByName.has(l.name.toLowerCase()))
-          .map((l) => l.name),
-        ...(i > 0 ? { withParent: root.key } : {}),
-        summary: `moved from ${old.key}`,
-      },
+  publishIssueEvents(
+    moveEvents.map((event, n) => ({
+      ...event,
+      data:
+        n === 0
+          ? { ...event.data, toKey, summary: `moved ${root.key} to ${toKey}` }
+          : { ...event.data, key: keyOf(n - 1), toKey: keyOf(n - 1) },
     })),
-  ]);
+  );
 
   const [issue] = await queryIssues(and(eq(tickets.id, id), eq(tickets.projectId, toProjectId)), {
     limit: 1,

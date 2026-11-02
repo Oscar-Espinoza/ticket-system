@@ -4,6 +4,12 @@
 // webhooks. Emitting never throws — a failed audit write or dispatcher must
 // not fail the mutation that already happened.
 //
+// Webhook delivery is durable: events receivers may need are written with
+// `webhook_pending = true` (atomically with the mutation when the writer uses
+// prepareIssueEvents in its batch). The after-response dispatcher clears it
+// when it has created the delivery rows; if it never runs (crash, timeout, DB
+// blip) the sweep in outgoing-webhooks picks the event up later.
+//
 // Conventions for `data`:
 //   - issue.* events carry { key, title } so dispatchers can render without a lookup.
 //   - issue.updated carries { changes: IssueChange[] } with human-usable values
@@ -17,7 +23,7 @@ import { db } from '@/lib/db';
 import { activities } from '@/db/schema';
 import { dispatchNotifications } from '@/lib/notifications/dispatch';
 import { postToSlack } from '@/lib/integrations/slack';
-import { deliverWebhooks } from '@/lib/integrations/outgoing-webhooks';
+import { deliverWebhooks, isWebhookDeliverable } from '@/lib/integrations/outgoing-webhooks';
 
 export const ISSUE_EVENT = {
   created: 'issue.created',
@@ -98,7 +104,8 @@ function schedule(task: () => Promise<void>) {
   }
 }
 
-function toStored(list: IssueEventInput[]): StoredIssueEvent[] {
+/** Ids and timestamps for events about to be written (no I/O). */
+export function toStored(list: IssueEventInput[]): StoredIssueEvent[] {
   const now = new Date();
   return list.map((event) => ({
     id: crypto.randomUUID(),
@@ -119,7 +126,12 @@ function toStored(list: IssueEventInput[]): StoredIssueEvent[] {
  */
 export function prepareIssueEvents(events: IssueEventInput[]) {
   const stored = toStored(events);
-  return { stored, insert: db.insert(activities).values(stored) };
+  return { stored, insert: db.insert(activities).values(activityRows(stored)) };
+}
+
+/** Activity rows for stored events, flagged for the durable webhook sweep. */
+export function activityRows(stored: StoredIssueEvent[]) {
+  return stored.map((event) => ({ ...event, webhookPending: isWebhookDeliverable(event) }));
 }
 
 /** Schedule the after-response fan-out for events already written. */
@@ -135,7 +147,7 @@ export async function emitIssueEvent(
 
   const stored = toStored(list);
   try {
-    await db.insert(activities).values(stored);
+    await db.insert(activities).values(activityRows(stored));
   } catch (err) {
     console.error('[events] failed to write activity', err);
     return [];

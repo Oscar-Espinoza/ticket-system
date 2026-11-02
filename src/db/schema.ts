@@ -23,8 +23,10 @@ import {
   pgEnum,
   primaryKey,
   unique,
+  uniqueIndex,
   index,
 } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 
 // ---------------------------------------------------------------------------
 // Better Auth core tables
@@ -595,11 +597,18 @@ export const activities = pgTable(
     actorId: text('actor_id').references(() => users.id, { onDelete: 'set null' }),
     type: text('type').notNull(),
     data: jsonb('data').$type<Record<string, unknown>>().notNull().default({}),
+    /**
+     * Written true (in the mutation's own transaction) for events outgoing
+     * webhooks may need; cleared once their webhook_delivery rows exist. A
+     * crash between the two leaves it true, and the sweep materializes it.
+     */
+    webhookPending: boolean('webhook_pending').notNull().default(false),
     createdAt: timestamp('created_at').notNull(),
   },
   (table) => [
     index('activity_ticket_idx').on(table.ticketId, table.createdAt),
     index('activity_project_idx').on(table.projectId, table.createdAt),
+    index('activity_webhook_pending_idx').on(table.createdAt).where(sql`webhook_pending`),
   ],
 );
 
@@ -1194,6 +1203,8 @@ export const webhookDeliveries = pgTable(
       .notNull()
       .references(() => webhooks.id, { onDelete: 'cascade' }),
     eventType: text('event_type').notNull(),
+    /** The activity (event) id; one delivery per event and receiver. null for tests. */
+    eventId: text('event_id'),
     payload: jsonb('payload').$type<Record<string, unknown>>().notNull(),
     attempt: integer('attempt').notNull().default(0),
     status: integer('status'),
@@ -1203,7 +1214,10 @@ export const webhookDeliveries = pgTable(
     deliveredAt: timestamp('delivered_at'),
     createdAt: timestamp('created_at').notNull(),
   },
-  (table) => [index('webhook_delivery_next_idx').on(table.nextAttemptAt)],
+  (table) => [
+    index('webhook_delivery_next_idx').on(table.nextAttemptAt),
+    uniqueIndex('webhook_delivery_event_hook_uq').on(table.eventId, table.webhookId),
+  ],
 );
 
 /** GitLab / Bitbucket / Sentry connections (GitHub keeps its project columns). */

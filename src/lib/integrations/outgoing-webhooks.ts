@@ -13,6 +13,12 @@
 // page loads, and in the daily cron job. Due rows are claimed with a
 // conditional UPDATE … RETURNING, so concurrent runners never double-send.
 //
+// Events are not lost between the mutation and the delivery log: deliverable
+// events are stored with activity.webhook_pending = true, cleared in the same
+// batch that inserts their delivery rows (unique per event and receiver, so the
+// after-response dispatcher and the sweep can't both create one). Pending
+// events older than a couple of minutes are swept lazily and by the cron.
+//
 // Not delivered: bulk imports (`data.bulk` — a 500-row CSV must not fire 500
 // requests at every receiver) and project-level audit events without a ticket
 // (member / workflow / epic changes) unless they are a listed webhook type
@@ -23,7 +29,7 @@ import { and, asc, desc, eq, inArray, isNull, lt, lte, type SQL } from 'drizzle-
 import type { BatchItem } from 'drizzle-orm/batch';
 
 import { db } from '@/lib/db';
-import { webhookDeliveries, webhooks } from '@/db/schema';
+import { activities, webhookDeliveries, webhooks } from '@/db/schema';
 import type { StoredIssueEvent } from '@/lib/events';
 import { issueSummary, loadEventContext } from '@/lib/integrations/event-context';
 import { isWebhookEventType } from '@/lib/integrations/event-types';
@@ -190,14 +196,20 @@ async function sendBatch(hook: WebhookTarget, rows: Pick<DeliveryRow, 'id' | 'at
 // New events
 // ---------------------------------------------------------------------------
 
-function deliverable(event: StoredIssueEvent): boolean {
-  if (event.data.bulk === true) return false;
+/** Whether a webhook could receive this event (stored as activity.webhook_pending). */
+export function isWebhookDeliverable(event: Pick<StoredIssueEvent, 'data' | 'ticketId' | 'type'>): boolean {
+  if (event.data?.bulk === true) return false;
   return event.ticketId !== null || isWebhookEventType(event.type);
 }
 
+/** Events no longer pending: their delivery rows exist (or nobody listens). */
+const clearPending = (eventIds: string[]) =>
+  db.update(activities).set({ webhookPending: false }).where(inArray(activities.id, eventIds));
+
 async function run(all: StoredIssueEvent[]) {
-  const events = all.filter(deliverable);
+  const events = all.filter(isWebhookDeliverable);
   if (events.length === 0) return;
+  const eventIds = events.map((e) => e.id);
   const projectIds = [...new Set(events.map((e) => e.projectId))];
   const hooks = await db
     .select({
@@ -209,7 +221,10 @@ async function run(all: StoredIssueEvent[]) {
     })
     .from(webhooks)
     .where(and(inArray(webhooks.projectId, projectIds), eq(webhooks.enabled, true)));
-  if (hooks.length === 0) return;
+  if (hooks.length === 0) {
+    await clearPending(eventIds);
+    return;
+  }
 
   const plan = hooks
     .map((hook) => ({
@@ -221,7 +236,10 @@ async function run(all: StoredIssueEvent[]) {
       ),
     }))
     .filter((p) => p.events.length > 0);
-  if (plan.length === 0) return;
+  if (plan.length === 0) {
+    await clearPending(eventIds);
+    return;
+  }
 
   const ctx = await loadEventContext([...new Set(plan.flatMap((p) => p.events))]);
   const toPayload = (event: StoredIssueEvent): WebhookPayload => {
@@ -247,15 +265,32 @@ async function run(all: StoredIssueEvent[]) {
       id: crypto.randomUUID(),
       webhookId: hook.id,
       eventType: event.type,
+      eventId: event.id,
       payload: toPayload(event) as unknown as Record<string, unknown>,
       attempt: 0,
       nextAttemptAt: new Date(now + CLAIM_LEASE_MS),
       createdAt: new Date(now),
     })),
   }));
-  await db.insert(webhookDeliveries).values(batches.flatMap((b) => b.rows));
+  // One transaction: the delivery rows exist iff the events stop being pending.
+  // A row another runner already created (same event + receiver) is skipped,
+  // and only rows inserted here are sent here.
+  const [inserted] = await db.batch([
+    db
+      .insert(webhookDeliveries)
+      .values(batches.flatMap((b) => b.rows))
+      .onConflictDoNothing({ target: [webhookDeliveries.eventId, webhookDeliveries.webhookId] })
+      .returning({ id: webhookDeliveries.id }),
+    clearPending(eventIds),
+  ]);
+  const mine = new Set(inserted.map((r) => r.id));
 
-  await Promise.all(batches.map(({ hook, rows }) => sendBatch(hook, rows)));
+  await Promise.all(
+    batches.map(({ hook, rows }) => {
+      const own = rows.filter((r) => mine.has(r.id));
+      return own.length ? sendBatch(hook, own) : undefined;
+    }),
+  );
 
   // Lazy retries for the same receivers (they just had a chance to recover).
   await retryDueDeliveries({ webhookIds: hooks.map((h) => h.id), limit: 20 });
@@ -266,7 +301,53 @@ export async function deliverWebhooks(events: StoredIssueEvent[]): Promise<void>
   try {
     await run(events);
   } catch (err) {
+    // The events stay pending; the sweep delivers them later.
     console.error('[webhooks] dispatch failed', err);
+  }
+  await sweepPendingEvents({ limit: 20 });
+}
+
+/** Pending events younger than this are left to their own after-response dispatcher. */
+const SWEEP_GRACE_MS = 2 * MINUTE;
+const SWEEP_GIVE_UP_MS = 3 * 24 * 60 * MINUTE;
+
+/**
+ * Materialize deliveries for events whose dispatcher never finished (process
+ * died after the mutation committed, or a DB error). Returns how many events
+ * were picked up. Never throws.
+ */
+export async function sweepPendingEvents(
+  options: { limit?: number; now?: Date } = {},
+): Promise<number> {
+  try {
+    const now = (options.now ?? new Date()).getTime();
+    const cutoff = new Date(now - SWEEP_GRACE_MS);
+    // Events stuck longer than the whole retry window are given up on, so a
+    // poison row can't block the sweep forever.
+    await db
+      .update(activities)
+      .set({ webhookPending: false })
+      .where(and(eq(activities.webhookPending, true), lt(activities.createdAt, new Date(now - SWEEP_GIVE_UP_MS))));
+    const rows = await db
+      .select({
+        id: activities.id,
+        projectId: activities.projectId,
+        ticketId: activities.ticketId,
+        actorId: activities.actorId,
+        type: activities.type,
+        data: activities.data,
+        createdAt: activities.createdAt,
+      })
+      .from(activities)
+      .where(and(eq(activities.webhookPending, true), lt(activities.createdAt, cutoff)))
+      .orderBy(asc(activities.createdAt))
+      .limit(options.limit ?? 200);
+    if (rows.length === 0) return 0;
+    await run(rows);
+    return rows.length;
+  } catch (err) {
+    console.error('[webhooks] sweep failed', err);
+    return 0;
   }
 }
 
