@@ -21,10 +21,21 @@ if (proxyHost) {
   neonConfig.pipelineConnect = false;
 }
 
-const pool = new Pool({ connectionString: url });
-try {
-  await migrate(drizzle({ client: pool }), { migrationsFolder: new URL('../src/db/migrations', import.meta.url).pathname });
-  console.log('Migrations applied.');
-} finally {
-  await pool.end();
+const migrationsFolder = new URL('../src/db/migrations', import.meta.url).pathname;
+// The database (or its proxy) may still be starting, e.g. under docker compose.
+for (let attempt = 1; ; attempt++) {
+  const pool = new Pool({ connectionString: url });
+  try {
+    await migrate(drizzle({ client: pool }), { migrationsFolder });
+    console.log('Migrations applied.');
+    break;
+  } catch (err) {
+    const code = err?.cause?.code ?? err?.code;
+    const transient = ['ECONNREFUSED', 'ENOTFOUND', 'EAI_AGAIN', 'ECONNRESET'].includes(code) || err?.type === 'error';
+    if (!transient || attempt >= 15) throw err;
+    console.log(`Database not reachable yet (${code ?? err?.message}); retrying…`);
+    await new Promise((r) => setTimeout(r, 2000));
+  } finally {
+    await pool.end().catch(() => undefined);
+  }
 }

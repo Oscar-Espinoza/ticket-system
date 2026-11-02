@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Docker image (Dockerfile sets NEXT_OUTPUT=standalone); Vercel builds as usual.
+  ...(process.env.NEXT_OUTPUT === "standalone" ? { output: "standalone" as const } : {}),
+
   // Keep Better Auth (and its optional Kysely-based DB adapters) as server-only
   // externals rather than letting the bundler statically resolve them. Better
   // Auth's context/init pulls in @better-auth/kysely-adapter, which references
