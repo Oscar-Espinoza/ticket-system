@@ -11,7 +11,7 @@
 // occurrence due, and the next run finds its issue instead of creating a
 // second one or skipping it. Missed occurrences collapse into one issue.
 
-import { createHash } from 'node:crypto';
+import { createHmac } from 'node:crypto';
 import { and, asc, eq, inArray, lte, ne } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
@@ -119,9 +119,15 @@ export async function createFromSchedule(row: RecurringRow, day: Date, id?: stri
   return createIssue(actor, row.projectId, input, id ? { id } : undefined);
 }
 
-/** The issue id of one occurrence: the same for every run that handles it. */
+/**
+ * The issue id of one occurrence: the same for every run that handles it, and
+ * keyed with the server secret so nobody else can predict it (a client-chosen
+ * create id equal to it would otherwise make the runner skip the occurrence).
+ */
 export function occurrenceIssueId(scheduleId: string, dueAt: Date): string {
-  const hex = createHash('sha256').update(`recurring:${scheduleId}:${dueAt.toISOString()}`).digest('hex');
+  const secret = process.env.BETTER_AUTH_SECRET;
+  if (!secret) throw new Error('BETTER_AUTH_SECRET is required for recurring issues.');
+  const hex = createHmac('sha256', secret).update(`recurring:${scheduleId}:${dueAt.toISOString()}`).digest('hex');
   // RFC 9562 layout, version 8 (custom), variant 10.
   const variant = ((parseInt(hex[16], 16) & 0x3) | 0x8).toString(16);
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-8${hex.slice(13, 16)}-${variant}${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
@@ -202,6 +208,7 @@ export async function runDueRecurringIssues(
         .select({ id: tickets.id })
         .from(tickets)
         // By id only: the issue may have been moved to another project since.
+        // Only this runner can produce the id (HMAC), so a match is ours.
         .where(eq(tickets.id, issueId))
         .limit(1);
       let issue: { id: string; key: string; title: string } | null = null;
