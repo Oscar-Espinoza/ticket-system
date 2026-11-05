@@ -16,12 +16,19 @@ export const init: ServerInit = async () => {
 
 // SvelteKit's built-in origin check is off (vite.config.ts: trustedOrigins
 // ['*']) because it would reject these legitimate cross-site posts that carry
-// no Origin header: SAML ACS, OAuth token/introspect/revoke, Slack callbacks.
+// no Origin header: SAML ACS, OAuth token/introspect/revoke, Slack callbacks,
+// and token-authenticated API calls.
 // Everything else gets the same check Kit would do.
 const CSRF_EXEMPT = [
   /^\/api\/auth\/sso\/saml2\/(callback|sp\/acs)(\/|$)/,
   /^\/api\/auth\/oauth2\/(token|introspect|revoke)$/,
   /^\/api\/slack\//,
+  // Bearer-token / signature / CRON_SECRET routes — never cookie-authenticated,
+  // so a cross-site form post can't ride a session (curl -X DELETE, -d bodies).
+  /^\/api\/v1\//,
+  /^\/api\/graphql$/,
+  /^\/api\/webhooks\//,
+  /^\/api\/cron\//,
 ];
 const FORM_TYPES = ['application/x-www-form-urlencoded', 'multipart/form-data', 'text/plain'];
 const MUTATING = ['POST', 'PUT', 'PATCH', 'DELETE'];

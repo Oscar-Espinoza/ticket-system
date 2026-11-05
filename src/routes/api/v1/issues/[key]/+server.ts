@@ -2,6 +2,7 @@ import { readJsonBody } from '@/lib/api-auth';
 import { softDelete, updateIssueFields } from '@/lib/issue-service';
 import type { IssuePatch } from '@/lib/issue-model';
 import { apiRoute, issueByKey, serializeIssue, serviceError } from '../../_lib/api';
+import { allowOptions } from '../../../_lib/options';
 
 type Params = { key: string };
 
@@ -40,3 +41,6 @@ export const DELETE = apiRoute<Params>(async (_req, { userId }, { key }) => {
   if (!result.ok) return serviceError(result);
   return Response.json({ issue: serializeIssue(result.issue) });
 });
+
+// Next answered OPTIONS automatically (204 + Allow); Kit would 405.
+export const OPTIONS = allowOptions('GET', 'PATCH', 'DELETE');

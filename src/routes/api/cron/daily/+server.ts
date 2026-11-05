@@ -4,6 +4,7 @@
 import { timingSafeEqual } from 'node:crypto';
 
 import type { RequestHandler } from './$types';
+import { allowOptions } from '../../_lib/options';
 
 import { runDailyJobs } from '@/lib/cron';
 
@@ -25,3 +26,6 @@ export const GET: RequestHandler = async ({ request }) => {
   const results = await runDailyJobs();
   return Response.json({ ok: true, results });
 };
+
+// Next answered OPTIONS automatically (204 + Allow); Kit would 405.
+export const OPTIONS = allowOptions('GET');

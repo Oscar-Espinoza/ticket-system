@@ -4,6 +4,7 @@
 // the shortcut acks and opens the modal in after().
 
 import type { RequestHandler } from './$types';
+import { allowOptions } from '../../_lib/options';
 
 import { after } from '@/lib/kit/next-shims';
 import { ASK_VIEW_ID, MESSAGE_SHORTCUT_ID } from '@/lib/slack/config';
@@ -77,3 +78,6 @@ export const POST: RequestHandler = async ({ request }) => {
   // Anything else (block actions, view_closed, …) needs only an ack.
   return ok();
 };
+
+// Next answered OPTIONS automatically (204 + Allow); Kit would 405.
+export const OPTIONS = allowOptions('POST');

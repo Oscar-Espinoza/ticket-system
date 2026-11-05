@@ -5,6 +5,7 @@
 // falls back to polling `../changes` when streaming doesn't work.
 
 import type { RequestHandler } from './$types';
+import { allowOptions } from '../../../_lib/options';
 
 import { getChangeToken } from '@/lib/sync/change-token';
 
@@ -109,3 +110,6 @@ export const GET: RequestHandler = async ({ request, params, locals }) => {
     },
   });
 };
+
+// Next answered OPTIONS automatically (204 + Allow); Kit would 405.
+export const OPTIONS = allowOptions('GET');

@@ -5,6 +5,7 @@
 // endpoint over TLS (client-secret authenticated), so it can be relied on.
 
 import type { RequestHandler } from './$types';
+import { allowOptions } from '../../../_lib/options';
 
 import { exchangeInstallCode, exchangeOpenIdCode } from '@/lib/slack/api';
 import { slackConfig } from '@/lib/slack/config';
@@ -82,3 +83,6 @@ export const GET: RequestHandler = async ({ url, cookies, locals }) => {
     return fail('exchange');
   }
 };
+
+// Next answered OPTIONS automatically (204 + Allow); Kit would 405.
+export const OPTIONS = allowOptions('GET');

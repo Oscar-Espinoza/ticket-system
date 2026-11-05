@@ -127,7 +127,7 @@ export const auth = betterAuth({
       loginPage: '/login',
       consentPage: '/oauth/consent',
       scopes: ['openid', 'profile', 'email', 'offline_access', 'read', 'write'],
-      // Discovery is served by src/app/.well-known/oauth-authorization-server/api/auth/route.ts.
+      // Discovery is served by src/routes/[x+2e]well-known/oauth-authorization-server/api/auth/+server.ts.
       silenceWarnings: { oauthAuthServerConfig: true },
     }),
     // Providers are written only by workspace admins through

@@ -3,6 +3,7 @@ import { asc, eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { projectMembers, users } from '@/db/schema';
 import { apiRoute, projectAccess } from '../../../_lib/api';
+import { allowOptions } from '../../../../_lib/options';
 
 export const GET = apiRoute<{ id: string }>(async (_req, { userId }, { id }) => {
   const access = await projectAccess(userId, id, 'read');
@@ -23,3 +24,6 @@ export const GET = apiRoute<{ id: string }>(async (_req, { userId }, { id }) => 
     .orderBy(asc(users.name));
   return Response.json({ members: rows });
 });
+
+// Next answered OPTIONS automatically (204 + Allow); Kit would 405.
+export const OPTIONS = allowOptions('GET');

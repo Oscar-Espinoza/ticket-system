@@ -3,6 +3,7 @@
 // because server actions cap request bodies at 1 MB.
 
 import type { RequestHandler } from './$types';
+import { allowOptions } from '../_lib/options';
 
 import { authorizeProjectAction } from '@/lib/action-auth';
 import { addFileAttachment } from '@/lib/attachments';
@@ -48,3 +49,6 @@ export const POST: RequestHandler = async ({ request }) => {
   // page data itself (refreshAfterWrite()) once this resolves.
   return Response.json(result, { status: 201 });
 };
+
+// Next answered OPTIONS automatically (204 + Allow); Kit would 405.
+export const OPTIONS = allowOptions('POST');

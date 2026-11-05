@@ -5,6 +5,7 @@
 import { and, eq } from 'drizzle-orm';
 
 import type { RequestHandler } from './$types';
+import { allowOptions } from '../../_lib/options';
 
 import { db } from '@/lib/db';
 import { pushSubscriptions } from '@/db/schema';
@@ -93,3 +94,6 @@ export const DELETE: RequestHandler = async ({ request, locals }) => {
 
   return Response.json({ ok: true });
 };
+
+// Next answered OPTIONS automatically (204 + Allow); Kit would 405.
+export const OPTIONS = allowOptions('POST', 'DELETE');

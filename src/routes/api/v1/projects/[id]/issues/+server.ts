@@ -2,6 +2,7 @@ import { apiError, readJsonBody } from '@/lib/api-auth';
 import { createIssue, type CreateIssueInput } from '@/lib/issue-service';
 import { listProjectIssues } from '@/lib/graphql/issue-list';
 import { apiRoute, projectAccess, serializeIssue, serviceError } from '../../../_lib/api';
+import { allowOptions } from '../../../../_lib/options';
 
 /**
  * GET /projects/:id/issues — newest number first, cursor = last number seen.
@@ -43,3 +44,6 @@ export const POST = apiRoute<{ id: string }>(async (req, { userId }, { id }) => 
   if (!result.ok) return serviceError(result);
   return Response.json({ issue: serializeIssue(result.issue) }, { status: 201 });
 });
+
+// Next answered OPTIONS automatically (204 + Allow); Kit would 405.
+export const OPTIONS = allowOptions('GET', 'POST');

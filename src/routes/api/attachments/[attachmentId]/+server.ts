@@ -3,6 +3,7 @@
 // else (HTML, SVG, scripts, …) is a download, never sniffed, and sandboxed.
 
 import type { RequestHandler } from './$types';
+import { allowOptions } from '../../_lib/options';
 
 import { getAttachmentFile } from '@/lib/attachments';
 import { isInlineSafe } from '@/components/issue-hierarchy/attachment-utils';
@@ -44,3 +45,6 @@ export const GET: RequestHandler = async ({ params, locals }) => {
   headers.set('Content-Length', String(bytes.byteLength));
   return new Response(bytes, { headers });
 };
+
+// Next answered OPTIONS automatically (204 + Allow); Kit would 405.
+export const OPTIONS = allowOptions('GET');

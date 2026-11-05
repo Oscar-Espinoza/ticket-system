@@ -8,6 +8,7 @@
 // POST (guests follow along read-only). Unknown and foreign keys → 404.
 
 import type { RequestHandler } from './$types';
+import { allowOptions } from '../../_lib/options';
 import * as Y from 'yjs';
 import { Awareness, applyAwarenessUpdate, modifyAwarenessUpdate } from 'y-protocols/awareness';
 
@@ -207,3 +208,6 @@ export const POST: RequestHandler = async (event) => {
   }
   return json({ id } satisfies CollabPostResponse);
 };
+
+// Next answered OPTIONS automatically (204 + Allow); Kit would 405.
+export const OPTIONS = allowOptions('GET', 'POST');

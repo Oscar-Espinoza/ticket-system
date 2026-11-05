@@ -3,6 +3,7 @@
 // answer within 3 s and the trigger_id expires 3 s after the command.
 
 import type { RequestHandler } from './$types';
+import { allowOptions } from '../../_lib/options';
 
 import { after } from '@/lib/kit/next-shims';
 import { ASK_COMMAND } from '@/lib/slack/config';
@@ -34,3 +35,6 @@ export const POST: RequestHandler = async ({ request }) => {
   );
   return new Response(null, { status: 200 });
 };
+
+// Next answered OPTIONS automatically (204 + Allow); Kit would 405.
+export const OPTIONS = allowOptions('POST');

@@ -4,6 +4,7 @@
 // request bodies at 1 MB.
 
 import type { RequestHandler } from './$types';
+import { allowOptions } from '../_lib/options';
 
 import { authorizeProjectAction } from '@/lib/action-auth';
 import { createUpload } from '@/lib/uploads';
@@ -45,3 +46,6 @@ export const POST: RequestHandler = async ({ request }) => {
   if (!result.ok) return fail(result.error, 400);
   return Response.json(result, { status: 201 });
 };
+
+// Next answered OPTIONS automatically (204 + Allow); Kit would 405.
+export const OPTIONS = allowOptions('POST');

@@ -4,6 +4,7 @@
 // Work runs in after() so Bitbucket gets a fast 202.
 
 import type { RequestHandler } from './$types';
+import { allowOptions } from '../../../_lib/options';
 
 import { after } from '@/lib/kit/next-shims';
 import { verifySignature } from '@/lib/github/webhooks';
@@ -43,3 +44,6 @@ export const POST: RequestHandler = async ({ request, params }) => {
   });
   return Response.json({ ok: true }, { status: 202 });
 };
+
+// Next answered OPTIONS automatically (204 + Allow); Kit would 405.
+export const OPTIONS = allowOptions('POST');

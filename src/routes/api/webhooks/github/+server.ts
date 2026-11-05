@@ -7,6 +7,7 @@
 import { eq, sql } from 'drizzle-orm';
 
 import type { RequestHandler } from './$types';
+import { allowOptions } from '../../_lib/options';
 
 import { after } from '@/lib/kit/next-shims';
 import { db } from '@/lib/db';
@@ -110,3 +111,6 @@ export const POST: RequestHandler = async ({ request }) => {
   }
   return Response.json({ ok: true }, { status: 202 });
 };
+
+// Next answered OPTIONS automatically (204 + Allow); Kit would 405.
+export const OPTIONS = allowOptions('POST');

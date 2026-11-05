@@ -4,6 +4,7 @@
 import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
 
 import type { RequestHandler } from './$types';
+import { allowOptions } from '../../../_lib/options';
 
 import { db } from '@/lib/db';
 import { cycles, epics, milestones, projects, tickets, users } from '@/db/schema';
@@ -169,3 +170,6 @@ export const GET: RequestHandler = async ({ url, params, locals }) => {
     headers: { ...headers, 'Content-Type': 'text/csv; charset=utf-8' },
   });
 };
+
+// Next answered OPTIONS automatically (204 + Allow); Kit would 405.
+export const OPTIONS = allowOptions('GET');

@@ -3,6 +3,7 @@
 // hostile bytes: nosniff, a sandbox CSP and never an SVG / HTML type inline.
 
 import type { RequestHandler } from './$types';
+import { allowOptions } from '../../_lib/options';
 
 import { isPreviewableImage } from '@/components/issue-hierarchy/attachment-utils';
 import { getUploadFile } from '@/lib/uploads';
@@ -29,3 +30,6 @@ export const GET: RequestHandler = async ({ params, locals }) => {
     },
   });
 };
+
+// Next answered OPTIONS automatically (204 + Allow); Kit would 405.
+export const OPTIONS = allowOptions('GET');

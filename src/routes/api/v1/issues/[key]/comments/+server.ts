@@ -1,6 +1,7 @@
 import { apiError, readJsonBody } from '@/lib/api-auth';
 import { createCommentAs, loadIssueTimeline } from '@/lib/comments';
 import { apiRoute, issueByKey } from '../../../_lib/api';
+import { allowOptions } from '../../../../_lib/options';
 
 type Params = { key: string };
 
@@ -33,3 +34,6 @@ export const POST = apiRoute<Params>(async (req, { userId }, { key }) => {
   }
   return Response.json({ comment: result.comment }, { status: 201 });
 });
+
+// Next answered OPTIONS automatically (204 + Allow); Kit would 405.
+export const OPTIONS = allowOptions('GET', 'POST');
