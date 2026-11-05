@@ -1,5 +1,7 @@
 # Next.js → SvelteKit migration plan
 
+> **Status: done (2026-11-05).** Cut over in e185ca9; the Next.js app is gone. This file is kept for its conventions (file layout, props contract, generated action wrappers), which still apply to new code. Parity, API, performance and review results: PARITY_REPORTS.md, perf-next-vs-kit.json, WAVE2_REPORTS.md.
+
 Goal: the same app — every page, feature, permission check and look — on
 SvelteKit 3.1 + Svelte 5.57 instead of Next.js 16 + React 19. The server code in
 `src/lib` (~22k lines: issue service, auth, sync, integrations, jobs) and the
