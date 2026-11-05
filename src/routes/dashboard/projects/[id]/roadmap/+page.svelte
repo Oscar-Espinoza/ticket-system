@@ -6,7 +6,7 @@
 </script>
 
 <svelte:head>
-  <title>Roadmap · Ticket System</title>
+  <title>Roadmap</title>
 </svelte:head>
 
 <RoadmapView epics={data.epics} milestones={data.milestones} dependencies={data.dependencies} />

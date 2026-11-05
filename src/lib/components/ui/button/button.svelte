@@ -1,4 +1,5 @@
 <script lang="ts" module>
+  import { focusOnMount } from "@/lib/svelte/focus"
   import type { Snippet } from "svelte"
   import type { HTMLAnchorAttributes, HTMLButtonAttributes } from "svelte/elements"
   import type { WithElementRef } from "bits-ui"
@@ -27,6 +28,7 @@
     disabled,
     child,
     children,
+    autofocus,
     ...restProps
   }: ButtonProps = $props()
 
@@ -43,6 +45,7 @@
       href,
       type,
       disabled,
+      autofocus,
       ...restProps,
     },
   })}
@@ -58,6 +61,8 @@
     aria-disabled={disabled ? true : undefined}
     role={disabled ? "link" : undefined}
     tabindex={disabled ? -1 : undefined}
+    {autofocus}
+    {@attach autofocus ? focusOnMount : undefined}
     {...restProps}
   >
     {@render children?.()}
@@ -71,6 +76,8 @@
     class={classes}
     {type}
     {disabled}
+    {autofocus}
+    {@attach autofocus ? focusOnMount : undefined}
     {...restProps}
   >
     {@render children?.()}

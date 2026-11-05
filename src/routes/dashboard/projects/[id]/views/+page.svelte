@@ -10,7 +10,7 @@
 </script>
 
 <svelte:head>
-  <title>Views · Ticket System</title>
+  <title>Views</title>
 </svelte:head>
 
 {#if data.items.length === 0}

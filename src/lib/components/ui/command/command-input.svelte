@@ -2,6 +2,7 @@
   import { Command as CommandPrimitive } from "bits-ui"
   import SearchIcon from "@lucide/svelte/icons/search"
   import { cn } from "@/lib/utils"
+  import { focusOnMount } from "@/lib/svelte/focus"
   import { InputGroup, InputGroupAddon } from "@/lib/components/ui/input-group"
 
   let {
@@ -9,6 +10,7 @@
     value = $bindable(""),
     onValueChange,
     class: className,
+    autofocus,
     ...restProps
   }: CommandPrimitive.InputProps & {
     /** cmdk contract: called with the new search text on every change. */
@@ -31,6 +33,8 @@
         "w-full text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50",
         className
       )}
+      {autofocus}
+      {@attach autofocus ? focusOnMount : undefined}
       {...restProps}
     />
     <InputGroupAddon>

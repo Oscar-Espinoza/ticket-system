@@ -32,6 +32,7 @@
 </script>
 
 <script lang="ts">
+  import { focusOnMount } from '@/lib/svelte/focus';
   import { formatMention } from '@/lib/mentions';
   import type { IssueUser } from '@/lib/issue-model';
   import { cn } from '@/lib/utils';
@@ -239,6 +240,7 @@
   aria-label={ariaLabel}
   {placeholder}
   autofocus={autoFocus}
+  {@attach autoFocus ? focusOnMount : undefined}
   {disabled}
   maxlength={maxLength}
   role={members.length > 0 ? 'combobox' : undefined}

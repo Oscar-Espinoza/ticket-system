@@ -6,7 +6,7 @@
 </script>
 
 <svelte:head>
-  <title>{data.document.title} · Ticket System</title>
+  <title>{data.document.title}</title>
 </svelte:head>
 
 <!-- Keyed by id: switching docs must never reuse the previous doc's editor. -->

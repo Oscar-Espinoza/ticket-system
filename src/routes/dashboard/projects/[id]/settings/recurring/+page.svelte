@@ -5,7 +5,7 @@
   let { data }: PageProps = $props();
 </script>
 
-<svelte:head><title>Recurring issues · Ticket System</title></svelte:head>
+<svelte:head><title>Recurring issues</title></svelte:head>
 
 <h1 class="text-xl font-medium">Recurring issues</h1>
 <p class="mt-1 mb-8 text-sm text-muted-foreground">

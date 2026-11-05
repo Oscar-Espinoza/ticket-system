@@ -2,6 +2,7 @@
   import type { HTMLInputAttributes } from "svelte/elements"
   import type { WithElementRef } from "bits-ui"
   import { cn } from "@/lib/utils"
+  import { focusOnMount } from "@/lib/svelte/focus"
 
   type Props = WithElementRef<HTMLInputAttributes, HTMLInputElement> & {
     files?: FileList | null
@@ -13,6 +14,7 @@
     files = $bindable(),
     type,
     class: className,
+    autofocus,
     ...restProps
   }: Props = $props()
 
@@ -31,6 +33,8 @@
     data-slot="input"
     class={classes}
     bind:files
+    {autofocus}
+    {@attach autofocus ? focusOnMount : undefined}
     {...restProps}
   />
 {:else}
@@ -40,6 +44,8 @@
     data-slot="input"
     class={classes}
     bind:value
+    {autofocus}
+    {@attach autofocus ? focusOnMount : undefined}
     {...restProps}
   />
 {/if}

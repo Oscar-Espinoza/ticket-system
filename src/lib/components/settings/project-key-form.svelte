@@ -33,10 +33,13 @@
     <Input
       id="project-key"
       name="ticketKey"
-      bind:value={
-        () => value,
-        (next) => (value = (next ?? '').toUpperCase().replace(/[^A-Z]/g, '').slice(0, 6))
-      }
+      {value}
+      oninput={(e) => {
+        // Write the cleaned key back to the field even when it equals the old
+        // value (typing "1" after "WEB" must not leave "WEB1" on screen).
+        value = e.currentTarget.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 6);
+        e.currentTarget.value = value;
+      }}
       disabled={!isOwner}
       autocomplete="off"
       spellcheck={false}

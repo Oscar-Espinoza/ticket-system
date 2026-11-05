@@ -13,7 +13,7 @@
 </script>
 
 <svelte:head>
-  <title>{view.name} · Ticket System</title>
+  <title>{view.name}</title>
 </svelte:head>
 
 <!-- Keyed on the view so switching views remounts the whole body, as Next

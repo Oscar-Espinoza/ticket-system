@@ -21,7 +21,7 @@ import type { PageServerLoad } from './$types';
 export const load: PageServerLoad = async ({ params, locals }) => {
   if (!locals.user) redirect(303, '/login');
   const membership = await getWorkspaceMembership(params.slug, locals.user.id);
-  if (!membership) error(404, 'Not found');
+  if (!membership) error(404, 'Workspace not found');
 
   const workspace = { slug: membership.slug, name: membership.name, role: membership.role };
   if (membership.role === 'member') return { workspace, security: null };

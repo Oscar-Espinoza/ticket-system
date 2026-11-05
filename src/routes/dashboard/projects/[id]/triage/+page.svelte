@@ -8,7 +8,7 @@
   let { data }: PageProps = $props();
 </script>
 
-<svelte:head><title>Triage · Ticket System</title></svelte:head>
+<svelte:head><title>Triage</title></svelte:head>
 
 {#snippet icon()}<InboxIcon />{/snippet}
 

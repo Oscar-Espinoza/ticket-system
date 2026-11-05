@@ -6,7 +6,7 @@
 </script>
 
 <svelte:head>
-  <title>Epics · Ticket System</title>
+  <title>Epics</title>
 </svelte:head>
 
 <EpicsList epics={data.epics} labels={data.labels} />

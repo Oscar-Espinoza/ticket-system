@@ -16,14 +16,23 @@
     if (page.status !== 404) console.error(page.error);
   });
 
+  const specificMessage = $derived(
+    page.error?.message && !/^not found$/i.test(page.error.message) ? page.error.message : null,
+  );
+
   // unstable_retry(): re-run the loads and re-render the segment.
   const retry = () => goto(page.url.href, { replace: true, refreshAll: true, reset: false });
 </script>
 
 <svelte:head>
   {#if page.status === 404}
-    <!-- Next's built-in not-found page sets this title verbatim. -->
-    <title>404: This page could not be found.</title>
+    <!-- A page's generateMetadata named the miss ("Profile not found"); otherwise
+         Next's built-in not-found title. -->
+    {#if specificMessage}
+      <title>{specificMessage} · Ticket System</title>
+    {:else}
+      <title>404: This page could not be found.</title>
+    {/if}
   {/if}
 </svelte:head>
 

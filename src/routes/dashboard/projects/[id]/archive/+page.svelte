@@ -7,7 +7,7 @@
 </script>
 
 <svelte:head>
-  <title>Archive · Ticket System</title>
+  <title>Archive</title>
 </svelte:head>
 
 <div class="flex flex-col gap-3">

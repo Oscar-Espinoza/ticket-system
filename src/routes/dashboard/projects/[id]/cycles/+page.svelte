@@ -8,7 +8,7 @@
   let { data }: PageProps = $props();
 </script>
 
-<svelte:head><title>Cycles · Ticket System</title></svelte:head>
+<svelte:head><title>Cycles</title></svelte:head>
 
 {#snippet icon()}<IterationCw />{/snippet}
 

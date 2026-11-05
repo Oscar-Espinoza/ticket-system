@@ -20,7 +20,19 @@
 
   // unstable_retry(): re-run the loads and re-render the segment.
   const retry = () => goto(page.url.href, { replace: true, refreshAll: true, reset: false });
+
+  // Next titled a page-level miss from its generateMetadata ("Issue not found";
+  // no suffix under a project).
+  const specificMessage = $derived(
+    page.error?.message && !/^not found$/i.test(page.error.message) ? page.error.message : null,
+  );
 </script>
+
+<svelte:head>
+  {#if page.status === 404 && specificMessage}
+    <title>{specificMessage}</title>
+  {/if}
+</svelte:head>
 
 {#if page.status === 404}
   <EmptyState title="Project not found" description="It doesn't exist, or you're not a member of it.">

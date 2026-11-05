@@ -212,8 +212,10 @@ export const Embed = Node.create({
   atom: true,
   selectable: true,
   draggable: true,
-  // Before Link's paste handler.
-  priority: 1001,
+  // Default priority on purpose: above paragraph (1000) this node became the
+  // schema's default block, so blank docs and the trailing block were empty
+  // embeds (no placeholder, typed text swallowed). Its paste rule outranks
+  // Link through EmbedPaste below instead.
 
   addAttributes() {
     return {
@@ -242,9 +244,14 @@ export const Embed = Node.create({
   addNodeView() {
     return SvelteNodeViewRenderer(EmbedNodeView);
   },
+});
 
+/** An allowlisted link pasted on an empty top-level line becomes an embed (before Link's paste handler). */
+export const EmbedPaste = Extension.create({
+  name: 'embedPaste',
+  priority: 1001,
   addProseMirrorPlugins() {
-    const type = this.type;
+    const type = this.editor.schema.nodes.embed;
     return [
       new Plugin({
         key: new PluginKey('embedPaste'),
@@ -381,11 +388,24 @@ function editorKeys(runtime: RuntimeRef) {
     priority: 50,
     addKeyboardShortcuts() {
       return {
+        Escape: () => runtime.current.cancel(),
+      };
+    },
+  });
+}
+
+// Mod-Enter / Mod-k must run before StarterKit's HardBreak (priority 100), which
+// also binds Mod-Enter and would insert a line break instead of submitting.
+function editorSubmitKeys(runtime: RuntimeRef) {
+  return Extension.create({
+    name: 'editorSubmitKeys',
+    priority: 101,
+    addKeyboardShortcuts() {
+      return {
         'Mod-Enter': () => {
           runtime.current.submit();
           return true;
         },
-        Escape: () => runtime.current.cancel(),
         'Mod-k': () => {
           runtime.current.openLink();
           return true;
@@ -453,8 +473,10 @@ export function createExtensions(
       suggestions: mentionSuggestions(runtime, options.ticketKey) as unknown as MentionOptions['suggestions'],
     }),
     Embed,
+    EmbedPaste,
     imageUpload(runtime),
     editorKeys(runtime),
+    editorSubmitKeys(runtime),
     ...(options.maxLength ? [lengthLimit(runtime, options.maxLength)] : []),
     ...(options.extra ?? []),
   ];

@@ -71,8 +71,7 @@
     {#snippet child({ props })}
       {@render children({ props })}
     {/snippet}
-  </PopoverTrigger>
-  <PopoverContent
+  </PopoverTrigger><!-- no whitespace: it would render a text node next to the trigger --><PopoverContent
     {align}
     {side}
     class={cn('w-56 gap-0 p-0', className)}

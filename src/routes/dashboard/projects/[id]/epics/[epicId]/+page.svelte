@@ -6,7 +6,7 @@
 </script>
 
 <svelte:head>
-  <title>{data.epic.name} · Ticket System</title>
+  <title>{data.epic.name}</title>
 </svelte:head>
 
 <!-- Next remounted the page per epic; keep that so drafts and pending

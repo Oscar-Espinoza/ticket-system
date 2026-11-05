@@ -6,7 +6,7 @@
 </script>
 
 <svelte:head>
-  <title>Docs · Ticket System</title>
+  <title>Docs</title>
 </svelte:head>
 
 <DocumentsList projectId={data.projectId} documents={data.documents} query={data.query} />

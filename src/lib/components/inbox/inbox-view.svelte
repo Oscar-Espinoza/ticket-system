@@ -204,7 +204,7 @@
         scope: 'Inbox',
         description: 'Mark as read / unread',
         handler: () => {
-          if (selected) setRead(selected, !selected.unread);
+          if (selected) setRead(selected, selected.unread);
         },
       },
       {
@@ -337,7 +337,7 @@
         <InboxDetail
           group={selected}
           issue={issueOf(selected)}
-          onToggleRead={() => selected && setRead(selected, !selected.unread)}
+          onToggleRead={() => selected && setRead(selected, selected.unread)}
           onArchive={() => selected && archive(selected)}
           onSnooze={(until) => selected && snooze(selected, until)}
           onBack={() => (selectedKey = null)}

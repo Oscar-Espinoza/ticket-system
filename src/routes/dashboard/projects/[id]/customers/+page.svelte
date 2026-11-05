@@ -6,7 +6,7 @@
 </script>
 
 <svelte:head>
-  <title>Customers · Ticket System</title>
+  <title>Customers</title>
 </svelte:head>
 
 <CustomersList customers={data.customers} tiers={data.tiers} />

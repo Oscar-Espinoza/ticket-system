@@ -33,7 +33,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
   if (!locals.user) redirect(303, '/login');
   const viewerId = locals.user.id;
   const shared = await getSharedProjects(viewerId, userId);
-  if (viewerId !== userId && shared.length === 0) error(404, 'Not found');
+  if (viewerId !== userId && shared.length === 0) error(404, 'Profile not found');
 
   const isSelf = viewerId === userId;
   const sharedIds = shared.map((project) => project.id);
@@ -84,7 +84,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
       { limit: 50, orderBy: [desc(tickets.updatedAt)] },
     ),
   ]);
-  if (!person) error(404, 'Not found');
+  if (!person) error(404, 'Profile not found');
 
   const projectNames = new Map(shared.map((project) => [project.id, project.name]));
   const now = Date.now();

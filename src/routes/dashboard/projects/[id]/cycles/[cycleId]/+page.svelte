@@ -11,7 +11,7 @@
   let { data }: PageProps = $props();
 </script>
 
-<svelte:head><title>{data.title} · Ticket System</title></svelte:head>
+<svelte:head><title>{data.title}</title></svelte:head>
 
 <div class="flex min-h-0 flex-1 flex-col gap-5">
   <CycleHeader
