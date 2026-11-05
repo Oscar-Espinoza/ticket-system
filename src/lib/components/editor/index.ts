@@ -1,0 +1,20 @@
+// Barrel for the editor (port of src/components/editor/index.ts), same export names.
+// React → Svelte: `<Markdown>{text}</Markdown>` → `<Markdown source={text} />`;
+// MarkdownEditor `actions` is a snippet; refs → bind:this + exported functions
+// (MarkdownEditor: focus(), getEditor()).
+
+export { default as MarkdownEditor } from './markdown-editor.svelte';
+export type { MarkdownEditorHandle, MarkdownEditorProps } from './markdown-editor.svelte';
+export { default as Markdown } from './markdown.svelte';
+export type { MarkdownProps } from './markdown.svelte';
+export { default as MentionChip } from './mention-chip.svelte';
+export { formatEdit, toggleTaskAt, mentionQueryAt, type MarkdownFormat } from '@/components/editor/text-edits';
+export { default as RichEditorProvider } from './rich-editor-provider.svelte';
+export {
+  setRichEditorContext,
+  useRichEditorContext,
+  type EditorIssue,
+  type RichEditorContextValue,
+} from './context.svelte';
+export { embedFor, type Embed, type EmbedProvider } from '@/components/editor/embeds';
+export { default as EmbedFrame } from './embed-frame.svelte';

@@ -12,6 +12,9 @@
   import { TooltipProvider } from '@/lib/components/ui/tooltip';
   import { markAppHydrated } from '@/lib/svelte/hydration';
   import ThemeProvider from '@/lib/svelte/theme-provider.svelte';
+  // Lane L1 (PWA)
+  import OfflineBanner from '@/lib/components/pwa/offline-banner.svelte';
+  import RegisterServiceWorker from '@/lib/components/pwa/register-sw.svelte';
 
   let { children }: { children: Snippet } = $props();
 
@@ -36,5 +39,7 @@
   <Toaster position="bottom-right" />
 </ThemeProvider>
 
-<!-- ===== Lane L1 (PWA): render <RegisterServiceWorker /> and <OfflineBanner /> here,
+<!-- ===== Lane L1 (PWA): <RegisterServiceWorker /> and <OfflineBanner />,
      after the app, as src/app/layout.tsx did. ===== -->
+<RegisterServiceWorker />
+<OfflineBanner />

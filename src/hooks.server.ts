@@ -53,7 +53,19 @@ const session: Handle = async ({ event, resolve }) => {
   return svelteKitHandler({ event, resolve, auth, building });
 };
 
-export const handle = sequence(csrf, session);
+// Defence in depth: signed-out full-page requests under /dashboard go to
+// /login before any load runs. Client navigations (__data.json) still rely on
+// each page's own auth check, as under Next.
+const dashboardGuard: Handle = ({ event, resolve }) => {
+  const { pathname } = event.url;
+  const dashboard = pathname === '/dashboard' || pathname.startsWith('/dashboard/');
+  if (dashboard && !event.locals.user && !event.isDataRequest && !event.isRemoteRequest) {
+    return new Response(null, { status: 303, headers: { location: '/login' } });
+  }
+  return resolve(event);
+};
+
+export const handle = sequence(csrf, session, dashboardGuard);
 
 export const handleError: HandleServerError = ({ kind, error, event }) => {
   if (kind === 'unknown') {

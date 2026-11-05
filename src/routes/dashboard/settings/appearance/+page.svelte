@@ -1,0 +1,12 @@
+<!-- Account settings › Appearance (port of src/app/dashboard/settings/appearance/page.tsx). -->
+<script lang="ts">
+  import AppearanceForm from '@/lib/components/settings/appearance-form.svelte';
+</script>
+
+<svelte:head>
+  <title>Appearance · Ticket System</title>
+</svelte:head>
+
+<h1 class="text-xl font-medium">Appearance</h1>
+<p class="mt-1 mb-8 text-sm text-muted-foreground">Theme and density apply to this browser only.</p>
+<AppearanceForm />

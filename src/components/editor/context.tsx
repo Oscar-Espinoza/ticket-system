@@ -9,15 +9,9 @@
 import { createContext, use, type ReactNode } from 'react';
 import type { AnyExtension } from '@tiptap/react';
 
-import type { WorkflowState } from '@/lib/issue-model';
 
-export interface EditorIssue {
-  id: string;
-  /** "APP-12" */
-  key: string;
-  title: string;
-  state?: Pick<WorkflowState, 'name' | 'type' | 'color'>;
-}
+export type { EditorIssue } from './editor-issue';
+import type { EditorIssue } from './editor-issue';
 
 export interface RichEditorContextValue {
   /** Project that owns pasted images (→ /api/uploads) and scopes `#` suggestions. */

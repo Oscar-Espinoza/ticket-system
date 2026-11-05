@@ -11,8 +11,13 @@ flock "$LOCK" bash -c 'npx svelte-kit sync >/dev/null 2>&1; npx svelte-check --t
 if [ "$#" -eq 0 ]; then
   grep -E ' ERROR ' "$OUT" | sed -E 's/^[0-9]+ ERROR //'
 else
-  pattern="$(printf '%s|' "$@" | sed 's/|$//')"
-  grep -E ' ERROR ' "$OUT" | sed -E 's/^[0-9]+ ERROR //' | grep -E "^\"($pattern)" || true
+  # Paths are literal prefixes (route dirs contain [ ] which are regex syntax).
+  grep -E ' ERROR ' "$OUT" | sed -E 's/^[0-9]+ ERROR //' | while IFS= read -r line; do
+    for p in "$@"; do
+      p="${p//\\/}"  # tolerate callers who escaped brackets
+      case "$line" in "\"$p"*) printf '%s\n' "$line"; break ;; esac
+    done
+  done
 fi > "$OUT.f"
 cat "$OUT.f"
 n=$(wc -l < "$OUT.f")
