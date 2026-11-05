@@ -58,9 +58,16 @@ function neonClients() {
 const batchClient = new AsyncLocalStorage<pg.PoolClient>();
 
 function pgClients() {
+  // A statement or an open transaction stuck for a minute is a bug or a lock
+  // pile-up; fail it (Vercel's function limit does the same on Neon) rather
+  // than hold a pooled connection forever. DATABASE_STATEMENT_TIMEOUT_MS=0
+  // turns the statement limit off.
+  const statementTimeout = Number(process.env.DATABASE_STATEMENT_TIMEOUT_MS ?? 60_000);
   const pool = new pg.Pool({
     connectionString: process.env.DATABASE_URL!,
     max: Number(process.env.DATABASE_POOL_MAX) || 10,
+    ...(statementTimeout > 0 ? { statement_timeout: statementTimeout } : {}),
+    idle_in_transaction_session_timeout: 60_000,
   });
   // A broken idle connection must not crash the process; the pool replaces it.
   pool.on('error', (err) => console.error('[db] idle connection error', err));

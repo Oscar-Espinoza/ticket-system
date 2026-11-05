@@ -6,17 +6,7 @@
 import { db } from '@/lib/db';
 import { projectMembers, projects, users, workflowStates } from '@/db/schema';
 
-const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]', 'db.localtest.me']);
-
-function isLocalDatabase(url: string | undefined) {
-  try {
-    return LOCAL_HOSTS.has(new URL(url ?? '').hostname.toLowerCase());
-  } catch {
-    return false;
-  }
-}
-
-export const localDb = process.env.LOCAL_DB_TESTS === '1' && isLocalDatabase(process.env.DATABASE_URL);
+export { localDb } from './guard';
 
 const uid = () => crypto.randomUUID();
 

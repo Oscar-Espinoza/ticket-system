@@ -64,7 +64,7 @@ export async function sendPushes(targets: PushTarget[]): Promise<{ sent: number;
         sendNotification(
           { endpoint: target.endpoint, keys: { p256dh: target.p256dh, auth: target.auth } },
           JSON.stringify(target.payload),
-          { TTL: TTL_SECONDS, vapidDetails: vapid },
+          { TTL: TTL_SECONDS, vapidDetails: vapid, timeout: 15_000 },
         ),
       ),
     );

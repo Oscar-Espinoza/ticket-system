@@ -26,6 +26,8 @@ export async function sendEmail(message: EmailMessage): Promise<boolean> {
   try {
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
+      // A stalled API must not hold a request or the daily jobs open.
+      signal: AbortSignal.timeout(15_000),
       headers: {
         Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',

@@ -14,7 +14,9 @@ is nothing else to run.
 
 Plan for about 1 GB RAM and 3 GB disk for the image and data. Run **one** app
 container: every app container started with `SELF_HOSTED=true` runs the daily
-jobs.
+jobs. A run missed while the app is down is not made up at start; the next one
+happens at the usual hour. A job still running after 10 minutes is reported in
+the logs and the next job starts.
 
 ## Start
 
@@ -41,7 +43,7 @@ Skip the `postgres` service and run only the app image (Postgres 14 or newer):
 
 ```bash
 docker build --build-arg NEXT_PUBLIC_APP_URL=https://tickets.example.com -t ticket-system-app .
-docker run -d --name tickets -p 3000:3000 \
+docker run -d --name tickets --restart unless-stopped -p 3000:3000 \
   -e DATABASE_URL=postgres://tickets:secret@db.internal:5432/tickets \
   -e BETTER_AUTH_URL=https://tickets.example.com \
   -e NEXT_PUBLIC_APP_URL=https://tickets.example.com \
@@ -52,7 +54,9 @@ docker run -d --name tickets -p 3000:3000 \
 Add `?sslmode=require` to `DATABASE_URL` if the server requires TLS. The app
 uses the standard Postgres driver for any host that isn't `*.neon.tech`
 (`DATABASE_DRIVER=pg|neon` overrides the guess) and keeps up to
-`DATABASE_POOL_MAX` (default 10) connections open.
+`DATABASE_POOL_MAX` (default 10) connections open. A query running longer than
+`DATABASE_STATEMENT_TIMEOUT_MS` (default 60000, `0` = no limit) is cancelled;
+migrations are exempt.
 
 ## Optional features
 
@@ -76,14 +80,14 @@ docker run -d --rm --name ts-pg -p 5433:5432 --tmpfs /var/lib/postgresql/data \
   -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=main postgres:17-alpine
 DATABASE_URL=postgres://postgres:postgres@localhost:5433/main node scripts/migrate.mjs
 npm run test:db
-docker stop ts-pg
 ```
 
 `migrate.mjs` needs a moment after `docker run` while Postgres starts; it
 retries on its own.
 
 `npm run test:db:neon` runs the same suite through the Neon driver (what
-Vercel uses). It needs the local Neon proxy in front of that Postgres:
+Vercel uses). It needs the local Neon proxy in front of the same, still running
+Postgres:
 
 ```bash
 docker network create ts-test && docker network connect ts-test ts-pg
@@ -92,5 +96,8 @@ docker run -d --rm --name ts-neon --network ts-test -p 4444:4444 \
   -e PG_CONNECTION_STRING=postgres://postgres:postgres@ts-pg:5432/main \
   ghcr.io/timowilhelm/local-neon-http-proxy:main
 npm run test:db:neon
-docker stop ts-neon ts-pg && docker network rm ts-test
+docker stop ts-neon && docker network rm ts-test
 ```
+
+When you're done, `docker stop ts-pg` (it was started with `--rm`, so this
+also deletes it and its data).

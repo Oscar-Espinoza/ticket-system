@@ -60,10 +60,13 @@ for (let attempt = 1; ; attempt++) {
     break;
   } catch (err) {
     const code = err?.cause?.code ?? err?.code;
+    const message = String(err?.cause?.message ?? err?.message ?? '');
     const transient =
-      ['ECONNREFUSED', 'ENOTFOUND', 'EAI_AGAIN', 'ECONNRESET', '57P03'].includes(code) || err?.type === 'error';
+      ['ECONNREFUSED', 'ENOTFOUND', 'EAI_AGAIN', 'ECONNRESET', '57P03'].includes(code) ||
+      /Connection terminated/i.test(message) || // Postgres restarting during first init
+      err?.type === 'error';
     if (!transient || attempt >= 15) throw err;
-    console.log(`Database not reachable yet (${code ?? err?.message}); retrying…`);
+    console.log(`Database not reachable yet (${code ?? message}); retrying…`);
     await new Promise((r) => setTimeout(r, 2000));
   } finally {
     await pool.end().catch(() => undefined);

@@ -20,11 +20,26 @@ const JOBS: Record<string, (now: Date) => Promise<string>> = {
   collabPrune,
 };
 
-export async function runDailyJobs(now = new Date()): Promise<Record<string, string>> {
+/** A job still running after this is reported and the next job starts. */
+export const JOB_TIMEOUT_MS = 10 * 60_000;
+
+function withTimeout<T>(work: Promise<T>, ms: number, name: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${name} still running after ${ms} ms`)), ms);
+  });
+  return Promise.race([work, timeout]).finally(() => clearTimeout(timer));
+}
+
+export async function runDailyJobs(
+  now = new Date(),
+  jobs: Record<string, (now: Date) => Promise<string>> = JOBS,
+  timeoutMs = JOB_TIMEOUT_MS,
+): Promise<Record<string, string>> {
   const results: Record<string, string> = {};
-  for (const [name, job] of Object.entries(JOBS)) {
+  for (const [name, job] of Object.entries(jobs)) {
     try {
-      results[name] = await job(now);
+      results[name] = await withTimeout(job(now), timeoutMs, name);
     } catch (err) {
       console.error(`[cron] ${name} failed`, err);
       results[name] = `error: ${err instanceof Error ? err.message : String(err)}`;

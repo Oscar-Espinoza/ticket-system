@@ -8,6 +8,7 @@
 
 import path from 'node:path';
 import { migrate as migrateNeon } from 'drizzle-orm/neon-serverless/migrator';
+import { drizzle as drizzlePg } from 'drizzle-orm/node-postgres';
 import { migrate as migratePg } from 'drizzle-orm/node-postgres/migrator';
 import pg from 'pg';
 import { authDb, dbDriver } from '@/lib/db';
@@ -34,20 +35,48 @@ async function runMigrations() {
   if (dbDriver === 'neon') {
     await migrateNeon(authDb as Parameters<typeof migrateNeon>[0], { migrationsFolder: migrationsDir });
   } else {
-    await withMigrationLock(() =>
-      migratePg(authDb as Parameters<typeof migratePg>[0], { migrationsFolder: migrationsDir }),
-    );
+    // The database may still be starting (first boot of a fresh volume restarts
+    // Postgres once): retry connection failures for about a minute.
+    for (let attempt = 1; ; attempt++) {
+      try {
+        await migratePgLocked(migrationsDir);
+        break;
+      } catch (err) {
+        if (!isConnectionError(err) || attempt >= 30) throw err;
+        console.log(`[boot] database not reachable yet (${describe(err)}); retrying…`);
+        await new Promise((r) => setTimeout(r, 2000));
+      }
+    }
   }
   console.log('[boot] database migrations are up to date');
 }
 
-/** Holds a session-level advisory lock on its own connection while fn runs. */
-async function withMigrationLock(fn: () => Promise<unknown>) {
+const CONNECTION_CODES = new Set(['ECONNREFUSED', 'ENOTFOUND', 'EAI_AGAIN', 'ECONNRESET', 'ETIMEDOUT', '57P03']);
+
+function isConnectionError(err: unknown): boolean {
+  for (let e: unknown = err; e && typeof e === 'object'; e = (e as { cause?: unknown }).cause) {
+    const { code, message } = e as { code?: string; message?: string };
+    if ((code && CONNECTION_CODES.has(code)) || /Connection terminated/i.test(message ?? '')) return true;
+  }
+  return false;
+}
+
+function describe(err: unknown): string {
+  const cause = (err as { cause?: { code?: string; message?: string } })?.cause;
+  return cause?.code ?? (err as { code?: string })?.code ?? cause?.message ?? String(err);
+}
+
+/**
+ * Migrates on one dedicated connection that holds a session-level advisory
+ * lock, so a second replica waits. It is not the app pool: that one has a
+ * statement timeout a long migration could hit.
+ */
+async function migratePgLocked(migrationsDir: string) {
   const client = new pg.Client({ connectionString: process.env.DATABASE_URL });
   await client.connect();
   try {
     await client.query('select pg_advisory_lock($1)', [MIGRATE_LOCK]);
-    await fn();
+    await migratePg(drizzlePg({ client }), { migrationsFolder: migrationsDir });
   } finally {
     // Ending the session releases the lock even if unlock fails.
     await client.end().catch(() => undefined);
@@ -77,22 +106,35 @@ function scheduleDailyJobs(hour: number) {
   const g = globalThis as { [SCHEDULED]?: boolean };
   if (g[SCHEDULED]) return; // dev reloads re-run register()
   g[SCHEDULED] = true;
-  const next = () => {
-    const timer = setTimeout(async () => {
-      await runDailyJobsOnce();
-      next();
-    }, msUntilNextRun(hour, new Date()));
-    timer.unref();
-  };
-  next();
+  scheduleDaily(hour, async () => {
+    const { runDailyJobs } = await import('@/lib/cron');
+    console.log('[cron]', JSON.stringify(await runDailyJobs()));
+  });
   console.log(`[boot] daily jobs scheduled for ${String(hour).padStart(2, '0')}:00 UTC`);
 }
 
-async function runDailyJobsOnce() {
-  try {
-    const { runDailyJobs } = await import('@/lib/cron');
-    console.log('[cron]', JSON.stringify(await runDailyJobs()));
-  } catch (err) {
-    console.error('[cron] daily jobs failed', err);
-  }
+/**
+ * Calls run() every day at hour:00 UTC. The next run is booked before the
+ * current one starts, so a run that fails or never settles can't stop the
+ * schedule. Returns a function that cancels it.
+ */
+export function scheduleDaily(hour: number, run: () => Promise<unknown>, now = () => new Date()) {
+  let pending: Promise<void> | null = null;
+  let timer: ReturnType<typeof setTimeout>;
+  const arm = () => {
+    timer = setTimeout(() => {
+      arm();
+      if (pending) console.error('[cron] the previous daily run has not finished after a day; starting a new one');
+      const current: Promise<void> = run()
+        .then(() => undefined)
+        .catch((err) => console.error('[cron] daily jobs failed', err))
+        .finally(() => {
+          if (pending === current) pending = null;
+        });
+      pending = current;
+    }, msUntilNextRun(hour, now()));
+    timer.unref?.();
+  };
+  arm();
+  return () => clearTimeout(timer);
 }
