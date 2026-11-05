@@ -90,8 +90,10 @@
                 keywords={[epic.name]}
                 {disabled}
                 onSelect={() => {
+                  // Read before close(): closing resets `kind`, and `current` follows it.
+                  const picked = current;
                   close();
-                  onAdd(current, epic.id);
+                  onAdd(picked, epic.id);
                 }}
               >
                 <EpicIcon color={epic.color} />

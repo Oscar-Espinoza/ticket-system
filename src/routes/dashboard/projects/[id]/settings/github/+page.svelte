@@ -6,7 +6,7 @@
 </script>
 
 <svelte:head>
-  <title>GitHub · Ticket System</title>
+  <title>GitHub</title>
 </svelte:head>
 
 <h1 class="text-xl font-medium">GitHub</h1>

@@ -14,7 +14,7 @@
 </script>
 
 <svelte:head>
-  <title>Audit log · {data.projectName} · Ticket System</title>
+  <title>Audit log · {data.projectName}</title>
 </svelte:head>
 
 <h1 class="text-xl font-medium">Audit log</h1>

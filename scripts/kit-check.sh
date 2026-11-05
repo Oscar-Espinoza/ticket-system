@@ -7,7 +7,7 @@ set -uo pipefail
 cd "$(dirname "$0")/.."
 LOCK="${KIT_CHECK_LOCK:-/tmp/ticket-system-kit-check.lock}"
 OUT="$(mktemp)"
-flock "$LOCK" bash -c 'npx svelte-kit sync >/dev/null 2>&1; npx svelte-check --tsconfig ./tsconfig.svelte.json --threshold error --output machine' >"$OUT" 2>&1
+flock "$LOCK" nice -n 10 bash -c 'npx svelte-kit sync >/dev/null 2>&1; npx svelte-check --tsconfig ./tsconfig.svelte.json --threshold error --output machine' >"$OUT" 2>&1
 if [ "$#" -eq 0 ]; then
   grep -E ' ERROR ' "$OUT" | sed -E 's/^[0-9]+ ERROR //'
 else

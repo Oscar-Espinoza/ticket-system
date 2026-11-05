@@ -6,7 +6,7 @@
 </script>
 
 <svelte:head>
-  <title>Templates · Ticket System</title>
+  <title>Templates</title>
 </svelte:head>
 
 <h1 class="text-xl font-medium">Templates</h1>

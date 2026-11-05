@@ -138,10 +138,11 @@
           Labels
         </ContextMenuSubTrigger>
         <ContextMenuSubContent class="max-h-72 w-48 overflow-y-auto">
+          <!-- Keep the menu open to toggle several (in bits-ui, preventDefault in onSelect would also cancel the toggle). -->
           {#each labels as label (label.id)}
             <ContextMenuCheckboxItem
               checked={own.includes(label.id)}
-              onSelect={(event: Event) => event.preventDefault()}
+              closeOnSelect={false}
               onCheckedChange={(checked: boolean | 'indeterminate') =>
                 onSetLabels(checked ? [...own, label.id] : own.filter((id) => id !== label.id))}
             >

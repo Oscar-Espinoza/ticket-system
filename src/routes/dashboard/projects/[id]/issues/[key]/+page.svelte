@@ -6,8 +6,12 @@
   let { data }: PageProps = $props();
 </script>
 
+<!--
+  No " · Ticket System" suffix: in Next the project layout's string title
+  reset the root template, so issue pages were titled "KEY Title" only.
+-->
 <svelte:head>
-  <title>{`${data.issue.key} ${data.issue.title}`} · Ticket System</title>
+  <title>{`${data.issue.key} ${data.issue.title}`}</title>
 </svelte:head>
 
 <IssuePermalink issue={data.issue} projectIssues={data.projectIssues} />

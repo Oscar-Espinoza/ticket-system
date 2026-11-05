@@ -19,7 +19,7 @@
 </script>
 
 <svelte:head>
-  <title>{data.pulse ? 'Pulse' : 'Dashboards'}</title>
+  <title>{data.pulse ? 'Pulse' : 'Dashboards'} · Ticket System</title>
 </svelte:head>
 
 <div class="mx-auto flex w-full max-w-4xl flex-col gap-4">

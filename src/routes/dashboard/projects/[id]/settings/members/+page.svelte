@@ -12,7 +12,7 @@
 </script>
 
 <svelte:head>
-  <title>Members · {data.projectName} · Ticket System</title>
+  <title>Members · {data.projectName}</title>
 </svelte:head>
 
 <h1 class="text-xl font-medium">Members</h1>

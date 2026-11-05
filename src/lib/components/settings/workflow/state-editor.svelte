@@ -35,6 +35,7 @@
   let description = $state(untrack(() => workflowState?.description ?? ''));
   let error = $state<Extract<WorkflowStateResult, { ok: false }> | null>(null);
   let isPending = $state(false);
+  const focusOnMount = (node: HTMLElement) => node.focus();
 
   async function save(event?: SubmitEvent) {
     event?.preventDefault();
@@ -70,8 +71,9 @@
   >
     <div class="flex flex-1 items-center gap-2">
       <ColorPicker value={color} onChange={(next) => (color = next)} label="State color" />
+      <!-- React autoFocus focuses on mount; Svelte's autofocus only does so when nothing has focus. -->
       <Input
-        autofocus
+        {@attach focusOnMount}
         bind:value={name}
         placeholder="State name"
         maxlength={40}

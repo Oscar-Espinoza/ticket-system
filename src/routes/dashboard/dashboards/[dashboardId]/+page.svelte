@@ -10,7 +10,7 @@
 </script>
 
 <svelte:head>
-  <title>{data.dashboard.name || 'Dashboard'}</title>
+  <title>{data.dashboard.name ?? 'Dashboard'} · Ticket System</title>
 </svelte:head>
 
 <div class="mx-auto flex w-full max-w-7xl flex-col">

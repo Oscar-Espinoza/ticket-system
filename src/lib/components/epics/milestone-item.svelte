@@ -88,9 +88,10 @@
   <MilestoneGlyph {done} {color} />
   <div class="min-w-0 flex-1">
     {#if editing}
-      <!-- svelte-ignore a11y_autofocus -->
+      <!-- React autoFocus: always focus on mount (Svelte's `autofocus` only does when
+           nothing else has focus, and the row keeps it after Enter). -->
       <Input
-        autofocus
+        {@attach (node: HTMLElement) => node.focus()}
         bind:value={name}
         maxlength={80}
         aria-label="Milestone name"

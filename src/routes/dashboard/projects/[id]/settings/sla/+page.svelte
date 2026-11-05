@@ -6,7 +6,7 @@
 </script>
 
 <svelte:head>
-  <title>SLAs · Ticket System</title>
+  <title>SLAs</title>
 </svelte:head>
 
 <h1 class="text-xl font-medium">SLAs</h1>

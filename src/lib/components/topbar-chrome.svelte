@@ -271,6 +271,13 @@
   </kbd>
 </Button>
 
+<!--
+  Spacer for parity: React rendered sonner's <Toaster> here, whose empty in-flow
+  <section> took a slot in the topbar's `gap-2` row and pushed the trigger 8px
+  in from the edge. The Toaster now lives in the root layout.
+-->
+<span aria-hidden="true"></span>
+
 <CommandPalette open={paletteOpen} onOpenChange={handlePaletteOpenChange} {commands} />
 <HotkeyOverlay open={overlayOpen} onOpenChange={(next) => (overlayOpen = next)} />
 <CreateProjectDialog open={createOpen} onOpenChange={(next) => (createOpen = next)} hideTrigger />

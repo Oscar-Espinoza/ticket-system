@@ -6,7 +6,7 @@
 </script>
 
 <svelte:head>
-  <title>Import / export · Ticket System</title>
+  <title>Import / export</title>
 </svelte:head>
 
 <h1 class="text-xl font-medium">Import / export</h1>

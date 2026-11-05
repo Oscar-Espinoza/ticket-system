@@ -11,7 +11,7 @@
 </script>
 
 <svelte:head>
-  <title>Intake form · Ticket System</title>
+  <title>Intake form</title>
 </svelte:head>
 
 <h1 class="text-xl font-medium">Intake form</h1>

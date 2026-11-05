@@ -29,6 +29,7 @@
   let description = $state(untrack(() => label?.description ?? ''));
   let error = $state<Extract<LabelActionResult, { ok: false }> | null>(null);
   let isPending = $state(false);
+  const focusOnMount = (node: HTMLElement) => node.focus();
 
   async function save(event: SubmitEvent) {
     event.preventDefault();
@@ -64,8 +65,9 @@
   >
     <div class="flex flex-1 items-center gap-2">
       <ColorPicker value={color} onChange={(next) => (color = next)} label="Label color" />
+      <!-- React autoFocus focuses on mount; Svelte's autofocus only does so when nothing has focus. -->
       <Input
-        autofocus
+        {@attach focusOnMount}
         bind:value={name}
         oninput={() => {
           if (error) error = null;

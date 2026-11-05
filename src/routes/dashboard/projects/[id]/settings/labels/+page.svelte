@@ -6,7 +6,7 @@
 </script>
 
 <svelte:head>
-  <title>Labels · {data.projectName} · Ticket System</title>
+  <title>Labels · {data.projectName}</title>
 </svelte:head>
 
 <h1 class="text-xl font-medium">Labels</h1>

@@ -67,6 +67,10 @@
   let epicId = $state(untrack(() => doc.epic?.id ?? null));
   let deleting = $state(false);
   let editorRef: Editor | null = null;
+  // Captured once (the page is keyed by doc id): deleteDocument's wrapper refreshes the
+  // route before onDeleted runs, and the 404 refresh tears this component down, so
+  // `doc` is gone by then. React's closure still held it.
+  const listPath = documentsPath(untrack(() => doc.projectId));
 
   async function patch(input: Parameters<typeof updateDocument>[0], rollback: () => void) {
     const result = await updateDocument(input);
@@ -275,6 +279,6 @@
     onOpenChange={(open) => {
       if (!open) deleting = false;
     }}
-    onDeleted={() => void goto(documentsPath(doc.projectId))}
+    onDeleted={() => void goto(listPath)}
   />
 </div>

@@ -6,7 +6,7 @@
 </script>
 
 <svelte:head>
-  <title>GitLab, Bitbucket &amp; Sentry · Ticket System</title>
+  <title>GitLab, Bitbucket &amp; Sentry</title>
 </svelte:head>
 
 <h1 class="text-xl font-medium">GitLab, Bitbucket &amp; Sentry</h1>

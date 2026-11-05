@@ -32,10 +32,21 @@
     open = next;
     onOpenChange?.(next);
   };
+
+  let content = $state<HTMLElement | null>(null);
+  // React's autoFocus on the Accept button wins over Radix's "first tabbable";
+  // bits-ui would focus the Status trigger, so hand focus to [autofocus] here.
+  const focusSubmit = (event: Event) => {
+    event.preventDefault();
+    requestAnimationFrame(() => {
+      const target = content?.querySelector<HTMLElement>('[autofocus]') ?? content;
+      target?.focus({ preventScroll: true });
+    });
+  };
 </script>
 
 <Dialog bind:open={() => open, setOpen}>
-  <DialogContent class="sm:max-w-md">
+  <DialogContent bind:ref={content} class="sm:max-w-md" onOpenAutoFocus={focusSubmit}>
     {#if open}
       <AcceptForm {issue} {pending} {onAccept} onCancel={() => setOpen(false)} />
     {/if}

@@ -69,6 +69,8 @@
   let workspaceId = $state(initial.workspaceId);
   let errors = $state<Errors>({});
   let pending = $state(false);
+  // React autoFocus focuses on mount; Svelte's autofocus only does so when nothing has focus.
+  const focusOnMount = (node: HTMLElement) => node.focus();
 
   const projectItems = untrack(() => projects).map((p) => ({ value: p.id, label: `${p.ticketKey} ${p.name}` }));
   const workspaceItems = [
@@ -158,7 +160,7 @@
       id="template-name"
       bind:value={name}
       maxlength={60}
-      autofocus
+      {@attach focusOnMount}
       placeholder="Engineering team"
       aria-invalid={errors.name ? true : undefined}
     />

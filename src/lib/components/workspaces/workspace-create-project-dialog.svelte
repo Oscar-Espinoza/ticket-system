@@ -98,9 +98,13 @@
         <Label for="ws-project-key">Ticket key</Label>
         <Input
           id="ws-project-key"
-          bind:value={() => ticketKey, (v: string) => {
-            ticketKey = v.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 6);
+          value={ticketKey}
+          oninput={(event: Event & { currentTarget: HTMLInputElement }) => {
+            ticketKey = event.currentTarget.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 6);
             errors = {};
+            // Controlled like React's: write the result back even when the
+            // state didn't change (a rejected keystroke leaves ticketKey as is).
+            event.currentTarget.value = ticketKey;
           }}
           placeholder="MOB"
           aria-invalid={errors.ticketKey ? true : undefined}

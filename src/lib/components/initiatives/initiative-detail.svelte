@@ -117,16 +117,23 @@
       if (!result.ok) toast.error(result.error);
     });
 
-  const remove = () =>
+  const remove = () => {
+    // Read before the await: the action's refresh re-runs the page load, which now
+    // 404s and unmounts this component, so props are gone afterwards (React's
+    // closure kept them).
+    const slug = workspace.slug;
+    const workspaceId = workspace.id;
+    const id = initiative.id;
     void transition(async () => {
-      const result = await deleteInitiative({ workspaceId: workspace.id, id: initiative.id });
+      const result = await deleteInitiative({ workspaceId, id });
       if (!result.ok) {
         toast.error(result.error);
         return;
       }
       toast.success('Initiative deleted');
-      void goto(initiativesPath(workspace.slug));
+      void goto(initiativesPath(slug));
     });
+  };
 
   const owner = $derived(initiative.owner);
   const dated = $derived(epics.filter((epic) => epic.startDate || epic.targetDate));

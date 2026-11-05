@@ -372,15 +372,10 @@
             </InitiativePicker>
           {:else}
             {@render initiativeTrigger({}, initiatives)}
-          {/if}
-          {#if initiative && workspaceSlug}
-            <a
+          {/if}{#if initiative && workspaceSlug}<a
               href={`/dashboard/workspaces/${workspaceSlug}/initiatives/${initiative.id}`}
-              class="ml-1 text-xs text-muted-foreground hover:text-foreground"
-            >
-              Open
-            </a>
-          {/if}
+              class="ml-1 text-xs text-muted-foreground hover:text-foreground">Open</a
+            >{/if}
         </PropertyRow>
       {/if}
       <PropertyRow label="Color">

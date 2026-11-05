@@ -6,7 +6,7 @@
 </script>
 
 <svelte:head>
-  <title>Cycles &amp; triage · Ticket System</title>
+  <title>Cycles &amp; triage</title>
 </svelte:head>
 
 <h1 class="text-xl font-medium">Cycles &amp; triage</h1>

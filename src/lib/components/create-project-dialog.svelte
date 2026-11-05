@@ -140,17 +140,19 @@
           id={keyId}
           name="ticketKey"
           placeholder="APP"
-          bind:value={
-            () => ticketKey,
-            (value) => {
-              // D-17: auto-uppercase, strip non-A-Z, cap at 6 chars.
-              // Client transform is UX only — server re-validates on submit.
-              ticketKey = String(value ?? '')
-                .toUpperCase()
-                .replace(/[^A-Z]/g, '')
-                .slice(0, 6);
-            }
-          }
+          value={ticketKey}
+          oninput={(event: Event & { currentTarget: HTMLInputElement }) => {
+            // D-17: auto-uppercase, strip non-A-Z, cap at 6 chars.
+            // Client transform is UX only — server re-validates on submit.
+            const transformed = event.currentTarget.value
+              .toUpperCase()
+              .replace(/[^A-Z]/g, '')
+              .slice(0, 6);
+            ticketKey = transformed;
+            // Controlled like React's: write the result back even when the
+            // state didn't change (a rejected keystroke leaves ticketKey as is).
+            event.currentTarget.value = transformed;
+          }}
           aria-invalid={formState.errors?.ticketKey ? true : undefined}
           aria-describedby={formState.errors?.ticketKey ? `${keyErrorId} ${keyHintId}` : keyHintId}
         />

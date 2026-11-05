@@ -224,7 +224,17 @@
 </script>
 
 <Dialog {open} onOpenChange={(next: boolean) => (next ? onOpenChange(true) : close())}>
-  <DialogContent class="sm:max-w-xl">
+  <!-- React's autoFocus put focus in the title before Radix's focus scope ran
+       (so it stayed there); bits-ui would otherwise focus the first tabbable
+       (the Template button once templates load). -->
+  <DialogContent
+    class="sm:max-w-xl"
+    onOpenAutoFocus={(event: Event) => {
+      if (!titleRef) return;
+      event.preventDefault();
+      titleRef.focus();
+    }}
+  >
     <DialogHeader class="flex-row items-center gap-2 pr-8">
       <DialogTitle>New issue</DialogTitle>
       <span class="font-mono text-xs text-muted-foreground">{data.project.ticketKey}</span>

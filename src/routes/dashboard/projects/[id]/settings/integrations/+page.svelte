@@ -9,7 +9,7 @@
 </script>
 
 <svelte:head>
-  <title>Slack &amp; webhooks · Ticket System</title>
+  <title>Slack &amp; webhooks</title>
 </svelte:head>
 
 <h1 class="text-xl font-medium">Slack &amp; webhooks</h1>
