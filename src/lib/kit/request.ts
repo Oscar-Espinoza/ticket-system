@@ -8,6 +8,7 @@
 // (scripts/gen-remote-actions.mjs looks for them).
 
 import { error, redirect as kitRedirect } from '@sveltejs/kit';
+import { waitUntil as vercelWaitUntil } from '@vercel/functions';
 import { getRequestEvent } from '$app/server';
 
 /** The current request's headers. */
@@ -33,20 +34,20 @@ export async function cookies() {
 
 /**
  * after(task): run work after the response. Vercel functions keep
- * it alive through waitUntil; on Node (adapter-node) the process stays up, so
+ * it alive through @vercel/functions' waitUntil; on Node (adapter-node) the process stays up, so
  * the promise simply runs on. Errors are logged, never thrown at the caller.
  */
 export function after(task: Promise<unknown> | (() => unknown)): void {
   const run = typeof task === 'function' ? Promise.resolve().then(task) : task;
   const guarded = Promise.resolve(run).catch((err) => console.error('[after] task failed', err));
-  let waitUntil: ((p: Promise<unknown>) => void) | undefined;
+  // adapter-vercel passes no platform context, so register with Vercel's own
+  // request context; outside Vercel this is a no-op and Node simply runs the
+  // promise on.
   try {
-    const platform = getRequestEvent().platform as { context?: { waitUntil?: (p: Promise<unknown>) => void } } | undefined;
-    waitUntil = platform?.context?.waitUntil?.bind(platform.context);
+    vercelWaitUntil(guarded);
   } catch {
-    // outside a request (cron, boot): nothing to extend
+    // not inside a Vercel request (adapter-node, cron, boot)
   }
-  waitUntil?.(guarded);
 }
 
 /** No-ops at runtime; see the header comment. */

@@ -16,8 +16,8 @@
 // opens its URL. Registered as /sw.js?mode=push (dev only, when enabling push)
 // it does push alone — no precache, no fetch handling, so dev bundles stay fresh.
 
-// v2: SvelteKit asset layout; activating it drops the Next-era v1 caches.
-const VERSION = 'v2';
+// v3: SvelteKit asset layout; activating it drops older caches (incl. Next-era v1).
+const VERSION = 'v3';
 const STATIC_CACHE = `static-${VERSION}`;
 const PAGES_CACHE = `pages-${VERSION}`;
 const PAGES_MAX = 40;
@@ -29,7 +29,7 @@ const PRECACHE = [
   '/icons/icon.svg',
   '/manifest.webmanifest',
 ];
-// Visiting these (client-side navigations included) or signing out wipes pages.
+// Visiting these (full or client-side navigations) or any sign-in/up/out wipes pages.
 const SIGNED_OUT_PATHS = ['/login', '/signup', '/api/auth/sign-out'];
 const PUSH_ONLY = new URL(self.location.href).searchParams.get('mode') === 'push';
 const INBOX_URL = '/dashboard/inbox';
@@ -125,7 +125,11 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
-  if (SIGNED_OUT_PATHS.includes(url.pathname)) {
+  // Client-side navigations fetch <page>/__data.json instead of the page, so
+  // match auth pages by their route, and treat any sign-in/up/out call as an
+  // identity change too.
+  const route = url.pathname.replace(/\/__data\.json$/, '') || '/';
+  if (SIGNED_OUT_PATHS.includes(route) || /^\/api\/auth\/(sign-in|sign-up|sign-out)(\/|$)/.test(url.pathname)) {
     // Signed out (or about to sign in as someone else): forget cached pages.
     event.waitUntil(caches.delete(PAGES_CACHE));
     return;
