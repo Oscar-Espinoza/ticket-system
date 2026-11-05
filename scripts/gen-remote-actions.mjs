@@ -8,7 +8,7 @@
 //
 // Semantics kept from Next:
 // - a function whose body calls revalidatePath/revalidateTag → the client
-//   wrapper awaits refreshAll() after it resolves (Next refreshed the route);
+//   wrapper awaits refreshAfterWrite() (a coalesced refreshAll) after it resolves;
 // - redirect() inside an action → the wrapper navigates with goto();
 // - (prevState, formData: FormData) actions take a real FormData on the client;
 //   it is sent as entries and rebuilt server-side (string fields only).
@@ -54,6 +54,31 @@ for (const file of sources.sort()) {
   const sf = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
   const fns = [];
   const typeNames = [];
+  // Local functions (exported or not) that refresh, directly or through other
+  // local helpers — e.g. tickets.ts calls revalidatePath only via revalidateProject().
+  const bodies = new Map();
+  for (const st of sf.statements) {
+    if (ts.isFunctionDeclaration(st) && st.name && st.body) bodies.set(st.name.text, st.body.getText(sf));
+    if (ts.isVariableStatement(st)) {
+      for (const d of st.declarationList.declarations) {
+        const init = d.initializer;
+        if (init && (ts.isArrowFunction(init) || ts.isFunctionExpression(init)) && ts.isIdentifier(d.name)) {
+          bodies.set(d.name.text, init.body.getText(sf));
+        }
+      }
+    }
+  }
+  const refreshing = new Set([...bodies].filter(([, b]) => /\brevalidate(Path|Tag)\s*\(/.test(b)).map(([n]) => n));
+  for (let grew = true; grew; ) {
+    grew = false;
+    for (const [name, body] of bodies) {
+      if (refreshing.has(name)) continue;
+      if ([...refreshing].some((r) => new RegExp(`\\b${r}\\s*\\(`).test(body))) {
+        refreshing.add(name);
+        grew = true;
+      }
+    }
+  }
   for (const st of sf.statements) {
     if (ts.isExportDeclaration(st) && st.isTypeOnly && st.exportClause && ts.isNamedExports(st.exportClause)) {
       for (const el of st.exportClause.elements) typeNames.push(el.name.text);
@@ -82,7 +107,7 @@ for (const file of sources.sort()) {
     fns.push({
       name,
       isForm,
-      revalidates: /\brevalidate(Path|Tag)\s*\(/.test(bodyText),
+      revalidates: refreshing.has(name),
       redirects: /\bredirect\s*\(/.test(bodyText),
     });
   }
@@ -112,7 +137,8 @@ for (const file of sources.sort()) {
     `void formData;`,
     ``];
   const client = [HEADER,
-    `import { goto, refreshAll } from '$app/navigation';`,
+    `import { goto } from '$app/navigation';`,
+    `import { refreshAfterWrite } from '@/lib/svelte/refresh.svelte';`,
     `import * as remote from '@/lib/remote/${mod}.remote';`,
     `import type * as impl from '${importPath}';`,
     ``,
@@ -122,7 +148,7 @@ for (const file of sources.sort()) {
     `    await goto(out.redirect, { refreshAll: true });`,
     `    return undefined as T;`,
     `  }`,
-    `  if (refresh) await refreshAll();`,
+    `  if (refresh) await refreshAfterWrite();`,
     `  return out.value;`,
     `}`,
     `function entries(fd: FormData): [string, string][] {`,

@@ -45,6 +45,7 @@
     "src/lib/remote",
     "src/lib/actions",
     "src/lib/svelte",
+    "src/lib/components",
     "src/hooks.server.ts",
     "src/hooks.client.ts",
     "src/hooks.ts",
