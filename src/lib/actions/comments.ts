@@ -4,7 +4,7 @@ import { untrack } from 'svelte';
 import { goto } from '$app/navigation';
 import { refreshAfterWrite } from '@/lib/svelte/refresh.svelte';
 import * as remote from '@/lib/remote/comments.remote';
-import type * as impl from '@/app/actions/comments';
+import type * as impl from '@/lib/server/actions/comments';
 
 type Out<T> = { ok: true; value: T } | { ok: false; redirect: string };
 async function settle<T>(out: Out<T>, refresh: boolean): Promise<T> {

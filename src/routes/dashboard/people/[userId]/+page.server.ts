@@ -11,7 +11,7 @@ import { db } from '@/lib/db';
 import { activities, projects, tickets, userProfiles, users, workflowStates } from '@/db/schema';
 import { getSharedProjects } from '@/lib/project-access';
 import { activeIssue, memberOfIssueProject, queryIssues } from '@/lib/tickets';
-import { activitySummary } from '@/components/people/activity-summary';
+import { activitySummary } from '@/lib/components/people/activity-summary';
 import type { PageServerLoad } from './$types';
 
 const dateFormat = new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric' });

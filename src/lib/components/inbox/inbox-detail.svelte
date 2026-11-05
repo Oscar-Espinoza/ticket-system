@@ -18,7 +18,7 @@
   import { PRIORITY_LABEL, type IssueRow } from '@/lib/issue-model';
   import { issuePath } from '@/lib/issue-links';
   import { notificationPath } from '@/lib/notifications/types';
-  import { formatWhen, snoozePresets } from '@/components/inbox/when-options';
+  import { formatWhen, snoozePresets } from '@/lib/components/inbox/when-options';
   import type { InboxGroup } from './inbox-groups';
   import NotificationGlyph, { notificationSentence } from './notification-glyph.svelte';
   import WhenPicker from './when-picker.svelte';

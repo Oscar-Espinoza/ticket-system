@@ -8,16 +8,23 @@ insights; a collaborative editor with offline support; GitHub/GitLab/Bitbucket
 automation; REST + GraphQL APIs, OAuth apps and outgoing webhooks; SAML/OIDC SSO,
 SCIM, two-factor auth and an audit log.
 
-Stack: Next.js 16, TypeScript, Drizzle ORM on Postgres (Neon, or any Postgres
-self-hosted), Better Auth,
-Tailwind v4 + shadcn/ui.
+Stack: SvelteKit 3 + Svelte 5 (TypeScript), Drizzle ORM on Postgres (Neon, or
+any Postgres self-hosted), Better Auth, Tailwind v4 with bits-ui primitives
+(shadcn look), Tiptap + Yjs editor. Migrated from Next.js 16 / React 19 in
+2026-11 (docs/migration/).
 
 ## Run it
 
 - **Vercel + Neon** (the default, free tiers): copy `env.template` to
   `.env.local`, fill in `DATABASE_URL` and `BETTER_AUTH_SECRET`, run
-  `npm run db:migrate`, then `npm run dev`. Deploy on Vercel with the same
-  variables; `vercel.json` schedules the daily cron.
+  `npm run db:migrate`, then `npm run dev` (http://localhost:3000;
+  `npm run dev:local` points it at a local Postgres on :5433 instead). Deploy on
+  Vercel with the same variables (adapter-vercel is picked automatically there);
+  `vercel.json` schedules the daily cron.
+- **Checks**: `npm run check` (svelte-check), `npm run lint`, `npm run build`.
+- **Server actions** live in `src/lib/server/actions/`; after adding or changing
+  an exported action run `npm run gen:actions` to regenerate the remote-function
+  wrappers the UI calls (`src/lib/remote`, `src/lib/actions`).
 - **Self-hosted with Docker** (internal use: one app container + Postgres;
   migrations and daily jobs run inside the app): `docker compose up -d --build`,
   see [docs/SELF_HOSTING.md](docs/SELF_HOSTING.md).

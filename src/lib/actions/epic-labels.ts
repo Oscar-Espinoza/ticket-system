@@ -4,7 +4,7 @@ import { untrack } from 'svelte';
 import { goto } from '$app/navigation';
 import { refreshAfterWrite } from '@/lib/svelte/refresh.svelte';
 import * as remote from '@/lib/remote/epic-labels.remote';
-import type * as impl from '@/app/actions/epic-labels';
+import type * as impl from '@/lib/server/actions/epic-labels';
 
 type Out<T> = { ok: true; value: T } | { ok: false; redirect: string };
 async function settle<T>(out: Out<T>, refresh: boolean): Promise<T> {
@@ -37,4 +37,4 @@ export async function deleteEpicLabel(...args: Parameters<typeof impl.deleteEpic
 export async function setEpicLabels(...args: Parameters<typeof impl.setEpicLabels>): Promise<Awaited<ReturnType<typeof impl.setEpicLabels>>> {
   return settle(await untrack(() => remote.setEpicLabels(args)), true);
 }
-export type { EpicLabelActionResult } from '@/app/actions/epic-labels';
+export type { EpicLabelActionResult } from '@/lib/server/actions/epic-labels';

@@ -3,7 +3,7 @@
   import RichText from '@/lib/components/epics/rich-text.svelte';
   import RichTextEditor from '@/lib/components/epics/rich-text-editor.svelte';
   import { Button } from '@/lib/components/ui/button';
-  import { EPIC_DESCRIPTION_MAX } from '@/components/epics/epic-model';
+  import { EPIC_DESCRIPTION_MAX } from '@/lib/components/epics/epic-model';
 
   let {
     description,

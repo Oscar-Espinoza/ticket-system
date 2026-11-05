@@ -3,7 +3,7 @@
 
 import { isPriority, type IssuePatch } from '@/lib/issue-model';
 import type { ProjectData } from '@/lib/project-data-types';
-import type { RecurringDefaults } from '@/components/recurring/schedule';
+import type { RecurringDefaults } from '@/lib/components/recurring/schedule';
 
 /** Stored defaults → chips value, dropping ids the project no longer has. */
 export function defaultsToPatch(

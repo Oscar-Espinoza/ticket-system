@@ -10,7 +10,7 @@
     CommandList,
     CommandShortcut,
   } from '@/lib/components/ui/command';
-  import { HEALTHS, HEALTH_LABEL, type Health } from '@/components/epics/epic-model';
+  import { HEALTHS, HEALTH_LABEL, type Health } from '@/lib/components/epics/epic-model';
   import HealthDot from './health-dot.svelte';
 
   let {

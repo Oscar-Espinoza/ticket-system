@@ -24,7 +24,7 @@
   import SquareCode from '@lucide/svelte/icons/square-code';
 
   import type { IssueUser } from '@/lib/issue-model';
-  import type { MarkdownFormat } from '@/components/editor/text-edits';
+  import type { MarkdownFormat } from '@/lib/components/editor/text-edits';
   import type { EditorIssue } from './context.svelte';
 
   const TOOLBAR: { format: MarkdownFormat; label: string; icon: LucideIcon; shortcut?: string }[] = [

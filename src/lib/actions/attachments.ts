@@ -4,7 +4,7 @@ import { untrack } from 'svelte';
 import { goto } from '$app/navigation';
 import { refreshAfterWrite } from '@/lib/svelte/refresh.svelte';
 import * as remote from '@/lib/remote/attachments.remote';
-import type * as impl from '@/app/actions/attachments';
+import type * as impl from '@/lib/server/actions/attachments';
 
 type Out<T> = { ok: true; value: T } | { ok: false; redirect: string };
 async function settle<T>(out: Out<T>, refresh: boolean): Promise<T> {
@@ -34,4 +34,4 @@ export async function addLink(...args: Parameters<typeof impl.addLink>): Promise
 export async function deleteAttachment(...args: Parameters<typeof impl.deleteAttachment>): Promise<Awaited<ReturnType<typeof impl.deleteAttachment>>> {
   return settle(await untrack(() => remote.deleteAttachment(args)), true);
 }
-export type { GetAttachmentsResult } from '@/app/actions/attachments';
+export type { GetAttachmentsResult } from '@/lib/server/actions/attachments';

@@ -20,8 +20,8 @@ import { createIssue, SYSTEM_ACTOR, type IssueActor, type IssueResult } from '@/
 import type { CreateIssueInput } from '@/lib/issue-model';
 import { deliverToChannels } from '@/lib/notifications/channels';
 import { prefEnabled } from '@/lib/notifications/types';
-import { sanitizeIssueDefaults, TEMPLATE_FIELDS } from '@/components/productivity/issue-defaults';
-import { DAY_MS, toDateInput, utcDay } from '@/components/cycles/cycle-utils';
+import { sanitizeIssueDefaults, TEMPLATE_FIELDS } from '@/lib/components/productivity/issue-defaults';
+import { DAY_MS, toDateInput, utcDay } from '@/lib/components/cycles/cycle-utils';
 import {
   DUE_IN_DAYS_MAX,
   nextOccurrence,
@@ -29,7 +29,7 @@ import {
   type RecurringDefaults,
   type RecurringIssue,
   type RecurringSchedule,
-} from '@/components/recurring/schedule';
+} from '@/lib/components/recurring/schedule';
 
 export type RecurringRow = typeof recurringIssues.$inferSelect;
 

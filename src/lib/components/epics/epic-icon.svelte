@@ -2,7 +2,7 @@
   import BoxIcon from '@lucide/svelte/icons/box';
 
   import { cn } from '@/lib/utils';
-  import { DEFAULT_EPIC_COLOR } from '@/components/epics/epic-model';
+  import { DEFAULT_EPIC_COLOR } from '@/lib/components/epics/epic-model';
 
   let {
     color,

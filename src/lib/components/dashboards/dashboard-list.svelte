@@ -32,7 +32,7 @@
   } from '@/lib/components/ui/dropdown-menu';
   import { EmptyState, LabelChip } from '@/lib/components/ui-icons';
   import type { DashboardSummary } from '@/lib/dashboards';
-  import { dashboardHref } from '@/components/dashboards/widget-model';
+  import { dashboardHref } from '@/lib/components/dashboards/widget-model';
   import { relativeTime } from '@/lib/components/issues/issue-properties';
 
   let { dashboards }: { dashboards: DashboardSummary[] } = $props();

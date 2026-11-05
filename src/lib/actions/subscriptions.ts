@@ -4,7 +4,7 @@ import { untrack } from 'svelte';
 import { goto } from '$app/navigation';
 import { refreshAfterWrite } from '@/lib/svelte/refresh.svelte';
 import * as remote from '@/lib/remote/subscriptions.remote';
-import type * as impl from '@/app/actions/subscriptions';
+import type * as impl from '@/lib/server/actions/subscriptions';
 
 type Out<T> = { ok: true; value: T } | { ok: false; redirect: string };
 async function settle<T>(out: Out<T>, refresh: boolean): Promise<T> {
@@ -31,4 +31,4 @@ export async function getIssueSubscribers(...args: Parameters<typeof impl.getIss
 export async function setSubscribed(...args: Parameters<typeof impl.setSubscribed>): Promise<Awaited<ReturnType<typeof impl.setSubscribed>>> {
   return settle(await untrack(() => remote.setSubscribed(args)), false);
 }
-export type { SubscribersResult } from '@/app/actions/subscriptions';
+export type { SubscribersResult } from '@/lib/server/actions/subscriptions';

@@ -2,7 +2,7 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
 
-  import type { ChartUnit } from '@/components/cycles/cycle-utils';
+  import type { ChartUnit } from '@/lib/components/cycles/cycle-utils';
   import UnitToggle from './unit-toggle.svelte';
 
   let {

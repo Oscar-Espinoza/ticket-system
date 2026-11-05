@@ -13,7 +13,7 @@
   import { Checkbox } from '@/lib/components/ui/checkbox';
   import { Input } from '@/lib/components/ui/input';
   import { Label } from '@/lib/components/ui/label';
-  import { authHref } from '@/app/(auth)/safe-redirect';
+  import { authHref } from '@/lib/safe-redirect';
 
   type ApiError = { status?: number; code?: string; message?: string };
 

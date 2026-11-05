@@ -8,7 +8,7 @@
 // epic's project — and filter each issue by the viewer's membership of *its*
 // project. A viewer never sees (or counts) issues of projects they aren't in.
 
-import { cache } from 'react';
+import { cache } from '@/lib/kit/request';
 import {
   and,
   asc,
@@ -55,7 +55,7 @@ import {
   type MilestoneRow,
   type Progress,
   type ProjectRef,
-} from '@/components/epics/epic-model';
+} from '@/lib/components/epics/epic-model';
 
 const leadUsers = alias(users, 'lead');
 const authorUsers = alias(users, 'author');

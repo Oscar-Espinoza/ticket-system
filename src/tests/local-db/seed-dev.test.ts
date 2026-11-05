@@ -44,8 +44,8 @@ import { and, count, eq, inArray, isNull, sql } from 'drizzle-orm';
 // task ourselves and keep track of it, so the seed can wait until every inbox
 // notification has been written before it finishes (see `drain`).
 const pending = vi.hoisted(() => new Set<Promise<unknown>>());
-vi.mock('next/server', async (orig) => ({
-  ...(await orig<typeof import('next/server')>()),
+vi.mock('@/lib/kit/request', async (orig) => ({
+  ...(await orig<typeof import('@/lib/kit/request')>()),
   after: (task: unknown) => {
     const run: Promise<unknown> = Promise.resolve()
       .then(() => (typeof task === 'function' ? (task as () => unknown)() : task))
@@ -104,10 +104,10 @@ import { addLinkAttachment } from '@/lib/attachments';
 import { formatMention } from '@/lib/mentions';
 import { snapshotProject } from '@/lib/project-templates';
 import { firstRunFrom } from '@/lib/recurring';
-import { normalizeSchedule } from '@/components/recurring/schedule';
+import { normalizeSchedule } from '@/lib/components/recurring/schedule';
 import { normalizeIssueFilters } from '@/lib/issue-filtering';
 import { DEFAULT_WORKFLOW_STATES } from '@/lib/workflow';
-import { newWidget, normalizeWidgets, type Widget } from '@/components/dashboards/widget-model';
+import { newWidget, normalizeWidgets, type Widget } from '@/lib/components/dashboards/widget-model';
 import { localDb } from './fixtures';
 
 // ---------------------------------------------------------------------------

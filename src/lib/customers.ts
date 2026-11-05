@@ -3,7 +3,7 @@
 // non-member reads nothing. The request helpers at the bottom trust their
 // projectId — callers authorize first (server actions, D8 dashboards, intake).
 
-import { cache } from 'react';
+import { cache } from '@/lib/kit/request';
 import { and, arrayOverlaps, desc, eq, exists, inArray, isNotNull, isNull, sql, type SQL } from 'drizzle-orm';
 import { alias, type AnyPgColumn } from 'drizzle-orm/pg-core';
 
@@ -28,7 +28,7 @@ import {
   type CustomerRequestView,
   type CustomerRow,
   type IssueCustomerRequest,
-} from '@/components/customers/customer-model';
+} from '@/lib/components/customers/customer-model';
 
 const ownerUsers = alias(users, 'customer_owner');
 

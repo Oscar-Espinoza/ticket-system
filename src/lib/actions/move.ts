@@ -4,7 +4,7 @@ import { untrack } from 'svelte';
 import { goto } from '$app/navigation';
 import { refreshAfterWrite } from '@/lib/svelte/refresh.svelte';
 import * as remote from '@/lib/remote/move.remote';
-import type * as impl from '@/app/actions/move';
+import type * as impl from '@/lib/server/actions/move';
 
 type Out<T> = { ok: true; value: T } | { ok: false; redirect: string };
 async function settle<T>(out: Out<T>, refresh: boolean): Promise<T> {
@@ -31,4 +31,4 @@ export async function listMoveTargets(...args: Parameters<typeof impl.listMoveTa
 export async function moveIssueToProject(...args: Parameters<typeof impl.moveIssueToProject>): Promise<Awaited<ReturnType<typeof impl.moveIssueToProject>>> {
   return settle(await untrack(() => remote.moveIssueToProject(args)), true);
 }
-export type { MoveTarget, MoveTargetsResult, MoveIssueActionResult } from '@/app/actions/move';
+export type { MoveTarget, MoveTargetsResult, MoveIssueActionResult } from '@/lib/server/actions/move';

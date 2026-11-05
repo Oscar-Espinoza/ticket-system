@@ -4,7 +4,7 @@ import { untrack } from 'svelte';
 import { goto } from '$app/navigation';
 import { refreshAfterWrite } from '@/lib/svelte/refresh.svelte';
 import * as remote from '@/lib/remote/integrations.remote';
-import type * as impl from '@/app/actions/integrations';
+import type * as impl from '@/lib/server/actions/integrations';
 
 type Out<T> = { ok: true; value: T } | { ok: false; redirect: string };
 async function settle<T>(out: Out<T>, refresh: boolean): Promise<T> {
@@ -55,4 +55,4 @@ export async function redeliverWebhookDelivery(...args: Parameters<typeof impl.r
 export async function retryWebhookDeliveries(...args: Parameters<typeof impl.retryWebhookDeliveries>): Promise<Awaited<ReturnType<typeof impl.retryWebhookDeliveries>>> {
   return settle(await untrack(() => remote.retryWebhookDeliveries(args)), false);
 }
-export type { WebhookView, WebhookDeliveryView } from '@/app/actions/integrations';
+export type { WebhookView, WebhookDeliveryView } from '@/lib/server/actions/integrations';

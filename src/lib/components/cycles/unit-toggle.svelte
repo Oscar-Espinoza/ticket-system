@@ -1,6 +1,6 @@
 <script lang="ts">
   import { ToggleGroup, ToggleGroupItem } from '@/lib/components/ui/toggle-group';
-  import type { ChartUnit } from '@/components/cycles/cycle-utils';
+  import type { ChartUnit } from '@/lib/components/cycles/cycle-utils';
 
   let {
     value,

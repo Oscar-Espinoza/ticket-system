@@ -20,7 +20,7 @@
   import { Avatar, PriorityIcon, StateIcon } from '@/lib/components/ui-icons';
   import { formatEstimate } from '@/lib/estimates';
   import { cn } from '@/lib/utils';
-  import { describeSchedule, formatRunDay, type RecurringIssue } from '@/components/recurring/schedule';
+  import { describeSchedule, formatRunDay, type RecurringIssue } from '@/lib/components/recurring/schedule';
   import { defaultsToPatch } from './recurring-defaults';
 
   let {

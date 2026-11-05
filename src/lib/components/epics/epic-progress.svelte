@@ -1,6 +1,6 @@
 <!-- Progress summary: ring + percent, with the count / points breakdown in the title. -->
 <script module lang="ts">
-  import { pointsPercent, type Progress } from '@/components/epics/epic-model';
+  import { pointsPercent, type Progress } from '@/lib/components/epics/epic-model';
 
   export function progressTitle(progress: Progress): string {
     const parts = [`${progress.completed} of ${progress.total} issues completed`];
@@ -14,7 +14,7 @@
 
 <script lang="ts">
   import { cn } from '@/lib/utils';
-  import { progressPercent } from '@/components/epics/epic-model';
+  import { progressPercent } from '@/lib/components/epics/epic-model';
   import ProgressRing from './progress-ring.svelte';
 
   let {

@@ -40,7 +40,7 @@ import {
   utcDay,
   type BurndownPoint,
   type CycleTotals,
-} from '@/components/cycles/cycle-utils';
+} from '@/lib/components/cycles/cycle-utils';
 
 export type CycleRow = typeof cycles.$inferSelect;
 

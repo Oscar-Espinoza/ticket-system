@@ -12,7 +12,7 @@
     DialogTitle,
   } from '@/lib/components/ui/dialog';
   import { Input } from '@/lib/components/ui/input';
-  import { EPIC_COLORS, EPIC_LABEL_NAME_MAX, type EpicLabelRow } from '@/components/epics/epic-model';
+  import { EPIC_COLORS, EPIC_LABEL_NAME_MAX, type EpicLabelRow } from '@/lib/components/epics/epic-model';
   import ColorButton from './epic-label-color-button.svelte';
   import EpicLabelRowEditor from './epic-label-row-editor.svelte';
 

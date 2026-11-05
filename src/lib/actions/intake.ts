@@ -4,7 +4,7 @@ import { untrack } from 'svelte';
 import { goto } from '$app/navigation';
 import { refreshAfterWrite } from '@/lib/svelte/refresh.svelte';
 import * as remote from '@/lib/remote/intake.remote';
-import type * as impl from '@/app/actions/intake';
+import type * as impl from '@/lib/server/actions/intake';
 
 type Out<T> = { ok: true; value: T } | { ok: false; redirect: string };
 async function settle<T>(out: Out<T>, refresh: boolean): Promise<T> {
@@ -35,4 +35,4 @@ export async function rotateIntakeToken(...args: Parameters<typeof impl.rotateIn
 export async function submitIntakeRequest(prev: Parameters<typeof impl.submitIntakeRequest>[0], fd: FormData): Promise<Awaited<ReturnType<typeof impl.submitIntakeRequest>>> {
   return settle(await untrack(() => remote.submitIntakeRequest([prev, entries(fd)])), false);
 }
-export type { IntakeField, IntakeFormState } from '@/app/actions/intake';
+export type { IntakeField, IntakeFormState } from '@/lib/server/actions/intake';

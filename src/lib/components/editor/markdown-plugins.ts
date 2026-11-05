@@ -7,7 +7,7 @@
 
 import type { ListItem, Parent, PhrasingContent, Root, RootContent } from 'mdast';
 
-import { embedFor } from '@/components/editor/embeds';
+import { embedFor } from '@/lib/components/editor/embeds';
 import { issuePath } from '@/lib/issue-links';
 import { cn } from '@/lib/utils';
 

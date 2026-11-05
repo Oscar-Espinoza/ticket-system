@@ -10,7 +10,7 @@
     formatRevenue,
     formatSize,
     type CustomerListRow,
-  } from '@/components/customers/customer-model';
+  } from '@/lib/components/customers/customer-model';
   import {
     ContextMenu,
     ContextMenuContent,

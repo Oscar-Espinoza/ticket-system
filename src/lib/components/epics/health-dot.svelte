@@ -1,6 +1,6 @@
 <script lang="ts">
   import { cn } from '@/lib/utils';
-  import { HEALTH_COLOR, type Health } from '@/components/epics/epic-model';
+  import { HEALTH_COLOR, type Health } from '@/lib/components/epics/epic-model';
 
   let { health, class: className }: { health: Health; class?: string } = $props();
 </script>

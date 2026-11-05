@@ -4,7 +4,7 @@ import { untrack } from 'svelte';
 import { goto } from '$app/navigation';
 import { refreshAfterWrite } from '@/lib/svelte/refresh.svelte';
 import * as remote from '@/lib/remote/cycles.remote';
-import type * as impl from '@/app/actions/cycles';
+import type * as impl from '@/lib/server/actions/cycles';
 
 type Out<T> = { ok: true; value: T } | { ok: false; redirect: string };
 async function settle<T>(out: Out<T>, refresh: boolean): Promise<T> {
@@ -34,4 +34,4 @@ export async function updateCycle(...args: Parameters<typeof impl.updateCycle>):
 export async function completeCycleAction(...args: Parameters<typeof impl.completeCycleAction>): Promise<Awaited<ReturnType<typeof impl.completeCycleAction>>> {
   return settle(await untrack(() => remote.completeCycleAction(args)), true);
 }
-export type { CycleField, CycleActionResult, CycleInput } from '@/app/actions/cycles';
+export type { CycleField, CycleActionResult, CycleInput } from '@/lib/server/actions/cycles';

@@ -4,7 +4,7 @@ import { untrack } from 'svelte';
 import { goto } from '$app/navigation';
 import { refreshAfterWrite } from '@/lib/svelte/refresh.svelte';
 import * as remote from '@/lib/remote/projects.remote';
-import type * as impl from '@/app/actions/projects';
+import type * as impl from '@/lib/server/actions/projects';
 
 type Out<T> = { ok: true; value: T } | { ok: false; redirect: string };
 async function settle<T>(out: Out<T>, refresh: boolean): Promise<T> {
@@ -29,4 +29,4 @@ void entries;
 export async function createProject(prev: Parameters<typeof impl.createProject>[0], fd: FormData): Promise<Awaited<ReturnType<typeof impl.createProject>>> {
   return settle(await untrack(() => remote.createProject([prev, entries(fd)])), true);
 }
-export type { CreateProjectState } from '@/app/actions/projects';
+export type { CreateProjectState } from '@/lib/server/actions/projects';

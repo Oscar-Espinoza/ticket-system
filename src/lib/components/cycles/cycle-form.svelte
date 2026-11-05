@@ -6,13 +6,13 @@
   import { toast } from 'svelte-sonner';
 
   import { createCycle, updateCycle, type CycleField } from '@/lib/actions/cycles';
-  import { projectHref } from '@/components/app-shell/routes';
+  import { projectHref } from '@/lib/components/app-shell/routes';
   import Field from '@/lib/components/settings/field.svelte';
   import { Button } from '@/lib/components/ui/button';
   import { DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/lib/components/ui/dialog';
   import { Input } from '@/lib/components/ui/input';
   import { Textarea } from '@/lib/components/ui/textarea';
-  import { DAY_MS, cycleName, lastDay, toDateInput } from '@/components/cycles/cycle-utils';
+  import { DAY_MS, cycleName, lastDay, toDateInput } from '@/lib/components/cycles/cycle-utils';
   import type { EditableCycle } from './cycle-form-dialog.svelte';
 
   let {

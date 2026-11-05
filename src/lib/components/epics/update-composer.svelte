@@ -11,7 +11,7 @@
     UPDATE_BODY_MAX,
     isHealth,
     type Health,
-  } from '@/components/epics/epic-model';
+  } from '@/lib/components/epics/epic-model';
   import HealthDot from './health-dot.svelte';
   import RichTextEditor from './rich-text-editor.svelte';
 

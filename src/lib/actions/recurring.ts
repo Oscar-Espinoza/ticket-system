@@ -4,7 +4,7 @@ import { untrack } from 'svelte';
 import { goto } from '$app/navigation';
 import { refreshAfterWrite } from '@/lib/svelte/refresh.svelte';
 import * as remote from '@/lib/remote/recurring.remote';
-import type * as impl from '@/app/actions/recurring';
+import type * as impl from '@/lib/server/actions/recurring';
 
 type Out<T> = { ok: true; value: T } | { ok: false; redirect: string };
 async function settle<T>(out: Out<T>, refresh: boolean): Promise<T> {
@@ -40,4 +40,4 @@ export async function deleteRecurringIssue(...args: Parameters<typeof impl.delet
 export async function runRecurringIssueNow(...args: Parameters<typeof impl.runRecurringIssueNow>): Promise<Awaited<ReturnType<typeof impl.runRecurringIssueNow>>> {
   return settle(await untrack(() => remote.runRecurringIssueNow(args)), true);
 }
-export type { RecurringResult } from '@/app/actions/recurring';
+export type { RecurringResult } from '@/lib/server/actions/recurring';

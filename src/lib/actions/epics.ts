@@ -4,7 +4,7 @@ import { untrack } from 'svelte';
 import { goto } from '$app/navigation';
 import { refreshAfterWrite } from '@/lib/svelte/refresh.svelte';
 import * as remote from '@/lib/remote/epics.remote';
-import type * as impl from '@/app/actions/epics';
+import type * as impl from '@/lib/server/actions/epics';
 
 type Out<T> = { ok: true; value: T } | { ok: false; redirect: string };
 async function settle<T>(out: Out<T>, refresh: boolean): Promise<T> {
@@ -58,4 +58,4 @@ export async function postEpicUpdate(...args: Parameters<typeof impl.postEpicUpd
 export async function deleteEpicUpdate(...args: Parameters<typeof impl.deleteEpicUpdate>): Promise<Awaited<ReturnType<typeof impl.deleteEpicUpdate>>> {
   return settle(await untrack(() => remote.deleteEpicUpdate(args)), true);
 }
-export type { EpicActionResult, EpicInput } from '@/app/actions/epics';
+export type { EpicActionResult, EpicInput } from '@/lib/server/actions/epics';

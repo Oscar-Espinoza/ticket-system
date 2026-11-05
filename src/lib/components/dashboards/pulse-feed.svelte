@@ -6,7 +6,7 @@
   import ActivityIcon from '@lucide/svelte/icons/activity';
   import ArrowRightIcon from '@lucide/svelte/icons/arrow-right';
 
-  import { epicPath } from '@/components/epics/epic-model';
+  import { epicPath } from '@/lib/components/epics/epic-model';
   import EpicIcon from '@/lib/components/epics/epic-icon.svelte';
   import HealthChip from '@/lib/components/epics/health-chip.svelte';
   import { Avatar, EmptyState } from '@/lib/components/ui-icons';

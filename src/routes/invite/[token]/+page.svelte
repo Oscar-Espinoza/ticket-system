@@ -2,7 +2,7 @@
   import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/lib/components/ui/card';
   import { Button } from '@/lib/components/ui/button';
   import JoinProjectButton from '@/lib/components/join-project-button.svelte';
-  import { PROJECT_ROLE_LABEL } from '@/components/workspaces/role-rules';
+  import { PROJECT_ROLE_LABEL } from '@/lib/components/workspaces/role-rules';
   import type { PageProps } from './$types';
 
   let { data }: PageProps = $props();

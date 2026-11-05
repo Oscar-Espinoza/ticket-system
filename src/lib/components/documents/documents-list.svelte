@@ -8,7 +8,7 @@
 <script module lang="ts">
   import { toast } from 'svelte-sonner';
 
-  import { documentPath } from '@/components/documents/document-model';
+  import { documentPath } from '@/lib/components/documents/document-model';
 
   export async function copyDocumentLink(projectId: string, documentId: string) {
     try {
@@ -30,7 +30,7 @@
   import Trash2 from '@lucide/svelte/icons/trash-2';
 
   import { archiveDocument, unarchiveDocument } from '@/lib/actions/documents';
-  import type { DocumentSummary } from '@/components/documents/document-model';
+  import type { DocumentSummary } from '@/lib/components/documents/document-model';
   import { relativeTime } from '@/lib/components/comments/relative-time';
   import EpicIcon from '@/lib/components/epics/epic-icon.svelte';
   import { useProjectPermission } from '@/lib/components/project/project-data.svelte';

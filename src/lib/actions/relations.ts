@@ -4,7 +4,7 @@ import { untrack } from 'svelte';
 import { goto } from '$app/navigation';
 import { refreshAfterWrite } from '@/lib/svelte/refresh.svelte';
 import * as remote from '@/lib/remote/relations.remote';
-import type * as impl from '@/app/actions/relations';
+import type * as impl from '@/lib/server/actions/relations';
 
 type Out<T> = { ok: true; value: T } | { ok: false; redirect: string };
 async function settle<T>(out: Out<T>, refresh: boolean): Promise<T> {
@@ -34,4 +34,4 @@ export async function addIssueRelation(...args: Parameters<typeof impl.addIssueR
 export async function removeIssueRelation(...args: Parameters<typeof impl.removeIssueRelation>): Promise<Awaited<ReturnType<typeof impl.removeIssueRelation>>> {
   return settle(await untrack(() => remote.removeIssueRelation(args)), true);
 }
-export type { GetRelationsResult } from '@/app/actions/relations';
+export type { GetRelationsResult } from '@/lib/server/actions/relations';

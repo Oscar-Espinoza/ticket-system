@@ -4,7 +4,7 @@ import { untrack } from 'svelte';
 import { goto } from '$app/navigation';
 import { refreshAfterWrite } from '@/lib/svelte/refresh.svelte';
 import * as remote from '@/lib/remote/notifications.remote';
-import type * as impl from '@/app/actions/notifications';
+import type * as impl from '@/lib/server/actions/notifications';
 
 type Out<T> = { ok: true; value: T } | { ok: false; redirect: string };
 async function settle<T>(out: Out<T>, refresh: boolean): Promise<T> {
@@ -58,4 +58,4 @@ export async function setIssueReminder(...args: Parameters<typeof impl.setIssueR
 export async function cancelIssueReminder(...args: Parameters<typeof impl.cancelIssueReminder>): Promise<Awaited<ReturnType<typeof impl.cancelIssueReminder>>> {
   return settle(await untrack(() => remote.cancelIssueReminder(args)), false);
 }
-export type { ActionResult } from '@/app/actions/notifications';
+export type { ActionResult } from '@/lib/server/actions/notifications';

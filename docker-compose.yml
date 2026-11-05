@@ -25,8 +25,8 @@ services:
       context: .
       target: runner
       args:
-        NEXT_PUBLIC_APP_URL: ${APP_URL:?set APP_URL in .env}
-        NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY:-}
+        PUBLIC_APP_URL: ${APP_URL:?set APP_URL in .env}
+        PUBLIC_VAPID_PUBLIC_KEY: ${PUBLIC_VAPID_PUBLIC_KEY:-}
     image: ticket-system-app
     restart: unless-stopped
     ports:
@@ -34,7 +34,7 @@ services:
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-tickets}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-tickets}
       BETTER_AUTH_URL: ${APP_URL}
-      NEXT_PUBLIC_APP_URL: ${APP_URL}
+      PUBLIC_APP_URL: ${APP_URL}
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set BETTER_AUTH_SECRET in .env}
       CRON_HOUR_UTC: ${CRON_HOUR_UTC:-}
       CRON_SECRET: ${CRON_SECRET:-}
@@ -43,7 +43,7 @@ services:
       GITHUB_WEBHOOK_BASE_URL: ${GITHUB_WEBHOOK_BASE_URL:-}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       EMAIL_FROM: ${EMAIL_FROM:-}
-      NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY:-}
+      PUBLIC_VAPID_PUBLIC_KEY: ${PUBLIC_VAPID_PUBLIC_KEY:-}
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
       VAPID_SUBJECT: ${VAPID_SUBJECT:-}
       SLACK_CLIENT_ID: ${SLACK_CLIENT_ID:-}

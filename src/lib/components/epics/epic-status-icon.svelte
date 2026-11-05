@@ -4,7 +4,7 @@
     EPIC_STATUS_GLYPH,
     EPIC_STATUS_LABEL,
     type EpicStatus,
-  } from '@/components/epics/epic-model';
+  } from '@/lib/components/epics/epic-model';
 
   let { status, size = 14 }: { status: EpicStatus; size?: 14 | 16 } = $props();
 

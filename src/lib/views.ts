@@ -4,7 +4,7 @@
 // project — but only while the viewer is still a member of that project.
 // Views without a project (reserved for cross-project views) are owner-only.
 
-import { cache } from 'react';
+import { cache } from '@/lib/kit/request';
 import { and, asc, desc, eq, exists, isNull, or, sql, type SQL } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 

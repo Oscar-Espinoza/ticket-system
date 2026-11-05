@@ -5,7 +5,7 @@
 import type { RequestHandler } from './$types';
 import { allowOptions } from '../../_lib/options';
 
-import { isPreviewableImage } from '@/components/issue-hierarchy/attachment-utils';
+import { isPreviewableImage } from '@/lib/components/issue-hierarchy/attachment-utils';
 import { getUploadFile } from '@/lib/uploads';
 
 export const GET: RequestHandler = async ({ params, locals }) => {

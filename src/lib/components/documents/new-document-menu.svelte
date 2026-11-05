@@ -8,7 +8,7 @@
   import FileText from '@lucide/svelte/icons/file-text';
   import Plus from '@lucide/svelte/icons/plus';
 
-  import { DOCUMENT_TEMPLATES } from '@/components/documents/document-model';
+  import { DOCUMENT_TEMPLATES } from '@/lib/components/documents/document-model';
   import { Button } from '@/lib/components/ui/button';
   import {
     DropdownMenu,

@@ -13,7 +13,7 @@ import {
   MAX_ATTACHMENT_LABEL,
   isPreviewableImage,
   normalizeContentType,
-} from '@/components/issue-hierarchy/attachment-utils';
+} from '@/lib/components/issue-hierarchy/attachment-utils';
 
 /** Served path of an upload. */
 export function uploadPath(id: string): string {

@@ -11,7 +11,7 @@
     DropdownMenuTrigger,
   } from '@/lib/components/ui/dropdown-menu';
   import { Avatar } from '@/lib/components/ui-icons';
-  import type { EpicUpdateRow } from '@/components/epics/epic-model';
+  import type { EpicUpdateRow } from '@/lib/components/epics/epic-model';
   import HealthChip from './health-chip.svelte';
   import RichText from './rich-text.svelte';
 

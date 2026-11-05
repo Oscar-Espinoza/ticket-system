@@ -25,13 +25,15 @@ import { vi } from 'vitest';
 // with this ID is inserted in the MEM-03 beforeAll block and cleaned up after.
 const SESSION_USER_ID = `test-mem-session-user-${Date.now()}`;
 
-vi.mock('next/headers', () => ({
+vi.mock('@/lib/kit/request', async (orig) => ({
+  ...(await orig<typeof import('@/lib/kit/request')>()),
   headers: async () => new Headers(),
+  revalidatePath: vi.fn(),
+  redirect: vi.fn((url: string) => {
+    throw new Error(`NEXT_REDIRECT:${url}`);
+  }),
 }));
 
-vi.mock('next/cache', () => ({
-  revalidatePath: vi.fn(),
-}));
 
 vi.mock('@/lib/auth', () => ({
   auth: {
@@ -46,11 +48,6 @@ vi.mock('@/lib/auth', () => ({
 // joinProject calls redirect() inside the Server Action — mock it so the action
 // stays testable without a running Next.js server. The test asserts that redirect
 // was called with the correct project URL on both fresh-join and already-member paths.
-vi.mock('next/navigation', () => ({
-  redirect: vi.fn((url: string) => {
-    throw new Error(`NEXT_REDIRECT:${url}`);
-  }),
-}));
 
 import {
   afterAll,
@@ -293,7 +290,7 @@ describe('MEM-01: generateInviteLink action', () => {
     'MEM-01: generateInviteLink inserts exactly one invitation row with a unique token and expiresAt ~30 days out',
     async () => {
       // This test is RED until src/app/actions/invite.ts ships generateInviteLink.
-      const { generateInviteLink } = await import('@/app/actions/invite');
+      const { generateInviteLink } = await import('@/lib/server/actions/invite');
 
       // Session is mocked to return SESSION_USER_ID; insert a project owned by that user
       const projectId = await insertTestProject(
@@ -334,7 +331,7 @@ describe('MEM-01: generateInviteLink action', () => {
     'MEM-01: a second generateInviteLink call replaces the token (still exactly one active row)',
     async () => {
       // This test is RED until src/app/actions/invite.ts ships generateInviteLink.
-      const { generateInviteLink } = await import('@/app/actions/invite');
+      const { generateInviteLink } = await import('@/lib/server/actions/invite');
 
       const projectId = await insertTestProject(
         SESSION_USER_ID,
@@ -376,7 +373,7 @@ describe('MEM-01: generateInviteLink action', () => {
     'MEM-01: generateInviteLink returns Forbidden for a non-owner member',
     async () => {
       // This test is RED until src/app/actions/invite.ts ships generateInviteLink.
-      const { generateInviteLink } = await import('@/app/actions/invite');
+      const { generateInviteLink } = await import('@/lib/server/actions/invite');
 
       // Create a project owned by a different user; SESSION_USER_ID is just a member
       const realOwner = await insertTestUser('real-owner-gl');
@@ -409,8 +406,8 @@ describe('MEM-02: joinProject idempotency', () => {
     'MEM-02: joinProject inserts a member row for a new user and redirects to the project',
     async () => {
       // This test is RED until src/app/actions/join.ts ships joinProject.
-      const { joinProject } = await import('@/app/actions/join');
-      const { redirect } = await import('next/navigation');
+      const { joinProject } = await import('@/lib/server/actions/join');
+      const { redirect } = await import('@/lib/kit/request');
       const mockedRedirect = vi.mocked(redirect);
       mockedRedirect.mockClear();
 
@@ -462,7 +459,7 @@ describe('MEM-02: joinProject idempotency', () => {
     'MEM-02: joinProject for an already-member user inserts NO additional row (idempotency) and still redirects',
     async () => {
       // This test is RED until src/app/actions/join.ts ships joinProject.
-      const { joinProject } = await import('@/app/actions/join');
+      const { joinProject } = await import('@/lib/server/actions/join');
 
       // Create project and invite
       const projectId = await insertTestProject(
@@ -524,7 +521,7 @@ describe('MEM-02: joinProject expired/unknown token', () => {
   it(
     'MEM-02: joinProject returns { error: "invalid" } for an EXPIRED token and inserts no project_member row',
     async () => {
-      const { joinProject } = await import('@/app/actions/join');
+      const { joinProject } = await import('@/lib/server/actions/join');
 
       // Arrange: a project and an invitation that already expired
       const projectId = await insertTestProject(
@@ -569,7 +566,7 @@ describe('MEM-02: joinProject expired/unknown token', () => {
   it(
     'MEM-02: joinProject returns { error: "invalid" } for an UNKNOWN/garbage token and inserts no project_member row',
     async () => {
-      const { joinProject } = await import('@/app/actions/join');
+      const { joinProject } = await import('@/lib/server/actions/join');
 
       // Arrange: a fresh joiner user; NO invitation row for this token
       const joinerUserId = await insertTestUser('joiner-unk');
@@ -606,7 +603,7 @@ describe('MEM-05: removeMember action', () => {
     'MEM-05: removeMember deletes the target member row',
     async () => {
       // This test is RED until src/app/actions/members.ts ships removeMember.
-      const { removeMember } = await import('@/app/actions/members');
+      const { removeMember } = await import('@/lib/server/actions/members');
 
       const projectId = await insertTestProject(
         SESSION_USER_ID,
@@ -643,7 +640,7 @@ describe('MEM-05: removeMember action', () => {
     'MEM-05: removeMember rejects removing an owner row (owners are unremovable in v1)',
     async () => {
       // This test is RED until src/app/actions/members.ts ships removeMember.
-      const { removeMember } = await import('@/app/actions/members');
+      const { removeMember } = await import('@/lib/server/actions/members');
 
       const otherOwner = await insertTestUser('other-owner-rm');
       const projectId = await insertTestProject(otherOwner, uniqueKey('RO'));
@@ -679,7 +676,7 @@ describe('MEM-05: removeMember action', () => {
     'MEM-05: removeMember rejects self-remove (a member cannot remove themselves)',
     async () => {
       // This test is RED until src/app/actions/members.ts ships removeMember.
-      const { removeMember } = await import('@/app/actions/members');
+      const { removeMember } = await import('@/lib/server/actions/members');
 
       const projectId = await insertTestProject(
         SESSION_USER_ID,

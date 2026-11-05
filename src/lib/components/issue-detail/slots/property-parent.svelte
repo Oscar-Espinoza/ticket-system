@@ -8,7 +8,7 @@
   import GitForkIcon from '@lucide/svelte/icons/git-fork';
   import type { Snippet } from 'svelte';
 
-  import { descendantIds } from '@/components/issue-hierarchy/tree';
+  import { descendantIds } from '@/lib/components/issue-hierarchy/tree';
   import IssueSearchPicker from '@/lib/components/issue-hierarchy/issue-search-picker.svelte';
   import { useOpenIssue } from '@/lib/components/issue-hierarchy/open-issue.svelte';
   import type { IssueMutations } from '@/lib/components/issues/use-issue-mutations.svelte';

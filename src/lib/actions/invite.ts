@@ -4,7 +4,7 @@ import { untrack } from 'svelte';
 import { goto } from '$app/navigation';
 import { refreshAfterWrite } from '@/lib/svelte/refresh.svelte';
 import * as remote from '@/lib/remote/invite.remote';
-import type * as impl from '@/app/actions/invite';
+import type * as impl from '@/lib/server/actions/invite';
 
 type Out<T> = { ok: true; value: T } | { ok: false; redirect: string };
 async function settle<T>(out: Out<T>, refresh: boolean): Promise<T> {
@@ -38,4 +38,4 @@ export async function resendInvitation(...args: Parameters<typeof impl.resendInv
 export async function revokeInvitation(...args: Parameters<typeof impl.revokeInvitation>): Promise<Awaited<ReturnType<typeof impl.revokeInvitation>>> {
   return settle(await untrack(() => remote.revokeInvitation(args)), true);
 }
-export type { GenerateInviteState, InviteActionResult } from '@/app/actions/invite';
+export type { GenerateInviteState, InviteActionResult } from '@/lib/server/actions/invite';

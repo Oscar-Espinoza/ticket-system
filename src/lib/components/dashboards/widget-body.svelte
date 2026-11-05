@@ -3,7 +3,7 @@
   (BarList, TrendChart); lists reuse NavIssueRow (cross-project safe).
 -->
 <script lang="ts">
-  import { epicPath } from '@/components/epics/epic-model';
+  import { epicPath } from '@/lib/components/epics/epic-model';
   import EpicIcon from '@/lib/components/epics/epic-icon.svelte';
   import ProgressRing from '@/lib/components/epics/progress-ring.svelte';
   import BarList from '@/lib/components/insights/bar-list.svelte';
@@ -19,8 +19,8 @@
     timeInStatus,
     weekPoints,
     widgetIssues,
-  } from '@/components/dashboards/widget-data';
-  import type { DashboardDataset, Widget } from '@/components/dashboards/widget-model';
+  } from '@/lib/components/dashboards/widget-data';
+  import type { DashboardDataset, Widget } from '@/lib/components/dashboards/widget-model';
 
   let { widget, dataset, now }: { widget: Widget; dataset: DashboardDataset; now: number } = $props();
 

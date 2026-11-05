@@ -3,7 +3,7 @@
 
 import { redirect } from '@sveltejs/kit';
 
-import { projectHref } from '@/components/app-shell/routes';
+import { projectHref } from '@/lib/components/app-shell/routes';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = ({ params }) => {

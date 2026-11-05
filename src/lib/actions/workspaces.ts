@@ -4,7 +4,7 @@ import { untrack } from 'svelte';
 import { goto } from '$app/navigation';
 import { refreshAfterWrite } from '@/lib/svelte/refresh.svelte';
 import * as remote from '@/lib/remote/workspaces.remote';
-import type * as impl from '@/app/actions/workspaces';
+import type * as impl from '@/lib/server/actions/workspaces';
 
 type Out<T> = { ok: true; value: T } | { ok: false; redirect: string };
 async function settle<T>(out: Out<T>, refresh: boolean): Promise<T> {
@@ -68,4 +68,4 @@ export async function removeWorkspaceMember(...args: Parameters<typeof impl.remo
 export async function acceptWorkspaceInvite(prev: Parameters<typeof impl.acceptWorkspaceInvite>[0], fd: FormData): Promise<Awaited<ReturnType<typeof impl.acceptWorkspaceInvite>>> {
   return settle(await untrack(() => remote.acceptWorkspaceInvite([prev, entries(fd)])), true);
 }
-export type { WorkspaceField, WorkspaceActionResult, AcceptWorkspaceInviteState } from '@/app/actions/workspaces';
+export type { WorkspaceField, WorkspaceActionResult, AcceptWorkspaceInviteState } from '@/lib/server/actions/workspaces';

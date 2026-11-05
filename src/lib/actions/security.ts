@@ -4,7 +4,7 @@ import { untrack } from 'svelte';
 import { goto } from '$app/navigation';
 import { refreshAfterWrite } from '@/lib/svelte/refresh.svelte';
 import * as remote from '@/lib/remote/security.remote';
-import type * as impl from '@/app/actions/security';
+import type * as impl from '@/lib/server/actions/security';
 
 type Out<T> = { ok: true; value: T } | { ok: false; redirect: string };
 async function settle<T>(out: Out<T>, refresh: boolean): Promise<T> {
@@ -46,4 +46,4 @@ export async function generateScimToken(...args: Parameters<typeof impl.generate
 export async function revokeScimToken(...args: Parameters<typeof impl.revokeScimToken>): Promise<Awaited<ReturnType<typeof impl.revokeScimToken>>> {
   return settle(await untrack(() => remote.revokeScimToken(args)), true);
 }
-export type { SecurityField, SecurityResult, SaveSsoInput } from '@/app/actions/security';
+export type { SecurityField, SecurityResult, SaveSsoInput } from '@/lib/server/actions/security';

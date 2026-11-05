@@ -1,6 +1,6 @@
 <!-- Velocity (cycles list): completed work per past cycle → the generic bar chart. -->
 <script module lang="ts">
-  import type { CycleTotals } from '@/components/cycles/cycle-utils';
+  import type { CycleTotals } from '@/lib/components/cycles/cycle-utils';
 
   export interface VelocityCycle {
     id: string;
@@ -13,7 +13,7 @@
 
 <script lang="ts">
   import BarChart from '@/lib/components/charts/bar-chart.svelte';
-  import { completedOf, scopeOf, type ChartUnit } from '@/components/cycles/cycle-utils';
+  import { completedOf, scopeOf, type ChartUnit } from '@/lib/components/cycles/cycle-utils';
   import ChartCard from './chart-card.svelte';
 
   let {

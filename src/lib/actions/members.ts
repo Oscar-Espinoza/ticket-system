@@ -4,7 +4,7 @@ import { untrack } from 'svelte';
 import { goto } from '$app/navigation';
 import { refreshAfterWrite } from '@/lib/svelte/refresh.svelte';
 import * as remote from '@/lib/remote/members.remote';
-import type * as impl from '@/app/actions/members';
+import type * as impl from '@/lib/server/actions/members';
 
 type Out<T> = { ok: true; value: T } | { ok: false; redirect: string };
 async function settle<T>(out: Out<T>, refresh: boolean): Promise<T> {
@@ -35,4 +35,4 @@ export async function updateMemberRole(...args: Parameters<typeof impl.updateMem
 export async function transferOwnership(...args: Parameters<typeof impl.transferOwnership>): Promise<Awaited<ReturnType<typeof impl.transferOwnership>>> {
   return settle(await untrack(() => remote.transferOwnership(args)), true);
 }
-export type { RemoveMemberState, MemberActionResult } from '@/app/actions/members';
+export type { RemoveMemberState, MemberActionResult } from '@/lib/server/actions/members';

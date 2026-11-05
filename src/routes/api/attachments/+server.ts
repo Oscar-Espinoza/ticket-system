@@ -7,7 +7,7 @@ import { allowOptions } from '../_lib/options';
 
 import { authorizeProjectAction } from '@/lib/action-auth';
 import { addFileAttachment } from '@/lib/attachments';
-import { MAX_ATTACHMENT_BYTES, MAX_ATTACHMENT_LABEL } from '@/components/issue-hierarchy/attachment-utils';
+import { MAX_ATTACHMENT_BYTES, MAX_ATTACHMENT_LABEL } from '@/lib/components/issue-hierarchy/attachment-utils';
 
 // Multipart boundaries + the other fields.
 const FORM_OVERHEAD = 64 * 1024;

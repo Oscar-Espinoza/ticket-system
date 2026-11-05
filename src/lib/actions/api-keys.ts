@@ -4,7 +4,7 @@ import { untrack } from 'svelte';
 import { goto } from '$app/navigation';
 import { refreshAfterWrite } from '@/lib/svelte/refresh.svelte';
 import * as remote from '@/lib/remote/api-keys.remote';
-import type * as impl from '@/app/actions/api-keys';
+import type * as impl from '@/lib/server/actions/api-keys';
 
 type Out<T> = { ok: true; value: T } | { ok: false; redirect: string };
 async function settle<T>(out: Out<T>, refresh: boolean): Promise<T> {
@@ -31,4 +31,4 @@ export async function createApiKey(...args: Parameters<typeof impl.createApiKey>
 export async function revokeApiKey(...args: Parameters<typeof impl.revokeApiKey>): Promise<Awaited<ReturnType<typeof impl.revokeApiKey>>> {
   return settle(await untrack(() => remote.revokeApiKey(args)), true);
 }
-export type { ApiKeyView } from '@/app/actions/api-keys';
+export type { ApiKeyView } from '@/lib/server/actions/api-keys';

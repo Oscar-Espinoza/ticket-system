@@ -1,7 +1,7 @@
 <script lang="ts">
   import { LabelChip } from '@/lib/components/ui-icons';
   import { cn } from '@/lib/utils';
-  import type { EpicLabelRow } from '@/components/epics/epic-model';
+  import type { EpicLabelRow } from '@/lib/components/epics/epic-model';
 
   let {
     labels,

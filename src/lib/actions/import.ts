@@ -4,7 +4,7 @@ import { untrack } from 'svelte';
 import { goto } from '$app/navigation';
 import { refreshAfterWrite } from '@/lib/svelte/refresh.svelte';
 import * as remote from '@/lib/remote/import.remote';
-import type * as impl from '@/app/actions/import';
+import type * as impl from '@/lib/server/actions/import';
 
 type Out<T> = { ok: true; value: T } | { ok: false; redirect: string };
 async function settle<T>(out: Out<T>, refresh: boolean): Promise<T> {
@@ -49,4 +49,4 @@ export async function listShortcutSourcesAction(...args: Parameters<typeof impl.
 export async function fetchShortcutStoriesAction(...args: Parameters<typeof impl.fetchShortcutStoriesAction>): Promise<Awaited<ReturnType<typeof impl.fetchShortcutStoriesAction>>> {
   return settle(await untrack(() => remote.fetchShortcutStoriesAction(args)), false);
 }
-export type { GitHubFetchResult } from '@/app/actions/import';
+export type { GitHubFetchResult } from '@/lib/server/actions/import';

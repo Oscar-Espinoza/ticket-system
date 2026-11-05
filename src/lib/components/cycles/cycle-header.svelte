@@ -4,7 +4,7 @@
   import ChevronLeft from '@lucide/svelte/icons/chevron-left';
   import Pencil from '@lucide/svelte/icons/pencil';
 
-  import { projectHref } from '@/components/app-shell/routes';
+  import { projectHref } from '@/lib/components/app-shell/routes';
   import FavoriteButton from '@/lib/components/navigation/favorite-button.svelte';
   import { Button } from '@/lib/components/ui/button';
   import { LabelChip } from '@/lib/components/ui-icons';
@@ -15,7 +15,7 @@
     formatCycleDay,
     formatCycleRange,
     type CycleStatus,
-  } from '@/components/cycles/cycle-utils';
+  } from '@/lib/components/cycles/cycle-utils';
   import CompleteCycleDialog from './complete-cycle-dialog.svelte';
   import CycleFormDialog, { type EditableCycle } from './cycle-form-dialog.svelte';
   import CycleGlyph from './cycle-glyph.svelte';

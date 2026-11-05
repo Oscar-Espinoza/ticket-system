@@ -24,7 +24,7 @@
     type EpicDependency,
     type EpicRow,
     type MilestoneRow,
-  } from '@/components/epics/epic-model';
+  } from '@/lib/components/epics/epic-model';
   import Timeline, { ZOOMS, type TimelineItem, type Zoom } from './timeline.svelte';
 
   type DatePatch = { id: string; startDate?: string; targetDate?: string };

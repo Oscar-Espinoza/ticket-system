@@ -26,7 +26,7 @@
     type CustomerOption,
     type Importance,
     type IssueCustomerRequest,
-  } from '@/components/customers/customer-model';
+  } from '@/lib/components/customers/customer-model';
   import SectionHeader from '@/lib/components/issue-hierarchy/section-header.svelte';
   import PickerPopover from '@/lib/components/issue-pickers/picker-popover.svelte';
   import type { IssueMutations } from '@/lib/components/issues/use-issue-mutations.svelte';

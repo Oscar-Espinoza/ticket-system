@@ -31,7 +31,7 @@ import {
   readRowsAfter,
   seedState,
 } from '@/lib/collab/store';
-import { after as afterResponse } from '@/lib/kit/next-shims';
+import { after as afterResponse } from '@/lib/kit/request';
 import { db } from '@/lib/db';
 import { tickets } from '@/db/schema';
 import { eq } from 'drizzle-orm';

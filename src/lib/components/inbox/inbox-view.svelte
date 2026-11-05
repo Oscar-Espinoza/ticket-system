@@ -35,7 +35,7 @@
   import type { InboxNotification } from '@/lib/notifications/inbox';
   import { INBOX_CHANGED_EVENT } from '@/lib/notifications/types';
   import { cn } from '@/lib/utils';
-  import { formatWhen } from '@/components/inbox/when-options';
+  import { formatWhen } from '@/lib/components/inbox/when-options';
   import InboxDetail from './inbox-detail.svelte';
   import { byNewest, groupNotifications, type InboxGroup } from './inbox-groups';
   import NotificationGlyph, { notificationSentence } from './notification-glyph.svelte';

@@ -4,7 +4,7 @@ import { untrack } from 'svelte';
 import { goto } from '$app/navigation';
 import { refreshAfterWrite } from '@/lib/svelte/refresh.svelte';
 import * as remote from '@/lib/remote/developer.remote';
-import type * as impl from '@/app/actions/developer';
+import type * as impl from '@/lib/server/actions/developer';
 
 type Out<T> = { ok: true; value: T } | { ok: false; redirect: string };
 async function settle<T>(out: Out<T>, refresh: boolean): Promise<T> {
@@ -52,4 +52,4 @@ export async function getGithubWebhookHealth(...args: Parameters<typeof impl.get
 export async function updateGithubWebhookEvents(...args: Parameters<typeof impl.updateGithubWebhookEvents>): Promise<Awaited<ReturnType<typeof impl.updateGithubWebhookEvents>>> {
   return settle(await untrack(() => remote.updateGithubWebhookEvents(args)), false);
 }
-export type { PullRequestView, VcsConnection, VcsConnectResult, GithubWebhookHealth } from '@/app/actions/developer';
+export type { PullRequestView, VcsConnection, VcsConnectResult, GithubWebhookHealth } from '@/lib/server/actions/developer';

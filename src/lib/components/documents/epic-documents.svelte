@@ -8,7 +8,7 @@
   import FileText from '@lucide/svelte/icons/file-text';
   import Plus from '@lucide/svelte/icons/plus';
 
-  import { documentPath, type DocumentSummary } from '@/components/documents/document-model';
+  import { documentPath, type DocumentSummary } from '@/lib/components/documents/document-model';
   import { relativeTime } from '@/lib/components/comments/relative-time';
   import { useProjectPermission } from '@/lib/components/project/project-data.svelte';
   import { Button } from '@/lib/components/ui/button';

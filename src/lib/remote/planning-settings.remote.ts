@@ -2,7 +2,7 @@
 
 import { isRedirect } from '@sveltejs/kit';
 import { command } from '$app/server';
-import * as impl from '@/app/actions/planning-settings';
+import * as impl from '@/lib/server/actions/planning-settings';
 
 type Out<T> = { ok: true; value: Awaited<T> } | { ok: false; redirect: string };
 async function run<T>(fn: () => T): Promise<Out<T>> {

@@ -4,9 +4,15 @@
 // DATABASE_DRIVER=neon|pg forces one. Self-hosted images don't need this: the
 // app migrates on start (SELF_HOSTED=true, src/lib/selfhost/boot.ts).
 // Usage: node scripts/migrate.mjs   (reads .env.local when present)
-import nextEnv from '@next/env';
 
-nextEnv.loadEnvConfig(process.cwd());
+// Load .env.local / .env like the app does in dev (real env vars win).
+for (const file of ['.env.local', '.env']) {
+  try {
+    process.loadEnvFile(file);
+  } catch {
+    // missing file is fine
+  }
+}
 
 const url = process.env.DATABASE_URL;
 if (!url) {

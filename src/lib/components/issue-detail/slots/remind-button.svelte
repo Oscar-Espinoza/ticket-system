@@ -5,7 +5,7 @@
   import { toast } from 'svelte-sonner';
 
   import { cancelIssueReminder, getIssueReminder, setIssueReminder } from '@/lib/actions/notifications';
-  import { formatWhen, reminderPresets } from '@/components/inbox/when-options';
+  import { formatWhen, reminderPresets } from '@/lib/components/inbox/when-options';
   import WhenPicker from '@/lib/components/inbox/when-picker.svelte';
   import PickerPopover from '@/lib/components/issue-pickers/picker-popover.svelte';
   import { Button } from '@/lib/components/ui/button';

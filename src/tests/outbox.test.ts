@@ -9,7 +9,8 @@ const server = vi.hoisted(() => ({
   loseNextResponse: false,
 }));
 
-vi.mock('@/app/actions/sync', () => ({
+// The generated client wrapper the Svelte outbox calls (same contract as the action).
+vi.mock('@/lib/actions/sync', () => ({
   runOutboxCall: vi.fn(async (call: { queueOwner: string; action: string; args: Record<string, unknown> }) => {
     server.calls.push(call);
     if (call.queueOwner !== server.sessionUser) {
@@ -27,7 +28,8 @@ vi.mock('@/app/actions/sync', () => ({
   }),
 }));
 vi.mock('@/lib/sync/actions', () => ({}));
-vi.mock('sonner', () => ({ toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn(), warning: vi.fn() }) }));
+vi.mock('svelte-sonner', () => ({ toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn(), warning: vi.fn() }) }));
+vi.mock('@/lib/svelte/refresh.svelte', () => ({ refreshAfterWrite: vi.fn(async () => undefined) }));
 vi.mock('@/lib/sync/broadcast', () => ({
   broadcastOutboxChanged: vi.fn(),
   broadcastProjectChanged: vi.fn(),
@@ -37,7 +39,7 @@ vi.mock('@/lib/sync/broadcast', () => ({
 const nav = { onLine: true };
 vi.stubGlobal('navigator', nav);
 
-const outbox = await import('@/lib/sync/outbox');
+const outbox = await import('@/lib/svelte/outbox.svelte');
 
 const createCall = (userId: string, title: string) => ({
   userId,

@@ -201,7 +201,7 @@
             rows={5}
             spellcheck={false}
             class="font-mono text-xs"
-            placeholder={'<md:EntityDescriptor entityID="…">'}
+            placeholder="<md:EntityDescriptor entityID=&quot;…&quot;>"
             bind:value={() => values.samlMetadata, (v) => setValue('samlMetadata', v)}
             {...invalid('samlMetadata')}
           />

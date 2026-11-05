@@ -8,7 +8,7 @@
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
   import { toast } from 'svelte-sonner';
 
-  import { projectHref } from '@/components/app-shell/routes';
+  import { projectHref } from '@/lib/components/app-shell/routes';
   import { fetchGitHubIssues, listGitHubRepos } from '@/lib/actions/import';
   import { EmptyState, Skeleton } from '@/lib/components/ui-icons';
   import { Button } from '@/lib/components/ui/button';

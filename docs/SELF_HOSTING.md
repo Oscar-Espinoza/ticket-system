@@ -10,7 +10,7 @@ is nothing else to run.
 | Service | What it does |
 | --- | --- |
 | `postgres` | Postgres 17. All data, including uploaded files, lives in the `pgdata` volume. |
-| `app` | The Next.js server (standalone build) on port `APP_PORT` (default 3000). On start it migrates the database, then runs the daily jobs (digests, SLAs, recurring issues, webhook retries) at `CRON_HOUR_UTC` (default 08:00 UTC). |
+| `app` | The SvelteKit server (adapter-node build) on port `APP_PORT` (default 3000). Health check: `GET /api/health`. On start it migrates the database, then runs the daily jobs (digests, SLAs, recurring issues, webhook retries) at `CRON_HOUR_UTC` (default 08:00 UTC). |
 
 Plan for about 1 GB RAM and 3 GB disk for the image and data. Run **one** app
 container: every app container started with `SELF_HOSTED=true` runs the daily
@@ -31,7 +31,10 @@ Open `APP_URL`, sign up, create a workspace and invite people.
 
 - **HTTPS**: put a reverse proxy (Caddy, Traefik, nginx) in front of the `app`
   port and set `APP_URL` to the `https://` address. Rebuild after changing
-  `APP_URL` (`docker compose up -d --build`): it is baked into the browser bundle.
+  `APP_URL` (`docker compose up -d --build`): it is baked into the browser bundle
+  and is the origin the server accepts form and remote-function posts from.
+- **Uploads**: the image sets `BODY_SIZE_LIMIT=6M` (attachments and uploads are
+  capped at 4 MB, webhooks at 5 MB). Raise it in the environment if you need more.
 - **Updates**: `git pull && docker compose up -d --build`. The new container
   applies any new migrations before it serves requests; if a migration fails it
   exits instead of starting (`docker compose logs app`).
@@ -42,11 +45,11 @@ Open `APP_URL`, sign up, create a workspace and invite people.
 Skip the `postgres` service and run only the app image (Postgres 14 or newer):
 
 ```bash
-docker build --build-arg NEXT_PUBLIC_APP_URL=https://tickets.example.com -t ticket-system-app .
+docker build --build-arg PUBLIC_APP_URL=https://tickets.example.com -t ticket-system-app .
 docker run -d --name tickets --restart unless-stopped -p 3000:3000 \
   -e DATABASE_URL=postgres://tickets:secret@db.internal:5432/tickets \
   -e BETTER_AUTH_URL=https://tickets.example.com \
-  -e NEXT_PUBLIC_APP_URL=https://tickets.example.com \
+  -e PUBLIC_APP_URL=https://tickets.example.com \
   -e BETTER_AUTH_SECRET="$(openssl rand -base64 32)" \
   ticket-system-app
 ```

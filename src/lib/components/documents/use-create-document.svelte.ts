@@ -8,7 +8,7 @@ import { goto } from '$app/navigation';
 import { toast } from 'svelte-sonner';
 
 import { createDocument } from '@/lib/actions/documents';
-import { documentPath, type DocumentTemplateId } from '@/components/documents/document-model';
+import { documentPath, type DocumentTemplateId } from '@/lib/components/documents/document-model';
 
 type MaybeGetter<T> = T | (() => T);
 const read = <T>(value: MaybeGetter<T>): T => (typeof value === 'function' ? (value as () => T)() : value);

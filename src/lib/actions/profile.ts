@@ -4,7 +4,7 @@ import { untrack } from 'svelte';
 import { goto } from '$app/navigation';
 import { refreshAfterWrite } from '@/lib/svelte/refresh.svelte';
 import * as remote from '@/lib/remote/profile.remote';
-import type * as impl from '@/app/actions/profile';
+import type * as impl from '@/lib/server/actions/profile';
 
 type Out<T> = { ok: true; value: T } | { ok: false; redirect: string };
 async function settle<T>(out: Out<T>, refresh: boolean): Promise<T> {
@@ -29,4 +29,4 @@ void entries;
 export async function updateProfile(prev: Parameters<typeof impl.updateProfile>[0], fd: FormData): Promise<Awaited<ReturnType<typeof impl.updateProfile>>> {
   return settle(await untrack(() => remote.updateProfile([prev, entries(fd)])), true);
 }
-export type { ProfileState } from '@/app/actions/profile';
+export type { ProfileState } from '@/lib/server/actions/profile';

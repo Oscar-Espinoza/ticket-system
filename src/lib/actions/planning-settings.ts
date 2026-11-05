@@ -4,7 +4,7 @@ import { untrack } from 'svelte';
 import { goto } from '$app/navigation';
 import { refreshAfterWrite } from '@/lib/svelte/refresh.svelte';
 import * as remote from '@/lib/remote/planning-settings.remote';
-import type * as impl from '@/app/actions/planning-settings';
+import type * as impl from '@/lib/server/actions/planning-settings';
 
 type Out<T> = { ok: true; value: T } | { ok: false; redirect: string };
 async function settle<T>(out: Out<T>, refresh: boolean): Promise<T> {
@@ -31,4 +31,4 @@ export async function updatePlanningSettings(...args: Parameters<typeof impl.upd
 export async function updateAutomationSettings(...args: Parameters<typeof impl.updateAutomationSettings>): Promise<Awaited<ReturnType<typeof impl.updateAutomationSettings>>> {
   return settle(await untrack(() => remote.updateAutomationSettings(args)), true);
 }
-export type { SettingsActionResult, PlanningSettingsInput } from '@/app/actions/planning-settings';
+export type { SettingsActionResult, PlanningSettingsInput } from '@/lib/server/actions/planning-settings';

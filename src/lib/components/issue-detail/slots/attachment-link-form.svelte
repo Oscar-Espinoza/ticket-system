@@ -2,7 +2,7 @@
 <script lang="ts">
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
 
-  import { parseLinkUrl } from '@/components/issue-hierarchy/attachment-utils';
+  import { parseLinkUrl } from '@/lib/components/issue-hierarchy/attachment-utils';
   import { Button } from '@/lib/components/ui/button';
   import { Input } from '@/lib/components/ui/input';
 

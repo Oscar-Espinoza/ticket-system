@@ -3,7 +3,7 @@
 // only ever read from projects the viewer is a member of — so progress and
 // linked epics never reveal projects the viewer can't open.
 
-import { cache } from 'react';
+import { cache } from '@/lib/kit/request';
 import { and, asc, eq, exists, inArray, isNull, ne, or, sql, type SQL } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
@@ -20,12 +20,12 @@ import {
 } from '@/db/schema';
 import { epicProgressQuery, selectEpics, toEpicRow, viewerIsMember } from '@/lib/epics';
 import { roleAllows } from '@/lib/roles';
-import { EMPTY_PROGRESS, addProgress, type Progress } from '@/components/epics/epic-model';
+import { EMPTY_PROGRESS, addProgress, type Progress } from '@/lib/components/epics/epic-model';
 import {
   toInitiativeStatus,
   type InitiativeDetail,
   type InitiativeRow,
-} from '@/components/initiatives/initiative-model';
+} from '@/lib/components/initiatives/initiative-model';
 
 const ownerUsers = alias(users, 'owner');
 

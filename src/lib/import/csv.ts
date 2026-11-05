@@ -65,5 +65,5 @@ export function toCsv(rows: readonly (readonly (string | number | null | undefin
   const body = rows
     .map((row) => row.map((cell) => escapeCell(cell == null ? '' : String(cell))).join(','))
     .join('\r\n');
-  return `﻿${body}\r\n`;
+  return `\uFEFF${body}\r\n`; // BOM: Excel opens UTF-8 CSV correctly
 }

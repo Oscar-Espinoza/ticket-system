@@ -5,8 +5,8 @@ import { and, eq } from 'drizzle-orm';
 
 // No after-response fan-out: these tests play the part of a process that died
 // right after the mutation committed.
-vi.mock('next/server', async (orig) => ({
-  ...(await orig<typeof import('next/server')>()),
+vi.mock('@/lib/kit/request', async (orig) => ({
+  ...(await orig<typeof import('@/lib/kit/request')>()),
   after: () => undefined,
 }));
 vi.mock('@/lib/events', async (orig) => ({

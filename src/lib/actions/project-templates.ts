@@ -4,7 +4,7 @@ import { untrack } from 'svelte';
 import { goto } from '$app/navigation';
 import { refreshAfterWrite } from '@/lib/svelte/refresh.svelte';
 import * as remote from '@/lib/remote/project-templates.remote';
-import type * as impl from '@/app/actions/project-templates';
+import type * as impl from '@/lib/server/actions/project-templates';
 
 type Out<T> = { ok: true; value: T } | { ok: false; redirect: string };
 async function settle<T>(out: Out<T>, refresh: boolean): Promise<T> {
@@ -37,4 +37,4 @@ export async function updateProjectTemplate(...args: Parameters<typeof impl.upda
 export async function deleteProjectTemplate(...args: Parameters<typeof impl.deleteProjectTemplate>): Promise<Awaited<ReturnType<typeof impl.deleteProjectTemplate>>> {
   return settle(await untrack(() => remote.deleteProjectTemplate(args)), true);
 }
-export type { ProjectTemplateRow, ProjectTemplateResult } from '@/app/actions/project-templates';
+export type { ProjectTemplateRow, ProjectTemplateResult } from '@/lib/server/actions/project-templates';

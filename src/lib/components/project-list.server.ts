@@ -14,7 +14,7 @@ import { and, eq, isNull, sql } from 'drizzle-orm';
 
 import { projects, projectMembers, tickets, workflowStates } from '@/db/schema';
 import { db } from '@/lib/db';
-import { cache } from '@/lib/kit/next-shims';
+import { cache } from '@/lib/kit/request';
 
 /**
  * Returns every project the user owns or is a member of, with numeric open and

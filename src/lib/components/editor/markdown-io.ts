@@ -8,7 +8,7 @@
 
 import type { JSONContent } from '@tiptap/core';
 
-import { embedFor } from '@/components/editor/embeds';
+import { embedFor } from '@/lib/components/editor/embeds';
 
 // ---------------------------------------------------------------------------
 // After parsing

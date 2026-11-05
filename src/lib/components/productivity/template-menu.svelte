@@ -13,7 +13,7 @@
     DropdownMenuSeparator,
     DropdownMenuTrigger,
   } from '@/lib/components/ui/dropdown-menu';
-  import { projectHref } from '@/components/app-shell/routes';
+  import { projectHref } from '@/lib/components/app-shell/routes';
   import { useTemplates, type IssueTemplate } from './templates-store.svelte';
 
   let {

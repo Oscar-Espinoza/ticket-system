@@ -1,15 +1,15 @@
 import { describe, expect, it, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
 
-vi.mock('next/server', async (orig) => ({
-  ...(await orig<typeof import('next/server')>()),
+vi.mock('@/lib/kit/request', async (orig) => ({
+  ...(await orig<typeof import('@/lib/kit/request')>()),
   after: () => undefined,
 }));
 
 import { db } from '@/lib/db';
 import { tickets } from '@/db/schema';
 import * as issues from '@/lib/issue-service';
-import { reconcileTarget } from '@/components/collab/use-collab-editor';
+import { reconcileTarget } from '@/lib/components/collab/reconcile';
 import { localDb, makeProject, makeUser } from './fixtures';
 
 const source = async (id: string) =>

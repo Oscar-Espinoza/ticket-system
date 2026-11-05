@@ -32,8 +32,8 @@ import Hash from '@lucide/svelte/icons/hash';
 
 import { formatMention } from '@/lib/mentions';
 import type { IssueUser } from '@/lib/issue-model';
-import { embedFor } from '@/components/editor/embeds';
-import type { ImageUploadResult } from '@/components/editor/upload';
+import { embedFor } from '@/lib/components/editor/embeds';
+import type { ImageUploadResult } from '@/lib/components/editor/upload';
 import type { EditorIssue } from './context.svelte';
 import EmbedNodeView from './embed-node-view.svelte';
 import type { SlashCommand, SuggestionEntry } from './suggestion-entries';

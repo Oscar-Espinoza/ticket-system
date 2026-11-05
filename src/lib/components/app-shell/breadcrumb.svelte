@@ -7,7 +7,7 @@
     TOP_LEVEL_PAGES,
     labelFor,
     projectHref,
-  } from '@/components/app-shell/routes';
+  } from '@/lib/components/app-shell/routes';
 
   export interface BreadcrumbProject {
     id: string;

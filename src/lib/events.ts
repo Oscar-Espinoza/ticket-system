@@ -17,7 +17,7 @@
 //   - issue.purged has ticketId null (the row is gone) and { ticketId, key, title }.
 //   - comment.created carries { commentId, mentions: userId[] } (B1).
 
-import { after } from 'next/server';
+import { after } from '@/lib/kit/request';
 
 import { db } from '@/lib/db';
 import { activities } from '@/db/schema';

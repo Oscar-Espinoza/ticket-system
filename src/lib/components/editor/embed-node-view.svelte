@@ -3,7 +3,7 @@
   import type { NodeViewProps } from '@tiptap/core';
   import { NodeViewWrapper } from 'svelte-tiptap';
 
-  import { embedFor } from '@/components/editor/embeds';
+  import { embedFor } from '@/lib/components/editor/embeds';
   import EmbedFrame from './embed-frame.svelte';
 
   let { node, selected }: NodeViewProps = $props();

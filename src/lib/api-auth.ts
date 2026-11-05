@@ -8,7 +8,7 @@
 // OAuth tokens are further limited to their granted scopes.
 
 import { createHash, randomBytes } from 'node:crypto';
-import { after } from 'next/server';
+import { after } from '@/lib/kit/request';
 import { and, eq, gt, isNotNull, isNull } from 'drizzle-orm';
 
 import { db } from '@/lib/db';

@@ -9,7 +9,7 @@
 //
 // No baseURL: Better Auth then calls the page's own origin (`/api/auth`), which
 // is where src/hooks.server.ts answers. The React client pointed at
-// NEXT_PUBLIC_APP_URL, which during the migration is the Next app's origin.
+// PUBLIC_APP_URL, which during the migration is the Next app's origin.
 
 import { createAuthClient } from 'better-auth/svelte';
 import { twoFactorClient } from 'better-auth/client/plugins';

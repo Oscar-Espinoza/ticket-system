@@ -33,7 +33,7 @@ const TTL_SECONDS = 24 * 60 * 60;
 const CONCURRENCY = 10;
 
 export function vapidPublicKey(): string | null {
-  return process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || null;
+  return process.env.PUBLIC_VAPID_PUBLIC_KEY || null;
 }
 
 export function pushConfigured(): boolean {
@@ -45,7 +45,7 @@ function vapidDetails(): (VapidKeys & { subject: string }) | null {
   if (!pushConfigured()) return null;
   return {
     subject: process.env.VAPID_SUBJECT!,
-    publicKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
+    publicKey: process.env.PUBLIC_VAPID_PUBLIC_KEY!,
     privateKey: process.env.VAPID_PRIVATE_KEY!,
   };
 }

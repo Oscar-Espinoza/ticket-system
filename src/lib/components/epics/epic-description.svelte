@@ -4,7 +4,7 @@
 
   import { Button } from '@/lib/components/ui/button';
   import { cn } from '@/lib/utils';
-  import { EPIC_DESCRIPTION_MAX } from '@/components/epics/epic-model';
+  import { EPIC_DESCRIPTION_MAX } from '@/lib/components/epics/epic-model';
   import RichText from './rich-text.svelte';
   import RichTextEditor from './rich-text-editor.svelte';
 

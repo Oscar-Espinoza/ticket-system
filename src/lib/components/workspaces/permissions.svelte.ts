@@ -10,7 +10,7 @@
 
 import { useProjectData } from '@/lib/components/project/project-data.svelte';
 import { roleAllows, type ProjectRole } from '@/lib/roles';
-import { assignableRoles, canManageMember, type AssignableRole } from '@/components/workspaces/role-rules';
+import { assignableRoles, canManageMember, type AssignableRole } from '@/lib/components/workspaces/role-rules';
 
 export interface ProjectPermissions {
   role: ProjectRole;

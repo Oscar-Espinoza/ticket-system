@@ -5,7 +5,7 @@
 import { redirect } from '@sveltejs/kit';
 import { and, asc, eq, inArray } from 'drizzle-orm';
 
-import { listProjectTemplates } from '@/app/actions/project-templates';
+import { listProjectTemplates } from '@/lib/server/actions/project-templates';
 import { projectMembers, projects } from '@/db/schema';
 import { db } from '@/lib/db';
 import { getSession } from '@/lib/session';

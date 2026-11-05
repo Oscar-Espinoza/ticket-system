@@ -11,7 +11,7 @@
 
 {#if terms.length > 0}
   <ul aria-label="Search filters" class={cn('flex flex-wrap gap-1', className)}>
-    {#each terms as term}
+    {#each terms as term, i (i)}
       <li
         class={cn(
           'inline-flex h-6 items-center rounded-md border border-border px-2 font-mono text-xs',

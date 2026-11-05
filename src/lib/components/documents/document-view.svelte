@@ -27,8 +27,8 @@
     downloadMarkdown,
     type DocumentBacklink,
     type DocumentDetail,
-  } from '@/components/documents/document-model';
-  import { epicPath } from '@/components/epics/epic-model';
+  } from '@/lib/components/documents/document-model';
+  import { epicPath } from '@/lib/components/epics/epic-model';
   import CollabAvatars from '@/lib/components/collab/collab-avatars.svelte';
   import CollabStatusBadge from '@/lib/components/collab/collab-status-badge.svelte';
   import { collabColor, useCollab, useCollabPeers } from '@/lib/components/collab/use-collab.svelte';

@@ -3,7 +3,7 @@
 //   dashboards shared into a project the viewer belongs to;
 // - the dataset only covers projects the viewer is a member of.
 
-import { cache } from 'react';
+import { cache } from '@/lib/kit/request';
 import { and, desc, eq, exists, inArray, isNotNull, isNull, or, sql, type SQL } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
@@ -13,7 +13,7 @@ import {
   normalizeWidgets,
   type DashboardDataset,
   type DashboardRecord,
-} from '@/components/dashboards/widget-model';
+} from '@/lib/components/dashboards/widget-model';
 import { getProjectData } from '@/lib/project-data';
 import type { ProjectData } from '@/lib/project-data-types';
 import { memberOfIssueProject, queryIssues } from '@/lib/tickets';

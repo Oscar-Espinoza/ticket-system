@@ -38,7 +38,7 @@
     CardHeader,
     CardTitle,
   } from '@/lib/components/ui/card';
-  import { describeScope } from '@/components/oauth/oauth-model';
+  import { describeScope } from '@/lib/components/oauth/oauth-model';
   import AppIcon from './app-icon.svelte';
 
   let {

@@ -32,8 +32,8 @@
 
   import { useOptionalProjectData } from '@/lib/components/project/project-data.svelte';
   import { cn } from '@/lib/utils';
-  import { embedFor } from '@/components/editor/embeds';
-  import { toggleTaskAt } from '@/components/editor/text-edits';
+  import { embedFor } from '@/lib/components/editor/embeds';
+  import { toggleTaskAt } from '@/lib/components/editor/text-edits';
   import EmbedFrame from './embed-frame.svelte';
   import MentionChip from './mention-chip.svelte';
   import {

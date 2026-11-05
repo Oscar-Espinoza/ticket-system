@@ -7,7 +7,7 @@
   import Link2Icon from '@lucide/svelte/icons/link-2';
   import PlusIcon from '@lucide/svelte/icons/plus';
 
-  import { ancestorIds } from '@/components/issue-hierarchy/tree';
+  import { ancestorIds } from '@/lib/components/issue-hierarchy/tree';
   import IssueRefRow from '@/lib/components/issue-hierarchy/issue-ref-row.svelte';
   import IssueSearchPicker from '@/lib/components/issue-hierarchy/issue-search-picker.svelte';
   import SectionHeader from '@/lib/components/issue-hierarchy/section-header.svelte';

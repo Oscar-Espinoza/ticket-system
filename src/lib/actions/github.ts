@@ -4,7 +4,7 @@ import { untrack } from 'svelte';
 import { goto } from '$app/navigation';
 import { refreshAfterWrite } from '@/lib/svelte/refresh.svelte';
 import * as remote from '@/lib/remote/github.remote';
-import type * as impl from '@/app/actions/github';
+import type * as impl from '@/lib/server/actions/github';
 
 type Out<T> = { ok: true; value: T } | { ok: false; redirect: string };
 async function settle<T>(out: Out<T>, refresh: boolean): Promise<T> {
@@ -49,4 +49,4 @@ export async function disconnectRepository(...args: Parameters<typeof impl.disco
 export async function updateGithubAutomation(...args: Parameters<typeof impl.updateGithubAutomation>): Promise<Awaited<ReturnType<typeof impl.updateGithubAutomation>>> {
   return settle(await untrack(() => remote.updateGithubAutomation(args)), true);
 }
-export type { GithubViewer, CreateBranchResult, GithubRepoOption, ConnectResult } from '@/app/actions/github';
+export type { GithubViewer, CreateBranchResult, GithubRepoOption, ConnectResult } from '@/lib/server/actions/github';

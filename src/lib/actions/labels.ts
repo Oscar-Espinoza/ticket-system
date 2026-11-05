@@ -4,7 +4,7 @@ import { untrack } from 'svelte';
 import { goto } from '$app/navigation';
 import { refreshAfterWrite } from '@/lib/svelte/refresh.svelte';
 import * as remote from '@/lib/remote/labels.remote';
-import type * as impl from '@/app/actions/labels';
+import type * as impl from '@/lib/server/actions/labels';
 
 type Out<T> = { ok: true; value: T } | { ok: false; redirect: string };
 async function settle<T>(out: Out<T>, refresh: boolean): Promise<T> {
@@ -34,4 +34,4 @@ export async function updateLabel(...args: Parameters<typeof impl.updateLabel>):
 export async function deleteLabel(...args: Parameters<typeof impl.deleteLabel>): Promise<Awaited<ReturnType<typeof impl.deleteLabel>>> {
   return settle(await untrack(() => remote.deleteLabel(args)), true);
 }
-export type { LabelActionResult } from '@/app/actions/labels';
+export type { LabelActionResult } from '@/lib/server/actions/labels';

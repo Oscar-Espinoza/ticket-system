@@ -1,6 +1,6 @@
 import { error, redirect } from '@sveltejs/kit';
 
-import { listTemplates } from '@/app/actions/templates';
+import { listTemplates } from '@/lib/server/actions/templates';
 import { getMemberProject } from '@/lib/project-access';
 import { roleAllows } from '@/lib/roles';
 import type { PageServerLoad } from './$types';

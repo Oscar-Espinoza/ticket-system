@@ -13,7 +13,7 @@ import {
   unarchiveIssue,
   unarchiveIssues,
   updateIssue,
-} from '@/app/actions/tickets';
+} from '@/lib/server/actions/tickets';
 
 export const OUTBOX_ACTIONS = {
   createTicket,

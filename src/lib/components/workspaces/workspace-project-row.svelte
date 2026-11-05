@@ -8,7 +8,7 @@
   import UnlinkIcon from '@lucide/svelte/icons/unlink';
   import { toast } from 'svelte-sonner';
 
-  import { PROJECT_ROLE_LABEL } from '@/components/workspaces/role-rules';
+  import { PROJECT_ROLE_LABEL } from '@/lib/components/workspaces/role-rules';
   import { joinWorkspaceProject, removeProjectFromWorkspace } from '@/lib/actions/workspaces';
   import { Button } from '@/lib/components/ui/button';
   import {

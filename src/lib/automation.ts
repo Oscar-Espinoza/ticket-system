@@ -16,7 +16,7 @@ import { emitIssueEvent } from '@/lib/events';
 import { SYSTEM_ACTOR, archive, bulkUpdate, purge, BULK_MAX } from '@/lib/issue-service';
 import { declineState } from '@/lib/triage';
 
-export { AUTOMATION_MONTHS } from '@/components/cycles/cycle-utils';
+export { AUTOMATION_MONTHS } from '@/lib/components/cycles/cycle-utils';
 export const TRASH_RETENTION_DAYS = 30;
 export const AUTO_CLOSED_EVENT = 'issue.auto_closed';
 

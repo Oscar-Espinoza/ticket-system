@@ -4,7 +4,7 @@
   import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw';
   import { toast } from 'svelte-sonner';
 
-  import { customersPath } from '@/components/customers/customer-model';
+  import { customersPath } from '@/lib/components/customers/customer-model';
   import { rotateIntakeToken, setIntakeEnabled } from '@/lib/actions/intake';
   import {
     AlertDialog,

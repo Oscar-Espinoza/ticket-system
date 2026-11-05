@@ -19,7 +19,7 @@
     isCustomerStatus,
     type CustomerListRow,
     type CustomerStatus,
-  } from '@/components/customers/customer-model';
+  } from '@/lib/components/customers/customer-model';
   import { useProjectData, useProjectPermission } from '@/lib/components/project/project-data.svelte';
   import { Button } from '@/lib/components/ui/button';
   import {

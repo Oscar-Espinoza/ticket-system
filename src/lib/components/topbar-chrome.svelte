@@ -37,7 +37,7 @@
   import SearchIcon from '@lucide/svelte/icons/search';
   import { createSubscriber } from 'svelte/reactivity';
 
-  import { projectHref } from '@/components/app-shell/routes';
+  import { projectHref } from '@/lib/components/app-shell/routes';
   import {
     CREATE_PARAM,
     hasIssueCreator,

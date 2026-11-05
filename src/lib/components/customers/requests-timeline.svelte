@@ -8,7 +8,7 @@
     IMPORTANCE_LABEL,
     REQUEST_SOURCE_LABEL,
     type CustomerRequestView,
-  } from '@/components/customers/customer-model';
+  } from '@/lib/components/customers/customer-model';
   import { updateCustomerRequest } from '@/lib/actions/customers';
   import { Button } from '@/lib/components/ui/button';
   import { EmptyState, StatusIcon } from '@/lib/components/ui-icons';

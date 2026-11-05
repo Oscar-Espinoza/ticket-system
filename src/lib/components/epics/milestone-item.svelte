@@ -17,7 +17,7 @@
   import { Input } from '@/lib/components/ui/input';
   import { formatDueDate } from '@/lib/dates';
   import { cn } from '@/lib/utils';
-  import { progressPercent, type MilestoneRow } from '@/components/epics/epic-model';
+  import { progressPercent, type MilestoneRow } from '@/lib/components/epics/epic-model';
   import DatePicker from './date-picker.svelte';
   import EpicProgress from './epic-progress.svelte';
   import MilestoneGlyph from './milestone-glyph.svelte';

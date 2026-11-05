@@ -16,7 +16,7 @@
   } from '@/lib/components/ui/command';
   import { Popover, PopoverContent, PopoverTrigger } from '@/lib/components/ui/popover';
   import { cn } from '@/lib/utils';
-  import type { EpicLabelRow } from '@/components/epics/epic-model';
+  import type { EpicLabelRow } from '@/lib/components/epics/epic-model';
 
   let {
     labels,

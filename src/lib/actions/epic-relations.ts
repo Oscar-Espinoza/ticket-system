@@ -4,7 +4,7 @@ import { untrack } from 'svelte';
 import { goto } from '$app/navigation';
 import { refreshAfterWrite } from '@/lib/svelte/refresh.svelte';
 import * as remote from '@/lib/remote/epic-relations.remote';
-import type * as impl from '@/app/actions/epic-relations';
+import type * as impl from '@/lib/server/actions/epic-relations';
 
 type Out<T> = { ok: true; value: T } | { ok: false; redirect: string };
 async function settle<T>(out: Out<T>, refresh: boolean): Promise<T> {
@@ -31,4 +31,4 @@ export async function addEpicRelation(...args: Parameters<typeof impl.addEpicRel
 export async function removeEpicRelation(...args: Parameters<typeof impl.removeEpicRelation>): Promise<Awaited<ReturnType<typeof impl.removeEpicRelation>>> {
   return settle(await untrack(() => remote.removeEpicRelation(args)), true);
 }
-export type { EpicRelationActionResult } from '@/app/actions/epic-relations';
+export type { EpicRelationActionResult } from '@/lib/server/actions/epic-relations';

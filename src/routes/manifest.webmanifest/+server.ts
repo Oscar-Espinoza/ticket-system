@@ -1,5 +1,5 @@
 // Web app manifest (was src/app/manifest.ts under Next; same content).
-import manifest from '@/app/manifest';
+import manifest from '@/lib/manifest';
 import type { RequestHandler } from './$types';
 
 export const prerender = true;

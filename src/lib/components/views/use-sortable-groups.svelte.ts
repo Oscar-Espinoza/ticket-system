@@ -15,7 +15,7 @@
 
 import type { ComponentProps } from 'svelte';
 import type { DragDropProvider } from '@dnd-kit/svelte';
-import { move } from 'dnd-helpers-svelte';
+import { move } from '@dnd-kit/helpers';
 import { toast } from 'svelte-sonner';
 
 import type { IssueMutations } from '@/lib/components/issues/use-issue-mutations.svelte';

@@ -8,7 +8,7 @@
 
 import { redirect } from '@sveltejs/kit';
 
-import { safeRedirect } from '@/app/(auth)/safe-redirect';
+import { safeRedirect } from '@/lib/safe-redirect';
 import { firstParam, searchParam } from '../search-param';
 import type { PageServerLoad } from './$types';
 

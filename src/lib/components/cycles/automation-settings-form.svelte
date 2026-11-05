@@ -9,7 +9,7 @@
   import { Button } from '@/lib/components/ui/button';
   import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/lib/components/ui/select';
   import { relativeTime } from '@/lib/components/issues/issue-properties';
-  import { AUTOMATION_MONTHS } from '@/components/cycles/cycle-utils';
+  import { AUTOMATION_MONTHS } from '@/lib/components/cycles/cycle-utils';
 
   const OFF = 'off';
 

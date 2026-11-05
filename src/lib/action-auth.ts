@@ -8,7 +8,7 @@
 // Session-less callers (API keys, webhooks, automations) don't use this; they
 // authorize their own way and then call src/lib/issue-service.ts directly.
 
-import { headers } from 'next/headers';
+import { headers } from '@/lib/kit/request';
 
 import { auth } from '@/lib/auth';
 import { ProjectAccessError, requireProjectMember } from '@/lib/project-access';

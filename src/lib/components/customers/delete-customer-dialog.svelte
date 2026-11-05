@@ -2,7 +2,7 @@
 <script lang="ts">
   import { toast } from 'svelte-sonner';
 
-  import type { CustomerRow } from '@/components/customers/customer-model';
+  import type { CustomerRow } from '@/lib/components/customers/customer-model';
   import { deleteCustomer } from '@/lib/actions/customers';
   import { useProjectData } from '@/lib/components/project/project-data.svelte';
   import {

@@ -1,6 +1,6 @@
 <!-- Create / edit a customer. The form remounts per open so it starts from the current values. -->
 <script lang="ts">
-  import type { CustomerRow } from '@/components/customers/customer-model';
+  import type { CustomerRow } from '@/lib/components/customers/customer-model';
   import { Dialog, DialogContent } from '@/lib/components/ui/dialog';
   import CustomerForm from './customer-form.svelte';
 

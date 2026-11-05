@@ -233,7 +233,7 @@
     <p class="mt-1 text-muted-foreground">
       Generate a key pair with
       <code class="rounded bg-muted px-1 py-0.5 font-mono text-xs">npx web-push generate-vapid-keys</code>
-      and set <code class="font-mono text-xs">NEXT_PUBLIC_VAPID_PUBLIC_KEY</code>,
+      and set <code class="font-mono text-xs">PUBLIC_VAPID_PUBLIC_KEY</code>,
       <code class="font-mono text-xs">VAPID_PRIVATE_KEY</code> and
       <code class="font-mono text-xs">VAPID_SUBJECT</code> (e.g.
       <code class="font-mono text-xs">mailto:you@example.com</code>), then redeploy.

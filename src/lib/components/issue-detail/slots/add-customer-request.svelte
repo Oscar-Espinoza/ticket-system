@@ -11,7 +11,7 @@
     REQUEST_BODY_MAX,
     type CustomerOption,
     type Importance,
-  } from '@/components/customers/customer-model';
+  } from '@/lib/components/customers/customer-model';
   import CustomerLogo from '@/lib/components/customers/customer-logo.svelte';
   import ImportanceIcon from '@/lib/components/customers/importance-icon.svelte';
   import { digitShortcut } from '@/lib/components/issue-pickers/picker-utils';

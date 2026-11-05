@@ -2,7 +2,7 @@
   import AlertTriangleIcon from '@lucide/svelte/icons/triangle-alert';
   import CheckCircle2Icon from '@lucide/svelte/icons/circle-check';
 
-  import { projectHref } from '@/components/app-shell/routes';
+  import { projectHref } from '@/lib/components/app-shell/routes';
   import { Button } from '@/lib/components/ui/button';
   import type { ImportSummary } from './import-runner.svelte';
 

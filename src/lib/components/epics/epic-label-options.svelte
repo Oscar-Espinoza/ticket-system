@@ -1,6 +1,6 @@
 <!-- Multi-select: toggles stay open; "Create label" when nothing matches exactly. -->
 <script module lang="ts">
-  import type { EpicLabelRow } from '@/components/epics/epic-model';
+  import type { EpicLabelRow } from '@/lib/components/epics/epic-model';
 
   export interface EpicLabelOptionsProps {
     projectId: string;
@@ -26,7 +26,7 @@
     CommandItem,
     CommandList,
   } from '@/lib/components/ui/command';
-  import { EPIC_COLORS, EPIC_LABEL_NAME_MAX } from '@/components/epics/epic-model';
+  import { EPIC_COLORS, EPIC_LABEL_NAME_MAX } from '@/lib/components/epics/epic-model';
 
   const CREATE = '__create';
   const randomColor = () => EPIC_COLORS[Math.floor(Math.random() * EPIC_COLORS.length)];

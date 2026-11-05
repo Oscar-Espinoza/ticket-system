@@ -8,7 +8,7 @@
 //     (better-auth#4747).
 //   - emailAndPassword.minPasswordLength: 8 (D-11) — Better Auth defaults
 //     otherwise; no custom complexity rules.
-//   - plugins: [nextCookies()] — lets server actions/handlers set cookies.
+//   - plugins: [sveltekitCookies()] — lets server actions/handlers set cookies.
 //   - NO cookie cache: avoids the RSC `getSession() == null` staleness bug
 //     (better-auth#7008) so signed-in refresh never bounces to /login.
 //   - NO `runtime = 'edge'` anywhere in the auth path — Better Auth's password
@@ -23,7 +23,8 @@
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { createAuthMiddleware, isAPIError } from 'better-auth/api';
-import { nextCookies } from 'better-auth/next-js';
+import { getRequestEvent } from '$app/server';
+import { sveltekitCookies } from 'better-auth/svelte-kit';
 import { jwt, twoFactor } from 'better-auth/plugins';
 import { oauthProvider } from '@better-auth/oauth-provider';
 import { scim } from '@better-auth/scim';
@@ -119,7 +120,7 @@ export const auth = betterAuth({
   // Round-2 plugins (UIs owned by the security/API agents — see
   // .planning/features/10-MASTER-PLAN-2.md): TOTP 2FA, SAML/OIDC SSO, SCIM
   // provisioning, and an OAuth 2.0 provider (third-party "OAuth apps", with
-  // jwt for signed tokens/JWKS). nextCookies must stay last.
+  // jwt for signed tokens/JWKS). sveltekitCookies must stay last.
   plugins: [
     twoFactor({ issuer: 'Ticket System' }),
     jwt(),
@@ -144,7 +145,7 @@ export const auth = betterAuth({
           !provider.organizationId && shouldLinkScimUser(user.id, email, provider.providerId),
       },
     }),
-    nextCookies(),
+    sveltekitCookies(getRequestEvent),
   ],
   // D12 security. The SSO / SCIM plugins' self-service provider management
   // would let any signed-in user register an IdP for any domain or manage

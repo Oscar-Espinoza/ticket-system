@@ -27,7 +27,7 @@
   import { Button } from '@/lib/components/ui/button';
   import { EmptyState } from '@/lib/components/ui-icons';
   import { issuePath } from '@/lib/issue-links';
-  import type { RecurringIssue } from '@/components/recurring/schedule';
+  import type { RecurringIssue } from '@/lib/components/recurring/schedule';
   import RecurringEditor from './recurring-editor.svelte';
   import RecurringRow from './recurring-row.svelte';
 

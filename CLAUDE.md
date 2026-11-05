@@ -9,13 +9,13 @@ A zero-cost, full-stack Linear-style ticket management system for small teams. U
 
 ### Constraints
 
-- **Tech stack**: Next.js 15 App Router + TypeScript — one repo for frontend + API routes, no separate backend.
+- **Tech stack**: SvelteKit 3 + Svelte 5 (runes) + TypeScript 6 — one repo for UI, API routes (`src/routes/**/+server.ts`) and server actions (`src/lib/server/actions`, called through generated remote functions: `npm run gen:actions`). Migrated from Next.js 16 / React 19 in 2026-11; see `docs/migration/` (PLAN.md has the conventions). Config lives in `vite.config.ts` (SvelteKit 3 has no svelte.config.js).
 - **Database**: Neon Postgres + Drizzle ORM (`neon-http` driver) — serverless-friendly, free tier.
 - **Auth**: Better Auth 1.6 with Drizzle adapter — email/password + GitHub OAuth; Organization plugin for multi-tenant members + invitations. (Auth.js v5 was the original choice but is now deprecated/security-patch-only.)
 - **DB drivers**: `neon-http` for app queries + `neon-serverless` (WebSocket) for Better Auth's transactional writes. Pin `@neondatabase/serverless@^0.10.4` (v1.0.0 broke `neon-http`).
-- **Self-hosted DB driver**: any non-Neon `DATABASE_URL` uses node-postgres (`pg`) instead, with a `db.batch` shim that keeps neon-http's one-transaction contract (`src/lib/db.ts`). Docker self-host is app + Postgres only; the app migrates and runs daily jobs on start (`src/instrumentation.ts`, `SELF_HOSTED=true`).
-- **Styling**: Tailwind CSS v4 + shadcn/ui components + lucide-react icons.
-- **Board**: @dnd-kit/react (0.4.x) for drag-and-drop (not the legacy @dnd-kit/core).
+- **Self-hosted DB driver**: any non-Neon `DATABASE_URL` uses node-postgres (`pg`) instead, with a `db.batch` shim that keeps neon-http's one-transaction contract (`src/lib/db.ts`). Docker self-host is app (adapter-node) + Postgres only; the app migrates and runs daily jobs on start (`init` in `src/hooks.server.ts`, `SELF_HOSTED=true`).
+- **Styling**: Tailwind CSS v4 + bits-ui primitives ported from shadcn/ui (`src/lib/components/ui/*`, same names and classes) + `@lucide/svelte` (pinned 1.17.0) icons, svelte-sonner toasts, mode-watcher theme.
+- **Board**: @dnd-kit/svelte 0.5.x (+ @dnd-kit/helpers 0.5) for drag-and-drop. Editor: Tiptap 3 via svelte-tiptap, Yjs collaboration.
 - **GitHub API**: @octokit/rest v22, instantiated per-request with the user's stored OAuth token.
 - **Budget**: $0 — must stay within free tiers of Neon, Vercel, and GitHub.
 - **GitHub**: branch creation uses each user's own OAuth token (scopes `repo`, `admin:repo_hook`); not a shared PAT.
@@ -23,6 +23,8 @@ A zero-cost, full-stack Linear-style ticket management system for small teams. U
 
 <!-- GSD:stack-start source:research/STACK.md -->
 ## Technology Stack
+
+> Historical: the tables below are the original Next.js-era research. The app now runs on SvelteKit — see Constraints above and `docs/migration/SVELTEKIT_REFERENCE.md` for current APIs.
 
 ## Recommended Stack
 ### Core Technologies

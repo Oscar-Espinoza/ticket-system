@@ -3,7 +3,7 @@
   velocity chart. Rows link to the cycle page; "New cycle" opens the form.
 -->
 <script module lang="ts">
-  import type { CycleStatus, CycleTotals } from '@/components/cycles/cycle-utils';
+  import type { CycleStatus, CycleTotals } from '@/lib/components/cycles/cycle-utils';
 
   export interface CycleListItem {
     id: string;
@@ -21,7 +21,7 @@
   import type { Snippet } from 'svelte';
   import Plus from '@lucide/svelte/icons/plus';
 
-  import { projectHref } from '@/components/app-shell/routes';
+  import { projectHref } from '@/lib/components/app-shell/routes';
   import { Button } from '@/lib/components/ui/button';
   import { registerPaletteCommands } from '@/lib/svelte/palette-commands.svelte';
   import { cn } from '@/lib/utils';
@@ -32,7 +32,7 @@
     formatCycleRange,
     percent,
     type CycleCapacity,
-  } from '@/components/cycles/cycle-utils';
+  } from '@/lib/components/cycles/cycle-utils';
   import CapacityBadge from './capacity-badge.svelte';
   import CapacityMeter from './capacity-meter.svelte';
   import CycleFormDialog from './cycle-form-dialog.svelte';

@@ -6,7 +6,7 @@
 import type { RequestHandler } from './$types';
 import { allowOptions } from '../../../_lib/options';
 
-import { after } from '@/lib/kit/next-shims';
+import { after } from '@/lib/kit/request';
 import { syncGitlabHook, type GitlabHook } from '@/lib/vcs/gitlab-sync';
 import { getWebhookIntegration, type GitlabConfig } from '@/lib/vcs/integrations';
 import { safeEqual } from '@/lib/vcs/secrets';

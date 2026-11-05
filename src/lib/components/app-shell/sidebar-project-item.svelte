@@ -54,7 +54,7 @@
   import SettingsIcon from '@lucide/svelte/icons/settings';
   import SplitIcon from '@lucide/svelte/icons/split';
 
-  import { projectHref } from '@/components/app-shell/routes';
+  import { projectHref } from '@/lib/components/app-shell/routes';
   import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/lib/components/ui/collapsible';
   import { isAppHydrated, markAppHydrated } from '@/lib/svelte/hydration';
   import { cn } from '@/lib/utils';

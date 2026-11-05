@@ -6,7 +6,7 @@
 import type { RequestHandler } from './$types';
 import { allowOptions } from '../../../_lib/options';
 
-import { after } from '@/lib/kit/next-shims';
+import { after } from '@/lib/kit/request';
 import { verifySignature } from '@/lib/github/webhooks';
 import { syncBitbucketEvent } from '@/lib/vcs/bitbucket-sync';
 import { getWebhookIntegration, type BitbucketConfig } from '@/lib/vcs/integrations';

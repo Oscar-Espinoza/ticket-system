@@ -3,7 +3,7 @@
 // (memberOfIssueProject) or check membership first. getProjectIssues authorizes
 // itself; getTicketById / getIssueByKey trust projectId (callers check first).
 
-import { cache } from 'react';
+import { cache } from '@/lib/kit/request';
 import { and, desc, eq, exists, inArray, isNull, sql, type SQL } from 'drizzle-orm';
 import { alias, type AnyPgColumn } from 'drizzle-orm/pg-core';
 

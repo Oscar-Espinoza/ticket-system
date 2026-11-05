@@ -27,7 +27,7 @@
   // The wrappers refresh the page data after they resolve (React's revalidatePath).
   import { removeMember, transferOwnership, updateMemberRole } from '@/lib/actions/members';
   import { useProjectPermissions } from '@/lib/components/workspaces/permissions.svelte';
-  import { PROJECT_ROLE_DESCRIPTION, PROJECT_ROLE_LABEL } from '@/components/workspaces/role-rules';
+  import { PROJECT_ROLE_DESCRIPTION, PROJECT_ROLE_LABEL } from '@/lib/components/workspaces/role-rules';
   import type { ProjectRole } from '@/lib/roles';
   import type { MemberListMember } from './member-list.svelte';
 

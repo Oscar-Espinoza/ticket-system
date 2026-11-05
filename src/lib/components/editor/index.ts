@@ -8,7 +8,7 @@ export type { MarkdownEditorHandle, MarkdownEditorProps } from './markdown-edito
 export { default as Markdown } from './markdown.svelte';
 export type { MarkdownProps } from './markdown.svelte';
 export { default as MentionChip } from './mention-chip.svelte';
-export { formatEdit, toggleTaskAt, mentionQueryAt, type MarkdownFormat } from '@/components/editor/text-edits';
+export { formatEdit, toggleTaskAt, mentionQueryAt, type MarkdownFormat } from '@/lib/components/editor/text-edits';
 export { default as RichEditorProvider } from './rich-editor-provider.svelte';
 export {
   setRichEditorContext,
@@ -16,5 +16,5 @@ export {
   type EditorIssue,
   type RichEditorContextValue,
 } from './context.svelte';
-export { embedFor, type Embed, type EmbedProvider } from '@/components/editor/embeds';
+export { embedFor, type Embed, type EmbedProvider } from '@/lib/components/editor/embeds';
 export { default as EmbedFrame } from './embed-frame.svelte';

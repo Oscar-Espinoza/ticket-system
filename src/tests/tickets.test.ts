@@ -5,13 +5,12 @@ import { vi } from 'vitest';
 
 const session = vi.hoisted(() => ({ userId: '' }));
 
-vi.mock('next/headers', () => ({
+vi.mock('@/lib/kit/request', async (orig) => ({
+  ...(await orig<typeof import('@/lib/kit/request')>()),
   headers: async () => new Headers(),
-}));
-
-vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
 }));
+
 
 vi.mock('@/lib/auth', () => ({
   auth: {
@@ -33,7 +32,7 @@ import {
   deleteTicket,
   restoreIssue,
   updateIssue,
-} from '@/app/actions/tickets';
+} from '@/lib/server/actions/tickets';
 import { getProjectIssues } from '@/lib/tickets';
 import { getProjectData } from '@/lib/project-data';
 import { UNASSIGNED, filterIssues } from '@/lib/issue-model';

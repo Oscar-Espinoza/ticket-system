@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { and, eq, inArray } from 'drizzle-orm';
 
-vi.mock('next/server', async (orig) => ({
-  ...(await orig<typeof import('next/server')>()),
+vi.mock('@/lib/kit/request', async (orig) => ({
+  ...(await orig<typeof import('@/lib/kit/request')>()),
   after: () => undefined,
 }));
 

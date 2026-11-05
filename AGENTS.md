@@ -1,5 +1,9 @@
-<!-- BEGIN:nextjs-agent-rules -->
-# This is NOT the Next.js you know
+# This is NOT the SvelteKit you know
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
-<!-- END:nextjs-agent-rules -->
+SvelteKit 3 (with Svelte 5 runes) has breaking changes from SvelteKit 2 and
+from most training data: config lives in `vite.config.ts` (no
+`svelte.config.js`), `$lib` is `#lib` (this repo uses the `@/` alias),
+`$app/stores` is gone (`$app/state`), `invalidateAll` is `refreshAll`, remote
+functions are still experimental, and `redirect()` is not allowed in commands.
+Read `docs/migration/SVELTEKIT_REFERENCE.md` (its "Verification" section wins)
+and `docs/migration/PLAN.md` (repo conventions) before writing code.

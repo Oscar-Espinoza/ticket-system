@@ -10,7 +10,7 @@
   import { toast } from 'svelte-sonner';
 
   import { createTemplate } from '@/lib/actions/templates';
-  import { projectHref } from '@/components/app-shell/routes';
+  import { projectHref } from '@/lib/components/app-shell/routes';
   import type { IssueMutations } from '@/lib/components/issues/use-issue-mutations.svelte';
   import { copyIssueMarkdown, duplicateInput } from '@/lib/components/productivity/issue-actions';
   import { setCachedTemplates, useTemplates } from '@/lib/components/productivity/templates-store.svelte';

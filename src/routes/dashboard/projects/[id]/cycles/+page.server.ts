@@ -17,7 +17,7 @@ import {
   cycleName,
   cycleStatus,
   utcDay,
-} from '@/components/cycles/cycle-utils';
+} from '@/lib/components/cycles/cycle-utils';
 import type { PageServerLoad } from './$types';
 
 /** Past cycles shown in the velocity chart. */

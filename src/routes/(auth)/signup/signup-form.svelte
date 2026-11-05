@@ -30,7 +30,7 @@
   import { Label } from '@/lib/components/ui/label';
   import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/lib/components/ui/card';
   import { Separator } from '@/lib/components/ui/separator';
-  import { authHref } from '@/app/(auth)/safe-redirect';
+  import { authHref } from '@/lib/safe-redirect';
 
   let { redirectTo }: { redirectTo: string } = $props();
 

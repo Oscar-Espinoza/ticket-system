@@ -4,7 +4,7 @@ import { untrack } from 'svelte';
 import { goto } from '$app/navigation';
 import { refreshAfterWrite } from '@/lib/svelte/refresh.svelte';
 import * as remote from '@/lib/remote/views.remote';
-import type * as impl from '@/app/actions/views';
+import type * as impl from '@/lib/server/actions/views';
 
 type Out<T> = { ok: true; value: T } | { ok: false; redirect: string };
 async function settle<T>(out: Out<T>, refresh: boolean): Promise<T> {
@@ -34,4 +34,4 @@ export async function updateView(...args: Parameters<typeof impl.updateView>): P
 export async function deleteView(...args: Parameters<typeof impl.deleteView>): Promise<Awaited<ReturnType<typeof impl.deleteView>>> {
   return settle(await untrack(() => remote.deleteView(args)), true);
 }
-export type { ViewActionResult } from '@/app/actions/views';
+export type { ViewActionResult } from '@/lib/server/actions/views';

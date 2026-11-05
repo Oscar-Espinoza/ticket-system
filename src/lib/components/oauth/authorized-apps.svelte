@@ -21,7 +21,7 @@
   } from '@/lib/components/ui/alert-dialog';
   import { Button } from '@/lib/components/ui/button';
   import { EmptyState } from '@/lib/components/ui-icons';
-  import { describeScope, type AuthorizedAppView } from '@/components/oauth/oauth-model';
+  import { describeScope, type AuthorizedAppView } from '@/lib/components/oauth/oauth-model';
   import AppIcon from './app-icon.svelte';
 
   let { apps: initial }: { apps: AuthorizedAppView[] } = $props();

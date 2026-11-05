@@ -2,7 +2,7 @@
 <script lang="ts">
   import SmilePlus from '@lucide/svelte/icons/smile-plus';
 
-  import { DOCUMENT_ICONS } from '@/components/documents/document-model';
+  import { DOCUMENT_ICONS } from '@/lib/components/documents/document-model';
   import { Popover, PopoverContent, PopoverTrigger } from '@/lib/components/ui/popover';
   import { cn } from '@/lib/utils';
 

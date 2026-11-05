@@ -24,12 +24,12 @@ export function missingWebhookEvents(events: readonly string[]): string[] {
 
 /**
  * Where GitHub delivers. GITHUB_WEBHOOK_BASE_URL lets local dev point GitHub
- * at a tunnel while auth callbacks stay on NEXT_PUBLIC_APP_URL.
+ * at a tunnel while auth callbacks stay on PUBLIC_APP_URL.
  */
 export function webhookUrl(): string {
   const base =
     process.env.GITHUB_WEBHOOK_BASE_URL ??
-    process.env.NEXT_PUBLIC_APP_URL ??
+    process.env.PUBLIC_APP_URL ??
     'http://localhost:3000';
   return `${base.replace(/\/+$/, '')}/api/webhooks/github`;
 }

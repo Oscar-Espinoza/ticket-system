@@ -26,7 +26,7 @@
       <code
         >curl -X POST {baseUrl}/Users -H &quot;Authorization: Bearer $TOKEN&quot; -H
         &quot;Content-Type: application/scim+json&quot; -d
-        &apos;{'{'}&quot;userName&quot;:&quot;ana@acme.com&quot;,&quot;name&quot;:{'{'}&quot;givenName&quot;:&quot;Ana&quot;,&quot;familyName&quot;:&quot;Lee&quot;{'}'},&quot;emails&quot;:[{'{'}&quot;value&quot;:&quot;ana@acme.com&quot;,&quot;primary&quot;:true{'}'}]{'}'}&apos;</code
+        &apos;{'{'}&quot;userName&quot;:&quot;ana@acme.com&quot;,&quot;name&quot;:{'{'}&quot;givenName&quot;:&quot;Ana&quot;,&quot;familyName&quot;:&quot;Lee&quot;},&quot;emails&quot;:[{'{'}&quot;value&quot;:&quot;ana@acme.com&quot;,&quot;primary&quot;:true}]}&apos;</code
       >
     </p>
     <p>

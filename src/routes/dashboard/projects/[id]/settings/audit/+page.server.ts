@@ -4,7 +4,7 @@
 
 import { error, redirect } from '@sveltejs/kit';
 
-import { projectHref } from '@/components/app-shell/routes';
+import { projectHref } from '@/lib/components/app-shell/routes';
 import { resolveAuditScope } from '@/lib/audit';
 import { loadAuditLogView } from '@/lib/components/audit/audit-log-view.server';
 import { getMemberProject } from '@/lib/project-access';

@@ -7,7 +7,7 @@
   import ProjectDataProvider from '@/lib/components/project/project-data-provider.svelte';
   import SearchSyntaxHelp, { appendToken } from '@/lib/components/views/search-syntax-help.svelte';
   import { normalizeIssueFilters } from '@/lib/issue-filtering';
-  import { widgetIssues, widgetProjects } from '@/components/dashboards/widget-data';
+  import { widgetIssues, widgetProjects } from '@/lib/components/dashboards/widget-data';
   import {
     BAR_GROUPS,
     BAR_GROUP_LABEL,
@@ -22,7 +22,7 @@
     type DashboardDataset,
     type Widget,
     type WidgetConfig,
-  } from '@/components/dashboards/widget-model';
+  } from '@/lib/components/dashboards/widget-model';
   import WidgetChoice from './widget-choice.svelte';
   import WidgetField from './widget-field.svelte';
   import WidgetProjectFilters from './widget-project-filters.svelte';

@@ -4,7 +4,7 @@ import { untrack } from 'svelte';
 import { goto } from '$app/navigation';
 import { refreshAfterWrite } from '@/lib/svelte/refresh.svelte';
 import * as remote from '@/lib/remote/dashboards.remote';
-import type * as impl from '@/app/actions/dashboards';
+import type * as impl from '@/lib/server/actions/dashboards';
 
 type Out<T> = { ok: true; value: T } | { ok: false; redirect: string };
 async function settle<T>(out: Out<T>, refresh: boolean): Promise<T> {
@@ -37,4 +37,4 @@ export async function deleteDashboard(...args: Parameters<typeof impl.deleteDash
 export async function duplicateDashboard(...args: Parameters<typeof impl.duplicateDashboard>): Promise<Awaited<ReturnType<typeof impl.duplicateDashboard>>> {
   return settle(await untrack(() => remote.duplicateDashboard(args)), true);
 }
-export type { DashboardActionResult } from '@/app/actions/dashboards';
+export type { DashboardActionResult } from '@/lib/server/actions/dashboards';

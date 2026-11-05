@@ -4,7 +4,7 @@
   import WebhookIcon from '@lucide/svelte/icons/webhook';
   import { toast } from 'svelte-sonner';
 
-  import { projectHref } from '@/components/app-shell/routes';
+  import { projectHref } from '@/lib/components/app-shell/routes';
   import {
     disconnectIntegration,
     registerIntegrationWebhook,

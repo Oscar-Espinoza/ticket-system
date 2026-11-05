@@ -4,7 +4,7 @@
 // membership (requireProjectMember).
 
 import { randomBytes } from 'node:crypto';
-import { cache } from 'react';
+import { cache } from '@/lib/kit/request';
 import { and, asc, eq, gt, isNull } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
@@ -108,7 +108,7 @@ export const WORKSPACE_INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 export const newWorkspaceInviteToken = () => randomBytes(32).toString('base64url');
 
 export const workspaceInviteUrl = (token: string) =>
-  `${process.env.NEXT_PUBLIC_APP_URL ?? ''}/invite/workspace/${token}`;
+  `${process.env.PUBLIC_APP_URL ?? ''}/invite/workspace/${token}`;
 
 export interface PendingWorkspaceInvite {
   id: string;

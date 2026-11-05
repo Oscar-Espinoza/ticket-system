@@ -4,7 +4,7 @@ import { untrack } from 'svelte';
 import { goto } from '$app/navigation';
 import { refreshAfterWrite } from '@/lib/svelte/refresh.svelte';
 import * as remote from '@/lib/remote/sync.remote';
-import type * as impl from '@/app/actions/sync';
+import type * as impl from '@/lib/server/actions/sync';
 
 type Out<T> = { ok: true; value: T } | { ok: false; redirect: string };
 async function settle<T>(out: Out<T>, refresh: boolean): Promise<T> {
@@ -28,4 +28,4 @@ void entries;
 export async function runOutboxCall(...args: Parameters<typeof impl.runOutboxCall>): Promise<Awaited<ReturnType<typeof impl.runOutboxCall>>> {
   return settle(await untrack(() => remote.runOutboxCall(args)), false);
 }
-export type { OutboxSuspended } from '@/app/actions/sync';
+export type { OutboxSuspended } from '@/lib/server/actions/sync';

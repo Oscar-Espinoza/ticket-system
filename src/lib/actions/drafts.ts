@@ -4,7 +4,7 @@ import { untrack } from 'svelte';
 import { goto } from '$app/navigation';
 import { refreshAfterWrite } from '@/lib/svelte/refresh.svelte';
 import * as remote from '@/lib/remote/drafts.remote';
-import type * as impl from '@/app/actions/drafts';
+import type * as impl from '@/lib/server/actions/drafts';
 
 type Out<T> = { ok: true; value: T } | { ok: false; redirect: string };
 async function settle<T>(out: Out<T>, refresh: boolean): Promise<T> {
@@ -37,4 +37,4 @@ export async function deleteDraft(...args: Parameters<typeof impl.deleteDraft>):
 export async function discardAllDrafts(...args: Parameters<typeof impl.discardAllDrafts>): Promise<Awaited<ReturnType<typeof impl.discardAllDrafts>>> {
   return settle(await untrack(() => remote.discardAllDrafts(args)), true);
 }
-export type { DraftSnapshot } from '@/app/actions/drafts';
+export type { DraftSnapshot } from '@/lib/server/actions/drafts';

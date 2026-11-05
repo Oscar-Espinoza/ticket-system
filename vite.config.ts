@@ -1,14 +1,13 @@
-// SvelteKit 3 app config (SvelteKit 3 reads all of it from here: there is no
-// svelte.config.js). During the migration the Next.js app still builds from
-// next.config.ts; both share src/lib.
+// SvelteKit 3 app + Vitest config (SvelteKit 3 reads its options from here;
+// there is no svelte.config.js).
 import { fileURLToPath } from 'node:url';
 import adapterNode from '@sveltejs/adapter-node';
 import adapterVercel from '@sveltejs/adapter-vercel';
 import { sveltekit } from '@sveltejs/kit/vite';
 import tailwindcss from '@tailwindcss/vite';
-import { defineConfig, loadEnv } from 'vite';
+import { loadEnv } from 'vite';
+import { defineConfig } from 'vitest/config';
 
-const kitFile = (name: string) => fileURLToPath(new URL(`./src/lib/kit/${name}`, import.meta.url));
 const pkgFile = (path: string) => fileURLToPath(new URL(`./node_modules/${path}`, import.meta.url));
 
 function bareOrigin(url: string | undefined): `http://${string}` | `https://${string}` | undefined {
@@ -23,10 +22,12 @@ function bareOrigin(url: string | undefined): `http://${string}` | `https://${st
 
 export default defineConfig(async ({ mode }) => {
   // Vite and SvelteKit don't put .env / .env.local into process.env, and the
-  // shared server code reads process.env (as it did under Next). Real
-  // environment variables win over the files.
+  // server code reads process.env. Real environment variables win over files.
   Object.assign(process.env, { ...loadEnv(mode, process.cwd(), ''), ...process.env });
-  const inline = (name: string) => JSON.stringify(process.env[name] ?? '');
+  // Public values inlined at build time. NEXT_PUBLIC_* are the names from the
+  // Next.js era, still accepted so existing .env files and deployments work.
+  const appUrl = process.env.PUBLIC_APP_URL ?? process.env.NEXT_PUBLIC_APP_URL;
+  const vapidKey = process.env.PUBLIC_VAPID_PUBLIC_KEY ?? process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 
   return {
     plugins: [
@@ -38,7 +39,7 @@ export default defineConfig(async ({ mode }) => {
           experimental: { async: true },
         },
         experimental: { remoteFunctions: true },
-        // '@/…' → 'src/…' as in the Next app (deprecated option, still supported in 3.x).
+        // '@/…' → 'src/…' (deprecated option, still supported in 3.x).
         alias: { '@': 'src' },
         files: { assets: 'public' },
         // SvelteKit's own origin check would reject SAML/OAuth token posts and
@@ -46,31 +47,29 @@ export default defineConfig(async ({ mode }) => {
         // with those exemptions. Remote functions keep Kit's own check.
         csrf: { trustedOrigins: ['*'] },
         // Build-time origin (adapter-node no longer reads ORIGIN): the URL people open.
-        paths: { origin: bareOrigin(process.env.NEXT_PUBLIC_APP_URL) },
+        paths: { origin: bareOrigin(appUrl) },
       }),
     ],
     resolve: {
       alias: [
-        // Shared server code still imports these Next/React APIs; give it the
-        // SvelteKit equivalents (src/lib/kit/next-shims.ts).
-        { find: /^next\/(headers|cache|navigation|server)$/, replacement: kitFile('next-shims.ts') },
-        { find: /^react$/, replacement: kitFile('react-shim.ts') },
-        { find: /^better-auth\/next-js$/, replacement: kitFile('better-auth-cookies.ts') },
         // CSS-only packages exported under the "style" condition only: Tailwind's
         // Vite plugin resolves their @import without it in the SSR build.
         { find: /^tw-animate-css$/, replacement: pkgFile('tw-animate-css/dist/tw-animate.css') },
         { find: /^shadcn-svelte\/tailwind\.css$/, replacement: pkgFile('shadcn-svelte/dist/tailwind.css') },
       ],
     },
-    // NEXT_PUBLIC_* were inlined at build time by Next; keep that for shared code.
     define: {
-      'process.env.NEXT_PUBLIC_APP_URL': inline('NEXT_PUBLIC_APP_URL'),
-      'process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY': inline('NEXT_PUBLIC_VAPID_PUBLIC_KEY'),
+      'process.env.PUBLIC_APP_URL': JSON.stringify(appUrl ?? ''),
+      'process.env.PUBLIC_VAPID_PUBLIC_KEY': JSON.stringify(vapidKey ?? ''),
     },
-    // postcss.config.mjs is the Next app's (@tailwindcss/postcss); Tailwind runs
-    // through @tailwindcss/vite here, so don't let Vite load that file too.
-    css: { postcss: { plugins: [] } },
-    server: { port: 5173 },
+    // Same port as the Next.js app had, so .env.local and OAuth callback URLs keep working.
+    server: { port: 3000 },
+    preview: { port: 3000 },
+    test: {
+      environment: 'node',
+      globals: true,
+      setupFiles: ['src/tests/setup.ts'],
+    },
     build: {
       rolldownOptions: {
         output: {

@@ -1,5 +1,5 @@
-import { cache } from 'react';
-import { headers } from 'next/headers';
+import { cache } from '@/lib/kit/request';
+import { headers } from '@/lib/kit/request';
 
 import { auth } from '@/lib/auth';
 

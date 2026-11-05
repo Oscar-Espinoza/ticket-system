@@ -6,7 +6,7 @@
 import type { RequestHandler } from './$types';
 import { allowOptions } from '../../_lib/options';
 
-import { after } from '@/lib/kit/next-shims';
+import { after } from '@/lib/kit/request';
 import { ASK_VIEW_ID, MESSAGE_SHORTCUT_ID } from '@/lib/slack/config';
 import { checkAskTarget, openAskModal, readAskContext, readAskValues, submitAsk } from '@/lib/slack/asks';
 import { readSlackRequest } from '@/lib/slack/signature';

@@ -27,7 +27,7 @@
 //   - .limit(1)
 //   - null guard → throw instead of returning null (D-14 on success: return row)
 
-import { cache } from 'react';
+import { cache } from '@/lib/kit/request';
 import { db } from '@/lib/db';
 import type { ProjectRole } from '@/lib/roles';
 import { projectMembers, projects } from '@/db/schema';

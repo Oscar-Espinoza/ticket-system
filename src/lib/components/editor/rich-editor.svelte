@@ -107,8 +107,8 @@
   import type { SuggestionKeyDownProps, SuggestionProps } from '@tiptap/suggestion';
   import { toast } from 'svelte-sonner';
 
-  import { uploadImage, type UploadTarget } from '@/components/editor/upload';
-  import { suggestIssues } from './actions.remote';
+  import { uploadImage, type UploadTarget } from '@/lib/components/editor/upload';
+  import { suggestIssues } from '@/lib/actions/editor';
   import { createExtensions, uploadFilesAtCaret, type EditorRuntime, type MenuKind } from './extensions';
   import SuggestionMenu from './suggestion-menu.svelte';
   import { MENU_WIDTH, type SuggestionEntry } from './suggestion-entries';

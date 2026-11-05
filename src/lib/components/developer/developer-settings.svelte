@@ -55,7 +55,7 @@
       <Callout tone="warning">
         Webhooks can&apos;t reach <span class="font-mono text-xs">{props.webhookBase}</span>.
         Connections still save, but automation needs a public URL — set
-        <span class="font-mono text-xs">NEXT_PUBLIC_APP_URL</span> (or
+        <span class="font-mono text-xs">PUBLIC_APP_URL</span> (or
         <span class="font-mono text-xs">GITHUB_WEBHOOK_BASE_URL</span> for a tunnel) and register the
         webhooks again.
       </Callout>

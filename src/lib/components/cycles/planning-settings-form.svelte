@@ -28,7 +28,7 @@
     CYCLE_DURATIONS,
     UPCOMING_CYCLES,
     WEEKDAYS,
-  } from '@/components/cycles/cycle-utils';
+  } from '@/lib/components/cycles/cycle-utils';
 
   let {
     projectId,

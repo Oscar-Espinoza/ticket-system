@@ -11,7 +11,7 @@
     type BurndownPoint,
     type ChartUnit,
     type CycleTotals,
-  } from '@/components/cycles/cycle-utils';
+  } from '@/lib/components/cycles/cycle-utils';
   import ChartCard from './chart-card.svelte';
 
   let {

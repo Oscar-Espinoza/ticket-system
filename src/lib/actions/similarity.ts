@@ -4,7 +4,7 @@ import { untrack } from 'svelte';
 import { goto } from '$app/navigation';
 import { refreshAfterWrite } from '@/lib/svelte/refresh.svelte';
 import * as remote from '@/lib/remote/similarity.remote';
-import type * as impl from '@/app/actions/similarity';
+import type * as impl from '@/lib/server/actions/similarity';
 
 type Out<T> = { ok: true; value: T } | { ok: false; redirect: string };
 async function settle<T>(out: Out<T>, refresh: boolean): Promise<T> {
@@ -31,4 +31,4 @@ export async function findPossibleDuplicates(...args: Parameters<typeof impl.fin
 export async function getSimilarIssues(...args: Parameters<typeof impl.getSimilarIssues>): Promise<Awaited<ReturnType<typeof impl.getSimilarIssues>>> {
   return settle(await untrack(() => remote.getSimilarIssues(args)), false);
 }
-export type { SimilarResult } from '@/app/actions/similarity';
+export type { SimilarResult } from '@/lib/server/actions/similarity';

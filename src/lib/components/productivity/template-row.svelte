@@ -7,7 +7,7 @@
   import Trash2 from '@lucide/svelte/icons/trash-2';
 
   import type { IssueTemplate } from '@/lib/actions/templates';
-  import { projectHref } from '@/components/app-shell/routes';
+  import { projectHref } from '@/lib/components/app-shell/routes';
   import { useProjectData } from '@/lib/components/project/project-data.svelte';
   import { Button } from '@/lib/components/ui/button';
   import {

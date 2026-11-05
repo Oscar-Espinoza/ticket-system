@@ -3,7 +3,7 @@
   import LoaderCircleIcon from '@lucide/svelte/icons/loader-circle';
   import { toast } from 'svelte-sonner';
 
-  import type { EligibleProject } from '@/components/workspaces/workspace-types';
+  import type { EligibleProject } from '@/lib/components/workspaces/workspace-types';
   import { addProjectToWorkspace } from '@/lib/actions/workspaces';
   import { Button } from '@/lib/components/ui/button';
   import {

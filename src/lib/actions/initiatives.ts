@@ -4,7 +4,7 @@ import { untrack } from 'svelte';
 import { goto } from '$app/navigation';
 import { refreshAfterWrite } from '@/lib/svelte/refresh.svelte';
 import * as remote from '@/lib/remote/initiatives.remote';
-import type * as impl from '@/app/actions/initiatives';
+import type * as impl from '@/lib/server/actions/initiatives';
 
 type Out<T> = { ok: true; value: T } | { ok: false; redirect: string };
 async function settle<T>(out: Out<T>, refresh: boolean): Promise<T> {
@@ -37,4 +37,4 @@ export async function deleteInitiative(...args: Parameters<typeof impl.deleteIni
 export async function setEpicInitiative(...args: Parameters<typeof impl.setEpicInitiative>): Promise<Awaited<ReturnType<typeof impl.setEpicInitiative>>> {
   return settle(await untrack(() => remote.setEpicInitiative(args)), true);
 }
-export type { InitiativeActionResult, InitiativeInput } from '@/app/actions/initiatives';
+export type { InitiativeActionResult, InitiativeInput } from '@/lib/server/actions/initiatives';

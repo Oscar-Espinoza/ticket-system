@@ -33,7 +33,7 @@
   import { page } from '$app/state';
   import MoreHorizontalIcon from '@lucide/svelte/icons/ellipsis';
 
-  import { projectHref } from '@/components/app-shell/routes';
+  import { projectHref } from '@/lib/components/app-shell/routes';
   import { Button } from '@/lib/components/ui/button';
   import {
     DropdownMenu,

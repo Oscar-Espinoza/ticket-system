@@ -17,7 +17,7 @@
   import { registerHotkeys } from '@/lib/svelte/hotkeys.svelte';
   import { registerPaletteCommands } from '@/lib/svelte/palette-commands.svelte';
   import { setSearchParams, useSearchParams } from '@/lib/svelte/search-params.svelte';
-  import type { EpicLabelRow, EpicRow, EpicStatus } from '@/components/epics/epic-model';
+  import type { EpicLabelRow, EpicRow, EpicStatus } from '@/lib/components/epics/epic-model';
   import CreateEpicDialog from './create-epic-dialog.svelte';
   import EpicLabelFilter from './epic-label-filter.svelte';
   import EpicLabelsDialog from './epic-labels-dialog.svelte';

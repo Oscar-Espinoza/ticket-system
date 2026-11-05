@@ -28,7 +28,7 @@
   import { relativeTime } from '@/lib/components/issues/issue-properties';
   import { Button } from '@/lib/components/ui/button';
   import { LabelChip } from '@/lib/components/ui-icons';
-  import { describeUserAgent, isMobileUserAgent } from '@/components/security/user-agent';
+  import { describeUserAgent, isMobileUserAgent } from '@/lib/components/security/user-agent';
 
   let { sessions: initial, currentId }: { sessions: SessionView[]; currentId: string } = $props();
 

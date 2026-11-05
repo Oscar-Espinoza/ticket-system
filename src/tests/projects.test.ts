@@ -27,13 +27,12 @@ import { vi } from 'vitest';
 // with this ID is inserted in the PROJ-01 beforeAll block and cleaned up after.
 const SESSION_USER_ID = `test-proj-session-user-${Date.now()}`;
 
-vi.mock('next/headers', () => ({
+vi.mock('@/lib/kit/request', async (orig) => ({
+  ...(await orig<typeof import('@/lib/kit/request')>()),
   headers: async () => new Headers(),
-}));
-
-vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
 }));
+
 
 vi.mock('@/lib/auth', () => ({
   auth: {
@@ -288,7 +287,7 @@ describe('PROJ-01: createProject action', () => {
     async () => {
       // Session is mocked to return SESSION_USER_ID (a real user in beforeAll).
       // createProject inserts both project + project_member rows atomically.
-      const { createProject } = await import('@/app/actions/projects');
+      const { createProject } = await import('@/lib/server/actions/projects');
       const ticketKey = uniqueKey('CR');
 
       // createProject accepts (prevState, formData); simulate with FormData
@@ -324,7 +323,7 @@ describe('PROJ-01: createProject action', () => {
   it(
     'PROJ-01: createProject with a duplicate ticketKey returns a field-level error on errors.ticketKey (no throw / no crash)',
     async () => {
-      const { createProject } = await import('@/app/actions/projects');
+      const { createProject } = await import('@/lib/server/actions/projects');
       const ticketKey = uniqueKey('DU');
 
       const formData1 = new FormData();
@@ -357,7 +356,7 @@ describe('PROJ-01: createProject action', () => {
   it(
     'PROJ-01: createProject with an invalid ticketKey (too short, too long, or non-alpha) returns errors.ticketKey and performs NO project insert',
     async () => {
-      const { createProject } = await import('@/app/actions/projects');
+      const { createProject } = await import('@/lib/server/actions/projects');
       // Tests multiple invalid keys: 'a' (too short), '1' (non-alpha), 'TOOLONGKEY' (too long)
       const invalidKeys = ['a', '1', 'TOOLONGKEY'];
 
@@ -394,7 +393,7 @@ describe('PROJ-02: getProjectsForUser query', () => {
     'PROJ-02: getProjectsForUser returns a project the user owns AND a project the user is only a member of',
     async () => {
       // This test is RED until src/components/project-list.tsx is created in Plan 03.
-      const { getProjectsForUser } = await import('@/components/project-list');
+      const { getProjectsForUser } = await import('@/lib/components/project-list.server');
       const userId = await insertTestUser('list-user-h');
 
       // Create a project they own
@@ -429,7 +428,7 @@ describe('PROJ-02: getProjectsForUser query', () => {
     'PROJ-02: a project with no tickets reports openCount === 0 and resolvedCount === 0 (numbers, not strings)',
     async () => {
       // This test is RED until src/components/project-list.tsx is created in Plan 03.
-      const { getProjectsForUser } = await import('@/components/project-list');
+      const { getProjectsForUser } = await import('@/lib/components/project-list.server');
       const userId = await insertTestUser('count-user-j');
       await insertTestProject(userId, uniqueKey('ZR'));
 

@@ -5,7 +5,7 @@
 // membership and every other query is gated by an EXISTS on it, so a
 // non-member reads nothing and gets null (the getProjectsForUser pattern).
 
-import { cache } from 'react';
+import { cache } from '@/lib/kit/request';
 import { and, asc, desc, eq, exists, isNull, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 

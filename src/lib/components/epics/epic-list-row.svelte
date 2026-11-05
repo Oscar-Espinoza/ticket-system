@@ -26,7 +26,7 @@
     epicPath,
     type EpicLabelRow,
     type EpicRow,
-  } from '@/components/epics/epic-model';
+  } from '@/lib/components/epics/epic-model';
   import EpicIcon from './epic-icon.svelte';
   import EpicLabelChips from './epic-label-chips.svelte';
   import EpicProgress from './epic-progress.svelte';

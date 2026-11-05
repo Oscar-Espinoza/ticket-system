@@ -9,7 +9,7 @@ import { eq, sql } from 'drizzle-orm';
 import type { RequestHandler } from './$types';
 import { allowOptions } from '../../_lib/options';
 
-import { after } from '@/lib/kit/next-shims';
+import { after } from '@/lib/kit/request';
 import { db } from '@/lib/db';
 import { projects } from '@/db/schema';
 import { verifySignature } from '@/lib/github/webhooks';

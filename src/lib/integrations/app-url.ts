@@ -6,7 +6,7 @@ import { issuePath } from '@/lib/issue-links';
 
 export function appUrl(): string {
   const url =
-    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.PUBLIC_APP_URL ||
     process.env.BETTER_AUTH_URL ||
     (process.env.VERCEL_PROJECT_PRODUCTION_URL
       ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`

@@ -4,7 +4,7 @@ import { untrack } from 'svelte';
 import { goto } from '$app/navigation';
 import { refreshAfterWrite } from '@/lib/svelte/refresh.svelte';
 import * as remote from '@/lib/remote/project-settings.remote';
-import type * as impl from '@/app/actions/project-settings';
+import type * as impl from '@/lib/server/actions/project-settings';
 
 type Out<T> = { ok: true; value: T } | { ok: false; redirect: string };
 async function settle<T>(out: Out<T>, refresh: boolean): Promise<T> {
@@ -45,4 +45,4 @@ export async function updateProjectParent(prev: Parameters<typeof impl.updatePro
 export async function updateProjectVisibility(prev: Parameters<typeof impl.updateProjectVisibility>[0], fd: FormData): Promise<Awaited<ReturnType<typeof impl.updateProjectVisibility>>> {
   return settle(await untrack(() => remote.updateProjectVisibility([prev, entries(fd)])), true);
 }
-export type { ProjectSettingsState, ProjectVisibility } from '@/app/actions/project-settings';
+export type { ProjectSettingsState, ProjectVisibility } from '@/lib/server/actions/project-settings';

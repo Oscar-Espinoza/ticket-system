@@ -1,11 +1,12 @@
 // Service worker (B12) — installable PWA + read-only offline.
 //
-//   /_next/static/*        cache-first (content-hashed, immutable)
+//   /_app/immutable/*      cache-first (SvelteKit's content-hashed bundles)
 //   icons, manifest        stale-while-revalidate
 //   page navigations       network-first → cached copy → /offline
 //   everything else        untouched: /api/* (auth, export, polling), non-GET
-//                          (server actions are POST), RSC fetches (the router
-//                          falls back to a full navigation, handled above).
+//                          (remote functions are POST), and SvelteKit's
+//                          client-navigation data (*/__data.json, /_app/remote/*),
+//                          which must never come from a cache.
 //
 // Offline is read-only: writes need the server; queuing them is out of scope.
 // Signed-in pages are cached for offline reading, so signing out (or visiting
@@ -15,7 +16,8 @@
 // opens its URL. Registered as /sw.js?mode=push (dev only, when enabling push)
 // it does push alone — no precache, no fetch handling, so dev bundles stay fresh.
 
-const VERSION = 'v1';
+// v2: SvelteKit asset layout; activating it drops the Next-era v1 caches.
+const VERSION = 'v2';
 const STATIC_CACHE = `static-${VERSION}`;
 const PAGES_CACHE = `pages-${VERSION}`;
 const PAGES_MAX = 40;
@@ -130,10 +132,10 @@ self.addEventListener('fetch', (event) => {
   }
   if (request.method !== 'GET') return;
   if (url.pathname.startsWith('/api/')) return;
-  // RSC payloads (client-side navigation / prefetch): network only.
-  if (request.headers.get('RSC') || url.searchParams.has('_rsc')) return;
+  // Client-navigation data and remote calls: network only.
+  if (url.pathname.endsWith('/__data.json') || url.pathname.startsWith('/_app/remote/')) return;
 
-  if (url.pathname.startsWith('/_next/static/')) {
+  if (url.pathname.startsWith('/_app/immutable/')) {
     event.respondWith(cacheFirst(request));
     return;
   }

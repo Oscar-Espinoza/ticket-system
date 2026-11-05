@@ -7,7 +7,7 @@
   import { deleteEpicLabel, updateEpicLabel } from '@/lib/actions/epic-labels';
   import { Button } from '@/lib/components/ui/button';
   import { Input } from '@/lib/components/ui/input';
-  import { EPIC_LABEL_NAME_MAX, type EpicLabelRow } from '@/components/epics/epic-model';
+  import { EPIC_LABEL_NAME_MAX, type EpicLabelRow } from '@/lib/components/epics/epic-model';
   import ColorButton from './epic-label-color-button.svelte';
 
   let {

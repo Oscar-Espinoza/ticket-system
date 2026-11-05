@@ -3,7 +3,7 @@
   import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
 
   import { cn } from '@/lib/utils';
-  import { CAPACITY_CYCLES, type CycleCapacity, type CycleTotals } from '@/components/cycles/cycle-utils';
+  import { CAPACITY_CYCLES, type CycleCapacity, type CycleTotals } from '@/lib/components/cycles/cycle-utils';
   import { amount, measure, unitLabel } from './cycle-capacity';
 
   let {

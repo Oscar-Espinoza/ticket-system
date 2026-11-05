@@ -16,7 +16,7 @@
   import { toast } from 'svelte-sonner';
 
   import { deleteDraft, discardAllDrafts } from '@/lib/actions/drafts';
-  import { projectHref } from '@/components/app-shell/routes';
+  import { projectHref } from '@/lib/components/app-shell/routes';
   import { relativeTime } from '@/lib/components/issues/issue-properties';
   import {
     AlertDialog,

@@ -17,7 +17,7 @@ import type { PageServerLoad } from './$types';
 export const load: PageServerLoad = async ({ params, locals }) => {
   const { id } = params;
   if (!locals.user) redirect(303, '/login');
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? '';
+  const appUrl = process.env.PUBLIC_APP_URL ?? '';
 
   const project = await getMemberProject(id, locals.user.id);
   if (!project) error(404, 'Not found');

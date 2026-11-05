@@ -4,7 +4,7 @@ import { untrack } from 'svelte';
 import { goto } from '$app/navigation';
 import { refreshAfterWrite } from '@/lib/svelte/refresh.svelte';
 import * as remote from '@/lib/remote/triage.remote';
-import type * as impl from '@/app/actions/triage';
+import type * as impl from '@/lib/server/actions/triage';
 
 type Out<T> = { ok: true; value: T } | { ok: false; redirect: string };
 async function settle<T>(out: Out<T>, refresh: boolean): Promise<T> {
@@ -37,4 +37,4 @@ export async function markTriageDuplicate(...args: Parameters<typeof impl.markTr
 export async function getTriageSuggestions(...args: Parameters<typeof impl.getTriageSuggestions>): Promise<Awaited<ReturnType<typeof impl.getTriageSuggestions>>> {
   return settle(await untrack(() => remote.getTriageSuggestions(args)), false);
 }
-export type { TriageActionResult, TriageSuggestionsResult } from '@/app/actions/triage';
+export type { TriageActionResult, TriageSuggestionsResult } from '@/lib/server/actions/triage';

@@ -2,7 +2,7 @@
 // with Slack / OpenID Connect) from a signed-in browser session. Both return to
 // the shared callback, which tells them apart by the signed state.
 
-import { NextResponse } from 'next/server';
+import { CookieResponse } from '@/lib/kit/request';
 
 import { getSession } from '@/lib/session';
 import { appUrl } from '@/lib/integrations/app-url';
@@ -13,18 +13,18 @@ import { createState, STATE_COOKIE, STATE_MAX_AGE_S, type SlackOAuthPurpose } fr
 export const SETTINGS_PATH = '/dashboard/settings/slack';
 const COOKIE_PATH = '/api/slack';
 
-export function settingsRedirect(params: Record<string, string>): NextResponse {
+export function settingsRedirect(params: Record<string, string>): CookieResponse {
   const url = new URL(SETTINGS_PATH, appUrl());
   for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value);
-  const res = NextResponse.redirect(url);
+  const res = CookieResponse.redirect(url);
   res.cookies.set(STATE_COOKIE, '', { path: COOKIE_PATH, maxAge: 0 });
   return res;
 }
 
-export async function startSlackOAuth(purpose: SlackOAuthPurpose): Promise<NextResponse> {
+export async function startSlackOAuth(purpose: SlackOAuthPurpose): Promise<CookieResponse> {
   const session = await getSession();
   if (!session?.user) {
-    return NextResponse.redirect(new URL(`/login?redirect=${encodeURIComponent(SETTINGS_PATH)}`, appUrl()));
+    return CookieResponse.redirect(new URL(`/login?redirect=${encodeURIComponent(SETTINGS_PATH)}`, appUrl()));
   }
   const config = slackConfig();
   if (!config) return settingsRedirect({ slack: 'error', reason: 'not_configured' });
@@ -45,7 +45,7 @@ export async function startSlackOAuth(purpose: SlackOAuthPurpose): Promise<NextR
     url.searchParams.set('nonce', nonce);
   }
 
-  const res = NextResponse.redirect(url);
+  const res = CookieResponse.redirect(url);
   res.cookies.set(STATE_COOKIE, nonce, {
     httpOnly: true,
     secure: appUrl().startsWith('https://'),

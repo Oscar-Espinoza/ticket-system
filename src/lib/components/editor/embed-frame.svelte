@@ -6,7 +6,7 @@
   import ExternalLink from '@lucide/svelte/icons/external-link';
 
   import { cn } from '@/lib/utils';
-  import { EMBED_ALLOW, EMBED_SANDBOX, type Embed } from '@/components/editor/embeds';
+  import { EMBED_ALLOW, EMBED_SANDBOX, type Embed } from '@/lib/components/editor/embeds';
 
   let {
     embed,

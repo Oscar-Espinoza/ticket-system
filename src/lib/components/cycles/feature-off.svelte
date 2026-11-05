@@ -2,7 +2,7 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
 
-  import { projectHref } from '@/components/app-shell/routes';
+  import { projectHref } from '@/lib/components/app-shell/routes';
   import { Button } from '@/lib/components/ui/button';
   import { EmptyState } from '@/lib/components/ui-icons';
 

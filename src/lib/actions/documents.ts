@@ -4,7 +4,7 @@ import { untrack } from 'svelte';
 import { goto } from '$app/navigation';
 import { refreshAfterWrite } from '@/lib/svelte/refresh.svelte';
 import * as remote from '@/lib/remote/documents.remote';
-import type * as impl from '@/app/actions/documents';
+import type * as impl from '@/lib/server/actions/documents';
 
 type Out<T> = { ok: true; value: T } | { ok: false; redirect: string };
 async function settle<T>(out: Out<T>, refresh: boolean): Promise<T> {
@@ -43,4 +43,4 @@ export async function unarchiveDocument(...args: Parameters<typeof impl.unarchiv
 export async function deleteDocument(...args: Parameters<typeof impl.deleteDocument>): Promise<Awaited<ReturnType<typeof impl.deleteDocument>>> {
   return settle(await untrack(() => remote.deleteDocument(args)), true);
 }
-export type { DocumentActionResult } from '@/app/actions/documents';
+export type { DocumentActionResult } from '@/lib/server/actions/documents';

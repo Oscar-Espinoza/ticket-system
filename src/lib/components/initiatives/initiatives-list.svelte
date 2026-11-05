@@ -18,7 +18,7 @@
     initiativesPath,
     type InitiativeRow,
     type InitiativeStatus,
-  } from '@/components/initiatives/initiative-model';
+  } from '@/lib/components/initiatives/initiative-model';
   import CreateInitiativeDialog from './create-initiative-dialog.svelte';
   import InitiativeStatusIcon from './initiative-status-icon.svelte';
 

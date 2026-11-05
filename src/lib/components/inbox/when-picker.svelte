@@ -8,7 +8,7 @@
   import { Button } from '@/lib/components/ui/button';
   import { Calendar } from '@/lib/components/ui/calendar';
   import { Input } from '@/lib/components/ui/input';
-  import { atMorning, type WhenPreset } from '@/components/inbox/when-options';
+  import { atMorning, type WhenPreset } from '@/lib/components/inbox/when-options';
 
   let {
     presets,

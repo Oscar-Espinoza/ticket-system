@@ -6,7 +6,7 @@
 import type { RequestHandler } from './$types';
 import { allowOptions } from '../../../_lib/options';
 
-import { after } from '@/lib/kit/next-shims';
+import { after } from '@/lib/kit/request';
 import { handleSentryWebhook, verifySentrySignature } from '@/lib/sentry/webhook';
 import { getWebhookIntegration } from '@/lib/vcs/integrations';
 import { decryptToken } from '@/lib/vcs/secrets';

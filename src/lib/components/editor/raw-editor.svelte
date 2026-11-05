@@ -7,7 +7,7 @@
   Imperative handle (React `ref`): bind:this and call `focus()` / `format(kind)`.
 -->
 <script module lang="ts">
-  import type { MarkdownFormat } from '@/components/editor/text-edits';
+  import type { MarkdownFormat } from '@/lib/components/editor/text-edits';
 
   export interface RawEditorHandle {
     focus: () => void;
@@ -36,7 +36,7 @@
   import { formatMention } from '@/lib/mentions';
   import type { IssueUser } from '@/lib/issue-model';
   import { cn } from '@/lib/utils';
-  import { formatEdit, mentionQueryAt, type TextEdit } from '@/components/editor/text-edits';
+  import { formatEdit, mentionQueryAt, type TextEdit } from '@/lib/components/editor/text-edits';
   import MemberOption from './member-option.svelte';
   import { MENU_CLASS, MENU_WIDTH } from './suggestion-entries';
 

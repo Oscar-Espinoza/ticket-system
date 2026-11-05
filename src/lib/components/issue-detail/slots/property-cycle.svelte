@@ -6,8 +6,8 @@
 <script lang="ts">
   import IterationCwIcon from '@lucide/svelte/icons/iteration-cw';
 
-  import { projectHref } from '@/components/app-shell/routes';
-  import { cycleName, cycleStatus } from '@/components/cycles/cycle-utils';
+  import { projectHref } from '@/lib/components/app-shell/routes';
+  import { cycleName, cycleStatus } from '@/lib/components/cycles/cycle-utils';
   import CycleGlyph from '@/lib/components/cycles/cycle-glyph.svelte';
   import CyclePicker from '@/lib/components/cycles/cycle-picker.svelte';
   import PropertyRow from '@/lib/components/issue-detail/property-row.svelte';

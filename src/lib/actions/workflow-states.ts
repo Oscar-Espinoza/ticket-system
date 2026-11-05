@@ -4,7 +4,7 @@ import { untrack } from 'svelte';
 import { goto } from '$app/navigation';
 import { refreshAfterWrite } from '@/lib/svelte/refresh.svelte';
 import * as remote from '@/lib/remote/workflow-states.remote';
-import type * as impl from '@/app/actions/workflow-states';
+import type * as impl from '@/lib/server/actions/workflow-states';
 
 type Out<T> = { ok: true; value: T } | { ok: false; redirect: string };
 async function settle<T>(out: Out<T>, refresh: boolean): Promise<T> {
@@ -37,4 +37,4 @@ export async function moveWorkflowState(...args: Parameters<typeof impl.moveWork
 export async function deleteWorkflowState(...args: Parameters<typeof impl.deleteWorkflowState>): Promise<Awaited<ReturnType<typeof impl.deleteWorkflowState>>> {
   return settle(await untrack(() => remote.deleteWorkflowState(args)), true);
 }
-export type { WorkflowStateField, WorkflowStateResult } from '@/app/actions/workflow-states';
+export type { WorkflowStateField, WorkflowStateResult } from '@/lib/server/actions/workflow-states';

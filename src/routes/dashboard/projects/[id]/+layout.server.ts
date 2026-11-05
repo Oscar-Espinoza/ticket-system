@@ -8,7 +8,7 @@
 import { error, redirect } from '@sveltejs/kit';
 
 import { runProjectAutomations } from '@/lib/automation';
-import { after } from '@/lib/kit/next-shims';
+import { after } from '@/lib/kit/request';
 import { getProjectData } from '@/lib/project-data';
 import { getSession } from '@/lib/session';
 import type { LayoutServerLoad } from './$types';

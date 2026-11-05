@@ -4,7 +4,7 @@ import { untrack } from 'svelte';
 import { goto } from '$app/navigation';
 import { refreshAfterWrite } from '@/lib/svelte/refresh.svelte';
 import * as remote from '@/lib/remote/tickets.remote';
-import type * as impl from '@/app/actions/tickets';
+import type * as impl from '@/lib/server/actions/tickets';
 
 type Out<T> = { ok: true; value: T } | { ok: false; redirect: string };
 async function settle<T>(out: Out<T>, refresh: boolean): Promise<T> {
@@ -64,4 +64,4 @@ export async function purgeIssue(...args: Parameters<typeof impl.purgeIssue>): P
 export async function markDescriptionProjected(...args: Parameters<typeof impl.markDescriptionProjected>): Promise<Awaited<ReturnType<typeof impl.markDescriptionProjected>>> {
   return settle(await untrack(() => remote.markDescriptionProjected(args)), false);
 }
-export type { TicketActionResult, BulkTicketActionResult, CreateTicketInput } from '@/app/actions/tickets';
+export type { TicketActionResult, BulkTicketActionResult, CreateTicketInput } from '@/lib/server/actions/tickets';
