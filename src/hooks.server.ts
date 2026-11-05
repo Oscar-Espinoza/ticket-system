@@ -72,7 +72,31 @@ const dashboardGuard: Handle = ({ event, resolve }) => {
   return resolve(event);
 };
 
-export const handle = sequence(csrf, session, dashboardGuard);
+// Next's server gzips responses; adapter-node doesn't compress SSR/JSON
+// responses (only prebuilt static files). Compress text responses here unless
+// running on Vercel (its edge compresses) or the client doesn't accept gzip.
+// Event streams are left alone so SSE events aren't held in the compressor.
+const COMPRESSIBLE = /^(text\/html|text\/plain|text\/csv|application\/json|application\/javascript|image\/svg\+xml)/;
+const compress: Handle = async ({ event, resolve }) => {
+  const response = await resolve(event);
+  if (dev || process.env.VERCEL || event.request.method === 'HEAD' || !response.body) return response;
+  const type = response.headers.get('content-type') ?? '';
+  if (!COMPRESSIBLE.test(type) || response.headers.has('content-encoding')) return response;
+  if (!/\bgzip\b/.test(event.request.headers.get('accept-encoding') ?? '')) return response;
+  const length = Number(response.headers.get('content-length') ?? NaN);
+  if (length < 1024) return response;
+  const headers = new Headers(response.headers);
+  headers.set('content-encoding', 'gzip');
+  headers.delete('content-length');
+  headers.append('vary', 'Accept-Encoding');
+  return new Response(response.body.pipeThrough(new CompressionStream('gzip')), {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+};
+
+export const handle = sequence(compress, csrf, session, dashboardGuard);
 
 export const handleError: HandleServerError = ({ kind, error, event }) => {
   if (kind === 'unknown') {

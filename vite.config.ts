@@ -71,5 +71,24 @@ export default defineConfig(async ({ mode }) => {
     // through @tailwindcss/vite here, so don't let Vite load that file too.
     css: { postcss: { plugins: [] } },
     server: { port: 5173 },
+    build: {
+      rolldownOptions: {
+        output: {
+          // The default split gave the board page ~180 tiny preloaded chunks
+          // (one per icon / bits-ui part), which delayed first paint. Group the
+          // shared UI libraries; feature code still splits per route.
+          codeSplitting: {
+            groups: [
+              { name: 'icons', test: /node_modules[\\/]@lucide[\\/]/ },
+              {
+                name: 'ui',
+                test: /node_modules[\\/](bits-ui|svelte-toolbelt|runed|@floating-ui|tabbable|focus-trap|@internationalized|svelte-sonner|mode-watcher|clsx|tailwind-merge|class-variance-authority|style-to-object|inline-style-parser)[\\/]/,
+              },
+              { name: 'svelte', test: /node_modules[\\/](svelte|esm-env|devalue)[\\/]/ },
+            ],
+          },
+        },
+      },
+    },
   };
 });
