@@ -8,7 +8,8 @@ insights; a collaborative editor with offline support; GitHub/GitLab/Bitbucket
 automation; REST + GraphQL APIs, OAuth apps and outgoing webhooks; SAML/OIDC SSO,
 SCIM, two-factor auth and an audit log.
 
-Stack: Next.js 16, TypeScript, Drizzle ORM on Postgres (Neon), Better Auth,
+Stack: Next.js 16, TypeScript, Drizzle ORM on Postgres (Neon, or any Postgres
+self-hosted), Better Auth,
 Tailwind v4 + shadcn/ui.
 
 ## Run it
@@ -17,8 +18,9 @@ Tailwind v4 + shadcn/ui.
   `.env.local`, fill in `DATABASE_URL` and `BETTER_AUTH_SECRET`, run
   `npm run db:migrate`, then `npm run dev`. Deploy on Vercel with the same
   variables; `vercel.json` schedules the daily cron.
-- **Self-hosted with Docker** (any server, plain Postgres): see
-  [docs/SELF_HOSTING.md](docs/SELF_HOSTING.md).
+- **Self-hosted with Docker** (internal use: one app container + Postgres;
+  migrations and daily jobs run inside the app): `docker compose up -d --build`,
+  see [docs/SELF_HOSTING.md](docs/SELF_HOSTING.md).
 
 API reference: [docs/API.md](docs/API.md).
 
@@ -29,8 +31,9 @@ Run targeted files, e.g. `npx vitest run src/tests/url-guard.test.ts`.
 - `src/tests/*.test.ts` — unit tests. A few older ones (auth, db, membership,
   projects, tickets, github-account) talk to the database in `.env.local`.
 - `src/tests/local-db/` — the issue service against a throwaway local Postgres
-  (`npm run test:db`, setup in docs/SELF_HOSTING.md). Skipped unless
-  `NEON_PROXY_HOST` is set, so they never touch Neon.
+  (`npm run test:db` on the standard driver, `npm run test:db:neon` through the
+  Neon driver; setup in docs/SELF_HOSTING.md). Skipped unless `LOCAL_DB_TESTS=1`
+  and `DATABASE_URL` is a local host, so they never touch Neon.
 
 ## Upgrading an existing deployment
 

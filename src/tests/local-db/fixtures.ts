@@ -1,10 +1,22 @@
-// Fixtures for tests that run against a local Postgres behind the Neon proxy
-// (docker-compose.yml). They never run against Neon: every suite is skipped
-// unless NEON_PROXY_HOST is set. See docs/SELF_HOSTING.md → "Database tests".
+// Fixtures for tests that run against a throwaway local Postgres, either
+// directly (node-postgres driver, `pnpm test:db`) or behind the local Neon proxy
+// (neon driver, `pnpm test:db:neon`). They never run against Neon: every suite
+// is skipped unless LOCAL_DB_TESTS=1 and DATABASE_URL points at this machine.
+// See docs/SELF_HOSTING.md → "Database tests".
 import { db } from '@/lib/db';
 import { projectMembers, projects, users, workflowStates } from '@/db/schema';
 
-export const localDb = Boolean(process.env.NEON_PROXY_HOST);
+const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]', 'db.localtest.me']);
+
+function isLocalDatabase(url: string | undefined) {
+  try {
+    return LOCAL_HOSTS.has(new URL(url ?? '').hostname.toLowerCase());
+  } catch {
+    return false;
+  }
+}
+
+export const localDb = process.env.LOCAL_DB_TESTS === '1' && isLocalDatabase(process.env.DATABASE_URL);
 
 const uid = () => crypto.randomUUID();
 

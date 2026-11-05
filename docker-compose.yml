@@ -1,19 +1,8 @@
-# Self-hosted ticket-system: Postgres + the local Neon proxy (the app speaks the
-# Neon HTTP/WebSocket protocol) + migrations + the app + a daily cron.
+# Self-hosted ticket-system: Postgres + the app. The app applies migrations and
+# runs the daily jobs itself (SELF_HOSTED=true, set in the Dockerfile).
 # Usage: cp docker/selfhost.env.example .env && edit .env && docker compose up -d --build
-# See docs/SELF_HOSTING.md.
-
-x-db-env: &db-env
-  # Host db.localtest.me is the proxy's endpoint name; traffic goes to NEON_PROXY_HOST.
-  DATABASE_URL: postgres://${POSTGRES_USER:-tickets}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db.localtest.me:5432/${POSTGRES_DB:-tickets}
-  NEON_PROXY_HOST: neon-proxy:4444
-
-x-app-build: &app-build
-  context: .
-  target: runner
-  args:
-    NEXT_PUBLIC_APP_URL: ${APP_URL:?set APP_URL in .env}
-    NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY:-}
+# Already have a Postgres? Run only the app image with DATABASE_URL pointing at
+# it — see docs/SELF_HOSTING.md.
 
 services:
   postgres:
@@ -25,46 +14,30 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-tickets}
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./docker/postgres-init.sql:/docker-entrypoint-initdb.d/00-neon-proxy.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 3s
       retries: 20
 
-  neon-proxy:
-    image: ghcr.io/timowilhelm/local-neon-http-proxy:main
-    restart: unless-stopped
-    environment:
-      PG_CONNECTION_STRING: postgres://${POSTGRES_USER:-tickets}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-tickets}
-    depends_on:
-      postgres:
-        condition: service_healthy
-
-  migrate:
+  app:
     build:
       context: .
-      target: build
+      target: runner
       args:
-        NEXT_PUBLIC_APP_URL: ${APP_URL}
-    command: ["node", "scripts/migrate.mjs"]
-    environment: *db-env
-    depends_on:
-      - neon-proxy
-    restart: "no"
-
-  app:
-    build: *app-build
+        NEXT_PUBLIC_APP_URL: ${APP_URL:?set APP_URL in .env}
+        NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY:-}
     image: ticket-system-app
     restart: unless-stopped
     ports:
       - "${APP_PORT:-3000}:3000"
     environment:
-      <<: *db-env
+      DATABASE_URL: postgres://${POSTGRES_USER:-tickets}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-tickets}
       BETTER_AUTH_URL: ${APP_URL}
       NEXT_PUBLIC_APP_URL: ${APP_URL}
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set BETTER_AUTH_SECRET in .env}
-      CRON_SECRET: ${CRON_SECRET:?set CRON_SECRET in .env}
+      CRON_HOUR_UTC: ${CRON_HOUR_UTC:-}
+      CRON_SECRET: ${CRON_SECRET:-}
       GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
       GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
       GITHUB_WEBHOOK_BASE_URL: ${GITHUB_WEBHOOK_BASE_URL:-}
@@ -79,19 +52,8 @@ services:
       BETTER_AUTH_TRUSTED_ORIGINS: ${BETTER_AUTH_TRUSTED_ORIGINS:-}
       ALLOW_PRIVATE_OUTGOING_URLS: ${ALLOW_PRIVATE_OUTGOING_URLS:-}
     depends_on:
-      migrate:
-        condition: service_completed_successfully
-
-  cron:
-    build: *app-build
-    image: ticket-system-app
-    restart: unless-stopped
-    command: ["node", "scripts/cron-loop.mjs"]
-    environment:
-      CRON_SECRET: ${CRON_SECRET}
-      CRON_TARGET_URL: http://app:3000
-    depends_on:
-      - app
+      postgres:
+        condition: service_healthy
 
 volumes:
   pgdata:

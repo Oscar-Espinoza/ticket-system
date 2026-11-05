@@ -13,6 +13,7 @@ A zero-cost, full-stack Linear-style ticket management system for small teams. U
 - **Database**: Neon Postgres + Drizzle ORM (`neon-http` driver) — serverless-friendly, free tier.
 - **Auth**: Better Auth 1.6 with Drizzle adapter — email/password + GitHub OAuth; Organization plugin for multi-tenant members + invitations. (Auth.js v5 was the original choice but is now deprecated/security-patch-only.)
 - **DB drivers**: `neon-http` for app queries + `neon-serverless` (WebSocket) for Better Auth's transactional writes. Pin `@neondatabase/serverless@^0.10.4` (v1.0.0 broke `neon-http`).
+- **Self-hosted DB driver**: any non-Neon `DATABASE_URL` uses node-postgres (`pg`) instead, with a `db.batch` shim that keeps neon-http's one-transaction contract (`src/lib/db.ts`). Docker self-host is app + Postgres only; the app migrates and runs daily jobs on start (`src/instrumentation.ts`, `SELF_HOSTED=true`).
 - **Styling**: Tailwind CSS v4 + shadcn/ui components + lucide-react icons.
 - **Board**: @dnd-kit/react (0.4.x) for drag-and-drop (not the legacy @dnd-kit/core).
 - **GitHub API**: @octokit/rest v22, instantiated per-request with the user's stored OAuth token.
