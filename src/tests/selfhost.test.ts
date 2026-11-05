@@ -41,6 +41,8 @@ describe('local-db test guard', () => {
     const { isLocalDatabase } = await import('./local-db/guard');
     expect(isLocalDatabase({ DATABASE_URL: 'postgres://postgres:postgres@localhost:5433/main' })).toBe(true);
     expect(isLocalDatabase({ DATABASE_URL: 'postgres://p:p@db.localtest.me:5432/main', NEON_PROXY_HOST: 'localhost:4444' })).toBe(true);
+    // An empty NEON_PROXY_HOST means "no proxy" to the driver too.
+    expect(isLocalDatabase({ DATABASE_URL: 'postgres://postgres:postgres@localhost:5433/main', NEON_PROXY_HOST: '' })).toBe(true);
     for (const env of [
       { DATABASE_URL: 'postgres://u:p@localhost/main?host=prod.example.com' }, // ?host= overrides the URL host
       { DATABASE_URL: 'postgres://u:p@localhost/main?host=/var/run/postgresql' },
@@ -108,6 +110,28 @@ describe('runDailyJobs', () => {
       broken: 'error: nope',
       fine: 'ok',
     });
+    errors.mockRestore();
+  });
+
+  it('does not start a second copy of a job whose timed-out run is still going (Astra re-check)', async () => {
+    const { runDailyJobs } = await import('@/lib/cron');
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    let release!: () => void;
+    let starts = 0;
+    const jobs = {
+      slowPulse: () => {
+        starts++;
+        return new Promise<string>((resolve) => {
+          release = () => resolve('done');
+        });
+      },
+    };
+    expect(await runDailyJobs(new Date(), jobs, 20)).toEqual({ slowPulse: 'error: slowPulse still running after 20 ms' });
+    expect(await runDailyJobs(new Date(), jobs, 20)).toEqual({ slowPulse: 'skipped: previous run still in progress' });
+    expect(starts).toBe(1);
+    release();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(await runDailyJobs(new Date(), { slowPulse: async () => 'again' }, 20)).toEqual({ slowPulse: 'again' });
     errors.mockRestore();
   });
 });

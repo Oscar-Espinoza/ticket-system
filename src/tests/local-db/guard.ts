@@ -18,7 +18,7 @@ export function isLocalDatabase(env: Record<string, string | undefined>) {
     const effective = parse(url).host?.toLowerCase();
     if (!LOCAL_HOSTS.has(urlHost) || !effective || !LOCAL_HOSTS.has(effective)) return false;
     const proxy = env.NEON_PROXY_HOST;
-    if (proxy !== undefined && !LOCAL_HOSTS.has(new URL(`http://${proxy}`).hostname.toLowerCase())) return false;
+    if (proxy && !LOCAL_HOSTS.has(new URL(`http://${proxy}`).hostname.toLowerCase())) return false;
     return true;
   } catch {
     return false;

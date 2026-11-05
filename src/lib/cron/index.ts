@@ -20,8 +20,15 @@ const JOBS: Record<string, (now: Date) => Promise<string>> = {
   collabPrune,
 };
 
-/** A job still running after this is reported and the next job starts. */
+/**
+ * A job still running after this is reported and the next job starts. The
+ * slow job keeps running in the background, and until it settles later runs
+ * skip it rather than start a second copy that would read the same state and
+ * repeat its work.
+ */
 export const JOB_TIMEOUT_MS = 10 * 60_000;
+
+const inFlight = new Map<string, Promise<unknown>>();
 
 function withTimeout<T>(work: Promise<T>, ms: number, name: string): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -38,8 +45,22 @@ export async function runDailyJobs(
 ): Promise<Record<string, string>> {
   const results: Record<string, string> = {};
   for (const [name, job] of Object.entries(jobs)) {
+    if (inFlight.has(name)) {
+      console.error(`[cron] ${name} skipped: its previous run has not finished`);
+      results[name] = 'skipped: previous run still in progress';
+      continue;
+    }
     try {
-      results[name] = await withTimeout(job(now), timeoutMs, name);
+      const work = Promise.resolve().then(() => job(now));
+      const tracked = work.then(
+        () => undefined,
+        () => undefined,
+      );
+      inFlight.set(name, tracked);
+      void tracked.then(() => {
+        if (inFlight.get(name) === tracked) inFlight.delete(name);
+      });
+      results[name] = await withTimeout(work, timeoutMs, name);
     } catch (err) {
       console.error(`[cron] ${name} failed`, err);
       results[name] = `error: ${err instanceof Error ? err.message : String(err)}`;

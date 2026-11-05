@@ -96,7 +96,7 @@ docker run -d --rm --name ts-neon --network ts-test -p 4444:4444 \
   -e PG_CONNECTION_STRING=postgres://postgres:postgres@ts-pg:5432/main \
   ghcr.io/timowilhelm/local-neon-http-proxy:main
 npm run test:db:neon
-docker stop ts-neon && docker network rm ts-test
+docker stop ts-neon && docker network disconnect ts-test ts-pg && docker network rm ts-test
 ```
 
 When you're done, `docker stop ts-pg` (it was started with `--rm`, so this
