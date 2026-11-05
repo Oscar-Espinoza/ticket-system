@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -19,7 +23,9 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": [
+        "./src/*"
+      ]
     }
   },
   "include": [
@@ -30,5 +36,23 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules",
+    ".svelte-kit",
+    "build",
+    "src/routes",
+    "src/lib/kit",
+    "src/lib/remote",
+    "src/lib/actions",
+    "src/lib/svelte",
+    "src/hooks.server.ts",
+    "src/hooks.client.ts",
+    "src/hooks.ts",
+    "src/env.ts",
+    "src/app.d.ts",
+    "src/params.ts",
+    "src/service-worker",
+    "**/*.svelte.ts",
+    "vite.config.ts"
+  ]
 }

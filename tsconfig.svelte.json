@@ -1,0 +1,27 @@
+{
+  "extends": "$app/tsconfig",
+  "compilerOptions": {
+    "strict": true,
+    "types": [
+      "$app/types",
+      "node"
+    ]
+  },
+  "include": [
+    "src/routes/**/*",
+    "src/lib/**/*.ts",
+    "src/lib/**/*.svelte",
+    "src/*.ts",
+    "vite.config.ts"
+  ],
+  "exclude": [
+    "src/lib/auth-client.ts",
+    "src/lib/undo.ts",
+    "src/lib/palette-commands.ts",
+    "src/lib/hotkeys.ts",
+    "src/lib/sync/outbox.ts",
+    "src/**/*.tsx",
+    "src/instrumentation.ts",
+    "src/service-worker/**"
+  ]
+}

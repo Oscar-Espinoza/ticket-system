@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en" class="h-full antialiased">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#08090a" />
+    <meta name="application-name" content="Ticket System" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Tickets" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="apple-touch-icon" href="%sveltekit.assets%/icons/apple-touch-icon.png" />
+    <link rel="icon" href="%sveltekit.assets%/icons/icon.svg" type="image/svg+xml" />
+    <link rel="manifest" href="%sveltekit.assets%/manifest.webmanifest" />
+    <!-- Density (src/lib/density.ts) before first paint, as the Next root layout did. -->
+    <script>try{if(localStorage.getItem('density')==='compact')document.documentElement.dataset.density='compact'}catch(e){}</script>
+    <style>html[data-density='compact']{font-size:93.75%}</style>
+    %sveltekit.head%
+  </head>
+  <body class="min-h-full flex flex-col" data-sveltekit-preload-data="hover">
+    <div style="display: contents">%sveltekit.body%</div>
+  </body>
+</html>
