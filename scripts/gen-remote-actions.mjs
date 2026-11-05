@@ -6,6 +6,10 @@
 //   src/lib/remote/<name>.remote.ts   command('unchecked', …) per export (server)
 //   src/lib/actions/<name>.ts         client wrappers: fn(...args) -> Promise<result>
 //
+// Commands are started inside untrack(): Kit's command() bumps a reactive
+// pending counter, so a wrapper called from an $effect would otherwise make the
+// effect depend on it and re-run forever (effect_update_depth_exceeded).
+//
 // Semantics kept from Next:
 // - a function whose body calls revalidatePath/revalidateTag → the client
 //   wrapper awaits refreshAfterWrite() (a coalesced refreshAll) after it resolves;
@@ -137,6 +141,7 @@ for (const file of sources.sort()) {
     `void formData;`,
     ``];
   const client = [HEADER,
+    `import { untrack } from 'svelte';`,
     `import { goto } from '$app/navigation';`,
     `import { refreshAfterWrite } from '@/lib/svelte/refresh.svelte';`,
     `import * as remote from '@/lib/remote/${mod}.remote';`,
@@ -167,12 +172,12 @@ for (const file of sources.sort()) {
         `  run(() => impl.${f.name}(input[0], formData(input[1]))),`, `);`);
       client.push(`/** (prevState, formData) action, as with React's useActionState. */`,
         `export async function ${f.name}(prev: Parameters<typeof impl.${f.name}>[0], fd: FormData): Promise<Awaited<ReturnType<typeof impl.${f.name}>>> {`,
-        `  return settle(await remote.${f.name}([prev, entries(fd)]), ${f.revalidates});`, `}`);
+        `  return settle(await untrack(() => remote.${f.name}([prev, entries(fd)])), ${f.revalidates});`, `}`);
     } else {
       remote.push(`export const ${f.name} = command('unchecked', (args: Parameters<typeof impl.${f.name}>) =>`,
         `  run(() => impl.${f.name}(...args)),`, `);`);
       client.push(`export async function ${f.name}(...args: Parameters<typeof impl.${f.name}>): Promise<Awaited<ReturnType<typeof impl.${f.name}>>> {`,
-        `  return settle(await remote.${f.name}(args), ${f.revalidates});`, `}`);
+        `  return settle(await untrack(() => remote.${f.name}(args)), ${f.revalidates});`, `}`);
     }
     report.push(`${mod}.${f.name}${f.isForm ? ' [form]' : ''}${f.revalidates ? ' [refresh]' : ''}${f.redirects ? ' [redirect]' : ''}`);
   }

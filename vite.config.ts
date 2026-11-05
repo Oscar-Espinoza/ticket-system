@@ -9,6 +9,7 @@ import tailwindcss from '@tailwindcss/vite';
 import { defineConfig, loadEnv } from 'vite';
 
 const kitFile = (name: string) => fileURLToPath(new URL(`./src/lib/kit/${name}`, import.meta.url));
+const pkgFile = (path: string) => fileURLToPath(new URL(`./node_modules/${path}`, import.meta.url));
 
 function bareOrigin(url: string | undefined): `http://${string}` | `https://${string}` | undefined {
   if (!url) return undefined;
@@ -55,6 +56,10 @@ export default defineConfig(async ({ mode }) => {
         { find: /^next\/(headers|cache|navigation|server)$/, replacement: kitFile('next-shims.ts') },
         { find: /^react$/, replacement: kitFile('react-shim.ts') },
         { find: /^better-auth\/next-js$/, replacement: kitFile('better-auth-cookies.ts') },
+        // CSS-only packages exported under the "style" condition only: Tailwind's
+        // Vite plugin resolves their @import without it in the SSR build.
+        { find: /^tw-animate-css$/, replacement: pkgFile('tw-animate-css/dist/tw-animate.css') },
+        { find: /^shadcn-svelte\/tailwind\.css$/, replacement: pkgFile('shadcn-svelte/dist/tailwind.css') },
       ],
     },
     // NEXT_PUBLIC_* were inlined at build time by Next; keep that for shared code.
@@ -62,6 +67,9 @@ export default defineConfig(async ({ mode }) => {
       'process.env.NEXT_PUBLIC_APP_URL': inline('NEXT_PUBLIC_APP_URL'),
       'process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY': inline('NEXT_PUBLIC_VAPID_PUBLIC_KEY'),
     },
+    // postcss.config.mjs is the Next app's (@tailwindcss/postcss); Tailwind runs
+    // through @tailwindcss/vite here, so don't let Vite load that file too.
+    css: { postcss: { plugins: [] } },
     server: { port: 5173 },
   };
 });

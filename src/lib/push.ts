@@ -3,7 +3,11 @@
 // explains how to configure it.
 
 import { inArray } from 'drizzle-orm';
-import { sendNotification, WebPushError, type VapidKeys } from 'web-push';
+// web-push is CommonJS: Node's ESM loader (SvelteKit SSR) can't see its named
+// exports, so use the default export (works under Next's bundler too).
+import webPush, { type VapidKeys } from 'web-push';
+
+const { sendNotification, WebPushError } = webPush;
 
 import { db } from '@/lib/db';
 import { pushSubscriptions } from '@/db/schema';
