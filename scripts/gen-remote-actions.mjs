@@ -9,6 +9,10 @@
 // pending counter, so a wrapper called from an $effect would otherwise make the
 // effect depend on it and re-run forever (effect_update_depth_exceeded).
 //
+// The transport itself (redirects as data, refresh, FormData entries) lives in
+// src/lib/server/action-runtime.ts and src/lib/svelte/action-runtime.svelte.ts;
+// the generated files only import it.
+//
 // Semantics kept from Next:
 // - a function whose body calls refreshesData() (src/lib/server/action-kit.ts)
 //   → the client wrapper awaits refreshAfterWrite() (a coalesced refreshAll)
@@ -105,52 +109,17 @@ for (const file of sources.sort()) {
   const mod = nameFor(file);
   const importPath = '@/' + path.relative(path.join(root, 'src'), file).replace(/\.tsx?$/, '');
 
+  const hasForm = fns.some((f) => f.isForm);
   const remote = [HEADER,
-    `import { isRedirect } from '@sveltejs/kit';`,
     `import { command } from '$app/server';`,
+    `import { run${hasForm ? ', formData' : ''} } from '@/lib/server/action-runtime';`,
     `import * as impl from '${importPath}';`,
-    ``,
-    `type Out<T> = { ok: true; value: Awaited<T> } | { ok: false; redirect: string };`,
-    `async function run<T>(fn: () => T): Promise<Out<T>> {`,
-    `  try {`,
-    `    return { ok: true, value: await fn() };`,
-    `  } catch (err) {`,
-    `    if (isRedirect(err)) return { ok: false, redirect: err.location };`,
-    `    throw err;`,
-    `  }`,
-    `}`,
-    `function formData(entries: [string, string][]): FormData {`,
-    `  const fd = new FormData();`,
-    `  for (const [k, v] of entries) fd.append(k, v);`,
-    `  return fd;`,
-    `}`,
-    `void formData;`,
     ``];
   const client = [HEADER,
     `import { untrack } from 'svelte';`,
-    `import { goto } from '$app/navigation';`,
-    `import { refreshAfterWrite } from '@/lib/svelte/refresh.svelte';`,
+    `import { settle${hasForm ? ', entries' : ''} } from '@/lib/svelte/action-runtime.svelte';`,
     `import * as remote from '@/lib/remote/${mod}.remote';`,
     `import type * as impl from '${importPath}';`,
-    ``,
-    `type Out<T> = { ok: true; value: T } | { ok: false; redirect: string };`,
-    `async function settle<T>(out: Out<T>, refresh: boolean): Promise<T> {`,
-    `  if (!out.ok) {`,
-    `    await goto(out.redirect, { refreshAll: true });`,
-    `    return undefined as T;`,
-    `  }`,
-    `  if (refresh) await refreshAfterWrite();`,
-    `  return out.value;`,
-    `}`,
-    `function entries(fd: FormData): [string, string][] {`,
-    `  const out: [string, string][] = [];`,
-    `  fd.forEach((v, k) => {`,
-    `    if (typeof v !== 'string') throw new Error('File fields are not supported by action wrappers; upload via /api/uploads.');`,
-    `    out.push([k, v]);`,
-    `  });`,
-    `  return out;`,
-    `}`,
-    `void entries;`,
     ``];
   for (const f of fns) {
     if (f.isForm) {
