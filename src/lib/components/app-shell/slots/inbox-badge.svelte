@@ -1,8 +1,8 @@
 <!--
-  Owner: B2 (notifications). Unread count at the end of the sidebar Inbox link.
+  Unread count at the end of the sidebar Inbox link.
   The dashboard layout load streams the count (an un-awaited promise), so the
   query never holds up the shell; the client pill then keeps itself fresh.
-  Port of src/components/app-shell/slots/inbox-badge.tsx — the server query
+  The server query
   (countUnreadNotifications, errors → 0) lives in app-shell.server.ts.
 -->
 <script module lang="ts">
@@ -18,9 +18,9 @@
   let { count }: InboxBadgeProps = $props();
 
   // Last resolved streamed count. refreshAll() re-runs the dashboard layout
-  // load after writes and hands us a new promise; React's router.refresh() ran
-  // as a transition and kept the revealed badge, so keep showing (and keep
-  // mounted) the pill with the previous count until the new one arrives.
+  // load after writes and hands us a new promise; a refresh must not hide the revealed
+  // badge, so keep showing (and keep mounted) the pill with the previous count
+  // until the new one arrives.
   let resolved = $state<number | null>(null);
 
   $effect(() => {

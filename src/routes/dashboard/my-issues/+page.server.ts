@@ -1,11 +1,9 @@
 // My Issues — issues assigned to / created by / subscribed to by the viewer,
 // plus the ones they recently acted on, across every project they belong to.
 // Tabs are search params so each tab is one server query.
-// (Port of src/app/dashboard/my-issues/page.tsx.)
-
-import { redirect } from '@sveltejs/kit';
 
 import { getProjectsForUser } from '@/lib/components/project-list.server';
+import { requireUser } from '@/lib/session';
 import type { PageServerLoad } from './$types';
 import {
   MY_ISSUES_TABS,
@@ -15,10 +13,9 @@ import {
   type MyIssuesTab,
 } from './queries.server';
 
-export const load: PageServerLoad = async ({ locals, url }) => {
-  if (!locals.user) redirect(303, '/login');
-  const userId = locals.user.id;
-  // Next handed repeated params over as an array (never a valid tab).
+export const load: PageServerLoad = async ({ url }) => {
+  const { id: userId } = await requireUser();
+  // A repeated ?tab= is never a valid tab.
   const values = url.searchParams.getAll('tab');
   const raw = values.length > 1 ? values : values[0];
   const tab: MyIssuesTab = isMyIssuesTab(raw) ? raw : 'assigned';

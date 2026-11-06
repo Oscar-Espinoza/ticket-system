@@ -1,42 +1,34 @@
 // Issue permalink — the stable, shareable URL for one issue (notifications,
 // Slack, emails, search and "Copy link" all point here). The project layout
-// already 404s non-members; getProjectData is the same cached call.
-// (Port of src/app/dashboard/projects/[id]/issues/[key]/page.tsx.)
+// also 404s non-members; this page checks membership itself (getProjectData is
+// memoized per request) so its own "Issue not found" stays the 404 message.
 
 import { error, redirect } from '@sveltejs/kit';
 
 import { issuePath } from '@/lib/issue-links';
 import { getProjectData } from '@/lib/project-data';
-import { getIssueByKey, getProjectIssues } from '@/lib/tickets';
+import { requireUser } from '@/lib/session';
+import { getIssueByKey, getProjectIssues, parseIssueKey } from '@/lib/tickets';
 import type { PageServerLoad } from './$types';
-
-const KEY_PATTERN = /^([A-Za-z0-9]+)-(\d{1,9})$/;
 
 /** "app-12" → 12. The prefix isn't checked: renamed project keys keep resolving. */
 function parseKeyNumber(raw: string): number | null {
-  let key: string;
   try {
-    key = decodeURIComponent(raw).trim();
+    return parseIssueKey(decodeURIComponent(raw))?.number ?? null;
   } catch {
     return null;
   }
-  const match = KEY_PATTERN.exec(key);
-  return match ? Number(match[2]) : null;
 }
 
-export const load: PageServerLoad = async ({ params, locals }) => {
+export const load: PageServerLoad = async ({ params }) => {
   const { id, key } = params;
-  const userId = locals.user?.id;
+  const { id: userId } = await requireUser();
   const number = parseKeyNumber(key);
 
-  let issue = null;
-  if (userId && number !== null) {
-    const data = await getProjectData(id, userId);
-    // Passing the viewer enables the moved-issue alias fallback (ticket_key_alias).
-    if (data) issue = await getIssueByKey(id, number, userId);
-  }
-  // Next set the title "Issue not found" and rendered the project not-found page.
-  if (!issue || !userId) error(404, 'Issue not found');
+  // Passing the viewer enables the moved-issue alias fallback (ticket_key_alias).
+  const member = number !== null && (await getProjectData(id, userId)) !== null;
+  const issue = member ? await getIssueByKey(id, number, userId) : null;
+  if (!issue) error(404, 'Issue not found');
 
   // Lowercase keys, keys from before a project-key rename and issues moved to
   // another project all redirect to the canonical URL.

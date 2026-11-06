@@ -1,5 +1,3 @@
-// Login page load (port of src/app/(auth)/login/page.tsx).
-//
 // If a session already exists, bounce the user to ?redirect= (or /dashboard) so
 // signed-in users never see the auth pages — except mid OAuth-provider flow
 // with `prompt=login` (signed `sig` + `client_id`), which must re-authenticate.
@@ -9,13 +7,12 @@
 import { redirect } from '@sveltejs/kit';
 
 import { safeRedirect } from '@/lib/safe-redirect';
-import { firstParam, searchParam } from '../search-param';
 import type { PageServerLoad } from './$types';
 
 const SSO_REQUIRED_COPY = 'Your workspace requires single sign-on. Continue with SSO.';
 
 /** Error codes from Better Auth / the SSO plugin redirects (spaces or underscores). */
-function signInErrorCopy(value: string | undefined): string | null {
+function signInErrorCopy(value: string | null): string | null {
   if (!value) return null;
   const code = value.toLowerCase().replace(/\s+/g, '_').slice(0, 80);
   if (code.includes('email_domain_not_allowed')) {
@@ -36,15 +33,15 @@ function signInErrorCopy(value: string | undefined): string | null {
 
 export const load: PageServerLoad = async ({ url, locals }) => {
   // Invite links send people here with ?redirect=/invite/<token>.
-  const redirectTo = safeRedirect(searchParam(url, 'redirect'));
-  const oauthReauth = !!firstParam(url, 'sig') && !!firstParam(url, 'client_id');
+  const redirectTo = safeRedirect(url.searchParams);
+  const oauthReauth = !!url.searchParams.get('sig') && !!url.searchParams.get('client_id');
   if (locals.session && !oauthReauth) redirect(303, redirectTo);
 
-  const error = signInErrorCopy(firstParam(url, 'error'));
+  const error = signInErrorCopy(url.searchParams.get('error'));
 
   return {
     redirectTo,
     initialError: error,
-    initialSso: firstParam(url, 'sso') === '1' || error === SSO_REQUIRED_COPY,
+    initialSso: url.searchParams.get('sso') === '1' || error === SSO_REQUIRED_COPY,
   };
 };

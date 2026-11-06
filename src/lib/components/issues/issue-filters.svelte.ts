@@ -3,7 +3,7 @@
 // The quick filter box accepts query syntax (label:bug assignee:me …): the
 // matcher understands it as text, and Enter turns what it can into chips.
 //
-// API (state half of src/components/issues/issue-filters.tsx; the toolbar
+// API (the toolbar
 // component IssueFilters is issue-filters.svelte next to this file):
 //   setIssueFiltersContext(() => initial)    provider (IssueFiltersProvider); call during
 //                                            component init, GETTER for the saved view's filters

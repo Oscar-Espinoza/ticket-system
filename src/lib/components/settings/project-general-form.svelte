@@ -1,29 +1,3 @@
-<script module lang="ts">
-  import type { ProjectVisibility } from '@/lib/actions/project-settings';
-  import type { TemplateWorkspaceOption } from '@/lib/components/project-templates/template-dialog.svelte';
-
-  export interface ProjectGeneralFormProps {
-    projectId: string;
-    name: string;
-    ticketKey: string;
-    description: string;
-    estimateScale: string;
-    /** Owner or admin: may edit details. */
-    canEdit: boolean;
-    /** Owner only: may change the key and delete the project. */
-    isOwner: boolean;
-    workspaceId: string | null;
-    workspaceName: string | null;
-    /** Current parent team (only when it's one of `parentOptions`). */
-    parentId: string | null;
-    /** Teams this one may be nested under (same workspace, viewer is a member). */
-    parentOptions: { id: string; name: string; ticketKey: string }[];
-    visibility: ProjectVisibility;
-    /** Workspaces a template saved from here can be shared with. */
-    templateWorkspaces: TemplateWorkspaceOption[];
-  }
-</script>
-
 <script lang="ts">
   import { Separator } from '@/lib/components/ui/separator';
   import ProjectDangerZone from './project-danger-zone.svelte';
@@ -31,6 +5,7 @@
   import ProjectKeyForm from './project-key-form.svelte';
   import ProjectSaveAsTemplate from './project-save-as-template.svelte';
   import ProjectTeamStructure from './project-team-structure.svelte';
+  import type { ProjectGeneralFormProps } from './project-general-types';
 
   let props: ProjectGeneralFormProps = $props();
 </script>

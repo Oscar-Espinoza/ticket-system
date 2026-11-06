@@ -1,6 +1,6 @@
 <script lang="ts">
   import { ToggleGroup, ToggleGroupItem } from '@/lib/components/ui/toggle-group';
-  import type { ChartUnit } from '@/lib/components/cycles/cycle-utils';
+  import type { ChartUnit } from '@/lib/cycle-utils';
 
   let {
     value,
@@ -11,7 +11,7 @@
   } = $props();
 </script>
 
-<!-- Strictly controlled like React: re-clicking the pressed item ("" from bits) is ignored. -->
+<!-- Strictly controlled: re-clicking the pressed item ("" from bits) is ignored. -->
 <ToggleGroup
   type="single"
   size="sm"

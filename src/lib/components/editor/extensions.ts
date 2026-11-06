@@ -1,8 +1,8 @@
-// Tiptap setup for the rich editor (port of src/components/editor/extensions.ts).
+// Tiptap setup for the rich editor.
 // Everything dynamic (members, issues, upload target, callbacks, the
 // suggestion menu) is read through `runtime`, a holder the Svelte component
 // keeps current, so the extensions are built once per editor. Same extension
-// configuration as the React file; only the node view renderer (Svelte) and
+// configuration as before; only the node view renderer (Svelte) and
 // the icon components (@lucide/svelte) differ.
 
 import { Extension, Node, type AnyExtension, type Editor } from '@tiptap/core';

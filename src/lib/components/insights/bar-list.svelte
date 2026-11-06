@@ -10,7 +10,7 @@
 <script lang="ts">
   import { Avatar, PriorityIcon, StatusIcon } from '@/lib/components/ui-icons';
   import { PRIORITY_LABEL } from '@/lib/issue-model';
-  import type { BreakdownRow } from '@/lib/insights';
+  import type { BreakdownRow } from '@/lib/insights-model';
 
   const VISIBLE = 8;
 

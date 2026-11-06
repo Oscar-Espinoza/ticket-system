@@ -1,6 +1,5 @@
 <!--
-  The card body (also the drag overlay). Port of BoardCardContent from
-  src/components/board/board-card.tsx (props: issue, class).
+  The card body (also the drag overlay).
 -->
 <script lang="ts">
   import { useDisplayOptions } from '@/lib/components/issues/display-options.svelte';

@@ -1,9 +1,7 @@
 <!--
   Errors from the project layout (src/routes/dashboard/projects/[id]/+layout.server.ts):
-  a 404 is "Project not found" (port of src/app/dashboard/projects/not-found.tsx —
-  getProjectData returns null for outsiders, D-15, enumeration-resistant);
-  anything else is the dashboard error state (src/app/dashboard/error.tsx caught
-  those in Next).
+  a 404 is "Project not found" (getProjectData returns null for outsiders,
+  enumeration-resistant); anything else is the dashboard error state.
 -->
 <script lang="ts">
   import { goto } from '$app/navigation';

@@ -1,8 +1,8 @@
-<!-- Admin-only delete confirmation (DeleteCustomerDialog in customer-dialog.tsx). Open while `customer` is set. -->
+<!-- Admin-only delete confirmation. Open while `customer` is set. -->
 <script lang="ts">
   import { toast } from 'svelte-sonner';
 
-  import type { CustomerRow } from '@/lib/components/customers/customer-model';
+  import type { CustomerRow } from '@/lib/customer-model';
   import { deleteCustomer } from '@/lib/actions/customers';
   import { useProjectData } from '@/lib/components/project/project-data.svelte';
   import {
@@ -50,7 +50,7 @@
   }
 </script>
 
-<!-- Strictly controlled, as in React: open exactly while `customer` is set. -->
+<!-- Strictly controlled: open exactly while `customer` is set. -->
 <AlertDialog bind:open={() => customer !== null, (next) => onOpenChange(next)}>
   <AlertDialogContent size="sm">
     <AlertDialogHeader>

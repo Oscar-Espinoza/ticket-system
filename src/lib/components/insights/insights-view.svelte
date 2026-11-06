@@ -7,7 +7,7 @@
   import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/lib/components/ui/select';
   import { EmptyState } from '@/lib/components/ui-icons';
   // Types only: @/lib/insights is server code (db).
-  import type { InsightRange, ProjectInsights } from '@/lib/insights';
+  import type { InsightRange, ProjectInsights } from '@/lib/insights-model';
   import { cn } from '@/lib/utils';
   import BarList from './bar-list.svelte';
   import { formatHours, formatWeek } from './chart-kit.svelte.ts';
@@ -33,7 +33,7 @@
   const project = useProjectData();
   const labels = $derived(project.labels);
 
-  // useTransition(router.replace): `pending` stays true until the last navigation has loaded.
+  // In-flight counter: `pending` stays true until the last navigation has loaded.
   let inflight = $state(0);
   const pending = $derived(inflight > 0);
 

@@ -1,7 +1,7 @@
 <!-- "● On track"; renders a muted "No updates" when health is null and `showEmpty`. -->
 <script lang="ts">
   import { cn } from '@/lib/utils';
-  import { HEALTH_COLOR, HEALTH_LABEL, type Health } from '@/lib/components/epics/epic-model';
+  import { HEALTH_COLOR, HEALTH_LABEL, type Health } from '@/lib/epic-model';
   import HealthDot from './health-dot.svelte';
 
   let {

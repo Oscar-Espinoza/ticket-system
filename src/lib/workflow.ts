@@ -34,8 +34,10 @@ export function sortStates<T extends Pick<WorkflowState, 'type' | 'position' | '
 }
 
 /** Completed or canceled: the issue is resolved (no overdue warnings, not "open"). */
+export const CLOSED_STATE_TYPES = ['completed', 'canceled'] as const satisfies readonly StateType[];
+
 export function isClosed(type: StateType): boolean {
-  return type === 'completed' || type === 'canceled';
+  return (CLOSED_STATE_TYPES as readonly StateType[]).includes(type);
 }
 
 export function firstStateOfType<T extends WorkflowState>(

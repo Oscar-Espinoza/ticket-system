@@ -2,13 +2,13 @@
   Docs tab: the project's documents as dense rows (icon, title, preview, epic,
   last editor, updated), a search box kept in `?q=` (title + content, server
   side), Active / Archived, and per-row actions (copy link, archive, delete).
-  Port of documents-list.tsx (DeleteDocumentDialog is ./delete-document-dialog.svelte;
+  (DeleteDocumentDialog is ./delete-document-dialog.svelte;
   copyDocumentLink is exported from this file's module script).
 -->
 <script module lang="ts">
   import { toast } from 'svelte-sonner';
 
-  import { documentPath } from '@/lib/components/documents/document-model';
+  import { documentPath } from '@/lib/document-model';
 
   export async function copyDocumentLink(projectId: string, documentId: string) {
     try {
@@ -30,8 +30,8 @@
   import Trash2 from '@lucide/svelte/icons/trash-2';
 
   import { archiveDocument, unarchiveDocument } from '@/lib/actions/documents';
-  import type { DocumentSummary } from '@/lib/components/documents/document-model';
-  import { relativeTime } from '@/lib/components/comments/relative-time';
+  import type { DocumentSummary } from '@/lib/document-model';
+  import { relativeTime } from '@/lib/relative-time';
   import EpicIcon from '@/lib/components/epics/epic-icon.svelte';
   import { useProjectPermission } from '@/lib/components/project/project-data.svelte';
   import { Button } from '@/lib/components/ui/button';
@@ -69,8 +69,7 @@
   const archived = $derived(documents.filter((d) => d.archivedAt));
   const shown = $derived(filter === 'active' ? active : archived);
 
-  // The action wrappers refresh the page (the actions revalidate), which is
-  // what React's explicit router.refresh() did.
+  // The action wrappers refresh the page (refreshesData), so no refresh here.
   async function run(action: Promise<{ ok: true } | { ok: false; error: string }>, success: string) {
     const result = await action;
     if (!result.ok) toast.error(result.error);
@@ -204,7 +203,7 @@
     </ul>
   {/if}
 
-  <!-- The delete action's wrapper refreshes the list (React: onDeleted → router.refresh()). -->
+  <!-- The delete action's wrapper refreshes the list. -->
   <DeleteDocumentDialog
     document={deleting}
     onOpenChange={(open) => {

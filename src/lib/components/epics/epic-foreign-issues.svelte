@@ -8,7 +8,7 @@
   import { Avatar, EmptyState, PriorityIcon, StateIcon } from '@/lib/components/ui-icons';
   import { issuePath } from '@/lib/issue-links';
   import { PRIORITY_LABEL, PRIORITY_ORDER, STATE_TYPE_ORDER, type IssueRow } from '@/lib/issue-model';
-  import type { ProjectRef } from '@/lib/components/epics/epic-model';
+  import type { ProjectRef } from '@/lib/epic-model';
 
   let { project, issues }: { project: ProjectRef; issues: IssueRow[] } = $props();
 

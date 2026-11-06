@@ -13,6 +13,7 @@
   import UserRoundIcon from '@lucide/svelte/icons/user-round';
   import { toast } from 'svelte-sonner';
 
+  import { copyToClipboard } from '@/lib/components/clipboard';
   import {
     CUSTOMER_STATUSES,
     CUSTOMER_STATUS_LABEL,
@@ -21,7 +22,7 @@
     formatSize,
     type CustomerRequestView,
     type CustomerRow,
-  } from '@/lib/components/customers/customer-model';
+  } from '@/lib/customer-model';
   import { updateCustomer, type CustomerInput } from '@/lib/actions/customers';
   import MemberPicker from '@/lib/components/epics/member-picker.svelte';
   import IssueRefRow from '@/lib/components/issue-hierarchy/issue-ref-row.svelte';
@@ -37,7 +38,7 @@
   } from '@/lib/components/ui/dropdown-menu';
   import { Avatar } from '@/lib/components/ui-icons';
   import type { IssueRow } from '@/lib/issue-model';
-  import { cn } from '@/lib/utils';
+    import { cn } from '@/lib/utils';
   import { isClosed } from '@/lib/workflow';
   import CustomerDialog from './customer-dialog.svelte';
   import { STATUS_DOT_CLASS } from './customer-glyphs';
@@ -63,7 +64,7 @@
   const canWrite = useProjectPermission('write');
   const isAdmin = useProjectPermission('admin');
 
-  // useOptimistic: the server value plus the patch of every save still in flight. Each
+  // Optimistic: the server value plus the patch of every save still in flight. Each
   // patch is dropped when its own save settles: on success the refreshed props already
   // carry it (the action wrapper refreshes before resolving); on failure only that patch
   // rolls back, and other pending saves keep theirs.
@@ -86,14 +87,7 @@
     }
   }
 
-  async function copyLink() {
-    try {
-      await navigator.clipboard.writeText(window.location.href.split('?')[0]);
-      toast.success('Copied customer link');
-    } catch {
-      toast.error('Could not copy to the clipboard.');
-    }
-  }
+  const copyLink = () => copyToClipboard(window.location.href.split('?')[0], 'customer link');
 
   const openIssues = $derived(issues.filter((issue) => !issue.archivedAt && !isClosed(issue.state.type)).length);
   const owner = $derived(customer.owner);

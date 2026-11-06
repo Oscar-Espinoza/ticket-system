@@ -6,6 +6,7 @@
 // land in the first completed state, others in the state named like their
 // section ("In Progress" → In Progress), else the default.
 
+import { ASANA_TIMEOUT_MS } from '@/lib/integrations/timeouts';
 import { requestJson } from '@/lib/vcs/http';
 import { EXTERNAL_IMPORT_CAP, type ImportLabel, type ImportRecord, type ImportSource } from './records';
 import { summarize, type ExternalFetchResult } from './external';
@@ -76,7 +77,7 @@ function tagColor(color: string | null | undefined): string | null {
 }
 
 async function get<T>(token: string, path: string): Promise<T> {
-  return requestJson<T>(`${API}${path}`, { headers: { Authorization: `Bearer ${token}` }, timeoutMs: 15_000 });
+  return requestJson<T>(`${API}${path}`, { headers: { Authorization: `Bearer ${token}` }, timeoutMs: ASANA_TIMEOUT_MS });
 }
 
 async function all<T>(token: string, path: string, max: number): Promise<T[]> {

@@ -3,7 +3,7 @@
   day after the latest cycle, for the project's duration.
 -->
 <script module lang="ts">
-  import type { CycleLike } from '@/lib/components/cycles/cycle-utils';
+  import type { CycleLike } from '@/lib/cycle-utils';
 
   export interface EditableCycle extends CycleLike {
     id: string;

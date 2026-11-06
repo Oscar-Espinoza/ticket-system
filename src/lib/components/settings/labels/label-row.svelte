@@ -12,7 +12,7 @@
     DropdownMenuTrigger,
   } from '@/lib/components/ui/dropdown-menu';
   import type { ProjectLabel } from '@/lib/project-data-types';
-  import { issuesLabel } from './label-utils';
+  import { pluralize } from '@/lib/format';
 
   let {
     label,
@@ -47,7 +47,7 @@
     {/if}
   </button>
   <span class="shrink-0 text-xs text-muted-foreground tabular-nums">
-    {issuesLabel(count)}
+    {pluralize(count, 'issue')}
   </span>
   {#if canEdit}
     <DropdownMenu>

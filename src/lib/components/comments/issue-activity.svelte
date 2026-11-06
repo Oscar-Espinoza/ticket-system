@@ -1,6 +1,6 @@
 <!--
   Activity section of the issue detail: history lines and comment threads in
-  one chronological stream, plus the composer (port of issue-activity.tsx).
+  one chronological stream, plus the composer.
   Loaded client-side (server action, in an effect) when the issue opens and
   again whenever `issue.updatedAt` moves.
 -->
@@ -12,9 +12,6 @@
 
   type Loaded = { issueId: string; timeline: IssueTimeline | null; error: string | null };
 
-  function errorText(error: string) {
-    return error === 'Forbidden' ? "You don't have permission to do that in this project." : error;
-  }
 </script>
 
 <script lang="ts">
@@ -22,6 +19,7 @@
   import ChevronsUpDown from '@lucide/svelte/icons/chevrons-up-down';
   import { toast } from 'svelte-sonner';
 
+  import { actionErrorText } from '@/lib/action-errors';
   import { createComment, deleteComment, getIssueTimeline, toggleReaction, updateComment } from '@/lib/actions/comments';
   import { useProjectData, useProjectPermission } from '@/lib/components/project/project-data.svelte';
   import { TooltipProvider } from '@/lib/components/ui/tooltip';
@@ -67,7 +65,7 @@
           loaded =
             prev.issueId === issueId && prev.timeline
               ? prev
-              : { issueId, timeline: null, error: errorText(result.error) };
+              : { issueId, timeline: null, error: actionErrorText(result.error) };
           return;
         }
         // Comments still being sent aren't on the server yet.
@@ -141,7 +139,7 @@
     setComments(issueId, (list) => [...list, temp]);
     try {
       const result = await createComment({ projectId, ticketId: issueId, body, parentId });
-      if (!result.ok) throw new Error(errorText(result.error));
+      if (!result.ok) throw new Error(actionErrorText(result.error));
       // A refetch may already have brought in the server copy; never keep two rows with one id
       // (keyed #each throws on duplicate keys).
       setComments(issueId, (list) =>
@@ -168,7 +166,7 @@
       setComments(issueId, (list) => list.map(patch));
       try {
         const result = await updateComment({ projectId: issue.projectId, commentId: comment.id, body });
-        if (!result.ok) throw new Error(errorText(result.error));
+        if (!result.ok) throw new Error(actionErrorText(result.error));
       } catch (err) {
         setComments(issueId, (list) => list.map((c) => (c.id === comment.id ? comment : c)));
         toast.error(err instanceof Error && err.message ? err.message : 'Could not save the comment.');
@@ -182,7 +180,7 @@
       setComments(issueId, (list) => list.filter((c) => !doomed(c)));
       try {
         const result = await deleteComment({ projectId: issue.projectId, commentId: comment.id });
-        if (!result.ok) throw new Error(errorText(result.error));
+        if (!result.ok) throw new Error(actionErrorText(result.error));
       } catch (err) {
         setComments(issueId, (list) => [...list, ...removed]);
         toast.error(err instanceof Error && err.message ? err.message : 'Could not delete the comment.');
@@ -199,7 +197,7 @@
       setComments(issueId, flip);
       toggleReaction({ projectId: issue.projectId, commentId: comment.id, emoji })
         .then((result) => {
-          if (!result.ok) throw new Error(errorText(result.error));
+          if (!result.ok) throw new Error(actionErrorText(result.error));
         })
         .catch((err: unknown) => {
           setComments(issueId, flip);

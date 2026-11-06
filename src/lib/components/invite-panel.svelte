@@ -1,24 +1,10 @@
 <!--
-  Invite panel (settings › Members, owner/admin). Port of src/components/invite-panel.tsx:
+  Invite panel (settings › Members, owner/admin):
   invite by email with a role, the pending email invitations (resend / copy
   link / revoke; invite-panel-pending-row.svelte), and the reusable shareable
   link (joins as member). URLs arrive from the server page; actions refresh the
   page so lists stay fresh without local syncing.
 -->
-<script module lang="ts">
-  import type { AssignableRole } from '@/lib/components/workspaces/role-rules';
-
-  export interface PendingInvitation {
-    id: string;
-    email: string;
-    role: AssignableRole;
-    /** ISO string. */
-    expiresAt: string;
-    url: string;
-    invitedByName: string | null;
-  }
-</script>
-
 <script lang="ts">
   import { untrack } from 'svelte';
   import CopyIcon from '@lucide/svelte/icons/copy';
@@ -28,16 +14,17 @@
   import SendIcon from '@lucide/svelte/icons/send';
   import { toast } from 'svelte-sonner';
 
-  // The wrappers refresh the page data after they resolve (React's revalidatePath).
+  // The wrappers refresh the page data after they resolve.
   import { generateInviteLink, inviteByEmail, type GenerateInviteState } from '@/lib/actions/invite';
   import { Button } from '@/lib/components/ui/button';
   import { Input } from '@/lib/components/ui/input';
   import { Label } from '@/lib/components/ui/label';
   import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/lib/components/ui/select';
   import { useProjectPermissions } from '@/lib/components/workspaces/permissions.svelte';
-  import { PROJECT_ROLE_DESCRIPTION, PROJECT_ROLE_LABEL } from '@/lib/components/workspaces/role-rules';
+  import { PROJECT_ROLE_DESCRIPTION, PROJECT_ROLE_LABEL, type AssignableRole } from '@/lib/roles';
   import PendingRow from './invite-panel-pending-row.svelte';
-  import { announceSent, copyText } from './invite-panel-utils';
+  import { announceSent, copyText } from './invite-toasts';
+  import type { PendingInvitation } from './invite-panel-types';
 
   let {
     projectId,
@@ -80,7 +67,7 @@
     }
   }
 
-  // ---- Shareable link (useActionState around generateInviteLink) ----------
+  // ---- Shareable link (state around generateInviteLink) ----------
   let linkState = $state<GenerateInviteState>({});
   let linkPending = $state(false);
   // Prefer the just-generated URL over the (possibly stale) server prop.

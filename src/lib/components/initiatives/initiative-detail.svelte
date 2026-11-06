@@ -52,14 +52,14 @@
   import { ToggleGroup, ToggleGroupItem } from '@/lib/components/ui/toggle-group';
   import { Avatar, EmptyState } from '@/lib/components/ui-icons';
   import { formatDueDate } from '@/lib/dates';
-  import { EPIC_STATUS_LABEL, epicPath } from '@/lib/components/epics/epic-model';
+  import { EPIC_STATUS_LABEL, epicPath } from '@/lib/epic-model';
   import {
     INITIATIVE_STATUS_LABEL,
     initiativesPath,
     type InitiativeDetail as Detail,
     type InitiativeEpic,
     type InitiativeRow,
-  } from '@/lib/components/initiatives/initiative-model';
+  } from '@/lib/initiative-model';
   import AddEpicPicker from './add-epic-picker.svelte';
   import InitiativeDescription from './initiative-description.svelte';
   import InitiativeName from './initiative-name.svelte';
@@ -92,7 +92,7 @@
   let confirmDelete = $state(false);
   const members = $derived(detail.members);
 
-  // One useTransition in React: run every write as a transition of both views.
+  // Run every write as a transition of both views.
   async function transition(fn: () => Promise<unknown>) {
     await epicsState.transition(() => initiativeState.transition(fn));
   }
@@ -119,8 +119,7 @@
 
   const remove = () => {
     // Read before the await: the action's refresh re-runs the page load, which now
-    // 404s and unmounts this component, so props are gone afterwards (React's
-    // closure kept them).
+    // 404s and unmounts this component, so props are gone afterwards (keep them).
     const slug = workspace.slug;
     const workspaceId = workspace.id;
     const id = initiative.id;

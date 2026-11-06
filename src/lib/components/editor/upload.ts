@@ -2,12 +2,13 @@
 // attachments route (the image also shows in the issue's Attachments), any
 // other project context through /api/uploads.
 
+import { actionErrorText } from '@/lib/action-errors';
 import {
   MAX_ATTACHMENT_BYTES,
   MAX_ATTACHMENT_LABEL,
   attachmentPath,
   isPreviewableImage,
-} from '@/lib/components/issue-hierarchy/attachment-utils';
+} from '@/lib/attachment-utils';
 
 export type UploadTarget = { projectId: string; ticketId?: string };
 
@@ -40,7 +41,7 @@ export async function uploadImage(target: UploadTarget, file: File): Promise<Ima
       | null;
     if (!body) return { ok: false, error: 'Upload failed.' };
     if (!body.ok) {
-      return { ok: false, error: body.error === 'Forbidden' ? "You can't upload images here." : body.error };
+      return { ok: false, error: actionErrorText(body.error, "You can't upload images here.") };
     }
     const url = body.attachment ? attachmentPath(body.attachment.id) : body.url;
     return url ? { ok: true, url } : { ok: false, error: 'Upload failed.' };

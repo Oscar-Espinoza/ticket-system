@@ -1,12 +1,10 @@
 /*
- * Port of src/components/ui/sonner.tsx (sonner → svelte-sonner).
+ * Toaster on svelte-sonner.
  *
- * Caller translation:
- * - `<Toaster position="bottom-right" />` unchanged. Theme follows mode-watcher (`mode.current`)
- *   instead of next-themes; the icons, CSS variables and `toastOptions.classes.toast = "cn-toast"`
- *   match the React file (`classNames` → `classes`, `className` → `class`).
- * - Props passed to Toaster override these defaults, as `{...props}` did in React.
- * - Raise toasts with `import { toast } from 'svelte-sonner'` (same API as sonner).
+ * - Theme follows mode-watcher (`mode.current`); the icons, CSS variables and
+ *   `toastOptions.classes.toast = "cn-toast"` are set here.
+ * - Props passed to Toaster override these defaults.
+ * - Raise toasts with `import { toast } from 'svelte-sonner'`.
  */
 import Toaster from './sonner.svelte';
 

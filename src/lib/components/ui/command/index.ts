@@ -1,10 +1,10 @@
 /**
- * Command (React: src/components/ui/command.tsx, cmdk → bits-ui Command).
+ * Command (cmdk → bits-ui Command).
  *
  * Caller translation:
  * - `<Command filter={keywordFilter} shouldFilter={false} loop>` unchanged — bits-ui's
  *   `filter(value, search, keywords) => number` has cmdk's signature. `value` /
- *   `onValueChange` (highlighted item) unchanged, plus `bind:value`. React `onKeyDown` →
+ *   `onValueChange` (highlighted item) unchanged, plus `bind:value`. `onKeyDown` →
  *   `onkeydown`; calling `e.preventDefault()` in it skips the built-in key handling, as in cmdk.
  * - `<CommandInput value={search} onValueChange={setSearch} />` unchanged (also
  *   `bind:value`). `autoFocus` → `autofocus`.
@@ -15,7 +15,7 @@
  *   as a child of CommandGroup. `forceMount`, `value` pass through.
  * - `<CommandSeparator alwaysRender>` unchanged (mapped to bits `forceMount`).
  * - CommandDialog: `open` / `onOpenChange` / `bind:open`, `title`, `description`,
- *   `showCloseButton`, `class`. Like the React version it does NOT wrap children in
+ *   `showCloseButton`, `class`. It does NOT wrap children in
  *   `<Command>` — put `<Command>` inside it yourself.
  * - CommandList wraps its children in bits' Viewport (cmdk's list sizer), which enables
  *   score sorting of ungrouped items and groups and the input's `aria-activedescendant`.

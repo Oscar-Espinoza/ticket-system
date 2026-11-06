@@ -1,4 +1,4 @@
-<!-- Domain chip (replaces shadcn Badge); every color maps to a C1 token. -->
+<!-- Domain chip every color maps to a token. -->
 <script module lang="ts">
   import type { Snippet } from 'svelte';
   import type { HTMLAttributes } from 'svelte/elements';
@@ -26,7 +26,7 @@
 <script lang="ts">
   import { cn } from '@/lib/utils';
 
-  // Exhaustiveness: a new color must pick a C1 token here or the build fails.
+  // Exhaustiveness: a new color must pick a token here or the build fails.
   const DOT_CLASS: Record<LabelChipColor, string> = {
     default: 'bg-muted-foreground',
     primary: 'bg-primary',

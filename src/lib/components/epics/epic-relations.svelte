@@ -3,19 +3,8 @@
   "Related" groups, a two-step picker (kind → epic) to add one, and remove
   buttons. Conflicts (the blocked epic starts before its blocker's target
   date) are flagged inline, like the roadmap does.
-  (React export: EpicDependencies.)
+ 
 -->
-<script module lang="ts">
-  import type { EpicStatus } from '@/lib/components/epics/epic-model';
-
-  export interface DependencyCandidate {
-    id: string;
-    name: string;
-    color: string | null;
-    status: EpicStatus;
-  }
-</script>
-
 <script lang="ts">
   import PlusIcon from '@lucide/svelte/icons/plus';
   import TriangleAlertIcon from '@lucide/svelte/icons/triangle-alert';
@@ -32,11 +21,12 @@
     isScheduleConflict,
     type EpicRelationKind,
     type EpicRelationRow,
-  } from '@/lib/components/epics/epic-model';
+  } from '@/lib/epic-model';
   import AddDependency from './add-dependency.svelte';
   import EpicIcon from './epic-icon.svelte';
   import EpicStatusIcon from './epic-status-icon.svelte';
   import { Optimistic } from './optimistic.svelte';
+  import type { DependencyCandidate } from './dependency-types';
 
   let {
     projectId,

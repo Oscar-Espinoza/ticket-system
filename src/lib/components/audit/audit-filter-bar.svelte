@@ -48,8 +48,8 @@
   const SYSTEM_LABEL = 'System & integrations';
 
   // Navigations in flight: a superseded goto resolves early, so a single flag
-  // would hide the spinner while the newer one still loads (useTransition
-  // stays pending until every queued transition finishes).
+  // would hide the spinner while the newer one still loads (the pending flag
+  // stays set until every queued navigation finishes).
   let inFlight = $state(0);
   const pending = $derived(inFlight > 0);
   // svelte-ignore state_referenced_locally
@@ -78,7 +78,7 @@
     const pathname = page.url.pathname;
     inFlight += 1;
     try {
-      // router.replace(…, { scroll: false }): replace the entry, keep scroll and focus.
+      // Replace the history entry, keep scroll and focus.
       await goto(query ? `${pathname}?${query}` : pathname, { replace: true, reset: false });
     } finally {
       inFlight -= 1;

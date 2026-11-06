@@ -1,9 +1,9 @@
-<!-- Move a project the viewer administers into the workspace (AddProjectDialog in workspace-projects.tsx). -->
+<!-- Move a project the viewer administers into the workspace. -->
 <script lang="ts">
   import LoaderCircleIcon from '@lucide/svelte/icons/loader-circle';
   import { toast } from 'svelte-sonner';
 
-  import type { EligibleProject } from '@/lib/components/workspaces/workspace-types';
+  import type { EligibleProject } from '@/lib/workspace-types';
   import { addProjectToWorkspace } from '@/lib/actions/workspaces';
   import { Button } from '@/lib/components/ui/button';
   import {

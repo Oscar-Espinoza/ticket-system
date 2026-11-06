@@ -1,8 +1,9 @@
 <!--
-  OAuth apps the user registered (port of src/components/oauth/oauth-app-settings.tsx):
+  OAuth apps the user registered:
   list, register, rotate secret, delete, and the one-time credential reveal.
 -->
 <script lang="ts">
+  import { pluralize } from '@/lib/format';
   import { untrack } from 'svelte';
   import AppWindowIcon from '@lucide/svelte/icons/app-window';
   import CopyIcon from '@lucide/svelte/icons/copy';
@@ -42,7 +43,7 @@
     DropdownMenuTrigger,
   } from '@/lib/components/ui/dropdown-menu';
   import { EmptyState } from '@/lib/components/ui-icons';
-  import type { OAuthAppView } from '@/lib/components/oauth/oauth-model';
+  import type { OAuthAppView } from '@/lib/oauth-model';
   import AppIcon from './app-icon.svelte';
   import OAuthAppRegisterDialog from './oauth-app-register-dialog.svelte';
 
@@ -125,7 +126,7 @@
             </p>
             <p class="mt-0.5 truncate font-mono text-xs text-muted-foreground">
               {app.clientId}<span class="font-sans"
-                >{' · '}{app.redirectUris.length} redirect URI{app.redirectUris.length === 1 ? '' : 's'}</span
+                >{' · '}{pluralize(app.redirectUris.length, 'redirect URI')}</span
               >
             </p>
           </div>

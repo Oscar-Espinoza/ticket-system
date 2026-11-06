@@ -9,8 +9,8 @@ import { allowOptions } from '../../../_lib/options';
 import { after } from '@/lib/kit/request';
 import { syncGitlabHook, type GitlabHook } from '@/lib/vcs/gitlab-sync';
 import { getWebhookIntegration, type GitlabConfig } from '@/lib/vcs/integrations';
-import { safeEqual } from '@/lib/vcs/secrets';
-import { readJsonBody, rejected } from '@/lib/vcs/webhook-request';
+import { safeEqual } from '@/lib/server/secrets';
+import { readWebhookBody, rejected } from '@/lib/vcs/webhook-request';
 
 const HANDLED = new Set(['Merge Request Hook', 'Push Hook', 'Pipeline Hook']);
 
@@ -28,7 +28,7 @@ export const POST: RequestHandler = async ({ request, params }) => {
   }
   if (!found || !safeEqual(token, found.integration.secret)) return rejected();
 
-  const body = await readJsonBody(request);
+  const body = await readWebhookBody(request);
   if (!body.ok) return body.response;
 
   const event = request.headers.get('x-gitlab-event') ?? '';
@@ -45,5 +45,4 @@ export const POST: RequestHandler = async ({ request, params }) => {
   return Response.json({ ok: true }, { status: 202 });
 };
 
-// Next answered OPTIONS automatically (204 + Allow); Kit would 405.
 export const OPTIONS = allowOptions('POST');

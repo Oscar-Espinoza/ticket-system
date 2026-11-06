@@ -1,7 +1,7 @@
 <!--
   Topbar right side: palette trigger, the command palette, the `?` overlay, the
   palette-owned create-project dialog and the global shortcuts (⌘K, /, ?, g…, c).
-  Port of src/components/topbar-chrome.tsx. The app-wide <Toaster> lives in the
+ The app-wide <Toaster> lives in the
   root layout (src/routes/+layout.svelte), so it is not rendered here.
 -->
 <script module lang="ts">
@@ -64,7 +64,7 @@
   let overlayOpen = $state(false);
   let createOpen = $state(false);
 
-  // useSyncExternalStore server snapshots (isMac = false, no issue creator)
+  // Server values (isMac = false, no issue creator)
   // during SSR and hydration; the browser values from then on, so the kbd hint
   // flips ⌘K/CtrlK without a hydration mismatch.
   let hydrated = $state(isAppHydrated());
@@ -272,8 +272,7 @@
 </Button>
 
 <!--
-  Spacer for parity: React rendered sonner's <Toaster> here, whose empty in-flow
-  <section> took a slot in the topbar's `gap-2` row and pushed the trigger 8px
+  Spacer: the former in-flow Toaster <section> took a slot in the topbar's `gap-2` row and pushed the trigger 8px
   in from the edge. The Toaster now lives in the root layout.
 -->
 <span aria-hidden="true"></span>

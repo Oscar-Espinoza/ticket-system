@@ -1,7 +1,7 @@
-<!-- Editable epic title (epic-detail.tsx EpicName). -->
+<!-- Editable epic title. -->
 <script lang="ts">
   import { Textarea } from '@/lib/components/ui/textarea';
-  import { EPIC_NAME_MAX } from '@/lib/components/epics/epic-model';
+  import { EPIC_NAME_MAX } from '@/lib/epic-model';
 
   let {
     name,

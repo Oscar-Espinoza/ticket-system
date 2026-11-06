@@ -1,4 +1,4 @@
-<!-- Accept form inside AcceptDialog (local helper of triage-dialogs.tsx). -->
+<!-- Accept form inside AcceptDialog. -->
 <script lang="ts">
   import { untrack } from 'svelte';
   import LoaderCircle from '@lucide/svelte/icons/loader-circle';
@@ -10,7 +10,8 @@
   import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/lib/components/ui/select';
   import { Avatar, PriorityIcon, StateIcon } from '@/lib/components/ui-icons';
   import { PRIORITY_LABEL, PRIORITY_ORDER, type IssueRow, type Priority } from '@/lib/issue-model';
-  import { acceptStates, defaultAcceptState } from '@/lib/triage';
+  import { acceptStates } from '@/lib/triage';
+  import { defaultNewIssueState } from '@/lib/workflow';
   import type { AcceptChoice } from './accept-dialog.svelte';
 
   const UNASSIGNED = '__none';
@@ -31,7 +32,7 @@
   const options = $derived(acceptStates(data.states));
   // useState(...): seeded once per open (the dialog remounts the form).
   let stateId = $state(
-    untrack(() => defaultAcceptState(data.states)?.id ?? acceptStates(data.states)[0]?.id ?? ''),
+    untrack(() => defaultNewIssueState(data.states)?.id ?? acceptStates(data.states)[0]?.id ?? ''),
   );
   let priority = $state<Priority>(untrack(() => issue.priority));
   let assigneeId = $state(untrack(() => issue.assignee?.id ?? UNASSIGNED));

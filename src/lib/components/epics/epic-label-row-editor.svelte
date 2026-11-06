@@ -1,4 +1,4 @@
-<!-- One row of the epic-labels dialog (epic-labels.tsx EpicLabelRowEditor). -->
+<!-- One row of the epic-labels dialog. -->
 <script lang="ts">
   import CheckIcon from '@lucide/svelte/icons/check';
   import Trash2Icon from '@lucide/svelte/icons/trash-2';
@@ -7,7 +7,7 @@
   import { deleteEpicLabel, updateEpicLabel } from '@/lib/actions/epic-labels';
   import { Button } from '@/lib/components/ui/button';
   import { Input } from '@/lib/components/ui/input';
-  import { EPIC_LABEL_NAME_MAX, type EpicLabelRow } from '@/lib/components/epics/epic-model';
+  import { EPIC_LABEL_NAME_MAX, type EpicLabelRow } from '@/lib/epic-model';
   import ColorButton from './epic-label-color-button.svelte';
 
   let {

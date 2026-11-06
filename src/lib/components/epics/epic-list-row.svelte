@@ -1,4 +1,4 @@
-<!-- One row of the epics list, with its context menu (epics-list.tsx EpicListRow). -->
+<!-- One row of the epics list, with its context menu. -->
 <script lang="ts">
   import ArchiveIcon from '@lucide/svelte/icons/archive';
   import ArchiveRestoreIcon from '@lucide/svelte/icons/archive-restore';
@@ -6,6 +6,7 @@
   import TagIcon from '@lucide/svelte/icons/tag';
   import { toast } from 'svelte-sonner';
 
+  import { copyToClipboard } from '@/lib/components/clipboard';
   import { archiveEpic, unarchiveEpic } from '@/lib/actions/epics';
   import {
     ContextMenu,
@@ -26,13 +27,13 @@
     epicPath,
     type EpicLabelRow,
     type EpicRow,
-  } from '@/lib/components/epics/epic-model';
+  } from '@/lib/epic-model';
   import EpicIcon from './epic-icon.svelte';
   import EpicLabelChips from './epic-label-chips.svelte';
   import EpicProgress from './epic-progress.svelte';
   import EpicStatusIcon from './epic-status-icon.svelte';
   import HealthChip from './health-chip.svelte';
-
+  
   let {
     epic,
     labels,
@@ -58,14 +59,7 @@
     else toast.success(archived ? 'Epic restored' : 'Epic archived');
   };
 
-  const copyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(new URL(href, window.location.origin).toString());
-      toast.success('Copied epic link');
-    } catch {
-      toast.error('Could not copy to the clipboard.');
-    }
-  };
+  const copyLink = () => copyToClipboard(new URL(href, window.location.origin).toString(), 'epic link');
 </script>
 
 <ContextMenu>

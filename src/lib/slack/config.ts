@@ -1,7 +1,7 @@
 // Slack app configuration: env, the request URLs Slack must be pointed at, and
 // an app manifest that wires them all up in one paste. Server-only (reads env).
 //
-// This is the Slack *app* (OAuth + bot token: Asks, DMs). B11's per-project
+// This is the Slack *app* (OAuth + bot token: Asks, DMs). The per-project
 // incoming webhook (src/lib/integrations/slack.ts) is separate and needs none of it.
 
 import { appUrl } from '@/lib/integrations/app-url';
@@ -9,6 +9,8 @@ import { appUrl } from '@/lib/integrations/app-url';
 export const BOT_SCOPES = ['commands', 'chat:write', 'users:read', 'users:read.email', 'im:write'];
 /** Only for "Sign in with Slack" (OpenID Connect) account linking. */
 export const USER_SCOPES = ['openid'];
+
+export const SLACK_SETTINGS_PATH = '/dashboard/settings/slack';
 
 export const ASK_COMMAND = '/ask';
 export const MESSAGE_SHORTCUT_ID = 'create_issue';

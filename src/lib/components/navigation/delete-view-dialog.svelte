@@ -1,4 +1,4 @@
-<!-- Confirm deleting a saved view (DeleteViewDialog in src/components/navigation/view-list.tsx). -->
+<!-- Confirm deleting a saved view. -->
 <script lang="ts">
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
   import { toast } from 'svelte-sonner';
@@ -31,7 +31,7 @@
         return;
       }
       toast.success(`Deleted “${target.name}”`);
-      // The action wrapper already refreshed the page data (router.refresh()).
+      // The action wrapper already refreshed the page data.
       onClose();
     } finally {
       pending = false;

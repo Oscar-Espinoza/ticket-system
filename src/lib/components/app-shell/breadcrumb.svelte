@@ -1,4 +1,4 @@
-<!-- Topbar breadcrumb derived from the URL (port of src/components/app-shell/breadcrumb.tsx). -->
+<!-- Topbar breadcrumb derived from the URL. -->
 <script module lang="ts">
   import {
     ACCOUNT_SETTINGS_NAV,

@@ -7,7 +7,8 @@ import { and, eq } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import { projectIntegrations, projects } from '@/db/schema';
-import { appUrl } from '@/lib/integrations/app-url';
+import { vcsProjectColumns } from '@/lib/vcs/project';
+import { webhookBaseUrl } from '@/lib/vcs/webhook-url';
 
 export const INTEGRATION_PROVIDERS = ['gitlab', 'bitbucket', 'sentry'] as const;
 export type IntegrationProvider = (typeof INTEGRATION_PROVIDERS)[number];
@@ -73,31 +74,17 @@ export async function getProjectIntegration<C>(
 export async function getWebhookIntegration<C>(integrationId: string, provider: IntegrationProvider) {
   if (!/^[0-9a-f-]{36}$/i.test(integrationId)) return null;
   const [row] = await db
-    .select({
-      ...columns,
-      ticketKey: projects.ticketKey,
-      prOpenStateId: projects.githubPrOpenStateId,
-      prMergeStateId: projects.githubPrMergeStateId,
-    })
+    .select({ integration: columns, project: vcsProjectColumns })
     .from(projectIntegrations)
     .innerJoin(projects, eq(projects.id, projectIntegrations.projectId))
     .where(and(eq(projectIntegrations.id, integrationId), eq(projectIntegrations.provider, provider)))
     .limit(1);
   if (!row) return null;
-  const { ticketKey, prOpenStateId, prMergeStateId, ...integration } = row;
-  return {
-    integration: integration as IntegrationRow<C>,
-    project: { id: row.projectId, ticketKey, prOpenStateId, prMergeStateId },
-  };
+  return { integration: row.integration as IntegrationRow<C>, project: row.project };
 }
 
-/**
- * Where a provider delivers. GITHUB_WEBHOOK_BASE_URL (a tunnel in local dev)
- * applies to every code host, like it does for GitHub.
- */
 export function integrationWebhookUrl(provider: IntegrationProvider, integrationId: string): string {
-  const base = (process.env.GITHUB_WEBHOOK_BASE_URL ?? appUrl()).replace(/\/+$/, '');
-  return `${base}/api/webhooks/${provider}/${integrationId}`;
+  return `${webhookBaseUrl()}/api/webhooks/${provider}/${integrationId}`;
 }
 
 /**

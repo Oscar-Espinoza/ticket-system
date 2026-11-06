@@ -1,42 +1,34 @@
 // Notification fan-out, called by emitIssueEvent after the response for every
 // batch of stored events: turns issue events into inbox rows (assignee,
-// subscribers, @mentions) and emails them to users who opted in. Never throws —
+// subscribers, @mentions) and hands them to createNotifications. Never throws —
 // the mutation that produced the events already succeeded.
 //
 // Skipped on purpose: project-level events (ticketId null — member, workflow,
 // epic changes), imports (`data.bulk`: creator / assignee are still
 // subscribed, nobody is notified) and the state move of a PR merge
-// (`data.viaPullRequest`: the github.pr_merged notification already covers it).
+// (`data.viaPullRequest`: the PR_EVENT.prMerged notification already covers it).
 
-import { eq, inArray } from 'drizzle-orm';
+import { inArray } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
-import { comments, notifications, projectMembers, tickets, userProfiles, users } from '@/db/schema';
-import { sendEmail } from '@/lib/email';
-import { deliverToChannels } from '@/lib/notifications/channels';
+import { comments, projectMembers, tickets } from '@/db/schema';
+import { ISSUE_EVENT, PR_EVENT } from '@/lib/event-names';
 import type { IssueChange, StoredIssueEvent } from '@/lib/events';
 import { isStateType, type StateType } from '@/lib/issue-model';
-import { issuePath } from '@/lib/issue-links';
 import { stripMentions } from '@/lib/mentions';
 import { ensureSubscribed, getSubscriberIdsByTicket } from '@/lib/subscriptions';
 import { isClosed } from '@/lib/workflow';
-import { notificationEmail, settingsUrl, type EmailItem } from './email-templates';
-import { appUrl } from '@/lib/integrations/app-url';
-import {
-  DIGEST_IMMEDIATE_TYPES,
-  describeNotification,
-  prefEnabled,
-  type NotificationData,
-  type NotificationType,
-} from './types';
+import { deliverNotifications, insertNotifications } from './create';
+import type { ChannelNotification } from './channels';
+import type { NotificationData, NotificationType } from './types';
 
-const HANDLED = new Set([
-  'issue.created',
-  'issue.updated',
-  'comment.created',
-  'comment.updated',
-  'description.mentioned',
-  'github.pr_merged',
+const HANDLED = new Set<string>([
+  ISSUE_EVENT.created,
+  ISSUE_EVENT.updated,
+  ISSUE_EVENT.commentCreated,
+  ISSUE_EVENT.commentUpdated,
+  ISSUE_EVENT.descriptionMentioned,
+  PR_EVENT.prMerged,
 ]);
 
 // When one event gives a user several reasons, the earliest listed wins
@@ -51,8 +43,6 @@ const PRECEDENCE: NotificationType[] = [
 ];
 
 const EXCERPT_LENGTH = 200;
-
-type NotificationInsert = typeof notifications.$inferInsert;
 
 export async function dispatchNotifications(events: StoredIssueEvent[]): Promise<void> {
   try {
@@ -99,7 +89,7 @@ async function dispatch(events: StoredIssueEvent[]) {
   const commentIds = [
     ...new Set(
       relevant
-        // B1 already puts an excerpt on comment events; look the body up only when missing.
+        // Comment events usually carry an excerpt; look the body up only when missing.
         .filter((event) => event.type.startsWith('comment.') && typeof event.data.excerpt !== 'string')
         .map((event) => str(event.data.commentId))
         .filter((id): id is string => !!id),
@@ -162,12 +152,12 @@ async function dispatch(events: StoredIssueEvent[]) {
     ];
 
     switch (event.type) {
-      case 'issue.created': {
+      case ISSUE_EVENT.created: {
         subscribe(ticket.creatorId ?? event.actorId, ticket.assigneeId);
         if (event.data.bulk !== true) add(ticket.assigneeId, 'assigned');
         break;
       }
-      case 'issue.updated': {
+      case ISSUE_EVENT.updated: {
         for (const change of changesOf(event)) {
           if (change.field === 'assigneeId') {
             const assigneeId = idOf(change.to);
@@ -182,26 +172,26 @@ async function dispatch(events: StoredIssueEvent[]) {
         }
         break;
       }
-      case 'comment.created':
-      case 'comment.updated': {
+      case ISSUE_EVENT.commentCreated:
+      case ISSUE_EVENT.commentUpdated: {
         const commentId = str(event.data.commentId);
         const comment = commentId ? commentById.get(commentId) : undefined;
         const body = str(event.data.excerpt) ?? (comment?.ticketId === ticket.id ? comment.body : undefined);
         const extra: NotificationData = { commentId, excerpt: body ? excerpt(body) : undefined };
         for (const userId of stringList(event.data.mentions)) add(userId, 'mentioned', extra);
         // Edits only notify newly mentioned people; the comment itself isn't new.
-        if (event.type === 'comment.created') {
+        if (event.type === ISSUE_EVENT.commentCreated) {
           for (const userId of subscribers()) add(userId, 'commented', extra);
         }
         break;
       }
-      case 'description.mentioned': {
+      case ISSUE_EVENT.descriptionMentioned: {
         const body = str(event.data.excerpt);
         const extra: NotificationData = { excerpt: body ? excerpt(body) : undefined };
         for (const userId of stringList(event.data.mentions)) add(userId, 'mentioned', extra);
         break;
       }
-      case 'github.pr_merged': {
+      case PR_EVENT.prMerged: {
         const summary = str(event.data.summary);
         for (const userId of subscribers()) add(userId, 'github', { summary });
         break;
@@ -222,102 +212,18 @@ async function dispatch(events: StoredIssueEvent[]) {
     return;
   }
 
-  const personIds = [
-    ...new Set([
-      ...candidates.map((c) => c.userId),
-      ...candidates.map((c) => c.event.actorId).filter((id): id is string => !!id),
-    ]),
-  ];
-  const people = await db
-    .select({
-      id: users.id,
-      name: users.name,
-      email: users.email,
-      emailNotifications: userProfiles.emailNotifications,
-      digestFrequency: userProfiles.digestFrequency,
-      prefs: userProfiles.notificationPrefs,
-    })
-    .from(users)
-    .leftJoin(userProfiles, eq(userProfiles.userId, users.id))
-    .where(inArray(users.id, personIds));
-  const personById = new Map(people.map((person) => [person.id, person]));
+  const rows: ChannelNotification[] = candidates.map((candidate) => ({
+    id: crypto.randomUUID(),
+    userId: candidate.userId,
+    projectId: candidate.event.projectId,
+    ticketId: candidate.event.ticketId,
+    actorId: candidate.event.actorId,
+    type: candidate.type,
+    data: candidate.data as Record<string, unknown>,
+    createdAt: candidate.event.createdAt,
+  }));
 
-  const rows: NotificationInsert[] = [];
-  for (const candidate of candidates) {
-    const person = personById.get(candidate.userId);
-    if (!person || !prefEnabled(person.prefs, candidate.type)) continue;
-    rows.push({
-      id: crypto.randomUUID(),
-      userId: candidate.userId,
-      projectId: candidate.event.projectId,
-      ticketId: candidate.event.ticketId,
-      actorId: candidate.event.actorId,
-      type: candidate.type,
-      data: candidate.data as Record<string, unknown>,
-      createdAt: candidate.event.createdAt,
-    });
-  }
-
-  if (rows.length > 0) await db.insert(notifications).values(rows);
-  await subscribing;
-  if (rows.length > 0) {
-    await Promise.allSettled([emailRecipients(rows, personById), deliverToChannels(rows)]);
-  }
-}
-
-type Person = {
-  id: string;
-  name: string;
-  email: string;
-  emailNotifications: boolean | null;
-  digestFrequency: string | null;
-};
-
-/** One email per recipient per batch, so a bulk edit is one message, not twenty. */
-async function emailRecipients(rows: NotificationInsert[], personById: Map<string, Person>) {
-  const byUser = new Map<string, NotificationInsert[]>();
-  for (const row of rows) {
-    const person = personById.get(row.userId);
-    // No profile row yet = defaults = email on.
-    if (!person || person.emailNotifications === false) continue;
-    // Digest mode: the daily digests job emails the rest (rows without emailedAt).
-    const digest = person.digestFrequency && person.digestFrequency !== 'off';
-    if (digest && !DIGEST_IMMEDIATE_TYPES.has(row.type)) continue;
-    const list = byUser.get(row.userId) ?? [];
-    list.push(row);
-    byUser.set(row.userId, list);
-  }
-  if (byUser.size === 0) return;
-
-  const origin = appUrl();
-  const settings = settingsUrl();
-  const emailed: string[] = [];
-
-  // Sequential: the free Resend tier rate-limits bursts.
-  for (const [userId, list] of byUser) {
-    const person = personById.get(userId)!;
-    const items: EmailItem[] = list.map((row) => {
-      const data = (row.data ?? {}) as NotificationData;
-      const actor = row.actorId ? (personById.get(row.actorId)?.name ?? null) : null;
-      const key = data.key ?? '';
-      return {
-        sentence: describeNotification(row.type, data, actor),
-        key,
-        title: data.title ?? '',
-        url: row.projectId && key ? `${origin}${issuePath(row.projectId, key)}` : `${origin}/dashboard/inbox`,
-        excerpt: data.excerpt,
-      };
-    });
-    const message = notificationEmail(items, settings);
-    if (await sendEmail({ to: person.email, ...message })) {
-      emailed.push(...list.map((row) => row.id));
-    }
-  }
-
-  if (emailed.length > 0) {
-    await db
-      .update(notifications)
-      .set({ emailedAt: new Date() })
-      .where(inArray(notifications.id, emailed));
-  }
+  const inserted = await insertNotifications(rows);
+  await subscribing; // auto-subscriptions land before any email / push / Slack goes out
+  if (inserted) await deliverNotifications(inserted);
 }

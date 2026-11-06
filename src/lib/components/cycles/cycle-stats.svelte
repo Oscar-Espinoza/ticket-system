@@ -1,7 +1,7 @@
 <!-- Presentational cycle numbers shared by the list and detail pages. -->
 <script lang="ts">
   import { cn } from '@/lib/utils';
-  import { percent, type CycleTotals } from '@/lib/components/cycles/cycle-utils';
+  import { percent, type CycleTotals } from '@/lib/cycle-utils';
 
   let {
     totals,

@@ -1,16 +1,15 @@
 <!--
-  Tiptap 3 WYSIWYG surface behind MarkdownEditor (port of
-  src/components/editor/rich-editor.tsx). Markdown in / markdown out: the doc is
+  Tiptap 3 WYSIWYG surface behind MarkdownEditor. Markdown in / markdown out: the doc is
   loaded from `value` whenever it differs from what this editor last emitted,
   and every change is serialized back (tidied for Slack / email). Suggestion
   menus render inline in the editor root, not portaled, so they stay inside
   modal layers (the mobile issue Sheet, dialogs).
 
   @tiptap/core is driven directly (no useEditor): the editor is created in an
-  effect once the host element exists (never during SSR — React's
+  effect once the host element exists (never during SSR —
   `immediatelyRender: false`) and rebuilt only when the schema-level setup
   changes (ticketKey, history, maxLength, controlled, extensions), like
-  useEditor's deps. Imperative handle (React `ref`): bind:this and call
+  useEditor's deps. Imperative handle: bind:this and call
   `focus()`, `pickImage()`, `getEditor()`.
 -->
 <script module lang="ts">
@@ -158,8 +157,7 @@
   const uploadTarget = $derived<UploadTarget | null>(projectId ? { projectId, ticketId } : null);
 
   // Everything the (once-built) extensions call back into. Its members read the
-  // latest props when called, so it never needs refreshing (React rebuilt it
-  // each render behind a RuntimeBridge).
+  // latest props when called, so it never needs refreshing.
   const runtime: EditorRuntime = {
     members: () => members,
     searchIssues: (query) => {
@@ -240,8 +238,8 @@
   let loadedInto: TiptapEditor | null = null;
 
   // Create / rebuild the editor. Only the schema-level inputs below are
-  // tracked; everything else is read untracked (React fixed editorProps at
-  // creation too: useEditor with deps never re-applied them).
+  // tracked; everything else is read untracked (editorProps are fixed at
+  // creation).
   $effect(() => {
     const element = host;
     if (!element) return;

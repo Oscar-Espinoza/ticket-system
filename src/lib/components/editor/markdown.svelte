@@ -1,19 +1,17 @@
 <!--
   Safe markdown renderer shared by descriptions, comments, epic updates and the
-  inbox (port of src/components/editor/markdown.tsx, react-markdown →
-  svelte-exmarkdown + gfm). No raw HTML (skipHtml), URLs pass react-markdown's
+  inbox. No raw HTML (skipHtml), URLs pass react-markdown's
   default protocol filter, external links open in a new tab without referrer /
   opener. Mentions (`@[Name](user:ID)`) render as chips; the current project's
   issue keys (`APP-12`) link to their permalink. A top-level paragraph holding
   only an allowlisted link (Figma, YouTube, Loom, Google Docs, Miro) renders as
   an embed — the same rule the editor uses.
 
-  React `<Markdown>{text}</Markdown>` → `<Markdown source={text} />` (a Svelte
-  child block is a snippet, not a string).
+  `<Markdown source={text} />` (a Svelte child block is a snippet, not a string).
 -->
 <script module lang="ts">
   export interface MarkdownProps {
-    /** The markdown source (React: `children`). */
+    /** The markdown source. */
     source: string;
     /** Link this project's issue keys (defaults to the current project route). */
     projectId?: string;
@@ -71,7 +69,7 @@
 
   function onTaskChange(e: Event & { currentTarget: HTMLInputElement }) {
     const wanted = e.currentTarget.checked;
-    // Controlled like React's `checked`: the box shows the source's state and
+    // Controlled `checked`: the box shows the source's state and
     // flips only when the new source comes back (re-rendered from the AST).
     e.currentTarget.checked = !wanted;
     const item = e.currentTarget.closest<HTMLElement>('li[data-task-offset]');

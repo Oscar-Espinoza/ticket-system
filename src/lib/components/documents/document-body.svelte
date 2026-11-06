@@ -1,5 +1,5 @@
 <!--
-  The collaborative body of a document (local DocumentBody of document-view.tsx):
+  The collaborative body of a document:
   the full-width editor once the Y.Doc is reconciled, the saved snapshot while
   it loads, or the snapshot only when live editing is unavailable / for guests
   before anyone with write access opened it.
@@ -9,7 +9,7 @@
   import { toast } from 'svelte-sonner';
 
   import { saveDocumentContent } from '@/lib/actions/documents';
-  import type { DocumentDetail } from '@/lib/components/documents/document-model';
+  import type { DocumentDetail } from '@/lib/document-model';
   import type { UseCollab } from '@/lib/components/collab/use-collab.svelte';
   import { useCollabEditor } from '@/lib/components/collab/use-collab-editor.svelte';
   import { Markdown, MarkdownEditor } from '@/lib/components/editor';

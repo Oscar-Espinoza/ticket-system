@@ -1,4 +1,4 @@
-<!-- Tiptap node view for the `embed` node (port of embed-node-view.tsx). -->
+<!-- Tiptap node view for the `embed` node. -->
 <script lang="ts">
   import type { NodeViewProps } from '@tiptap/core';
   import { NodeViewWrapper } from 'svelte-tiptap';

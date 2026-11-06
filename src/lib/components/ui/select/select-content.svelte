@@ -8,12 +8,12 @@
   type Props = WithoutChild<SelectPrimitive.ContentProps> & {
     /**
      * Radix positioning mode. bits has no item-aligned mode: both values pop the list
-     * below/above the trigger. "item-aligned" (the default, as in React) keeps React's
+     * below/above the trigger. "item-aligned" (the default) keeps the
      * `data-align-trigger` styling (no open/close animation). Both modes keep the list at
      * least as wide as the trigger, as Radix did.
      */
     position?: 'item-aligned' | 'popper';
-    /** Props for the portal React rendered implicitly (e.g. `to`, `disabled`). */
+    /** Props for the portal Radix rendered implicitly (e.g. `to`, `disabled`). */
     portalProps?: WithoutChildrenOrChild<ComponentProps<typeof SelectPrimitive.Portal>>;
   };
 

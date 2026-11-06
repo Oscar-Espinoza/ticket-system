@@ -1,7 +1,6 @@
 <!--
   "N changes pending sync" pill while the offline outbox holds this viewer's
   ops. Bottom-centre like B12's offline banner; offline it sits just above it.
-  Port of src/components/sync/sync-status.tsx.
 -->
 <script lang="ts">
   import CloudOffIcon from '@lucide/svelte/icons/cloud-off';
@@ -13,7 +12,7 @@
 
   let { userId }: { userId: string } = $props();
 
-  // useSyncExternalStore(…, () => navigator.onLine, () => true).
+  // navigator.onLine in the browser, true on the server.
   const online = $derived(onlineState.current ?? true);
   const outbox = useOutboxItems();
   const pending = $derived(outbox.current.filter((item) => item.userId === userId));

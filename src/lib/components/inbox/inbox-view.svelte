@@ -3,6 +3,7 @@
   background); a refresh — or any fresh server load — re-seeds it.
 -->
 <script lang="ts">
+  import { pluralize } from '@/lib/format';
   import { goto } from '$app/navigation';
   import Archive from '@lucide/svelte/icons/archive';
   import CheckCheck from '@lucide/svelte/icons/check-check';
@@ -19,15 +20,15 @@
   } from '@/lib/components/ui/dropdown-menu';
   import { ToggleGroup, ToggleGroupItem } from '@/lib/components/ui/toggle-group';
   import { EmptyState } from '@/lib/components/ui-icons';
-  import { relativeTime } from '@/lib/components/issues/issue-properties';
+  import { relativeTime } from '@/lib/relative-time';
   import {
     archiveNotifications,
     archiveReadNotifications,
     markAllNotificationsRead,
     markNotificationsRead,
     snoozeNotifications,
-    type ActionResult,
   } from '@/lib/actions/notifications';
+  import type { ActionResult } from '@/lib/server/action-kit';
   import { registerHotkeys } from '@/lib/svelte/hotkeys.svelte';
   import { refreshAfterWrite } from '@/lib/svelte/refresh.svelte';
   import type { IssueRow } from '@/lib/issue-model';
@@ -164,7 +165,7 @@
         toast.error(result?.error ?? 'Something went wrong');
         void refreshAfterWrite();
       } else {
-        toast(`Archived ${result.count} read notification${result.count === 1 ? '' : 's'}`);
+        toast(`Archived ${pluralize(result.count, 'read notification')}`);
       }
     })();
   }

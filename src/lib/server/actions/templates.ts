@@ -1,86 +1,50 @@
 // Issue templates (per project). Anyone who can read the project can list them;
 // writers (members and up) manage them — same bar as creating issues.
 
-import { revalidatePath } from '@/lib/kit/request';
-import { and, asc, eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import { issueTemplates } from '@/db/schema';
 import { authorizeProjectAction } from '@/lib/action-auth';
 import { DESCRIPTION_MAX, TITLE_MAX } from '@/lib/issue-service';
 import {
-  TEMPLATE_FIELDS,
-  sanitizeIssueDefaults,
-  type IssueDefaults,
-} from '@/lib/components/productivity/issue-defaults';
+  fail,
+  isFail,
+  optionalText,
+  refreshesData,
+  requiredText,
+  type ActionResult,
+} from '@/lib/server/action-kit';
+import { TEMPLATE_FIELDS, sanitizeIssueDefaults } from '@/lib/issue-defaults';
+import {
+  issueTemplateColumns,
+  readIssueTemplates,
+  toIssueTemplate,
+  type IssueTemplate,
+} from '@/lib/issue-templates';
 
-export interface IssueTemplate {
-  id: string;
-  name: string;
-  title: string;
-  description: string;
-  data: IssueDefaults;
-}
+export type { IssueTemplate };
 
-type Fail = { ok: false; error: string; field?: 'name' | 'title' | 'description' };
-export type TemplateResult = { ok: true; template: IssueTemplate } | Fail;
+export type TemplateResult = ActionResult<{ template: IssueTemplate }, 'name' | 'title' | 'description'>;
 
 const NAME_MAX = 60;
 
-const columns = {
-  id: issueTemplates.id,
-  name: issueTemplates.name,
-  title: issueTemplates.title,
-  description: issueTemplates.description,
-  data: issueTemplates.data,
-};
-
-function toTemplate(row: {
-  id: string;
-  name: string;
-  title: string;
-  description: string | null;
-  data: Record<string, unknown>;
-}): IssueTemplate {
-  return { ...row, description: row.description ?? '', data: row.data as IssueDefaults };
-}
-
 function validate(input: { name?: unknown; title?: unknown; description?: unknown }) {
-  const name = typeof input.name === 'string' ? input.name.trim() : '';
-  if (!name) return { ok: false, error: 'Name is required.', field: 'name' } satisfies Fail;
-  if (name.length > NAME_MAX) {
-    return { ok: false, error: `Name must be ${NAME_MAX} characters or fewer.`, field: 'name' } satisfies Fail;
-  }
-  const title = typeof input.title === 'string' ? input.title.trim() : '';
-  if (title.length > TITLE_MAX) {
-    return { ok: false, error: `Title must be ${TITLE_MAX} characters or fewer.`, field: 'title' } satisfies Fail;
-  }
-  const description = typeof input.description === 'string' ? input.description.trim() : '';
-  if (description.length > DESCRIPTION_MAX) {
-    return {
-      ok: false,
-      error: `Description must be ${DESCRIPTION_MAX} characters or fewer.`,
-      field: 'description',
-    } satisfies Fail;
-  }
-  return { ok: true as const, name, title, description: description || null };
-}
-
-function revalidate(projectId: string) {
-  revalidatePath(`/dashboard/projects/${projectId}/settings/templates`);
+  const name = requiredText(input.name, 'name', NAME_MAX);
+  if (isFail(name)) return name;
+  const title = optionalText(input.title, 'title', TITLE_MAX);
+  if (isFail(title)) return title;
+  const description = optionalText(input.description, 'description', DESCRIPTION_MAX);
+  if (isFail(description)) return description;
+  return { ok: true as const, name, title: title ?? '', description };
 }
 
 export async function listTemplates(
   projectId: string,
-): Promise<{ ok: true; templates: IssueTemplate[] } | Fail> {
+): Promise<ActionResult<{ templates: IssueTemplate[] }>> {
   const authz = await authorizeProjectAction(projectId, 'read');
   if (!authz.ok) return authz;
-  const rows = await db
-    .select(columns)
-    .from(issueTemplates)
-    .where(eq(issueTemplates.projectId, projectId))
-    .orderBy(asc(issueTemplates.name));
-  return { ok: true, templates: rows.map(toTemplate) };
+  return { ok: true, templates: await readIssueTemplates(projectId) };
 }
 
 export async function createTemplate(input: {
@@ -109,9 +73,9 @@ export async function createTemplate(input: {
       createdAt: now,
       updatedAt: now,
     })
-    .returning(columns);
-  revalidate(input.projectId);
-  return { ok: true, template: toTemplate(row) };
+    .returning(issueTemplateColumns);
+  refreshesData();
+  return { ok: true, template: toIssueTemplate(row) };
 }
 
 export async function updateTemplate(input: {
@@ -124,7 +88,7 @@ export async function updateTemplate(input: {
 }): Promise<TemplateResult> {
   const authz = await authorizeProjectAction(input?.projectId, 'write');
   if (!authz.ok) return authz;
-  if (typeof input.id !== 'string') return { ok: false, error: 'Template not found.' };
+  if (typeof input.id !== 'string') return fail('Template not found.');
   const fields = validate(input);
   if (!fields.ok) return fields;
   const data = await sanitizeIssueDefaults(input.projectId, input.data, TEMPLATE_FIELDS);
@@ -138,24 +102,24 @@ export async function updateTemplate(input: {
       updatedAt: new Date(),
     })
     .where(and(eq(issueTemplates.id, input.id), eq(issueTemplates.projectId, input.projectId)))
-    .returning(columns);
-  if (!row) return { ok: false, error: 'Template not found.' };
-  revalidate(input.projectId);
-  return { ok: true, template: toTemplate(row) };
+    .returning(issueTemplateColumns);
+  if (!row) return fail('Template not found.');
+  refreshesData();
+  return { ok: true, template: toIssueTemplate(row) };
 }
 
 export async function deleteTemplate(input: {
   projectId: string;
   id: string;
-}): Promise<{ ok: true } | Fail> {
+}): Promise<ActionResult> {
   const authz = await authorizeProjectAction(input?.projectId, 'write');
   if (!authz.ok) return authz;
-  if (typeof input.id !== 'string') return { ok: false, error: 'Template not found.' };
+  if (typeof input.id !== 'string') return fail('Template not found.');
   const deleted = await db
     .delete(issueTemplates)
     .where(and(eq(issueTemplates.id, input.id), eq(issueTemplates.projectId, input.projectId)))
     .returning({ id: issueTemplates.id });
-  if (deleted.length === 0) return { ok: false, error: 'Template not found.' };
-  revalidate(input.projectId);
+  if (deleted.length === 0) return fail('Template not found.');
+  refreshesData();
   return { ok: true };
 }

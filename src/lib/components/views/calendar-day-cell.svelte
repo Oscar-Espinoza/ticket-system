@@ -1,15 +1,16 @@
 <!-- One calendar day: drop target + up to MAX_CHIPS chips, the rest behind "+N more".
-     (DayCell in src/components/views/calendar-view.tsx; renders inside the DragDropProvider.) -->
+     Renders inside the DragDropProvider. -->
 <script lang="ts">
+  import { pluralize } from '@/lib/format';
   import { createDroppable } from '@dnd-kit/svelte';
 
   import { Popover, PopoverContent, PopoverTrigger } from '@/lib/components/ui/popover';
   import type { IssueRow } from '@/lib/issue-model';
   import { cn } from '@/lib/utils';
+  import { dayDropId } from './calendar-ids';
   import CalendarDraggableChip from './calendar-draggable-chip.svelte';
 
   const MAX_CHIPS = 4;
-  const DAY_PREFIX = 'day:';
   const dayFormat = new Intl.DateTimeFormat('en', { weekday: 'long', month: 'long', day: 'numeric' });
 
   let {
@@ -28,7 +29,7 @@
 
   const droppable = createDroppable({
     get id() {
-      return `${DAY_PREFIX}${date}`;
+      return dayDropId(date);
     },
     accept: 'issue',
   });
@@ -42,7 +43,7 @@
 <div
   {@attach droppable.attach}
   role="gridcell"
-  aria-label={`${label}, ${issues.length} issue${issues.length === 1 ? '' : 's'}`}
+  aria-label={`${label}, ${pluralize(issues.length, 'issue')}`}
   class={cn(
     'flex min-h-28 min-w-0 flex-col gap-1 border-r border-b border-border p-1 transition-colors',
     !inMonth && 'bg-muted/30',

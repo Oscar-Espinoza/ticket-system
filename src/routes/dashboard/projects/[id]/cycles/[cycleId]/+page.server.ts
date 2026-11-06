@@ -2,16 +2,13 @@
 // The project layout already checked membership; the cycle is looked up by
 // (project id, cycle id) and the issue read is membership-gated in SQL too.
 
-import { error, redirect } from '@sveltejs/kit';
-import { and, eq } from 'drizzle-orm';
+import { error } from '@sveltejs/kit';
 
-import { tickets } from '@/db/schema';
-import { getSession } from '@/lib/session';
-import { getProjectData } from '@/lib/project-data';
+import { requireUser } from '@/lib/session';
 import { roleAllows } from '@/lib/roles';
-import { activeIssue, memberOfIssueProject, queryIssues } from '@/lib/tickets';
+import { getCycleIssues } from '@/lib/issue-lists-read';
 import { isClosed } from '@/lib/workflow';
-import { VIEW_COOKIE } from '@/lib/issue-model';
+import { readDefaultView } from '@/lib/issue-model';
 import {
   cycleBurndown,
   cycleTotals,
@@ -20,27 +17,18 @@ import {
   getProjectCycles,
   loadCycleHistory,
 } from '@/lib/cycles';
-import { cycleCapacity, cycleName, cycleStatus, percent } from '@/lib/components/cycles/cycle-utils';
+import { cycleCapacity, cycleName, cycleStatus, percent } from '@/lib/cycle-utils';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ params, cookies }) => {
+export const load: PageServerLoad = async ({ params, cookies, parent }) => {
   const { id, cycleId } = params;
-  const session = await getSession();
-  if (!session?.user) redirect(303, '/login');
-  const data = await getProjectData(id, session.user.id);
-  if (!data) error(404, 'Not found');
+  const user = await requireUser();
+  const { projectData: data } = await parent();
   const cycle = await getCycle(id, cycleId);
   if (!cycle) error(404, 'Not found');
 
   const [issues, history, next, allCycles] = await Promise.all([
-    queryIssues(
-      and(
-        eq(tickets.projectId, id),
-        eq(tickets.cycleId, cycle.id),
-        activeIssue(),
-        memberOfIssueProject(session.user.id),
-      ),
-    ),
+    getCycleIssues(id, cycle.id, user.id),
     loadCycleHistory(id),
     cycle.completedAt ? null : findNextCycle(id, cycle),
     getProjectCycles(id),
@@ -83,6 +71,6 @@ export const load: PageServerLoad = async ({ params, cookies }) => {
     capacity,
     burndown: cycleBurndown(history, cycle, now),
     issues,
-    defaultView: cookies.get(VIEW_COOKIE),
+    defaultView: readDefaultView(cookies),
   };
 };

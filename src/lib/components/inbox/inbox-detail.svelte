@@ -14,7 +14,7 @@
   import Markdown from '@/lib/components/editor/markdown.svelte';
   import { Avatar, PriorityIcon, StateIcon } from '@/lib/components/ui-icons';
   import PickerPopover from '@/lib/components/issue-pickers/picker-popover.svelte';
-  import { relativeTime } from '@/lib/components/issues/issue-properties';
+  import { relativeTime } from '@/lib/relative-time';
   import { PRIORITY_LABEL, type IssueRow } from '@/lib/issue-model';
   import { issuePath } from '@/lib/issue-links';
   import { notificationPath } from '@/lib/notifications/types';

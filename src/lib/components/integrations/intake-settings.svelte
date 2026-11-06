@@ -4,7 +4,7 @@
   import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw';
   import { toast } from 'svelte-sonner';
 
-  import { customersPath } from '@/lib/components/customers/customer-model';
+  import { customersPath } from '@/lib/customer-model';
   import { rotateIntakeToken, setIntakeEnabled } from '@/lib/actions/intake';
   import {
     AlertDialog,
@@ -63,7 +63,7 @@
 
 <section class="flex flex-col gap-6">
   <div class="flex items-start gap-3">
-    <!-- Strictly controlled, as in React: the switch follows `url`, not the click. -->
+    <!-- Strictly controlled: the switch follows `url`, not the click. -->
     <Switch
       id="intake-enabled"
       bind:checked={() => !!url, (on) =>

@@ -4,7 +4,7 @@
     name?: string | null;
     /** GitHub image URL; falls back to initials when absent or failing. */
     src?: string | null;
-    /** 20 or 24 px (C4 contract). */
+    /** 20 or 24 px. */
     size?: 20 | 24;
     class?: string;
   }

@@ -1,12 +1,9 @@
 <!--
   Renders text containing search highlight sentinels as text + <mark> nodes.
   Svelte escapes every segment, so issue content can never inject markup.
-  Port of src/components/navigation/highlight.tsx.
 -->
 <script module lang="ts">
-  // Duplicated from lib/search.ts (server-only) — keep in sync.
-  const MARK_START = '';
-  const MARK_END = '';
+  import { MARK_END, MARK_START } from '@/lib/search-marks';
 
   interface Part {
     text: string;

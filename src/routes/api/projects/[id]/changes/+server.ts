@@ -2,11 +2,10 @@
 // ~5 s) when the SSE stream (`../stream`) isn't available. See getChangeToken.
 
 import type { RequestHandler } from './$types';
+import { NO_STORE } from '../../../_lib/http';
 import { allowOptions } from '../../../_lib/options';
 
 import { getChangeToken } from '@/lib/sync/change-token';
-
-const NO_STORE = { 'Cache-Control': 'no-store' };
 
 export const GET: RequestHandler = async ({ params, locals }) => {
   const { id } = params;
@@ -18,5 +17,4 @@ export const GET: RequestHandler = async ({ params, locals }) => {
   return Response.json({ token }, { headers: NO_STORE });
 };
 
-// Next answered OPTIONS automatically (204 + Allow); Kit would 405.
 export const OPTIONS = allowOptions('GET');

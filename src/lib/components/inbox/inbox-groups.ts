@@ -1,5 +1,3 @@
-// Svelte-side copy of src/components/inbox/inbox-groups.ts (React-free; kept identical).
-
 // Linear groups the inbox per issue: one row per issue showing its latest
 // notification. Notifications without an issue stand alone.
 

@@ -1,9 +1,7 @@
 <!--
-  Dashboard frame (port of src/app/dashboard/layout.tsx): AppShell with the
-  topbar chrome and the user menu. The guard and the shell data are in
-  +layout.server.ts. Also the dashboard's navigation indicator (replaces the
-  loading.tsx Suspense fallbacks): a progress bar, and the dashboard skeleton
-  where Next showed src/app/dashboard/loading.tsx.
+  Dashboard frame: AppShell with the topbar chrome and the user menu. The guard
+  and the shell data are in +layout.server.ts. Also the dashboard's navigation
+  indicator: a progress bar, and the dashboard skeleton.
 -->
 <script lang="ts">
   import AppShell from '@/lib/components/app-shell/app-shell.svelte';

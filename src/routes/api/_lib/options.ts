@@ -1,7 +1,7 @@
-// Next answered OPTIONS on every route handler by itself: 204, no body, and an
-// `Allow` header listing the exported methods (+ HEAD with GET, + OPTIONS),
-// sorted. SvelteKit answers a missing OPTIONS with 405, so each +server.ts
-// exports `OPTIONS = allowOptions(...)` to keep that behaviour.
+// OPTIONS answer for route handlers: 204, no body, and an `Allow` header
+// listing the exported methods (+ HEAD with GET, + OPTIONS), sorted.
+// SvelteKit answers a missing OPTIONS with 405, so each +server.ts exports
+// `OPTIONS = allowOptions(...)` with the methods it implements.
 // (Not a route: files in src/routes without a `+` prefix are ignored.)
 
 import type { RequestHandler } from '@sveltejs/kit';

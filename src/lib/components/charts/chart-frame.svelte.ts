@@ -1,4 +1,4 @@
-// Shared pieces of the hand-rolled SVG charts (port of src/components/charts/chart-frame.tsx):
+// Shared pieces of the hand-rolled SVG charts:
 // plot margins, a nice linear y scale, evenly spaced tick indexes and the
 // hovered / keyboard-focused data index. The visual parts live in
 //   chart-tooltip.svelte, swatch.svelte, chart-legend.svelte, chart-table.svelte, y-axis.svelte.

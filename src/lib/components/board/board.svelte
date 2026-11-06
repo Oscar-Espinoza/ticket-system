@@ -1,7 +1,7 @@
 <!--
   Kanban board: columns per group, optional swimlanes (sub-grouping), drag to
   move / reorder (pointer + keyboard: Space picks up, arrows move one column,
-  Space/Enter drops, Esc cancels). Port of src/components/board/board.tsx —
+  Space/Enter drops, Esc cancels). —
   the default export, loaded lazily by the issues view registry (IssueViewProps).
 -->
 <script lang="ts">
@@ -22,7 +22,7 @@
   import { cn } from '@/lib/utils';
   import BoardCardContent from './board-card-content.svelte';
   import BoardCell from './board-cell.svelte';
-  import { COLUMN_GAP, COLUMN_WIDTH } from './board-layout';
+  import { COLUMN_GAP, COLUMN_WIDTH, DRAG_CARD_WIDTH } from './board-layout';
   import ColumnHeader from './column-header.svelte';
 
   interface Cell {
@@ -158,7 +158,7 @@
     {#snippet children(source)}
       {@const issue = sortable.issueOf(String(source.id))}
       {#if issue}
-        <div style:width="{COLUMN_WIDTH - 12}px">
+        <div style:width="{DRAG_CARD_WIDTH}px">
           <BoardCardContent {issue} class="shadow-popover" />
         </div>
       {/if}

@@ -1,11 +1,11 @@
-// Theme (light / dark / system) — the next-themes API on top of mode-watcher.
+// Theme (light / dark / system) on top of mode-watcher.
 //
 // Setup: the root layout renders <ThemeProvider> (src/lib/svelte/theme-provider.svelte),
-// i.e. <ModeWatcher> with next-themes' settings: `class` attribute (.dark on
-// <html>), default 'dark', system preference followed, storage key 'theme'
-// (next-themes' key and raw-string format, so saved choices carry over).
+// i.e. <ModeWatcher>: `class` attribute (.dark on <html>), default 'dark',
+// system preference followed, storage key 'theme' (raw-string format kept,
+// so saved choices carry over).
 //
-// Use (port of `const { theme, setTheme, resolvedTheme } = useTheme()`):
+// Use:
 //   const theme = useTheme();
 //   theme.theme          'light' | 'dark' | 'system' — the stored choice
 //   theme.resolvedTheme  'light' | 'dark' — what is shown (undefined during SSR)
@@ -17,17 +17,15 @@ import { mode, resetMode, setMode, systemPrefersMode, userPrefersMode } from 'mo
 
 export type ThemeChoice = 'light' | 'dark' | 'system';
 
-/** next-themes' `themes` with enableSystem. */
 export const THEMES: ThemeChoice[] = ['light', 'dark', 'system'];
 
-/** ModeWatcher props that reproduce the React ThemeProvider (next-themes) setup. */
+/** ModeWatcher props for the app's theme setup. */
 export const THEME_WATCHER_OPTIONS = {
   defaultMode: 'dark',
   modeStorageKey: 'theme',
   darkClassNames: ['dark'],
   lightClassNames: [],
   track: true,
-  // next-themes' disableTransitionOnChange defaults to false.
   disableTransitions: false,
 } as const;
 
@@ -57,7 +55,7 @@ const themeState = {
 
 export type ThemeState = typeof themeState;
 
-/** next-themes' useTheme(): a reactive object (module-wide; safe to call anywhere). */
+/** A reactive object (module-wide; safe to call anywhere). */
 export function useTheme(): ThemeState {
   return themeState;
 }

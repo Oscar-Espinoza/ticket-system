@@ -1,6 +1,5 @@
 /**
- * Card (React: src/components/ui/card.tsx). Plain divs; `className` → `class`,
- * `ref` → `bind:ref`, children → default snippet. Same `size` prop on Card.
+ * Card. Plain divs; children go in the default snippet. `size` is a prop on Card.
  */
 import Card from "./card.svelte"
 import CardHeader from "./card-header.svelte"

@@ -25,13 +25,22 @@ export function isChecksState(value: unknown): value is ChecksState {
   return value === 'pending' || value === 'success' || value === 'failure';
 }
 
-/** GitLab calls them merge requests and numbers them `!12`. */
+/** What each host calls a pull request; GitLab numbers them `!12`, the others `#12`. */
+const VCS_REQUEST_NOUN: Record<VcsProvider, { short: string; long: string; numberPrefix: string }> = {
+  github: { short: 'PR', long: 'Pull request', numberPrefix: '#' },
+  gitlab: { short: 'MR', long: 'Merge request', numberPrefix: '!' },
+  bitbucket: { short: 'PR', long: 'Merge request', numberPrefix: '#' },
+};
+
+/** Unknown provider values (old rows, bad input) read like GitHub. */
+export const requestNoun = (provider: VcsProvider) => VCS_REQUEST_NOUN[provider] ?? VCS_REQUEST_NOUN.github;
+
 export function prNoun(provider: VcsProvider): string {
-  return provider === 'gitlab' ? 'MR' : 'PR';
+  return requestNoun(provider).short;
 }
 
 export function prNumberLabel(provider: VcsProvider, number: number): string {
-  return `${provider === 'gitlab' ? '!' : '#'}${number}`;
+  return `${requestNoun(provider).numberPrefix}${number}`;
 }
 
 /** Worst state wins: any failure → failure, any pending → pending, else success. */

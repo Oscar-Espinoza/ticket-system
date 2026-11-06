@@ -11,7 +11,7 @@
     children,
     ...restProps
   }: WithoutChildrenOrChild<CommandPrimitive.GroupProps> & {
-    /** cmdk `heading`: plain text or a snippet (React passed a ReactNode). */
+    /** cmdk `heading`: plain text or a snippet . */
     heading?: string | Snippet
     children?: Snippet
   } = $props()

@@ -1,25 +1,21 @@
-// Daily cron job (D5): flag SLA breaches and notify. An open, active issue
+// Daily cron job: flag SLA breaches and notify. An open, active issue
 // whose `sla_due_at` has passed gets `sla_breached_at` — claimed with a
 // conditional update, so a retried run never flags or notifies twice. The
 // assignee and subscribers (still project members, type not switched off) get
 // an inbox row, then the external channels. Completed / canceled issues never
 // breach: their clock stopped.
 
-import { and, eq, inArray, isNotNull, isNull, lte, notInArray } from 'drizzle-orm';
+import { and, eq, inArray, isNull } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
-import {
-  notifications,
-  projectMembers,
-  projects,
-  tickets,
-  userProfiles,
-  workflowStates,
-} from '@/db/schema';
+import { projectMembers, projects, tickets, workflowStates, type notifications } from '@/db/schema';
+import { ISSUE_EVENT } from '@/lib/event-names';
 import { emitIssueEvent } from '@/lib/events';
-import { deliverToChannels } from '@/lib/notifications/channels';
-import { prefEnabled } from '@/lib/notifications/types';
+import { createNotifications } from '@/lib/notifications/create';
+import { slaPastDue } from '@/lib/sla-server';
 import { getSubscriberIdsByTicket } from '@/lib/subscriptions';
+import { openStateType } from '@/lib/workflow-server';
+import { formatIssueKey } from '@/lib/tickets';
 
 const BATCH = 500;
 /** Safety valve: at most this many batches per run (the next run continues). */
@@ -35,12 +31,11 @@ async function flagBatch(now: Date): Promise<number> {
     .innerJoin(workflowStates, eq(tickets.stateId, workflowStates.id))
     .where(
       and(
-        isNotNull(tickets.slaDueAt),
-        lte(tickets.slaDueAt, now),
+        slaPastDue(now),
         isNull(tickets.slaBreachedAt),
         isNull(tickets.archivedAt),
         isNull(tickets.deletedAt),
-        notInArray(workflowStates.type, ['completed', 'canceled']),
+        openStateType(),
       ),
     )
     .limit(BATCH);
@@ -74,33 +69,23 @@ async function flagBatch(now: Date): Promise<number> {
       .from(projects)
       .where(inArray(projects.id, projectIds)),
     db
-      .select({
-        projectId: projectMembers.projectId,
-        userId: projectMembers.userId,
-        prefs: userProfiles.notificationPrefs,
-      })
+      .select({ projectId: projectMembers.projectId, userId: projectMembers.userId })
       .from(projectMembers)
-      .leftJoin(userProfiles, eq(userProfiles.userId, projectMembers.userId))
       .where(inArray(projectMembers.projectId, projectIds)),
     getSubscriberIdsByTicket(claimed.map((row) => row.id)),
   ]);
   const keyOf = new Map(keyRows.map((row) => [row.id, row.key]));
-  const memberPrefs = new Map(
-    memberRows.map((row) => [`${row.projectId}:${row.userId}`, row.prefs]),
-  );
+  const members = new Set(memberRows.map((row) => `${row.projectId}:${row.userId}`));
 
   const rows: NotificationInsert[] = [];
   const events = claimed.map((issue) => {
-    const key = `${keyOf.get(issue.projectId) ?? '?'}-${issue.number}`;
+    const key = formatIssueKey(keyOf.get(issue.projectId) ?? '?', issue.number);
     const data = { key, title: issue.title, summary: SUMMARY };
     const recipients = new Set([issue.assigneeId, ...(subscribers.get(issue.id) ?? [])]);
     for (const userId of recipients) {
       if (!userId) continue;
-      const member = `${issue.projectId}:${userId}`;
-      // Removed members are never notified; a missing profile means "all on".
-      if (!memberPrefs.has(member) || !prefEnabled(memberPrefs.get(member), 'sla_breached')) {
-        continue;
-      }
+      // Removed members are never notified; their type switch is applied on creation.
+      if (!members.has(`${issue.projectId}:${userId}`)) continue;
       rows.push({
         id: crypto.randomUUID(),
         userId,
@@ -116,16 +101,13 @@ async function flagBatch(now: Date): Promise<number> {
       projectId: issue.projectId,
       ticketId: issue.id,
       actorId: null,
-      type: 'issue.sla_breached',
+      type: ISSUE_EVENT.slaBreached,
       data: { ...data, summary: 'breached its SLA' },
     };
   });
 
   await emitIssueEvent(events);
-  if (rows.length) {
-    await db.insert(notifications).values(rows);
-    await deliverToChannels(rows);
-  }
+  if (rows.length) await createNotifications(rows);
   return claimed.length;
 }
 

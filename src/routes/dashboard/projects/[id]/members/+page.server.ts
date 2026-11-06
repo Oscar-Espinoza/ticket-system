@@ -1,5 +1,4 @@
-// Members moved under project settings; keep old links working
-// (port of src/app/dashboard/projects/[id]/members/page.tsx).
+// Members moved under project settings; keep old links working.
 
 import { redirect } from '@sveltejs/kit';
 

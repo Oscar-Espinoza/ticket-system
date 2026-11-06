@@ -1,17 +1,8 @@
 <!--
   "?" popover listing the query syntax (lib/issue-filtering SEARCH_SYNTAX_HELP).
   Clicking an example hands it to `onInsert` (appended to the query box).
-  Port of SearchSyntaxHelp in src/components/views/search-syntax-help.tsx; the
-  file's `appendToken` helper is exported from this module:
-    import SearchSyntaxHelp, { appendToken } from '@/lib/components/views/search-syntax-help.svelte';
+  Callers append the inserted token with `appendToken` from '@/lib/search-token'.
 -->
-<script module lang="ts">
-  /** Appends `token` to `query` with a separating space. */
-  export function appendToken(query: string, token: string): string {
-    const base = query.trimEnd();
-    return base ? `${base} ${token} ` : `${token} `;
-  }
-</script>
 
 <script lang="ts">
   import CircleHelpIcon from '@lucide/svelte/icons/circle-question-mark';

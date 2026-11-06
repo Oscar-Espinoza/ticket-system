@@ -1,6 +1,5 @@
 <!--
-  Collapsible note block shared by SetupNotes and ScimNotes (the non-exported
-  `Notes` helper of src/components/security/setup-notes.tsx).
+  Collapsible note block shared by SetupNotes and ScimNotes.
 -->
 <script lang="ts">
   import type { Snippet } from 'svelte';

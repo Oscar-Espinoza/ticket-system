@@ -4,19 +4,30 @@
 //     useActionState signature.
 //   - per-person email invitations (`email` set, chosen role, 7 days, single
 //     use — see join.ts), with resend and revoke.
-// Roles an actor may hand out come from role-rules.ts (admins can't mint admins).
+// Roles an actor may hand out come from @/lib/roles (admins can't mint admins).
 // Tokens are 32 random bytes, base64url (256-bit, URL-safe).
 // neon-http: no interactive transactions — replacements use db.batch.
 
 import { randomBytes } from 'node:crypto';
-import { revalidatePath } from '@/lib/kit/request';
 import { and, eq, isNotNull, isNull, sql } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import { invitations, projectMembers, projects, users } from '@/db/schema';
 import { authorizeProjectAction } from '@/lib/action-auth';
+import { isUniqueViolation } from '@/lib/db-errors';
 import { sendEmail } from '@/lib/email';
-import { assignableRoles, isAssignableRole, PROJECT_ROLE_LABEL } from '@/lib/components/workspaces/role-rules';
+import { appUrl } from '@/lib/integrations/app-url';
+import { DAY_MS, WEEK_MS } from '@/lib/time';
+import {
+  emailAddress,
+  fail,
+  FORBIDDEN,
+  formField,
+  isFail,
+  refreshesData,
+  type ActionResult,
+} from '@/lib/server/action-kit';
+import { assignableRoles, isAssignableRole, PROJECT_ROLE_LABEL } from '@/lib/roles';
 
 export type GenerateInviteState = {
   errors?: {
@@ -26,32 +37,19 @@ export type GenerateInviteState = {
   url?: string;
 };
 
-export type InviteActionResult =
-  | { ok: true; url?: string; emailed?: boolean }
-  | { ok: false; error: string; field?: 'email' | 'role' };
+export type InviteActionResult = ActionResult<{ url?: string; emailed?: boolean }, 'email' | 'role'>;
 
-const LINK_TTL_MS = 30 * 24 * 60 * 60 * 1000;
-const EMAIL_TTL_MS = 7 * 24 * 60 * 60 * 1000;
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const LINK_TTL_MS = 30 * DAY_MS;
+const EMAIL_TTL_MS = WEEK_MS;
 
 const newToken = () => randomBytes(32).toString('base64url');
-const inviteUrl = (token: string) => `${process.env.PUBLIC_APP_URL ?? ''}/invite/${token}`;
-
-function isUniqueViolation(err: unknown) {
-  const code =
-    (err as { code?: string })?.code ?? (err as { cause?: { code?: string } })?.cause?.code;
-  return code === '23505';
-}
-
-function revalidateMembers(projectId: string) {
-  revalidatePath(`/dashboard/projects/${projectId}/settings/members`);
-}
+const inviteUrl = (token: string) => `${appUrl()}/invite/${token}`;
 
 export async function generateInviteLink(
   _prevState: GenerateInviteState | Record<string, never>,
   formData: FormData,
 ): Promise<GenerateInviteState> {
-  const projectId = ((formData.get('projectId') as string | null) ?? '').trim();
+  const projectId = formField(formData, 'projectId');
   if (!projectId) return { errors: { server: 'Project ID is required.' } };
 
   const authz = await authorizeProjectAction(projectId, 'admin');
@@ -81,7 +79,7 @@ export async function generateInviteLink(
     throw err;
   }
 
-  revalidateMembers(projectId);
+  refreshesData();
   return { success: true, url: inviteUrl(token) };
 }
 
@@ -122,13 +120,11 @@ export async function inviteByEmail(input: {
   const authz = await authorizeProjectAction(input?.projectId, 'admin');
   if (!authz.ok) return authz;
 
-  const email = typeof input.email === 'string' ? input.email.trim().toLowerCase() : '';
-  if (!EMAIL_RE.test(email) || email.length > 254) {
-    return { ok: false, error: 'Enter a valid email address.', field: 'email' };
-  }
+  const email = emailAddress(input.email);
+  if (isFail(email)) return email;
   const role = input.role;
   if (!isAssignableRole(role) || !assignableRoles(authz.role).includes(role)) {
-    return { ok: false, error: 'You can’t invite people with that role.', field: 'role' };
+    return fail('You can’t invite people with that role.', 'role');
   }
 
   const [existing] = await db
@@ -140,7 +136,7 @@ export async function inviteByEmail(input: {
     )
     .limit(1);
   if (existing) {
-    return { ok: false, error: 'This person is already a member.', field: 'email' };
+    return fail('This person is already a member.', 'email');
   }
 
   const token = newToken();
@@ -169,7 +165,7 @@ export async function inviteByEmail(input: {
       }),
     ]);
   } catch (err) {
-    if (isUniqueViolation(err)) return { ok: false, error: 'Could not create the invitation, try again.' };
+    if (isUniqueViolation(err)) return fail('Could not create the invitation, try again.');
     throw err;
   }
 
@@ -180,7 +176,7 @@ export async function inviteByEmail(input: {
     role,
     token,
   });
-  revalidateMembers(input.projectId);
+  refreshesData();
   return { ok: true, emailed, url: inviteUrl(token) };
 }
 
@@ -215,9 +211,9 @@ export async function resendInvitation(input: {
   if (!authz.ok) return authz;
 
   const invitation = await loadPendingInvitation(input.projectId, input.invitationId);
-  if (!invitation?.email) return { ok: false, error: 'Invitation not found.' };
+  if (!invitation?.email) return fail('Invitation not found.');
   if (!assignableRoles(authz.role).includes(invitation.role)) {
-    return { ok: false, error: 'Forbidden' };
+    return FORBIDDEN;
   }
 
   await db
@@ -232,7 +228,7 @@ export async function resendInvitation(input: {
     role: invitation.role,
     token: invitation.token,
   });
-  revalidateMembers(input.projectId);
+  refreshesData();
   return { ok: true, emailed, url: inviteUrl(invitation.token) };
 }
 
@@ -244,14 +240,14 @@ export async function revokeInvitation(input: {
   if (!authz.ok) return authz;
 
   const invitation = await loadPendingInvitation(input.projectId, input.invitationId);
-  if (!invitation) return { ok: false, error: 'Invitation not found.' };
+  if (!invitation) return fail('Invitation not found.');
   if (!assignableRoles(authz.role).includes(invitation.role)) {
-    return { ok: false, error: 'Forbidden' };
+    return FORBIDDEN;
   }
 
   await db
     .delete(invitations)
     .where(and(eq(invitations.id, invitation.id), eq(invitations.projectId, input.projectId)));
-  revalidateMembers(input.projectId);
+  refreshesData();
   return { ok: true };
 }

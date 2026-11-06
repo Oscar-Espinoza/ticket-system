@@ -14,6 +14,7 @@
 </script>
 
 <script lang="ts">
+  import { pluralize } from '@/lib/format';
   import FileUpIcon from '@lucide/svelte/icons/file-up';
   import XIcon from '@lucide/svelte/icons/x';
   import { toast } from 'svelte-sonner';
@@ -130,7 +131,7 @@
     <div class="flex items-center gap-2 text-sm">
       <span class="font-medium">{file.name}</span>
       <span class="text-muted-foreground">
-        {file.rows.length} row{file.rows.length === 1 ? '' : 's'} · {file.headers.length} columns
+        {pluralize(file.rows.length, 'row')} · {file.headers.length} columns
       </span>
       <Button
         variant="ghost"
@@ -191,7 +192,7 @@
         <h3 class="text-sm font-medium">
           Preview{' '}
           <span class="font-normal text-muted-foreground">
-            {built.records.length} issue{built.records.length === 1 ? '' : 's'}
+            {pluralize(built.records.length, 'issue')}
             {built.untitled > 0 ? ` · ${built.untitled} rows without a title will be skipped` : ''}
           </span>
         </h3>
@@ -206,7 +207,7 @@
         disabled={!hasTitle || !built?.records.length}
         onclick={() => built && void runner.run(built.records)}
       >
-        Import {built?.records.length ?? 0} issue{built?.records.length === 1 ? '' : 's'}
+        Import {pluralize(built?.records.length ?? 0, 'issue')}
       </Button>
       <Button variant="ghost" onclick={clear}>Cancel</Button>
     </div>

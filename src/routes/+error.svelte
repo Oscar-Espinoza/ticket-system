@@ -1,7 +1,7 @@
 <!--
-  Errors outside the dashboard (and unknown URLs). Matches Next's built-in
-  pages: "404 | This page could not be found." and, for other errors, a short
-  "Something went wrong" state with a way back.
+  Errors outside the dashboard (and unknown URLs): "404 | This page could not be
+  found." and, for other errors, a short "Something went wrong" state with a way
+  back.
 -->
 <script lang="ts">
   import { page } from '$app/state';

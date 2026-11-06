@@ -1,10 +1,11 @@
 <script lang="ts">
+  import { DATE_MEDIUM_LOCAL_FORMAT } from '@/lib/format';
   import KeyRoundIcon from '@lucide/svelte/icons/key-round';
   import PlusIcon from '@lucide/svelte/icons/plus';
   import { toast } from 'svelte-sonner';
 
   import { revokeApiKey, type ApiKeyView } from '@/lib/actions/api-keys';
-  import { relativeTime } from '@/lib/components/issues/issue-properties';
+  import { relativeTime } from '@/lib/relative-time';
   import {
     AlertDialog,
     AlertDialogAction,
@@ -31,7 +32,6 @@
 
   let { keys: initial }: { keys: ApiKeyView[] } = $props();
 
-  const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' });
 
   // svelte-ignore state_referenced_locally
   let keys = $state.raw(initial);
@@ -87,7 +87,7 @@
               <TableCell class="max-w-48 truncate font-medium">{key.name}</TableCell>
               <TableCell class="font-mono text-xs text-muted-foreground">{key.prefix}…</TableCell>
               <TableCell class="text-muted-foreground">
-                {dateFormat.format(new Date(key.createdAt))}
+                {DATE_MEDIUM_LOCAL_FORMAT.format(new Date(key.createdAt))}
               </TableCell>
               <TableCell class="text-muted-foreground">
                 {key.lastUsedAt ? relativeTime(new Date(key.lastUsedAt)) : 'Never'}

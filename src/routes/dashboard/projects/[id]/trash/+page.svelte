@@ -1,4 +1,3 @@
-<!-- Trash (port of src/app/dashboard/projects/[id]/trash/page.tsx). -->
 <script lang="ts">
   import IssueBin from '@/lib/components/navigation/issue-bin.svelte';
   import type { PageProps } from './$types';

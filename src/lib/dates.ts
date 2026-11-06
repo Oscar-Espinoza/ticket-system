@@ -31,6 +31,13 @@ export function addDays(date: Date, days: number): Date {
   return next;
 }
 
+/** Monday..Sunday of the week containing `today`, offset by `weeks`. */
+export function weekRange(today: string, weeks: number): [string, string] {
+  const date = fromDateString(today);
+  const monday = addDays(date, -((date.getDay() + 6) % 7) + weeks * 7);
+  return [toDateString(monday), toDateString(addDays(monday, 6))];
+}
+
 export type DueStatus = 'overdue' | 'today' | 'upcoming';
 
 export function dueStatus(dueDate: string, today: string = toDateString(new Date())): DueStatus {

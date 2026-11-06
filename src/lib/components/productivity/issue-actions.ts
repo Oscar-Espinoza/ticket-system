@@ -1,37 +1,19 @@
-// Svelte port of src/components/productivity/issue-actions.ts (svelte-sonner instead of sonner).
-
 // Small issue actions shared by the shortcuts, the palette and the `…` menu.
 
-import { toast } from 'svelte-sonner';
-
+import { copyToClipboard } from '@/lib/components/clipboard';
 import { issueUrl } from '@/lib/issue-links';
 import type { CreateIssueInput, IssueRow } from '@/lib/issue-model';
 
-async function copy(text: string, what: string) {
-  try {
-    await navigator.clipboard.writeText(text);
-    toast.success(`Copied ${what}`);
-  } catch {
-    toast.error('Could not copy to the clipboard.');
-  }
-}
-
-export const copyIssueId = (issue: IssueRow) => copy(issue.key, issue.key);
+export const copyIssueId = (issue: IssueRow) => copyToClipboard(issue.key, issue.key);
 
 export const copyIssueLink = (issue: IssueRow) =>
-  copy(issueUrl(issue.projectId, issue.key), 'link');
+  copyToClipboard(issueUrl(issue.projectId, issue.key), 'link');
 
 export const copyIssueMarkdown = (issue: IssueRow) =>
-  copy(
+  copyToClipboard(
     `[${issue.key}: ${issue.title.replace(/[[\]]/g, '\\$&')}](${issueUrl(issue.projectId, issue.key)})`,
     'markdown link',
   );
-
-/** The issue row / board card that has keyboard focus, if any. */
-export function focusedIssueId(): string | null {
-  const el = document.activeElement?.closest<HTMLElement>('[data-issue-row], [data-board-card]');
-  return el?.dataset.issueRow ?? el?.dataset.boardCard ?? null;
-}
 
 /** Everything needed to recreate `issue` as a new one (same text + properties). */
 export function duplicateInput(issue: IssueRow): CreateIssueInput {

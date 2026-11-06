@@ -11,6 +11,9 @@ import { projects } from '@/db/schema';
 import type { IssueChange, StoredIssueEvent } from '@/lib/events';
 import { stripMentions } from '@/lib/mentions';
 import { absoluteIssueUrl } from '@/lib/integrations/app-url';
+import { SLACK_TIMEOUT_MS } from '@/lib/integrations/timeouts';
+import { slackEscape } from '@/lib/slack/format';
+import { ISSUE_EVENT } from '@/lib/event-names';
 import { commentIdOf, loadEventContext, type EventContext } from '@/lib/integrations/event-context';
 import {
   parseSlackSetting,
@@ -18,7 +21,6 @@ import {
   type SlackEventKind,
 } from '@/lib/integrations/event-types';
 
-const TIMEOUT_MS = 3000;
 const MAX_SECTIONS = 10;
 const COMMENT_PREVIEW = 300;
 
@@ -27,11 +29,6 @@ type SlackBlock = Record<string, unknown>;
 export interface SlackMessage {
   text: string;
   blocks?: SlackBlock[];
-}
-
-/** Slack mrkdwn control characters. */
-export function slackEscape(text: string): string {
-  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 /** POST to an incoming webhook. Resolves to the HTTP status (0 = network error / timeout). */
@@ -43,7 +40,7 @@ export async function sendSlackMessage(url: string, message: SlackMessage): Prom
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(message),
       redirect: 'manual',
-      signal: AbortSignal.timeout(TIMEOUT_MS),
+      signal: AbortSignal.timeout(SLACK_TIMEOUT_MS),
     });
     return res.status;
   } catch {
@@ -54,11 +51,11 @@ export async function sendSlackMessage(url: string, message: SlackMessage): Prom
 function slackKind(event: StoredIssueEvent): SlackEventKind | null {
   if (!event.ticketId || event.data.bulk === true) return null;
   switch (event.type) {
-    case 'issue.created':
+    case ISSUE_EVENT.created:
       return 'created';
-    case 'comment.created':
+    case ISSUE_EVENT.commentCreated:
       return 'commented';
-    case 'issue.updated': {
+    case ISSUE_EVENT.updated: {
       const changes = (event.data.changes ?? []) as IssueChange[];
       const state = changes.find((c) => c.field === 'stateId');
       const type = (state?.to as { type?: string } | null)?.type;

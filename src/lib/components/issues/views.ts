@@ -1,12 +1,10 @@
 // View registry: the switcher and the Display menu render one entry each, and
 // IssuesView renders the current one through issue-view-host.svelte.
 //
-// Port of src/components/issues/views.tsx. Same exports: IssueViewProps,
-// IssueViewDefinition, ISSUE_VIEWS, preloadViews. React's `component` field
-// becomes either `component` (rendered directly: the list) or `lazy` (the
-// next/dynamic views: loaded on demand with a skeleton while loading;
-// `ssr: true` views are awaited and server-rendered, `ssr: false` views
-// render only the skeleton on the server — see issue-view-host.svelte).
+// A view is either `component` (rendered directly: the list) or `lazy` (loaded
+// on demand with a skeleton while loading; `ssr: true` views are awaited and
+// server-rendered, `ssr: false` views render only the skeleton on the server —
+// see issue-view-host.svelte).
 //   import { ISSUE_VIEWS, type IssueViewProps } from '@/lib/components/issues/views';
 
 import type { Component } from 'svelte';
@@ -20,7 +18,9 @@ import SheetIcon from '@lucide/svelte/icons/sheet';
 import type { IssueGroup } from '@/lib/issue-grouping';
 import type { IssuePatch, IssueRow } from '@/lib/issue-model';
 import type { ViewLayout } from './display-options.svelte';
+import { COLUMN_WIDTH_CLASS } from '@/lib/components/board/board-layout';
 import ListView from './list-view.svelte';
+import type { ViewCapabilities } from './view-capabilities';
 import type { IssueMutations } from './use-issue-mutations.svelte';
 
 export interface IssueViewProps {
@@ -39,20 +39,25 @@ export type IssueViewModule = { default: Component<IssueViewProps> };
 
 export interface LazyIssueView {
   load: () => Promise<IssueViewModule>;
-  /** True = the server awaits the chunk and renders the view (next/dynamic
-   *  default); false = client only (the server and first paint show `loading`). */
+  /** True = the server awaits the chunk and renders the view; false = client
+   *  only (the server and first paint show `loading`). */
   ssr: boolean;
   /** Skeleton shown while the code loads. */
   loading: 'board' | 'rows' | 'card';
+  /** Width class of one skeleton column (`loading: 'board'`). */
+  skeletonColumnClass?: string;
 }
 
 export interface IssueViewDefinition {
   id: ViewLayout;
   label: string;
   icon: LucideIcon;
+  caps: ViewCapabilities;
+  /** Whether the "No matching issues" state replaces the view when filters hide everything. */
+  showsFilteredEmpty: boolean;
   /** Rendered directly (bundled with the page). */
   component?: Component<IssueViewProps>;
-  /** Code-split view (next/dynamic in React). */
+  /** Code-split view. */
   lazy?: LazyIssueView;
 }
 
@@ -69,14 +74,37 @@ export function preloadViews() {
 }
 
 export const ISSUE_VIEWS: IssueViewDefinition[] = [
-  { id: 'list', label: 'List', icon: ListIcon, component: ListView },
-  { id: 'board', label: 'Board', icon: KanbanIcon, lazy: { load: loadBoard, ssr: true, loading: 'board' } },
-  { id: 'table', label: 'Table', icon: SheetIcon, lazy: { load: loadTable, ssr: true, loading: 'rows' } },
+  {
+    id: 'list',
+    label: 'List',
+    icon: ListIcon,
+    caps: { grouped: true, subGrouping: true, swimlanes: false, ordered: true, displayProperties: true },
+    showsFilteredEmpty: true,
+    component: ListView,
+  },
+  {
+    id: 'board',
+    label: 'Board',
+    icon: KanbanIcon,
+    caps: { grouped: true, subGrouping: true, swimlanes: true, ordered: true, displayProperties: true },
+    showsFilteredEmpty: true,
+    lazy: { load: loadBoard, ssr: true, loading: 'board', skeletonColumnClass: COLUMN_WIDTH_CLASS },
+  },
+  {
+    id: 'table',
+    label: 'Table',
+    icon: SheetIcon,
+    caps: { grouped: false, subGrouping: false, swimlanes: false, ordered: true, displayProperties: true },
+    showsFilteredEmpty: true,
+    lazy: { load: loadTable, ssr: true, loading: 'rows' },
+  },
   // Client only: "today" and the visible month depend on the viewer's timezone.
   {
     id: 'calendar',
     label: 'Calendar',
     icon: CalendarDaysIcon,
+    caps: { grouped: false, subGrouping: false, swimlanes: false, ordered: false, displayProperties: false },
+    showsFilteredEmpty: false,
     lazy: { load: loadCalendar, ssr: false, loading: 'card' },
   },
   // Client only too: "today", the zoom (localStorage) and scroll position.
@@ -84,6 +112,8 @@ export const ISSUE_VIEWS: IssueViewDefinition[] = [
     id: 'timeline',
     label: 'Timeline',
     icon: GanttChartIcon,
+    caps: { grouped: true, subGrouping: false, swimlanes: false, ordered: true, displayProperties: false },
+    showsFilteredEmpty: true,
     lazy: { load: loadTimeline, ssr: false, loading: 'card' },
   },
 ];

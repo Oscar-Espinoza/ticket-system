@@ -1,9 +1,10 @@
-<!-- C2 app shell chrome: sidebar + topbar + main (port of src/components/app-shell/shell-frame.tsx). -->
+<!-- App shell chrome: sidebar + topbar + main. -->
 <script module lang="ts">
   import type { Snippet } from 'svelte';
   import { createSubscriber, MediaQuery } from 'svelte/reactivity';
 
-  import type { SidebarProject } from './sidebar-projects.svelte';
+  import { readStorage, writeStorage } from '@/lib/svelte/storage';
+  import type { SidebarProject } from './sidebar-types';
 
   export type ShellProject = SidebarProject;
 
@@ -23,19 +24,11 @@
   const collapseListeners = new Set<() => void>();
 
   function readCollapsed(): boolean {
-    try {
-      return localStorage.getItem(COLLAPSED_KEY) === '1';
-    } catch {
-      return false;
-    }
+    return readStorage(COLLAPSED_KEY) === '1';
   }
 
   function writeCollapsed(value: boolean) {
-    try {
-      localStorage.setItem(COLLAPSED_KEY, value ? '1' : '0');
-    } catch {
-      // Storage unavailable (private mode): the choice just isn't remembered.
-    }
+    writeStorage(COLLAPSED_KEY, value ? '1' : '0');
     collapseListeners.forEach((listener) => listener());
   }
 
@@ -69,7 +62,7 @@
   let { projects, sidebarFooter, topbarRight, inboxBadge, favorites, workspaces, children }: ShellFrameProps =
     $props();
 
-  // useSyncExternalStore server snapshots (false / false) during SSR and
+  // Server values (false / false) during SSR and
   // hydration; the browser values from then on.
   let hydrated = $state(isAppHydrated());
   const narrowQuery = new MediaQuery(NARROW_QUERY, false);

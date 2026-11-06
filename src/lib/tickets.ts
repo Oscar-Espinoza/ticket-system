@@ -4,14 +4,13 @@
 // itself; getTicketById / getIssueByKey trust projectId (callers check first).
 
 import { cache } from '@/lib/kit/request';
-import { and, desc, eq, exists, inArray, isNull, sql, type SQL } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull, sql, type SQL } from 'drizzle-orm';
 import { alias, type AnyPgColumn } from 'drizzle-orm/pg-core';
 
 import { db } from '@/lib/db';
 import {
   issueLabels,
   labels,
-  projectMembers,
   projects,
   ticketKeyAliases,
   tickets,
@@ -19,6 +18,13 @@ import {
   workflowStates,
 } from '@/db/schema';
 import type { IssueLabel, IssueRow } from '@/lib/issue-model';
+import { projectMemberOf } from '@/lib/project-access';
+
+/**
+ * Full-text document of an issue. Must match the index expression in
+ * 0003_seed_workflow_states.sql exactly, or Postgres can't use the GIN index.
+ */
+export const issueDocument = sql`to_tsvector('english', coalesce(${tickets.title}, '') || ' ' || coalesce(${tickets.description}, ''))`;
 
 /** Join aliases, exported so callers can filter/sort on them in `where`/`orderBy`. */
 export const assigneeUsers = alias(users, 'assignee');
@@ -112,7 +118,7 @@ export function toIssueRow(row: IssueSelectRow, issueLabelsList: IssueLabel[] = 
   return {
     id: row.id,
     projectId: row.projectId,
-    key: `${row.ticketKey}-${row.number}`,
+    key: formatIssueKey(row.ticketKey, row.number),
     number: row.number,
     title: row.title,
     description: row.description,
@@ -203,17 +209,11 @@ export async function queryIssues(
 }
 
 /**
- * Correlated EXISTS: `userId` is a member of the issue's project. Use it in a
- * queryIssues `where` to authorize cross-project reads (My Issues, search).
+ * `userId` is a member of the issue's project. Use it in a queryIssues `where`
+ * to authorize cross-project reads (My Issues, search).
  */
 export function memberOfIssueProject(userId: string): SQL {
-  const viewer = alias(projectMembers, 'viewer');
-  return exists(
-    db
-      .select({ one: sql`1` })
-      .from(viewer)
-      .where(and(eq(viewer.projectId, tickets.projectId), eq(viewer.userId, userId))),
-  );
+  return projectMemberOf(tickets.projectId, userId);
 }
 
 /** Active (not archived, not deleted) issues — the default list scope. */
@@ -278,4 +278,44 @@ export async function getIssueByKey(
     { limit: 1 },
   );
   return found ?? null;
+}
+
+/** ("APP", 12) → "APP-12": the issue key shown to people and accepted by `parseIssueKey`. */
+export function formatIssueKey(ticketKey: string, number: number): string {
+  return `${ticketKey}-${number}`;
+}
+
+/** "app-12" → { prefix: 'APP', number: 12 }; null when it isn't an issue key. */
+export function parseIssueKey(raw: string): { prefix: string; number: number } | null {
+  const match = /^([A-Za-z0-9]+)-(\d{1,9})$/.exec(raw.trim());
+  return match ? { prefix: match[1].toUpperCase(), number: Number(match[2]) } : null;
+}
+
+/**
+ * "APP-12" → the issue's id + project id, following ticket_key_alias for issues
+ * that moved to another project. No authorization: callers check the viewer's
+ * role in the returned project (REST v1 and GraphQL both do).
+ */
+export async function resolveIssueKey(
+  key: string,
+): Promise<{ id: string; projectId: string } | null> {
+  const parsed = parseIssueKey(key);
+  // REST v1 and GraphQL accept key prefixes of at most 10 characters (project keys are 2–6).
+  if (!parsed || parsed.prefix.length > 10) return null;
+
+  const [current, alias] = await db.batch([
+    db
+      .select({ id: tickets.id, projectId: tickets.projectId })
+      .from(tickets)
+      .innerJoin(projects, eq(projects.id, tickets.projectId))
+      .where(and(eq(projects.ticketKey, parsed.prefix), eq(tickets.ticketNumber, parsed.number)))
+      .limit(1),
+    db
+      .select({ id: tickets.id, projectId: tickets.projectId })
+      .from(ticketKeyAliases)
+      .innerJoin(tickets, eq(tickets.id, ticketKeyAliases.ticketId))
+      .where(eq(ticketKeyAliases.key, `${parsed.prefix}-${parsed.number}`))
+      .limit(1),
+  ]);
+  return current[0] ?? alias[0] ?? null;
 }

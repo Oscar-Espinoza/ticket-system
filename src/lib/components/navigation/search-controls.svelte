@@ -3,17 +3,12 @@
   results are server-rendered and shareable; typing replaces the URL after a
   short pause instead of on every key. `q` may carry filter syntax
   (label:bug assignee:me …) — see the "?" popover.
-  Port of src/components/navigation/search-controls.tsx.
 -->
 <script module lang="ts">
+  import { appendToken } from '@/lib/search-token';
+
   const ALL = '__all';
   const DEBOUNCE_MS = 250;
-
-  /** Appends `token` to `query` with a separating space (appendToken in views/search-syntax-help). */
-  function appendToken(query: string, token: string): string {
-    const base = query.trimEnd();
-    return base ? `${base} ${token} ` : `${token} `;
-  }
 </script>
 
 <script lang="ts">
@@ -27,6 +22,7 @@
   import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/lib/components/ui/select';
   import { Switch } from '@/lib/components/ui/switch';
   import SearchSyntaxHelp from '@/lib/components/views/search-syntax-help.svelte';
+  import { createDebouncer } from '@/lib/svelte/debounce';
   import SearchTermChips from '@/lib/components/views/search-term-chips.svelte';
 
   let {
@@ -44,14 +40,14 @@
   // useState(query): the box keeps what the user typed across URL updates.
   // svelte-ignore state_referenced_locally
   let text = $state(query);
-  let timer: ReturnType<typeof setTimeout> | undefined;
+  const debounce = createDebouncer();
   let inputRef = $state<HTMLInputElement | null>(null);
 
-  // useTransition around router.replace: pending until the latest navigation lands.
+  // In-flight counter: pending until the latest navigation lands.
   let running = 0;
   let pending = $state(false);
 
-  $effect(() => () => clearTimeout(timer));
+  $effect(() => debounce.cancel);
 
   const projectItems = $derived([
     { value: ALL, label: 'All projects' },
@@ -71,7 +67,7 @@
     running += 1;
     pending = true;
     try {
-      // router.replace: no new history entry; keep focus (typing) and scroll.
+      // Replace the history entry (no new one); keep focus (typing) and scroll.
       await goto(search ? `${pathname}?${search}` : pathname, { replace: true, reset: false });
     } finally {
       running -= 1;
@@ -81,8 +77,7 @@
 
   function onType(value: string) {
     text = value;
-    clearTimeout(timer);
-    timer = setTimeout(() => void navigate({ q: value }), DEBOUNCE_MS);
+    debounce.schedule(() => void navigate({ q: value }), DEBOUNCE_MS);
   }
 </script>
 
@@ -91,7 +86,7 @@
     role="search"
     onsubmit={(event) => {
       event.preventDefault();
-      clearTimeout(timer);
+      debounce.cancel();
       void navigate({ q: text });
     }}
   >

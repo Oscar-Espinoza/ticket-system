@@ -1,5 +1,5 @@
 /*
- * Port of src/components/ui/tabs.tsx (Radix Tabs → bits-ui Tabs).
+ * Radix Tabs → bits-ui Tabs.
  *
  * Caller translation:
  * - `<Tabs defaultValue="csv">` and `<Tabs value={tab} onValueChange={fn}>` keep working;

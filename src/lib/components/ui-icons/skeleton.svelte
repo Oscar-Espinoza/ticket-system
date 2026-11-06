@@ -24,8 +24,7 @@
 ></span>
 
 <style>
-  /* C4 shimmer (was skeleton.module.css) — component-scoped so app.css (C1,
-     frozen) stays untouched. Uses only C1 raw tokens: --muted is the block,
+  /* Shimmer, component-scoped so app.css stays untouched. Uses only raw tokens: --muted is the block,
      --accent is the sweeping highlight; both are redefined under .dark, so the
      skeleton themes itself for free. */
 

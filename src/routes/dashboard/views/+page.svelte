@@ -1,4 +1,3 @@
-<!-- Saved views (port of src/app/dashboard/views/page.tsx). -->
 <script lang="ts">
   import LayersIcon from '@lucide/svelte/icons/layers';
 

@@ -1,4 +1,4 @@
-// Barrel for comments (port of src/components/comments/index.ts), same export names.
+// Barrel for comments.
 
 export { default as IssueActivity } from './issue-activity.svelte';
 export { default as CommentComposer } from './comment-composer.svelte';

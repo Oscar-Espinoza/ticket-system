@@ -2,9 +2,8 @@
   The issues screen: toolbar (layout switcher, saved-view badge, filters,
   display menu, "New issue"), the current layout, the detail pane, selection,
   context menu, bulk bar, shortcuts and the new-issue dialog.
-  Port of src/components/issues/issues-view.tsx (same props; `emptyState` is a
-  snippet). Another saved view on the same route starts from its own
-  filters/display (keyed by savedView.id, as React's `key`).
+  Another saved view on the same route starts from its own filters/display
+  (keyed by savedView.id).
 -->
 <script module lang="ts">
   import type { Snippet } from 'svelte';

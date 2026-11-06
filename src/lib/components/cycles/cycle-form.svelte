@@ -1,10 +1,11 @@
-<!-- Create / edit form inside CycleFormDialog (local helper of cycle-dialogs.tsx). -->
+<!-- Create / edit form inside CycleFormDialog. -->
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { untrack } from 'svelte';
   import LoaderCircle from '@lucide/svelte/icons/loader-circle';
   import { toast } from 'svelte-sonner';
 
+  import { actionErrorText } from '@/lib/action-errors';
   import { createCycle, updateCycle, type CycleField } from '@/lib/actions/cycles';
   import { projectHref } from '@/lib/components/app-shell/routes';
   import Field from '@/lib/components/settings/field.svelte';
@@ -12,7 +13,7 @@
   import { DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/lib/components/ui/dialog';
   import { Input } from '@/lib/components/ui/input';
   import { Textarea } from '@/lib/components/ui/textarea';
-  import { DAY_MS, cycleName, lastDay, toDateInput } from '@/lib/components/cycles/cycle-utils';
+  import { DAY_MS, cycleName, lastDay, toDateInput } from '@/lib/cycle-utils';
   import type { EditableCycle } from './cycle-form-dialog.svelte';
 
   let {
@@ -33,9 +34,6 @@
     return { startsAt: new Date(start), endsAt: new Date(start + 14 * DAY_MS) };
   }
 
-  function errorText(error: string) {
-    return error === 'Forbidden' ? "You don't have permission to do that." : error;
-  }
 
   // The form is remounted per open, so these seed from the props once (useState).
   const initial = untrack(() => {
@@ -66,7 +64,7 @@
         : await createCycle(input);
       if (!result.ok) {
         if (result.field) errors = { [result.field]: result.error };
-        else toast.error(errorText(result.error));
+        else toast.error(actionErrorText(result.error, "You don't have permission to do that."));
         return;
       }
       toast.success(cycle ? 'Cycle updated' : 'Cycle created');

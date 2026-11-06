@@ -1,7 +1,5 @@
-// The filterable properties behind FilterMenu and FilterChips (the
-// useFilterProperties / toggleValue / valuesText helpers of
-// src/components/views/filter-menu.tsx). Option icons were ReactNodes; here
-// they are plain descriptors that FilterMenu renders (FilterOptionIcon).
+// The filterable properties behind FilterMenu and FilterChips.
+// Option icons are plain descriptors that FilterMenu renders (FilterOptionIcon).
 
 import type { LucideIcon } from '@lucide/svelte';
 import CalendarClockIcon from '@lucide/svelte/icons/calendar-clock';
@@ -238,7 +236,7 @@ export function filterProperties(data: Pick<ProjectData, 'project' | 'states' | 
 /**
  * The project's filter properties, kept in sync with the project data. Call
  * during component init (reads the ProjectData context; throws outside one, as
- * React's useProjectData did). Read `.current`.
+ * . Read `.current`.
  */
 export function useFilterProperties(): { readonly current: FilterProperty[] } {
   const data = useProjectData();

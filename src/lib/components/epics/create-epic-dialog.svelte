@@ -27,7 +27,7 @@
     EPIC_STATUS_LABEL,
     epicPath,
     type EpicStatus,
-  } from '@/lib/components/epics/epic-model';
+  } from '@/lib/epic-model';
   import Chip from './chip-button.svelte';
   import ColorSwatches from './color-swatches.svelte';
   import DatePicker from './date-picker.svelte';
@@ -120,7 +120,7 @@
         A larger piece of work made of many {data.project.ticketKey} issues.
       </DialogDescription>
     </DialogHeader>
-    <!-- ⌘Enter submits, as in React -->
+    <!-- ⌘Enter submits -->
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <form
       onsubmit={(event) => void submit(event)}

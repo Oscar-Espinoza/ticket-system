@@ -9,15 +9,15 @@ import { allowOptions } from '../../../_lib/options';
 import { after } from '@/lib/kit/request';
 import { handleSentryWebhook, verifySentrySignature } from '@/lib/sentry/webhook';
 import { getWebhookIntegration } from '@/lib/vcs/integrations';
-import { decryptToken } from '@/lib/vcs/secrets';
-import { readJsonBody, rejected } from '@/lib/vcs/webhook-request';
+import { decryptToken } from '@/lib/server/crypto';
+import { readWebhookBody, rejected } from '@/lib/vcs/webhook-request';
 
 export const POST: RequestHandler = async ({ request, params }) => {
   const { integrationId } = params;
   const signature = request.headers.get('sentry-hook-signature');
   if (!signature) return rejected();
 
-  const body = await readJsonBody(request);
+  const body = await readWebhookBody(request);
   if (!body.ok) return body.response;
 
   let found: Awaited<ReturnType<typeof getWebhookIntegration>>;
@@ -44,5 +44,4 @@ export const POST: RequestHandler = async ({ request, params }) => {
   return Response.json({ ok: true }, { status: 202 });
 };
 
-// Next answered OPTIONS automatically (204 + Allow); Kit would 405.
 export const OPTIONS = allowOptions('POST');

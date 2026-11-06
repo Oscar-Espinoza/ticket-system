@@ -2,32 +2,24 @@
 // SQL: a correlated EXISTS on project_member for the viewer, so non-members
 // get nothing back rather than an error that confirms the id exists.
 
-import { and, desc, eq, exists, ilike, isNull, or, sql, type SQL } from 'drizzle-orm';
+import { and, desc, eq, ilike, isNull, or, sql, type SQL } from 'drizzle-orm';
 import { alias, type AnyPgColumn } from 'drizzle-orm/pg-core';
 
 import { documents, epics, projectMembers, projects, tickets, users, workflowStates } from '@/db/schema';
 import { db } from '@/lib/db';
-import { activeIssue, memberOfIssueProject } from '@/lib/tickets';
+import { isEntityId } from '@/lib/ids';
+import { roleAllows, type ProjectRole } from '@/lib/roles';
+import { projectMemberOf } from '@/lib/project-access';
+import { activeIssue, memberOfIssueProject, formatIssueKey } from '@/lib/tickets';
 import {
   excerptOf,
   type DocumentBacklink,
   type DocumentDetail,
   type DocumentSummary,
-} from '@/lib/components/documents/document-model';
+} from '@/lib/document-model';
 
 const updater = alias(users, 'doc_updater');
 const creator = alias(users, 'doc_creator');
-const DOC_ID = /^[A-Za-z0-9_-]{1,64}$/;
-
-function viewerIsMember(projectId: AnyPgColumn, userId: string): SQL {
-  const viewer = alias(projectMembers, 'doc_viewer');
-  return exists(
-    db
-      .select({ one: sql`1` })
-      .from(viewer)
-      .where(and(eq(viewer.projectId, projectId), eq(viewer.userId, userId))),
-  );
-}
 
 /** Escapes LIKE wildcards in user input. */
 function likePattern(q: string) {
@@ -90,7 +82,7 @@ export async function getProjectDocuments(projectId: string, userId: string, q?:
     .where(
       and(
         eq(documents.projectId, projectId),
-        viewerIsMember(documents.projectId, userId),
+        projectMemberOf(documents.projectId, userId),
         query ? or(ilike(documents.title, likePattern(query)), ilike(documents.content, likePattern(query))) : undefined,
       ),
     )
@@ -100,13 +92,13 @@ export async function getProjectDocuments(projectId: string, userId: string, q?:
 }
 
 export async function getDocument(projectId: string, documentId: string, userId: string): Promise<DocumentDetail | null> {
-  if (!projectId || !userId || !DOC_ID.test(documentId)) return null;
+  if (!projectId || !userId || !isEntityId(documentId)) return null;
   const [row] = await selectSummaries({ content: documents.content })
     .where(
       and(
         eq(documents.id, documentId),
         eq(documents.projectId, projectId),
-        viewerIsMember(documents.projectId, userId),
+        projectMemberOf(documents.projectId, userId),
       ),
     )
     .limit(1);
@@ -124,7 +116,7 @@ export async function getDocumentBacklinks(
   documentId: string,
   userId: string,
 ): Promise<DocumentBacklink[]> {
-  if (!projectId || !userId || !DOC_ID.test(documentId)) return [];
+  if (!projectId || !userId || !isEntityId(documentId)) return [];
   const needle = likePattern(`/projects/${projectId}/docs/${documentId}`);
   const rows = await db
     .select({
@@ -145,7 +137,7 @@ export async function getDocumentBacklinks(
     .limit(50);
   return rows.map((row) => ({
     id: row.id,
-    key: `${row.ticketKey}-${row.number}`,
+    key: formatIssueKey(row.ticketKey, row.number),
     title: row.title,
     projectId: row.projectId,
     state: { name: row.stateName, type: row.stateType, color: row.stateColor },
@@ -159,7 +151,7 @@ export async function getDocumentBacklinks(
 export async function documentsForEpic(epicId: string, userId: string): Promise<DocumentSummary[]> {
   if (!epicId || !userId) return [];
   const rows = await selectSummaries({})
-    .where(and(eq(documents.epicId, epicId), isNull(documents.archivedAt), viewerIsMember(documents.projectId, userId)))
+    .where(and(eq(documents.epicId, epicId), isNull(documents.archivedAt), projectMemberOf(documents.projectId, userId)))
     .orderBy(desc(documents.updatedAt))
     .limit(100);
   return rows.map(toSummary);
@@ -180,7 +172,7 @@ export async function searchDocuments(userId: string, q: string, limit = 20): Pr
     .where(
       and(
         isNull(documents.archivedAt),
-        viewerIsMember(documents.projectId, userId),
+        projectMemberOf(documents.projectId, userId),
         or(ilike(documents.title, pattern), ilike(documents.content, pattern)),
       ),
     )
@@ -188,4 +180,33 @@ export async function searchDocuments(userId: string, q: string, limit = 20): Pr
     .orderBy(sql`(${documents.title} ilike ${pattern}) desc`, desc(documents.updatedAt))
     .limit(Math.min(Math.max(limit, 1), 50));
   return rows.map((row) => ({ ...toSummary(row), projectName: row.projectName, projectKey: row.projectKey }));
+}
+
+export interface DocumentAccess {
+  projectId: string;
+  role: ProjectRole;
+  archivedAt: Date | null;
+  /** Write role in the project and not archived (archived docs are read-only until unarchived). */
+  canEdit: boolean;
+}
+
+/**
+ * The viewer's access to one document, or null when it is missing or in a
+ * project they don't belong to (the two are indistinguishable on purpose).
+ * The one rule for who may edit a document: the markdown snapshot actions and
+ * the live collaboration relay both ask this.
+ */
+export async function getDocumentAccess(documentId: string, userId: string): Promise<DocumentAccess | null> {
+  if (!userId) return null;
+  const [row] = await db
+    .select({ projectId: documents.projectId, role: projectMembers.role, archivedAt: documents.archivedAt })
+    .from(documents)
+    .innerJoin(
+      projectMembers,
+      and(eq(projectMembers.projectId, documents.projectId), eq(projectMembers.userId, userId)),
+    )
+    .where(eq(documents.id, documentId))
+    .limit(1);
+  if (!row) return null;
+  return { ...row, canEdit: roleAllows(row.role, 'write') && !row.archivedAt };
 }

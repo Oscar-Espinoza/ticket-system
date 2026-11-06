@@ -6,8 +6,11 @@
 
 export const DEFAULT_AUTH_REDIRECT = '/dashboard';
 
-export function safeRedirect(value: unknown): string {
-  if (typeof value !== 'string') return DEFAULT_AUTH_REDIRECT;
+/** The safe destination from `params`' `redirect` (absent or repeated → /dashboard). */
+export function safeRedirect(params: URLSearchParams): string {
+  const values = params.getAll('redirect');
+  if (values.length !== 1) return DEFAULT_AUTH_REDIRECT;
+  const value = values[0];
   // Browsers treat "\" like "/" and strip tabs/newlines, so `/\evil.com` or
   // `/\t/evil.com` would become protocol-relative.
   if (

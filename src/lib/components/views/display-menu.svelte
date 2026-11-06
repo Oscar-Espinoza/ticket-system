@@ -1,14 +1,13 @@
 <!--
   The "Display" popover (Shift+V): layout, grouping, sub-grouping, ordering,
   toggles and visible properties — all written through useDisplayOptions().
-  Port of DisplayMenu in src/components/views/display-menu.tsx (same props;
-  pass the registry's ISSUE_VIEWS as `views`).
+  Pass the registry's ISSUE_VIEWS as `views`.
 -->
 <script module lang="ts">
   import type { IssueViewDefinition } from '@/lib/components/issues/views';
 
   /** The parts of an IssueViewDefinition the menu reads. */
-  export type DisplayMenuView = Pick<IssueViewDefinition, 'id' | 'label' | 'icon'>;
+  export type DisplayMenuView = Pick<IssueViewDefinition, 'id' | 'label' | 'icon' | 'caps'>;
 </script>
 
 <script lang="ts">
@@ -26,6 +25,7 @@
     type DisplayOptions,
     type DisplayProperty,
   } from '@/lib/components/issues/display-options.svelte';
+  import { UNKNOWN_VIEW_CAPABILITIES } from '@/lib/components/issues/view-capabilities';
   import { useProjectData } from '@/lib/components/project/project-data.svelte';
   import { registerHotkeys } from '@/lib/svelte/hotkeys.svelte';
   import {
@@ -90,8 +90,10 @@
   );
 
   const update = (patch: Partial<DisplayOptions>) => displayOptions.set({ ...display, ...patch });
-  const grouped = $derived(layout === 'list' || layout === 'board' || layout === 'timeline');
-  const ordered = $derived(layout !== 'calendar');
+  // `views` is a prop, so the layout may be absent from it.
+  const caps = $derived(views.find((v) => v.id === layout)?.caps ?? UNKNOWN_VIEW_CAPABILITIES);
+  const grouped = $derived(caps.grouped);
+  const ordered = $derived(caps.ordered);
 
   // Hide groupings the project can't use (no cycles / epics yet).
   const groupOptions = $derived(
@@ -105,7 +107,7 @@
 
   // Board columns are always shown (drop targets); the switch then only governs
   // empty swimlanes.
-  const boardColumnsOnly = $derived(layout === 'board' && display.subGroupBy === null);
+  const boardColumnsOnly = $derived(caps.swimlanes && display.subGroupBy === null);
 
   function setGroupBy(value: string) {
     if (!isGroupBy(value)) return;
@@ -226,8 +228,8 @@
     <div class="flex flex-col px-3 py-2">
       {#if grouped}
         {@render optionSelect('Grouping', display.groupBy, groupOptions, GROUP_BY_LABEL, setGroupBy)}
-        {#if display.groupBy !== 'none' && layout !== 'timeline'}
-          {@render row(layout === 'board' ? 'Swimlanes' : 'Sub-grouping', subGroupSelect)}
+        {#if display.groupBy !== 'none' && caps.subGrouping}
+          {@render row(caps.swimlanes ? 'Swimlanes' : 'Sub-grouping', subGroupSelect)}
         {/if}
       {/if}
       {#if ordered}
@@ -241,7 +243,7 @@
       {@render row('Show sub-issues', subIssuesSwitch)}
     </div>
 
-    {#if layout !== 'calendar' && layout !== 'timeline'}
+    {#if caps.displayProperties}
       <div class="border-t border-border px-3 py-2">
         <p class="mb-2 text-xs font-medium text-muted-foreground">Display properties</p>
         <div class="flex flex-wrap gap-1">

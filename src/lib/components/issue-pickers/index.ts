@@ -1,14 +1,13 @@
-// Reusable, keyboard-first property pickers (port of src/components/issue-pickers/index.ts,
-// same export names). Each has a popover version and a bare `…Options` list for dialogs,
+// Reusable, keyboard-first property pickers. Each has a popover version and a bare `…Options` list for dialogs,
 // the palette and bulk edit.
 //
 // Svelte translation for callers:
-// - The trigger (React `children` via asChild) is a `children` snippet that receives the
+// - The trigger is a `children` snippet that receives the
 //   trigger props; spread them on your element:
 //     <StatePicker value={id} onChange={(stateId) => …}>
 //       {#snippet children({ props })}<Button {...props} variant="ghost">…</Button>{/snippet}
 //     </StatePicker>
-// - `open` + `onOpenChange` as in React, or `bind:open`; uncontrolled when omitted.
+// - `open` + `onOpenChange`, or `bind:open`; uncontrolled when omitted.
 // - PickerPopover's `content={(close) => …}` → `{#snippet content(close)}…{/snippet}`.
 // - keywordFilter / digitShortcut / LABEL_COLORS are plain functions/values (picker-utils.ts);
 //   digitShortcut returns a DOM `(event: KeyboardEvent) => void` for `onkeydown`.
@@ -16,6 +15,7 @@
 export { default as PickerPopover } from './picker-popover.svelte';
 export type { PickerPopoverProps, PickerTrigger } from './picker-popover.svelte';
 export { keywordFilter, digitShortcut, LABEL_COLORS } from './picker-utils';
+export { PRIORITY_MENU_ORDER, dueDateQuickOptions, viewerFirst } from './option-builders';
 export { default as StatePicker } from './state-picker.svelte';
 export { default as StateOptions } from './state-options.svelte';
 export type { StateOptionsProps } from './state-options.svelte';

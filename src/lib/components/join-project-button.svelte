@@ -1,5 +1,5 @@
 <!--
-  JoinProjectButton (port of src/components/join-project-button.tsx) — explicit
+  JoinProjectButton — explicit
   POST to joinProject (joining never happens on render). The action redirects
   into the project on success (the generated wrapper follows it with goto), so
   there is no client-side navigation here.
@@ -18,7 +18,7 @@
 
   let { token }: { token: string } = $props();
 
-  // useActionState(joinProject, {})
+  // Form state of joinProject
   let actionState = $state<JoinProjectState>({});
   let isPending = $state(false);
 

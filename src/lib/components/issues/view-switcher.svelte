@@ -1,4 +1,4 @@
-<!-- Layout toggle (List / Board / …). Port of src/components/issues/view-switcher.tsx. -->
+<!-- Layout toggle (List / Board / …). -->
 <script lang="ts">
   import { cn } from '@/lib/utils';
   import type { IssueViewDefinition } from './views';

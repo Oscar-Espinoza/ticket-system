@@ -1,7 +1,7 @@
 // The saved view currently open (set by the view page around IssuesView), so
 // the toolbar slot can offer "Update view" without IssuesView threading it.
 //
-// API (port of src/components/navigation/saved-view-context.tsx):
+// API:
 //   setSavedViewContext(() => view)        provider; call during component init, GETTER arg
 //   <SavedViewProvider view={view}>        same, as a component (saved-view-provider.svelte)
 //   useSavedView(): { readonly current: OpenSavedView | null }   reactive

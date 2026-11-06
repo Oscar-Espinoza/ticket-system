@@ -2,10 +2,10 @@
   Caret-anchored suggestion list shared by both editor modes: members (@),
   issues (# / KEY-) and slash commands. Rendered inline inside the editor
   root, positioned by the caller; options pick on mousedown so the editor
-  never loses focus. Port of src/components/editor/suggestion-menu.tsx.
+  never loses focus.
 
-  `style` is a CSS declaration string (React took a CSSProperties object);
-  the menu width is prepended as in React. The file's non-component exports
+  `style` is a CSS declaration string;
+  the menu width is prepended. The file's non-component exports
   (MENU_WIDTH, MENU_CLASS, SlashCommand, SuggestionEntry, entryKey) are in
   ./suggestion-entries.ts; MemberOption is ./member-option.svelte.
 -->

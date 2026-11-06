@@ -1,7 +1,7 @@
 <!--
   Saved views list (global /dashboard/views and per-project views pages):
   open, star, and — for the owner — edit details or delete.
-  Port of src/components/navigation/view-list.tsx. Also exports (module script)
+  Also exports (module script)
   `viewHref` and the `ViewListItem` type:
     import ViewList, { viewHref, type ViewListItem } from '@/lib/components/navigation/view-list.svelte';
 -->
@@ -38,7 +38,7 @@
   import DeleteViewDialog from './delete-view-dialog.svelte';
   import EditViewDialog from './edit-view-dialog.svelte';
   import FavoriteButton from './favorite-button.svelte';
-  import { relativeTime } from '@/lib/components/issues/issue-properties';
+  import { relativeTime } from '@/lib/relative-time';
 
   let {
     views,
@@ -81,7 +81,7 @@
         <span class="hidden w-28 shrink-0 truncate text-right text-xs text-muted-foreground md:block">
           {view.isOwner ? 'You' : (view.ownerName ?? 'Former member')}
         </span>
-        <!-- React's suppressHydrationWarning: hydration keeps the server text. -->
+        <!-- Hydration keeps the server text. -->
         <time
           datetime={new Date(view.updatedAt).toISOString()}
           title={`Updated ${new Date(view.updatedAt).toLocaleString()}`}

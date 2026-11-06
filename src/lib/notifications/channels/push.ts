@@ -5,7 +5,7 @@
 import { inArray } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
-import { pushSubscriptions, userProfiles, users } from '@/db/schema';
+import { pushSubscriptions, userProfiles } from '@/db/schema';
 import { pushConfigured, sendPushes, type PushPayload, type PushTarget } from '@/lib/push';
 import {
   describeNotification,
@@ -14,24 +14,19 @@ import {
   prefEnabled,
 } from '@/lib/notifications/types';
 
-import type { ChannelNotification } from './index';
+import type { ActorNames, ChannelNotification } from './index';
 
 /** A bulk edit shouldn't stack twenty OS notifications: past this, one summary push. */
 const MAX_PER_USER = 5;
 const BODY_LENGTH = 180;
 
-export async function deliverPush(rows: ChannelNotification[]): Promise<void> {
+/** `live` rows are due now (the entry point drops snoozed ones). */
+export async function deliverPush(live: ChannelNotification[], actorNames: ActorNames): Promise<void> {
   try {
     if (!pushConfigured()) return;
-    const now = Date.now();
-    // Reminders and snoozed rows surface later; pushing them now would be early.
-    const live = rows.filter((row) => !row.snoozedUntil || row.snoozedUntil.getTime() <= now);
-    if (live.length === 0) return;
-
     const userIds = [...new Set(live.map((row) => row.userId))];
-    const actorIds = [...new Set(live.map((row) => row.actorId).filter((id): id is string => !!id))];
 
-    const [subscriptions, profiles, actors] = await Promise.all([
+    const [subscriptions, profiles, actorName] = await Promise.all([
       db
         .select({
           userId: pushSubscriptions.userId,
@@ -49,14 +44,11 @@ export async function deliverPush(rows: ChannelNotification[]): Promise<void> {
         })
         .from(userProfiles)
         .where(inArray(userProfiles.userId, userIds)),
-      actorIds.length
-        ? db.select({ id: users.id, name: users.name }).from(users).where(inArray(users.id, actorIds))
-        : Promise.resolve([]),
+      actorNames(),
     ]);
     if (subscriptions.length === 0) return;
 
     const profileByUser = new Map(profiles.map((profile) => [profile.userId, profile]));
-    const actorName = new Map(actors.map((actor) => [actor.id, actor.name]));
 
     const payloadsByUser = new Map<string, PushPayload[]>();
     for (const row of live) {

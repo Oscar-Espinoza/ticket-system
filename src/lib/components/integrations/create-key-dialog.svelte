@@ -1,4 +1,4 @@
-<!-- Name a new API key (CreateKeyDialog in api-key-settings.tsx). Mounted while open. -->
+<!-- Name a new API key. Mounted while open. -->
 <script lang="ts">
   import LoaderCircleIcon from '@lucide/svelte/icons/loader-circle';
   import { toast } from 'svelte-sonner';

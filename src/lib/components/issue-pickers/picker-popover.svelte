@@ -1,8 +1,5 @@
 <!--
-  Port of src/components/issue-pickers/picker-popover.tsx.
-
-  React's trigger was `children` rendered through `PopoverTrigger asChild`. In
-  Svelte the trigger is a `children` snippet that receives the trigger props —
+  The trigger is a `children` snippet that receives the trigger props —
   spread them on your element:
 
     <StatePicker value={issue.stateId} onChange={…}>

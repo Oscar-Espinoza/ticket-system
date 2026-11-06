@@ -1,11 +1,10 @@
-<!-- One project row of the sidebar (ProjectItem in src/components/app-shell/sidebar-projects.tsx). -->
+<!-- One project row of the sidebar. -->
 <script module lang="ts">
   import { createSubscriber } from 'svelte/reactivity';
 
-  import type { SidebarProject } from './sidebar-projects.svelte';
+  import { readStorage, writeStorage } from '@/lib/svelte/storage';
 
-  // Guards against bad data: a cycle or absurd depth just stops nesting.
-  export const MAX_DEPTH = 4;
+  import type { SidebarProject } from './sidebar-types';
 
   // Per-project open state lives in localStorage; one shared listener set lets
   // every row re-read after a toggle (storage events don't fire in the same tab).
@@ -13,19 +12,11 @@
   const openListeners = new Set<() => void>();
 
   function readOpen(id: string): string | null {
-    try {
-      return localStorage.getItem(OPEN_PREFIX + id);
-    } catch {
-      return null;
-    }
+    return readStorage(OPEN_PREFIX + id);
   }
 
   function writeOpen(id: string, open: boolean) {
-    try {
-      localStorage.setItem(OPEN_PREFIX + id, open ? '1' : '0');
-    } catch {
-      // Storage unavailable: the row still toggles, it just isn't remembered.
-    }
+    writeStorage(OPEN_PREFIX + id, open ? '1' : '0');
     openListeners.forEach((listener) => listener());
   }
 
@@ -54,6 +45,7 @@
   import SettingsIcon from '@lucide/svelte/icons/settings';
   import SplitIcon from '@lucide/svelte/icons/split';
 
+  import { MAX_DEPTH } from '@/lib/components/project-tree';
   import { projectHref } from '@/lib/components/app-shell/routes';
   import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/lib/components/ui/collapsible';
   import { isAppHydrated, markAppHydrated } from '@/lib/svelte/hydration';
@@ -74,7 +66,7 @@
 
   let { project, childrenOf, depth = 0 }: SidebarProjectItemProps = $props();
 
-  // useSyncExternalStore's server snapshot is null, so SSR and hydration agree
+  // The server value is null, so SSR and hydration agree
   // on the default; a row mounted after hydration reads storage right away.
   let hydrated = $state(isAppHydrated());
   $effect(() => {

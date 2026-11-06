@@ -8,14 +8,15 @@
 // changes go through the issue service as the system actor, so activity,
 // notifications, Slack and outgoing webhooks all see them.
 //
-// Event types stay `github.*` for every provider (the notification dispatcher
-// and Slack already know them); `data.provider` tells them apart and
-// `data.actorName` names the integration in the activity line.
+// Event types stay `github.*` for every provider (see PR_EVENT); `data.provider`
+// tells them apart and `data.actorName` names the integration in the activity line.
 
 import { and, eq, inArray, isNull, or, sql, type SQL } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
-import { githubPullRequests, tickets, workflowStates } from '@/db/schema';
+import { githubPullRequests, tickets } from '@/db/schema';
+import { projectStatesQuery } from '@/lib/workflow-server';
+import { PR_EVENT } from '@/lib/event-names';
 import { emitIssueEvent, type IssueEventInput } from '@/lib/events';
 import { SYSTEM_ACTOR, updateIssueFields } from '@/lib/issue-service';
 import type { IssueRow, WorkflowState } from '@/lib/issue-model';
@@ -25,8 +26,9 @@ import {
   defaultPrOpenState,
   resolveAutomationState,
   shouldAdvance,
-} from '@/lib/github/automation';
-import { classifyPullRequest, closingNumbers } from '@/lib/github/references';
+} from '@/lib/vcs/automation-state';
+import type { VcsProject } from '@/lib/vcs/project';
+import { classifyPullRequest, closingNumbers } from '@/lib/vcs/references';
 import {
   prNoun,
   prNumberLabel,
@@ -35,22 +37,6 @@ import {
   type ReviewDecision,
   type VcsProvider,
 } from '@/lib/vcs/providers';
-
-export const PR_EVENT = {
-  branchCreated: 'github.branch_created',
-  prLinked: 'github.pr_linked',
-  prMerged: 'github.pr_merged',
-  prClosed: 'github.pr_closed',
-  commitClosed: 'github.commit_closed',
-} as const;
-
-export interface VcsProject {
-  id: string;
-  ticketKey: string;
-  /** The project's PR automation settings (Settings → GitHub), shared by every provider. */
-  prOpenStateId: string | null;
-  prMergeStateId: string | null;
-}
 
 export interface VcsPullRequest {
   provider: VcsProvider;
@@ -77,22 +63,8 @@ export interface VcsPullRequest {
  */
 export type PrTrigger = 'opened' | 'updated' | 'closed';
 
-async function loadStates(projectId: string): Promise<WorkflowState[]> {
-  return db
-    .select({
-      id: workflowStates.id,
-      name: workflowStates.name,
-      type: workflowStates.type,
-      color: workflowStates.color,
-      position: workflowStates.position,
-      description: workflowStates.description,
-    })
-    .from(workflowStates)
-    .where(eq(workflowStates.projectId, projectId));
-}
-
 /** Non-deleted issues of the project by number and/or stored branch name. */
-async function findIssues(projectId: string, numbers: number[], branch?: string | null): Promise<IssueRow[]> {
+async function findIssues(projectId: string, numbers: number[], branch: string | null): Promise<IssueRow[]> {
   const match: SQL[] = [];
   if (numbers.length) match.push(inArray(tickets.ticketNumber, numbers));
   if (branch) match.push(eq(tickets.githubBranch, branch));
@@ -228,7 +200,7 @@ export async function syncPullRequest(project: VcsProject, pr: VcsPullRequest, t
   if (events.length) await emitIssueEvent(events);
 
   if (!autoIssues.length) return;
-  const states = await loadStates(project.id);
+  const states = await projectStatesQuery(project.id);
   if (pr.state === 'merged') {
     // Only on the merge itself: a later edit of a merged PR must not re-close
     // an issue someone reopened by hand.
@@ -275,8 +247,8 @@ export async function syncClosingCommits(
   if (!closedBy.size) return;
 
   const [issues, states] = await Promise.all([
-    findIssues(project.id, [...closedBy.keys()]),
-    loadStates(project.id),
+    findIssues(project.id, [...closedBy.keys()], null),
+    projectStatesQuery(project.id),
   ]);
   const target = resolveAutomationState(project.prMergeStateId, states, defaultPrMergeState);
   if (!target) return;

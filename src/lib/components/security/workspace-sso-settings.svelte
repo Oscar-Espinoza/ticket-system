@@ -1,35 +1,16 @@
 <!--
-  Workspace → Security → Single sign-on (port of src/components/security/workspace-sso-settings.tsx).
+  Workspace → Security → Single sign-on.
   One IdP (SAML 2.0 or OIDC) per workspace for one email domain; the
   service-provider URLs are fixed per workspace, so they're shown before
   anything is saved (IdP setup needs them). The form is workspace-sso-form.svelte.
 -->
-<script module lang="ts">
-  export type Protocol = 'saml' | 'oidc';
-
-  export interface SsoProviderView {
-    protocol: Protocol;
-    domain: string;
-    issuer: string;
-    saml: { entryPoint: string; hasMetadata: boolean; hasCert: boolean } | null;
-    oidc: { clientId: string; hasSecret: boolean } | null;
-  }
-
-  export interface SsoUrls {
-    acsUrl: string;
-    spEntityId: string;
-    metadataUrl: string;
-    oidcRedirectUri: string;
-  }
-</script>
-
 <script lang="ts">
   import { untrack } from 'svelte';
   import KeyRoundIcon from '@lucide/svelte/icons/key-round';
   import PencilIcon from '@lucide/svelte/icons/pencil';
   import { toast } from 'svelte-sonner';
 
-  // The wrappers refresh the page data after they resolve (React's router.refresh()).
+  // The wrappers refresh the page data after they resolve (router refresh).
   import { removeWorkspaceSso, setSsoEnforced } from '@/lib/actions/security';
   import {
     AlertDialog,
@@ -46,6 +27,7 @@
   import { Switch } from '@/lib/components/ui/switch';
   import { EmptyState, LabelChip } from '@/lib/components/ui-icons';
   import SsoForm from './workspace-sso-form.svelte';
+  import type { SsoProviderView, SsoUrls } from './sso-types';
 
   let {
     workspaceId,
@@ -71,7 +53,7 @@
   let editing = $state(false);
   let removing = $state(false);
   let enforced = $state(untrack(() => initialEnforced));
-  // useTransition: one pending flag for both actions.
+  // In-flight counter: one pending flag for both actions.
   let running = $state(0);
   const pending = $derived(running > 0);
 

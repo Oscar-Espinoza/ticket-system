@@ -12,7 +12,7 @@
     EPIC_STATUSES,
     EPIC_STATUS_LABEL,
     type EpicStatus,
-  } from '@/lib/components/epics/epic-model';
+  } from '@/lib/epic-model';
   import EpicStatusIcon from './epic-status-icon.svelte';
 
   let {

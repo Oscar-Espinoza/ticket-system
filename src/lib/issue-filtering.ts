@@ -1,9 +1,17 @@
 // Issue filters: one plain-JSON shape that round-trips through the URL
 // (`?state=…&assignee=…`) and saved views, plus the pure matcher every issue
-// view runs on the client. Client-safe; only type imports from issue-model so
-// issue-model can re-export this module without an import cycle.
+// view runs on the client. Client-safe.
 
-import type { IssueRow, Priority, StateType } from '@/lib/issue-model';
+import { toDateString, weekRange } from '@/lib/dates';
+import {
+  PRIORITY_ORDER,
+  STATE_TYPE_ORDER,
+  type IssueRow,
+  type Priority,
+  type StateType,
+} from '@/lib/issue-model';
+import { DAY_MS, HOUR_MS } from '@/lib/time';
+import { isClosed } from '@/lib/workflow';
 
 /** Assignee value for "No assignee". */
 export const UNASSIGNED = 'unassigned';
@@ -37,10 +45,6 @@ export const HIERARCHY_FILTER_LABEL: Record<HierarchyFilter, string> = {
   hasSubIssues: 'Has sub-issues',
   isSubIssue: 'Is a sub-issue',
 };
-
-// Local copies (not imports) of the enum values — see the header comment.
-const STATE_TYPES: StateType[] = ['triage', 'backlog', 'unstarted', 'started', 'completed', 'canceled'];
-const PRIORITIES: Priority[] = ['urgent', 'high', 'medium', 'low', 'none'];
 
 /**
  * Within a property the values are any-of; properties combine with AND.
@@ -120,8 +124,8 @@ const oneOf =
 // Enum-typed lists drop unknown values; id lists keep anything non-empty
 // (a deleted label simply matches nothing).
 const LIST_GUARD: Partial<Record<ListKey, (value: string) => boolean>> = {
-  stateTypes: oneOf(STATE_TYPES),
-  priorities: oneOf(PRIORITIES),
+  stateTypes: oneOf(STATE_TYPE_ORDER),
+  priorities: oneOf(PRIORITY_ORDER),
   due: oneOf(DUE_FILTERS),
   hierarchy: oneOf(HIERARCHY_FILTERS),
 };
@@ -230,43 +234,25 @@ export interface FilterContext {
   projects?: { id: string; name: string; ticketKey: string }[];
 }
 
-function localDateString(date: Date): string {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-}
-
-function shiftDays(date: string, days: number): string {
-  const [y, m, d] = date.split('-').map(Number);
-  return localDateString(new Date(y, m - 1, d + days));
-}
-
-/** Monday..Sunday bounds of the week containing `today`, offset by `weeks`. */
-function weekBounds(today: string, weeks: number): [string, string] {
-  const [y, m, d] = today.split('-').map(Number);
-  const mondayOffset = (new Date(y, m - 1, d).getDay() + 6) % 7;
-  const monday = shiftDays(today, -mondayOffset + weeks * 7);
-  return [monday, shiftDays(monday, 6)];
-}
-
 function matchesDue(issue: IssueRow, due: DueFilter, today: string): boolean {
   const date = issue.dueDate;
   if (due === 'none') return date === null;
   if (date === null) return false;
   switch (due) {
     case 'overdue':
-      return date < today && issue.state.type !== 'completed' && issue.state.type !== 'canceled';
+      return date < today && !isClosed(issue.state.type);
     case 'today':
       return date === today;
     case 'thisWeek':
     case 'nextWeek': {
-      const [start, end] = weekBounds(today, due === 'thisWeek' ? 0 : 1);
+      const [start, end] = weekRange(today, due === 'thisWeek' ? 0 : 1);
       return date >= start && date <= end;
     }
   }
 }
 
 function withinRange(date: Date, range: RelativeRange, now: number): boolean {
-  return new Date(date).getTime() >= now - RANGE_DAYS[range] * 86_400_000;
+  return new Date(date).getTime() >= now - RANGE_DAYS[range] * DAY_MS;
 }
 
 /** A predicate for one set of filters (resolve once, test many issues). */
@@ -291,7 +277,7 @@ export function issueMatcher(
     .filter((w) => !(w.length > 1 && w.startsWith('-')))
     .join(' ')
     .toLowerCase();
-  const today = context.today ?? localDateString(new Date());
+  const today = context.today ?? toDateString(new Date());
   const now = context.now ?? Date.now();
   const termTests = search.terms
     .map((term) => termPredicate(term, { ...context, viewerId: viewer, today, now }))
@@ -573,14 +559,14 @@ export function searchSla(value: string): SlaValue | null {
 }
 
 /** "At risk" = open with less than this left on the SLA clock. */
-export const SLA_RISK_MS = 24 * 3_600_000;
+export const SLA_RISK_MS = 24 * HOUR_MS;
 
 const UNIT_MS: Record<string, number> = {
-  h: 3_600_000,
-  d: 86_400_000,
-  w: 7 * 86_400_000,
-  m: 30 * 86_400_000,
-  y: 365 * 86_400_000,
+  h: HOUR_MS,
+  d: DAY_MS,
+  w: 7 * DAY_MS,
+  m: 30 * DAY_MS,
+  y: 365 * DAY_MS,
 };
 
 /**
@@ -627,6 +613,64 @@ export function searchCycle(value: string): CycleWord | number | null {
   return /^\d{1,6}$/.test(v) ? Number(v) : null;
 }
 
+/**
+ * What a query value means, independent of where the query runs. The SQL
+ * adapter (lib/search) and the in-memory adapter (filterIssues) both read this
+ * instead of re-resolving aliases, case and date ranges themselves. `raw` keeps
+ * the user's spelling (ids, substring matches); `value`/`normalized` are lowercase.
+ */
+export type SearchValue =
+  | { key: 'is'; value: IsValue | null }
+  | { key: 'type'; value: StateType | null }
+  | { key: 'priority'; value: Priority | null }
+  | { key: 'cycle'; value: CycleWord | number | null }
+  | { key: 'due'; value: DueFilter | null }
+  | { key: 'created' | 'updated'; value: ReturnType<typeof searchTimeRange> }
+  | { key: 'sla'; value: SlaValue | null }
+  | { key: 'assignee' | 'creator'; value: 'me' | 'none' | 'user'; raw: string; normalized: string }
+  | { key: 'status' | 'label' | 'project' | 'epic'; value: string; raw: string };
+
+export function decodeSearchValue(key: SearchKey, raw: string, now: number): SearchValue {
+  const value = raw.toLowerCase();
+  switch (key) {
+    case 'is':
+      return { key, value: searchIs(value) };
+    case 'type':
+      return { key, value: searchStateType(value) };
+    case 'priority':
+      return { key, value: searchPriority(value) };
+    case 'cycle':
+      return { key, value: searchCycle(value) };
+    case 'due':
+      return { key, value: searchDue(value) };
+    case 'created':
+    case 'updated':
+      return { key, value: searchTimeRange(value, now) };
+    case 'sla':
+      return { key, value: searchSla(value) };
+    case 'assignee':
+    case 'creator':
+      return {
+        key,
+        value: value === 'me' ? 'me' : value === 'none' || value === 'unassigned' ? 'none' : 'user',
+        raw,
+        normalized: value,
+      };
+    case 'status':
+    case 'label':
+    case 'project':
+    case 'epic':
+      return { key, value, raw };
+  }
+}
+
+/** Whether the terms ask for archived issues explicitly (`is:archived`). */
+export function wantsArchived(terms: SearchTerm[]): boolean {
+  return terms.some(
+    (t) => t.key === 'is' && !t.negate && t.values.some((v) => decodeSearchValue('is', v, 0).value === 'archived'),
+  );
+}
+
 export interface SearchCycle {
   id: string;
   number: number;
@@ -644,8 +688,6 @@ export function cycleMatchesWord(cycle: SearchCycle, word: Exclude<CycleWord, 'n
   return ends <= now || cycle.completedAt !== null;
 }
 
-const isClosedType = (type: StateType) => type === 'completed' || type === 'canceled';
-
 /** Issue key prefix ("ENG-12" → "eng"). */
 const keyPrefix = (key: string) => key.slice(0, key.lastIndexOf('-')).toLowerCase();
 
@@ -653,46 +695,45 @@ type Resolved = FilterContext & { viewerId: string | null; today: string; now: n
 
 /** One term → predicate; null when the context can't evaluate it (ignored). */
 function termPredicate(term: SearchTerm, ctx: Resolved): ((issue: IssueRow) => boolean) | null {
-  const one = (value: string): ((issue: IssueRow) => boolean) | null => {
-    const v = value.toLowerCase();
-    switch (term.key) {
+  const one = (decoded: SearchValue): ((issue: IssueRow) => boolean) | null => {
+    switch (decoded.key) {
       case 'is': {
-        const is = searchIs(v);
-        if (is === 'open') return (i) => !isClosedType(i.state.type);
-        if (is === 'closed') return (i) => isClosedType(i.state.type);
+        const is = decoded.value;
+        if (is === 'open') return (i) => !isClosed(i.state.type);
+        if (is === 'closed') return (i) => isClosed(i.state.type);
         if (is === 'completed' || is === 'canceled') return (i) => i.state.type === is;
         if (is === 'archived') return (i) => i.archivedAt !== null;
         return () => false;
       }
       case 'status':
-        return (i) => i.state.name.toLowerCase().includes(v);
+        return (i) => i.state.name.toLowerCase().includes(decoded.value);
       case 'type': {
-        const type = searchStateType(v);
+        const type = decoded.value;
         return (i) => i.state.type === type;
       }
       case 'assignee':
       case 'creator': {
-        const pick = (i: IssueRow) => (term.key === 'assignee' ? i.assignee : i.creator);
-        if (v === 'me') return (i) => ctx.viewerId !== null && pick(i)?.id === ctx.viewerId;
-        if (v === 'none' || v === 'unassigned') return (i) => pick(i) === null;
+        const pick = (i: IssueRow) => (decoded.key === 'assignee' ? i.assignee : i.creator);
+        if (decoded.value === 'me') return (i) => ctx.viewerId !== null && pick(i)?.id === ctx.viewerId;
+        if (decoded.value === 'none') return (i) => pick(i) === null;
         return (i) => {
           const user = pick(i);
-          return !!user && (user.id === value || user.name.toLowerCase().includes(v));
+          return !!user && (user.id === decoded.raw || user.name.toLowerCase().includes(decoded.normalized));
         };
       }
       case 'priority': {
-        const priority = searchPriority(v);
+        const priority = decoded.value;
         return (i) => i.priority === priority;
       }
       case 'label':
-        if (v === 'none') return (i) => i.labels.length === 0;
-        return (i) => i.labels.some((l) => l.name.toLowerCase() === v);
+        if (decoded.value === 'none') return (i) => i.labels.length === 0;
+        return (i) => i.labels.some((l) => l.name.toLowerCase() === decoded.value);
       case 'project': {
-        const names = ctx.projects?.filter((p) => p.name.toLowerCase() === v).map((p) => p.id);
-        return (i) => keyPrefix(i.key) === v || (names?.includes(i.projectId) ?? false);
+        const names = ctx.projects?.filter((p) => p.name.toLowerCase() === decoded.value).map((p) => p.id);
+        return (i) => keyPrefix(i.key) === decoded.value || (names?.includes(i.projectId) ?? false);
       }
       case 'cycle': {
-        const word = searchCycle(v);
+        const word = decoded.value;
         if (word === 'none') return (i) => i.cycleId === null;
         if (word === null) return () => false;
         if (!ctx.cycles) return null;
@@ -704,29 +745,29 @@ function termPredicate(term: SearchTerm, ctx: Resolved): ((issue: IssueRow) => b
         return (i) => i.cycleId !== null && ids.has(i.cycleId);
       }
       case 'epic': {
-        if (v === 'none') return (i) => i.epicId === null;
+        if (decoded.value === 'none') return (i) => i.epicId === null;
         if (!ctx.epics) return null;
-        const ids = new Set(ctx.epics.filter((e) => e.name.toLowerCase().includes(v)).map((e) => e.id));
+        const ids = new Set(ctx.epics.filter((e) => e.name.toLowerCase().includes(decoded.value)).map((e) => e.id));
         return (i) => i.epicId !== null && ids.has(i.epicId);
       }
       case 'due': {
-        const due = searchDue(v);
+        const due = decoded.value;
         return (i) => due !== null && matchesDue(i, due, ctx.today);
       }
       case 'created':
       case 'updated': {
-        const range = searchTimeRange(v, ctx.now);
+        const range = decoded.value;
         return (i) => {
           if (!range) return false;
-          const at = new Date(term.key === 'created' ? i.createdAt : i.updatedAt).getTime();
+          const at = new Date(decoded.key === 'created' ? i.createdAt : i.updatedAt).getTime();
           return (range.after === undefined || at >= range.after) && (range.before === undefined || at < range.before);
         };
       }
       case 'sla': {
-        const sla = searchSla(v);
+        const sla = decoded.value;
         return (i) => {
           const due = i.slaDueAt ? new Date(i.slaDueAt).getTime() : null;
-          const open = !isClosedType(i.state.type);
+          const open = !isClosed(i.state.type);
           switch (sla) {
             case 'breached':
               return i.slaBreachedAt !== null || (due !== null && due <= ctx.now && open);
@@ -744,7 +785,7 @@ function termPredicate(term: SearchTerm, ctx: Resolved): ((issue: IssueRow) => b
     }
   };
 
-  const tests = term.values.map(one);
+  const tests = term.values.map((value) => one(decodeSearchValue(term.key, value, ctx.now)));
   if (tests.some((t) => t === null)) return null;
   const any = (issue: IssueRow) => tests.some((t) => t!(issue));
   return term.negate ? (issue) => !any(issue) : any;

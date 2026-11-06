@@ -6,12 +6,12 @@
   import ActivityIcon from '@lucide/svelte/icons/activity';
   import ArrowRightIcon from '@lucide/svelte/icons/arrow-right';
 
-  import { epicPath } from '@/lib/components/epics/epic-model';
+  import { epicPath } from '@/lib/epic-model';
   import EpicIcon from '@/lib/components/epics/epic-icon.svelte';
   import HealthChip from '@/lib/components/epics/health-chip.svelte';
   import { Avatar, EmptyState } from '@/lib/components/ui-icons';
   import type { Pulse } from '@/lib/pulse';
-  import { relativeTime } from '@/lib/components/issues/issue-properties';
+  import { relativeTime } from '@/lib/relative-time';
 
   let { pulse, days }: { pulse: Pulse; days: number } = $props();
 

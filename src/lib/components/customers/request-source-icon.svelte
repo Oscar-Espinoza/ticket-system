@@ -5,7 +5,7 @@
   import PenLineIcon from '@lucide/svelte/icons/pen-line';
 
   import { cn } from '@/lib/utils';
-  import { REQUEST_SOURCE_LABEL, type RequestSource } from '@/lib/components/customers/customer-model';
+  import { REQUEST_SOURCE_LABEL, type RequestSource } from '@/lib/customer-model';
 
   let { source, class: className }: { source: RequestSource; class?: string } = $props();
 

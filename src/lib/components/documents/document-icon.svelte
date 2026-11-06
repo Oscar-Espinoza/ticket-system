@@ -1,4 +1,4 @@
-<!-- The doc's emoji, or a quiet page glyph (port of document-icon.tsx). -->
+<!-- The doc's emoji, or a quiet page glyph. -->
 <script lang="ts">
   import FileText from '@lucide/svelte/icons/file-text';
 

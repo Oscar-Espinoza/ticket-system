@@ -1,7 +1,7 @@
 <!--
   Compact one-line issue reference (sub-issues, relations): state glyph, key,
   title, optional trailing content, and a hover remove button.
-  `trailing` is a snippet (React ReactNode).
+  `trailing` is a snippet.
 -->
 <script lang="ts">
   import type { Snippet } from 'svelte';

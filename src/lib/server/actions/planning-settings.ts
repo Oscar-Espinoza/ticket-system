@@ -1,23 +1,29 @@
 // Project planning + automation settings (admin level): cycles cadence and
-// cooldown, triage,
-// auto-archive / auto-close. Saving cycle settings schedules cycles right away
+// cooldown, triage, auto-archive / auto-close. Saving cycle settings schedules cycles right away
 // instead of waiting for the next daily automation run.
 
-import { revalidatePath } from '@/lib/kit/request';
 import { eq } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import { projects } from '@/db/schema';
 import { authorizeProjectAction } from '@/lib/action-auth';
 import { ensureUpcomingCycles, getProjectCycles, rescheduleUpcomingCycles } from '@/lib/cycles';
-import { AUTOMATION_MONTHS, MAX_COOLDOWN_WEEKS } from '@/lib/components/cycles/cycle-utils';
+import {
+  AUTOMATION_MONTHS,
+  MAX_COOLDOWN_WEEKS,
+  MAX_CYCLE_WEEKS,
+  MIN_CYCLE_WEEKS,
+  WEEKDAYS,
+  type CycleCadence,
+} from '@/lib/cycle-utils';
+import { fail, refreshesData, type ActionResult } from '@/lib/server/action-kit';
 
-export type SettingsActionResult = { ok: true } | { ok: false; error: string };
+export type SettingsActionResult = ActionResult;
 
 export interface PlanningSettingsInput {
   projectId: string;
   cyclesEnabled: boolean;
-  /** 1–8 */
+  /** MIN_CYCLE_WEEKS … MAX_CYCLE_WEEKS */
   durationWeeks: number;
   /** 0 = Sunday … 6 = Saturday */
   startWeekday: number;
@@ -29,10 +35,6 @@ export interface PlanningSettingsInput {
   triageEnabled: boolean;
 }
 
-function revalidateProject(projectId: string) {
-  revalidatePath(`/dashboard/projects/${projectId}`, 'layout');
-}
-
 export async function updatePlanningSettings(
   input: PlanningSettingsInput,
 ): Promise<SettingsActionResult> {
@@ -41,16 +43,16 @@ export async function updatePlanningSettings(
   const { projectId } = input;
 
   const duration = input.durationWeeks;
-  if (!Number.isInteger(duration) || duration < 1 || duration > 8) {
-    return { ok: false, error: 'Cycle duration must be 1 to 8 weeks.' };
+  if (!Number.isInteger(duration) || duration < MIN_CYCLE_WEEKS || duration > MAX_CYCLE_WEEKS) {
+    return fail(`Cycle duration must be ${MIN_CYCLE_WEEKS} to ${MAX_CYCLE_WEEKS} weeks.`);
   }
   const weekday = input.startWeekday;
-  if (!Number.isInteger(weekday) || weekday < 0 || weekday > 6) {
-    return { ok: false, error: 'Invalid start day.' };
+  if (!Number.isInteger(weekday) || weekday < 0 || weekday >= WEEKDAYS.length) {
+    return fail('Invalid start day.');
   }
   const cooldown = input.cooldownWeeks ?? 0;
   if (!Number.isInteger(cooldown) || cooldown < 0 || cooldown > MAX_COOLDOWN_WEEKS) {
-    return { ok: false, error: `Cooldown must be 0 to ${MAX_COOLDOWN_WEEKS} weeks.` };
+    return fail(`Cooldown must be 0 to ${MAX_COOLDOWN_WEEKS} weeks.`);
   }
   const cyclesEnabled = input.cyclesEnabled === true;
   const autoCreate = input.autoCreate === true;
@@ -67,7 +69,7 @@ export async function updatePlanningSettings(
       .limit(1),
     getProjectCycles(projectId),
   ]);
-  if (!before) return { ok: false, error: 'Project not found.' };
+  if (!before) return fail('Project not found.');
 
   await db
     .update(projects)
@@ -90,18 +92,17 @@ export async function updatePlanningSettings(
         (before.durationWeeks !== duration ||
           before.startWeekday !== weekday ||
           before.cooldownWeeks !== cooldown);
+      const cadence: CycleCadence = { durationWeeks: duration, weekday, cooldownWeeks: cooldown };
       const now = new Date();
-      if (cadenceChanged) {
-        await rescheduleUpcomingCycles(projectId, duration, weekday, now, cooldown);
-      }
-      if (autoCreate) await ensureUpcomingCycles(projectId, duration, now, weekday, cooldown);
+      if (cadenceChanged) await rescheduleUpcomingCycles(projectId, cadence, now);
+      if (autoCreate) await ensureUpcomingCycles(projectId, cadence, now);
     } catch (err) {
       // Settings are saved; the daily automation run retries the scheduling.
       console.error('[planning] cycle scheduling failed', err);
     }
   }
 
-  revalidateProject(projectId);
+  refreshesData();
   return { ok: true };
 }
 
@@ -117,7 +118,7 @@ export async function updateAutomationSettings(input: {
   const authz = await authorizeProjectAction(input?.projectId, 'admin');
   if (!authz.ok) return authz;
   if (!validMonths(input.autoArchiveMonths) || !validMonths(input.autoCloseMonths)) {
-    return { ok: false, error: 'Invalid period.' };
+    return fail('Invalid period.');
   }
   await db
     .update(projects)
@@ -127,6 +128,6 @@ export async function updateAutomationSettings(input: {
       updatedAt: new Date(),
     })
     .where(eq(projects.id, input.projectId));
-  revalidateProject(input.projectId);
+  refreshesData();
   return { ok: true };
 }

@@ -1,14 +1,13 @@
 // The app's only global keydown listener; the `?` overlay lists exactly what is registered.
 //
-// Svelte port of src/lib/hotkeys.ts. API (same names as the React module):
+// API:
 //   registerHotkeys(list) → cleanup      call from $effect / onMount and return the cleanup
 //   formatHotkey({ mod, shift, key })    "⌘⇧K" on Mac, "Ctrl+Shift+K" elsewhere
-//   getHotkeys() / subscribeHotkeys(fn)  raw snapshot + listener (useSyncExternalStore pair)
-//   registeredHotkeys.current            reactive list for the `?` overlay (replaces
-//                                        useSyncExternalStore(subscribeHotkeys, getHotkeys))
+//   getHotkeys() / subscribeHotkeys(fn)  raw snapshot + listener
+//   registeredHotkeys.current            reactive list for the `?` overlay
 //   hasOpenLayer() / isEditableTarget()  the layer / text-field tests the registry uses
 //
-// This is its own registry (not a re-export of src/lib/hotkeys.ts) because the
+// This is its own registry (not a re-export) because the
 // open-layer test must look for bits-ui's floating wrapper instead of Radix's.
 // Every Svelte module must register here — never import '@/lib/hotkeys'.
 //
@@ -126,7 +125,7 @@ export const OPEN_LAYER_SELECTOR =
 
 // bits-ui keeps the open dialog role="dialog" data-state="open" and renders open
 // menus / popovers / selects / tooltips inside a floating wrapper (Radix's
-// popper wrapper in the React app) — while any layer is open, bare keys belong
+// popper wrapper) — while any layer is open, bare keys belong
 // to the layer (its own Esc/typeahead handling), not to the registry.
 export function hasOpenLayer(): boolean {
   return !!document.querySelector(OPEN_LAYER_SELECTOR);

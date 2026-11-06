@@ -1,5 +1,5 @@
 <!-- URL-driven tab bar (links, not in-page panels) styled like the project tabs,
-     so server pages can switch data by search param. Port of src/components/navigation/page-tabs.tsx. -->
+     so server pages can switch data by search param. -->
 <script lang="ts">
   import { cn } from '@/lib/utils';
 

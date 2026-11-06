@@ -1,5 +1,4 @@
-<!-- Project settings frame (port of src/app/dashboard/projects/[id]/settings/layout.tsx).
-     The project layout above has already checked membership (non-members 404);
+<!-- The project layout above has already checked membership (non-members 404);
      each settings action re-checks the role. -->
 <script lang="ts">
   import { PROJECT_SETTINGS_NAV, projectHref } from '@/lib/components/app-shell/routes';

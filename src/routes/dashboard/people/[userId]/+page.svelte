@@ -1,7 +1,5 @@
 <!--
-  Member profile (port of src/app/dashboard/people/[userId]/page.tsx).
-  loading.tsx is not ported per page: the dashboard layout shows the
-  navigation progress indicator (PLAN.md "Pages and data loading").
+  Member profile. The dashboard layout shows the navigation progress indicator.
 -->
 <script lang="ts">
   import ActivityIcon from '@lucide/svelte/icons/activity';
@@ -12,7 +10,7 @@
   import { issuePath } from '@/lib/issue-links';
   import { Avatar, EmptyState, LabelChip, PriorityIcon, StateIcon } from '@/lib/components/ui-icons';
   import { Button } from '@/lib/components/ui/button';
-  import { PROJECT_ROLE_LABEL } from '@/lib/components/workspaces/role-rules';
+  import { PROJECT_ROLE_LABEL } from '@/lib/roles';
   import LocalTime from '@/lib/components/people/local-time.svelte';
   import type { PageProps } from './$types';
 

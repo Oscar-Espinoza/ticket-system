@@ -11,7 +11,7 @@
   import { Label } from '@/lib/components/ui/label';
   import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/lib/components/ui/select';
   import { Textarea } from '@/lib/components/ui/textarea';
-  import { dashboardHref } from '@/lib/components/dashboards/widget-model';
+  import { dashboardHref } from '@/lib/widget-model';
 
   const ALL = '__all';
 

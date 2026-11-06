@@ -4,10 +4,9 @@
 
   import { Button } from '@/lib/components/ui/button';
   import { Input } from '@/lib/components/ui/input';
+  import { MIN_PASSWORD_LENGTH } from '@/lib/auth-rules';
   import { authClient } from '@/lib/svelte/auth-client';
   import Field from './field.svelte';
-
-  const MIN_LENGTH = 8; // Keep in sync with emailAndPassword.minPasswordLength.
 
   let formEl = $state<HTMLFormElement>();
   let pending = $state(false);
@@ -22,8 +21,8 @@
 
     const nextErrors: typeof errors = {};
     if (!currentPassword) nextErrors.current = 'Enter your current password.';
-    if (newPassword.length < MIN_LENGTH) {
-      nextErrors.next = `Use at least ${MIN_LENGTH} characters.`;
+    if (newPassword.length < MIN_PASSWORD_LENGTH) {
+      nextErrors.next = `Use at least ${MIN_PASSWORD_LENGTH} characters.`;
     }
     if (confirm !== newPassword) nextErrors.confirm = "Passwords don't match.";
     errors = nextErrors;
@@ -65,7 +64,7 @@
   <Field
     id="new-password"
     label="New password"
-    hint={`At least ${MIN_LENGTH} characters.`}
+    hint={`At least ${MIN_PASSWORD_LENGTH} characters.`}
     error={errors.next}
   >
     <Input

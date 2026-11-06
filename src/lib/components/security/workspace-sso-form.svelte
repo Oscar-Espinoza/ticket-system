@@ -1,7 +1,4 @@
-<!--
-  Connect / edit the workspace identity provider (the non-exported SsoForm of
-  src/components/security/workspace-sso-settings.tsx).
--->
+<!-- Connect / edit the workspace identity provider. -->
 <script lang="ts">
   import { untrack } from 'svelte';
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
@@ -16,7 +13,7 @@
   import { Textarea } from '@/lib/components/ui/textarea';
   import { ToggleGroup, ToggleGroupItem } from '@/lib/components/ui/toggle-group';
   import SetupNotes from './setup-notes.svelte';
-  import type { Protocol, SsoProviderView, SsoUrls } from './workspace-sso-settings.svelte';
+  import type { Protocol, SsoProviderView, SsoUrls } from './sso-types';
 
   let {
     workspaceId,
@@ -38,7 +35,7 @@
     onSaved: () => void;
   } = $props();
 
-  // useState initial values: read once from the provider, like React.
+  // useState initial values: read once from the provider.
   const initial = untrack(() => provider);
   let protocol = $state<Protocol>(initial?.protocol ?? 'saml');
   let domain = $state(initial?.domain ?? '');
@@ -91,8 +88,7 @@
           }),
     };
     // Read before the await: the wrapper refreshes page data before resolving,
-    // so `provider` would already be the newly saved one (React's closure kept
-    // the render-time value).
+    // so `provider` would already be the newly saved one (keep the render-time value).
     const wasConfigured = !!provider;
     pending = true;
     try {

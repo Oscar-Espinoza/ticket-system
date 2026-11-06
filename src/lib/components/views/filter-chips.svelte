@@ -1,6 +1,5 @@
 <!--
   One segmented chip per filtered property; click edits, × removes.
-  Port of FilterChips in src/components/views/filter-menu.tsx (same props).
 -->
 <script lang="ts">
   import XIcon from '@lucide/svelte/icons/x';

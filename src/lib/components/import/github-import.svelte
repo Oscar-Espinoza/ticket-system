@@ -4,6 +4,7 @@
   chunked pipeline as CSV.
 -->
 <script lang="ts">
+  import { pluralize } from '@/lib/format';
   import GitBranchIcon from '@lucide/svelte/icons/git-branch';
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
   import { toast } from 'svelte-sonner';
@@ -171,7 +172,7 @@
         </section>
         <div>
           <Button onclick={() => fetched && void runner.run(fetched.records)}>
-            Import {fetched.records.length} issue{fetched.records.length === 1 ? '' : 's'}
+            Import {pluralize(fetched.records.length, 'issue')}
           </Button>
         </div>
       {/if}

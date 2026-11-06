@@ -1,4 +1,4 @@
-<!-- Project issues page (port of src/app/dashboard/projects/[id]/page.tsx). The title comes from the project layout. -->
+<!-- The title comes from the project layout. -->
 <script lang="ts">
   import IssuesView from '@/lib/components/issues/issues-view.svelte';
   import type { PageProps } from './$types';
@@ -6,7 +6,7 @@
   let { data, params }: PageProps = $props();
 </script>
 
-<!-- Next remounted the page per project; Kit reuses it, so key it by project. -->
+<!-- Kit reuses the page across projects, so key it by project. -->
 {#key params.id}
   <IssuesView issues={data.issues} defaultView={data.defaultView} />
 {/key}

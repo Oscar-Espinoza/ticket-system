@@ -1,5 +1,5 @@
 <!--
-  Workspace → Security → SCIM provisioning (port of src/components/security/scim-settings.tsx):
+  Workspace → Security → SCIM provisioning:
   one bearer token per workspace, shown once (stored hashed), rotate or revoke
   any time.
 -->
@@ -10,7 +10,7 @@
   import UsersIcon from '@lucide/svelte/icons/users';
   import { toast } from 'svelte-sonner';
 
-  // Both wrappers refresh the page data after they resolve (React's router.refresh()).
+  // Both wrappers refresh the page data after they resolve.
   import { generateScimToken, revokeScimToken } from '@/lib/actions/security';
   import CopyField from '@/lib/components/integrations/copy-field.svelte';
   import Field from '@/lib/components/settings/field.svelte';
@@ -49,7 +49,7 @@
   let configured = $state(untrack(() => initialConfigured));
   let token = $state<string | null>(null);
   let confirm = $state<'rotate' | 'revoke' | null>(null);
-  // useTransition: one pending flag for both actions.
+  // In-flight counter: one pending flag for both actions.
   let running = $state(0);
   const pending = $derived(running > 0);
 

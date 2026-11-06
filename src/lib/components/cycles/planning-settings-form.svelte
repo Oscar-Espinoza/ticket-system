@@ -16,6 +16,7 @@
   import LoaderCircle from '@lucide/svelte/icons/loader-circle';
   import { toast } from 'svelte-sonner';
 
+  import { actionErrorText } from '@/lib/action-errors';
   import { updatePlanningSettings } from '@/lib/actions/planning-settings';
   import Field from '@/lib/components/settings/field.svelte';
   import { Button } from '@/lib/components/ui/button';
@@ -28,7 +29,7 @@
     CYCLE_DURATIONS,
     UPCOMING_CYCLES,
     WEEKDAYS,
-  } from '@/lib/components/cycles/cycle-utils';
+  } from '@/lib/cycle-utils';
 
   let {
     projectId,
@@ -78,7 +79,7 @@
       const snapshot = { ...values };
       const result = await updatePlanningSettings({ projectId, ...snapshot });
       if (!result.ok) {
-        toast.error(result.error === 'Forbidden' ? 'Only admins can change these settings.' : result.error);
+        toast.error(actionErrorText(result.error, 'Only admins can change these settings.'));
         return;
       }
       saved = snapshot;

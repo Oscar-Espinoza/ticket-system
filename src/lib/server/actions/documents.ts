@@ -2,7 +2,6 @@
 // project (guests read only); the project is always taken from the stored row,
 // never from the client, and a linked epic must belong to that same project.
 
-import { revalidatePath } from '@/lib/kit/request';
 import { and, eq } from 'drizzle-orm';
 
 import { documents, epics } from '@/db/schema';
@@ -11,28 +10,30 @@ import {
   DOCUMENT_TEMPLATES,
   ICON_MAX,
   TITLE_MAX,
-  documentPath,
-  documentsPath,
   isTemplateId,
   type DocumentTemplateId,
-} from '@/lib/components/documents/document-model';
-import { authorizeProjectAction } from '@/lib/action-auth';
-import { docCollabKey } from '@/lib/collab/codec';
-import { deleteCollabQueries } from '@/lib/collab/store';
+} from '@/lib/document-model';
+import { authorizeProjectAction, roleAllows } from '@/lib/action-auth';
+import { deleteCollabState } from '@/lib/collab/store';
 import { db } from '@/lib/db';
+import { getDocumentAccess } from '@/lib/documents';
+import {
+  fail,
+  NOT_AUTHENTICATED,
+  refreshesData,
+  type ActionResult,
+} from '@/lib/server/action-kit';
+import { isEntityId } from '@/lib/ids';
+import { sessionUserId } from '@/lib/session';
+import { clippedText } from '@/lib/text';
 
-export type DocumentActionResult = { ok: true; id: string } | { ok: false; error: string };
+export type DocumentActionResult = ActionResult<{ id: string }>;
 
-const ID = /^[A-Za-z0-9_-]{1,64}$/;
-
-function revalidateDocs(projectId: string, documentId?: string) {
-  revalidatePath(documentsPath(projectId));
-  if (documentId) revalidatePath(documentPath(projectId, documentId));
-}
+const DOCUMENT_NOT_FOUND = fail('Document not found.');
 
 async function epicInProject(epicId: unknown, projectId: string): Promise<string | null | false> {
   if (epicId === null) return null;
-  if (typeof epicId !== 'string' || !ID.test(epicId)) return false;
+  if (!isEntityId(epicId)) return false;
   const [row] = await db
     .select({ id: epics.id })
     .from(epics)
@@ -43,28 +44,18 @@ async function epicInProject(epicId: unknown, projectId: string): Promise<string
 
 /** Loads the document's project and checks the caller may write to it. */
 async function authorizeDocument(documentId: unknown) {
-  if (typeof documentId !== 'string' || !ID.test(documentId)) {
-    return { ok: false as const, error: 'Document not found.' };
-  }
-  const [doc] = await db
-    .select({ id: documents.id, projectId: documents.projectId, archivedAt: documents.archivedAt })
-    .from(documents)
-    .where(eq(documents.id, documentId))
-    .limit(1);
+  if (!isEntityId(documentId)) return DOCUMENT_NOT_FOUND;
+  const userId = await sessionUserId();
+  if (!userId) return NOT_AUTHENTICATED;
+  const access = await getDocumentAccess(documentId, userId);
   // Same answer for "missing" and "not yours" (no id probing).
-  if (!doc) return { ok: false as const, error: 'Document not found.' };
-  const authz = await authorizeProjectAction(doc.projectId, 'write');
-  if (!authz.ok) return { ok: false as const, error: authz.error === 'Forbidden' ? 'Document not found.' : authz.error };
-  return { ok: true as const, doc, userId: authz.userId, role: authz.role };
+  if (!access || !roleAllows(access.role, 'write')) return DOCUMENT_NOT_FOUND;
+  const doc = { id: documentId, projectId: access.projectId, archivedAt: access.archivedAt };
+  return { ok: true as const, doc, userId, role: access.role };
 }
 
 function cleanTitle(value: unknown): string {
   return typeof value === 'string' ? value.replace(/\s+/g, ' ').trim().slice(0, TITLE_MAX) || 'Untitled' : 'Untitled';
-}
-
-function cleanIcon(value: unknown): string | null {
-  if (typeof value !== 'string') return null;
-  return value.trim().slice(0, ICON_MAX) || null;
 }
 
 export async function createDocument(input: {
@@ -74,12 +65,12 @@ export async function createDocument(input: {
   title?: string;
 }): Promise<DocumentActionResult> {
   const authz = await authorizeProjectAction(input?.projectId, 'write');
-  if (!authz.ok) return { ok: false, error: authz.error };
+  if (!authz.ok) return authz;
   const projectId = input.projectId;
 
   const template = DOCUMENT_TEMPLATES.find((t) => t.id === (isTemplateId(input.template) ? input.template : 'blank'))!;
   const epicId = input.epicId === undefined ? null : await epicInProject(input.epicId, projectId);
-  if (epicId === false) return { ok: false, error: 'That epic isn’t in this project.' };
+  if (epicId === false) return fail('That epic isn’t in this project.');
 
   const now = new Date();
   const id = crypto.randomUUID();
@@ -96,7 +87,7 @@ export async function createDocument(input: {
     createdAt: now,
     updatedAt: now,
   });
-  revalidateDocs(projectId);
+  refreshesData();
   return { ok: true, id };
 }
 
@@ -109,14 +100,14 @@ export async function updateDocument(input: {
   const auth = await authorizeDocument(input?.id);
   if (!auth.ok) return auth;
   const { doc, userId } = auth;
-  if (doc.archivedAt) return { ok: false, error: 'Unarchive the document to edit it.' };
+  if (doc.archivedAt) return fail('Unarchive the document to edit it.');
 
   const patch: Partial<typeof documents.$inferInsert> = {};
   if (input.title !== undefined) patch.title = cleanTitle(input.title);
-  if (input.icon !== undefined) patch.icon = cleanIcon(input.icon);
+  if (input.icon !== undefined) patch.icon = clippedText(input.icon, ICON_MAX);
   if (input.epicId !== undefined) {
     const epicId = await epicInProject(input.epicId, doc.projectId);
-    if (epicId === false) return { ok: false, error: 'That epic isn’t in this project.' };
+    if (epicId === false) return fail('That epic isn’t in this project.');
     patch.epicId = epicId;
   }
   if (Object.keys(patch).length === 0) return { ok: true, id: doc.id };
@@ -125,7 +116,7 @@ export async function updateDocument(input: {
     .update(documents)
     .set({ ...patch, updatedById: userId, updatedAt: new Date() })
     .where(eq(documents.id, doc.id));
-  revalidateDocs(doc.projectId, doc.id);
+  refreshesData();
   return { ok: true, id: doc.id };
 }
 
@@ -135,11 +126,11 @@ export async function updateDocument(input: {
  * No revalidation: the open editor is the live view, lists are dynamic.
  */
 export async function saveDocumentContent(input: { id: string; content: string }): Promise<DocumentActionResult> {
-  if (typeof input?.content !== 'string') return { ok: false, error: 'Invalid content.' };
-  if (input.content.length > CONTENT_MAX) return { ok: false, error: 'This document is too long to save.' };
+  if (typeof input?.content !== 'string') return fail('Invalid content.');
+  if (input.content.length > CONTENT_MAX) return fail('This document is too long to save.');
   const auth = await authorizeDocument(input.id);
   if (!auth.ok) return auth;
-  if (auth.doc.archivedAt) return { ok: false, error: 'Unarchive the document to edit it.' };
+  if (auth.doc.archivedAt) return fail('Unarchive the document to edit it.');
 
   await db
     .update(documents)
@@ -156,7 +147,7 @@ async function setArchived(id: unknown, archived: boolean): Promise<DocumentActi
     .update(documents)
     .set({ archivedAt: archived ? now : null, updatedById: auth.userId, updatedAt: now })
     .where(eq(documents.id, auth.doc.id));
-  revalidateDocs(auth.doc.projectId, auth.doc.id);
+  refreshesData();
   return { ok: true, id: auth.doc.id };
 }
 
@@ -173,7 +164,7 @@ export async function deleteDocument(input: { id: string }): Promise<DocumentAct
   const auth = await authorizeDocument(input?.id);
   if (!auth.ok) return auth;
   const { doc } = auth;
-  await db.batch([db.delete(documents).where(eq(documents.id, doc.id)), ...deleteCollabQueries(docCollabKey(doc.id))]);
-  revalidateDocs(doc.projectId);
+  await db.batch([db.delete(documents).where(eq(documents.id, doc.id)), ...deleteCollabState('doc', doc.id)]);
+  refreshesData();
   return { ok: true, id: doc.id };
 }

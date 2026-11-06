@@ -1,27 +1,19 @@
 // Settings → SLAs. Membership is checked first (non-members 404); the save
 // actions re-check the admin role.
 
-import { error, redirect } from '@sveltejs/kit';
-import { eq } from 'drizzle-orm';
+import { error } from '@sveltejs/kit';
 
-import { projects } from '@/db/schema';
-import { db } from '@/lib/db';
-import { getMemberProject } from '@/lib/project-access';
+import { getSlaPolicyRow } from '@/lib/project-settings-read';
 import { roleAllows } from '@/lib/roles';
 import { normalizeSlaPolicy } from '@/lib/sla';
+import { loadViewerProject } from '../../project-load';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ params, locals }) => {
+export const load: PageServerLoad = async ({ params }) => {
   const { id } = params;
-  if (!locals.user) redirect(303, '/login');
-  const membership = await getMemberProject(id, locals.user.id);
-  if (!membership) error(404, 'Not found');
+  const { project: membership } = await loadViewerProject(id);
 
-  const [project] = await db
-    .select({ slaPolicy: projects.slaPolicy })
-    .from(projects)
-    .where(eq(projects.id, id))
-    .limit(1);
+  const project = await getSlaPolicyRow(id);
   if (!project) error(404, 'Not found');
 
   return {

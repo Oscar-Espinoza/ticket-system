@@ -1,6 +1,5 @@
 // Glue between a synced collaborative doc and the markdown snapshot stored on
-// the row (issue.description / document.content). Line-by-line port of
-// src/components/collab/use-collab-editor.ts:
+// the row (issue.description / document.content).
 // - empty key → seed the Y.Doc from the markdown (server accepts one seed);
 // - diverged → issue descriptions: decided by who wrote the stored markdown
 //   last (snapshot.projection, read at sync time — never the page's possibly
@@ -19,7 +18,7 @@
 //   collabEditor.state   'pending' | 'ready' | 'lossy' (reactive)
 //   collabEditor.onChange  pass to MarkdownEditor's onChange
 // `markdown`, `truth` (and the first `hasPeers`) are read once, when the hook
-// starts, like React's initial ref; callbacks and `hasPeers` are read fresh.
+// starts, like an initial ref; callbacks and `hasPeers` are read fresh.
 
 import { untrack } from 'svelte';
 import type { Editor, JSONContent } from '@tiptap/core';
@@ -30,6 +29,7 @@ import * as Y from 'yjs';
 import { keepsText, normalizeParsed, tidyMarkdown } from '@/lib/components/editor/markdown-io';
 import { serializeMarkdown } from '@/lib/components/editor/rich-editor.svelte';
 import type { CollabProvider, CollabSnapshot } from '@/lib/collab/provider';
+import { createDebouncer } from '@/lib/svelte/debounce';
 import { reconcileTarget } from './reconcile';
 
 export { reconcileTarget };
@@ -95,14 +95,14 @@ export function useCollabEditor(options: () => UseCollabEditorOptions): {
   // or undoing back to it isn't a change worth saving. Remote steps reset it.
   let baseline: string | null = null;
   let initFor: Editor | null = null;
-  // The latest options, untracked (React's refs, refreshed every render).
+  // The latest options, untracked (refreshed every render).
   const current = () => untrack(options);
   const initial = untrack(() => {
     const { markdown, truth } = options();
     return { markdown, truth };
   });
 
-  // Only these are tracked by the effects below (React's dependency lists).
+  // Only these are tracked by the effects below.
   const editor = $derived(options().editor);
   const provider = $derived(options().provider);
   const synced = $derived(options().snapshot.synced);
@@ -115,7 +115,7 @@ export function useCollabEditor(options: () => UseCollabEditorOptions): {
     const ed = editor;
     const prov = provider;
     if (!ed || !prov || !synced || initFor === ed) return;
-    // Read so a change re-runs this check, as in React's deps (the guard above
+    // Read so a change re-runs this check, like a dependency (the guard above
     // keeps it to once per editor).
     void empty;
     void canWrite;
@@ -205,17 +205,16 @@ export function useCollabEditor(options: () => UseCollabEditorOptions): {
     const ed = editor;
     const wait = delay;
     if (!ed || lossy || !canWrite) return;
-    let timer: ReturnType<typeof setTimeout> | null = null;
+    const debounce = createDebouncer();
     const save = () => {
-      timer = null;
       const value = latest ?? (ed.isDestroyed ? null : serializeMarkdown(ed));
       if (value === null || value === baseline) return;
       baseline = value;
       current().onSave(value);
     };
     const flush = () => {
-      if (timer === null) return;
-      clearTimeout(timer);
+      if (!debounce.pending) return;
+      debounce.cancel();
       save();
     };
     const onUpdate = ({ transaction }: { transaction: Parameters<typeof isChangeOrigin>[0] }) => {
@@ -223,8 +222,7 @@ export function useCollabEditor(options: () => UseCollabEditorOptions): {
         baseline = null;
         return;
       }
-      if (timer !== null) clearTimeout(timer);
-      timer = setTimeout(save, wait);
+      debounce.schedule(save, wait);
     };
     ed.on('update', onUpdate);
     window.addEventListener('pagehide', flush);

@@ -1,4 +1,4 @@
-<!-- One @mention candidate (exported MemberOption of suggestion-menu.tsx). -->
+<!-- One @mention candidate. -->
 <script lang="ts">
   import { Avatar } from '@/lib/components/ui-icons';
   import type { IssueUser } from '@/lib/issue-model';

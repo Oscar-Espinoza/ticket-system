@@ -1,4 +1,4 @@
-// Issue relations DAL. NO AUTHORIZATION here — callers (src/app/actions/relations.ts)
+// Issue relations DAL. NO AUTHORIZATION here — callers (server/actions/relations.ts)
 // authorize first; every function scopes by projectId so ids can't reach across projects.
 //
 // Storage: one `issue_relation` row per relation. `blocks` = ticket blocks
@@ -8,12 +8,13 @@
 import { and, eq, inArray, isNull, or } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
-import { issueRelations, projects, tickets, workflowStates } from '@/db/schema';
+import { issueRelations, projects, tickets } from '@/db/schema';
 import { prepareIssueEvents, publishIssueEvents } from '@/lib/events';
 import { updateIssueFields } from '@/lib/issue-service';
 import type { IssueRow } from '@/lib/issue-model';
-import { queryIssues } from '@/lib/tickets';
-import { firstStateOfType } from '@/lib/workflow';
+import { queryIssues, formatIssueKey } from '@/lib/tickets';
+import { duplicateState } from '@/lib/triage';
+import { projectStatesQuery } from '@/lib/workflow-server';
 
 export type RelationKind = 'blocks' | 'blocked_by' | 'related' | 'duplicate_of' | 'duplicated_by';
 /** What the "add relation" menu offers; "duplicated by" is only ever an inverse view. */
@@ -85,7 +86,7 @@ async function loadTickets(projectId: string, ids: string[]): Promise<Map<string
   return new Map(
     rows.map((r) => [
       r.id,
-      { id: r.id, key: `${r.ticketKey}-${r.number}`, title: r.title, deletedAt: r.deletedAt },
+      { id: r.id, key: formatIssueKey(r.ticketKey, r.number), title: r.title, deletedAt: r.deletedAt },
     ]),
   );
 }
@@ -221,30 +222,13 @@ export async function createIssueRelation(
   publishIssueEvents(events.stored);
 
   if (kind === 'duplicate_of') {
-    const state = await duplicateState(projectId);
+    const state = duplicateState(await projectStatesQuery(projectId))?.id ?? null;
     if (state) {
       const moved = await updateIssueFields({ userId: actorId }, projectId, self.id, { stateId: state });
       if (!moved.ok) return { ok: true, warning: `Linked, but couldn't move ${self.key}: ${moved.error}` };
     }
   }
   return { ok: true };
-}
-
-/** The project's "Duplicate" canceled state, else its first canceled state. */
-async function duplicateState(projectId: string): Promise<string | null> {
-  const states = await db
-    .select({
-      id: workflowStates.id,
-      name: workflowStates.name,
-      type: workflowStates.type,
-      color: workflowStates.color,
-      position: workflowStates.position,
-      description: workflowStates.description,
-    })
-    .from(workflowStates)
-    .where(and(eq(workflowStates.projectId, projectId), eq(workflowStates.type, 'canceled')));
-  const named = states.find((s) => s.name.trim().toLowerCase() === 'duplicate');
-  return (named ?? firstStateOfType(states, 'canceled'))?.id ?? null;
 }
 
 export async function deleteIssueRelation(

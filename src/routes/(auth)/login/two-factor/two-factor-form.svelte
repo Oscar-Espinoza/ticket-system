@@ -1,5 +1,4 @@
 <!--
-  Port of src/app/(auth)/login/two-factor/two-factor-form.tsx.
   TOTP code (auto-submits at 6 digits) or a one-time backup code, plus
   "trust this device" (skips the code on this browser for 30 days).
 -->

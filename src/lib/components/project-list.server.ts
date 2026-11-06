@@ -1,18 +1,15 @@
-// Server half of src/components/project-list.tsx: the project query shared by
-// the dashboard layout (sidebar, topbar palette), the dashboard home and other
+// The project query shared by the dashboard layout (sidebar, topbar palette), the dashboard home and other
 // pages (search, views, my issues, dashboards). The <ProjectList> markup is
 // project-list.svelte, fed by the dashboard page load.
 //
 // Authorization: The INNER JOIN on project_member restricts rows to projects
 // where the viewer has a membership row (owner OR member). No cross-tenant
-// project can appear (T-02-07).
-//
-// T-02-08: userId always comes from the server-side session.
-// T-02-09: cast(count(...) as int) ensures numeric openCount/resolvedCount.
+// project can appear. userId always comes from the server-side session.
 
 import { and, eq, isNull, sql } from 'drizzle-orm';
 
 import { projects, projectMembers, tickets, workflowStates } from '@/db/schema';
+import { closedStateType, openStateType } from '@/lib/workflow-server';
 import { db } from '@/lib/db';
 import { cache } from '@/lib/kit/request';
 
@@ -36,10 +33,10 @@ export const getProjectsForUser = cache(async (userId: string) =>
       parentId: projects.parentId,
       createdAt: projects.createdAt,
       role: projectMembers.role,
-      // T-02-09: cast to int — PostgreSQL count() returns bigint, which Drizzle
+      // Cast to int — PostgreSQL count() returns bigint, which Drizzle
       // types as string without the explicit cast.
-      openCount: sql<number>`cast(count(case when ${workflowStates.type} not in ('completed', 'canceled') then 1 end) as int)`,
-      resolvedCount: sql<number>`cast(count(case when ${workflowStates.type} in ('completed', 'canceled') then 1 end) as int)`,
+      openCount: sql<number>`cast(count(case when ${openStateType()} then 1 end) as int)`,
+      resolvedCount: sql<number>`cast(count(case when ${closedStateType()} then 1 end) as int)`,
     })
     .from(projectMembers)
     .innerJoin(projects, eq(projectMembers.projectId, projects.id))

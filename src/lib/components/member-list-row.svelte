@@ -1,4 +1,4 @@
-<!-- One member row of MemberList (the non-exported MemberRow of src/components/member-list.tsx). -->
+<!-- One member row of MemberList. -->
 <script lang="ts">
   import CrownIcon from '@lucide/svelte/icons/crown';
   import MoreHorizontalIcon from '@lucide/svelte/icons/ellipsis';
@@ -24,12 +24,11 @@
     DropdownMenuTrigger,
   } from '@/lib/components/ui/dropdown-menu';
   import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/lib/components/ui/select';
-  // The wrappers refresh the page data after they resolve (React's revalidatePath).
+  // The wrappers refresh the page data after they resolve.
   import { removeMember, transferOwnership, updateMemberRole } from '@/lib/actions/members';
   import { useProjectPermissions } from '@/lib/components/workspaces/permissions.svelte';
-  import { PROJECT_ROLE_DESCRIPTION, PROJECT_ROLE_LABEL } from '@/lib/components/workspaces/role-rules';
-  import type { ProjectRole } from '@/lib/roles';
-  import type { MemberListMember } from './member-list.svelte';
+  import { PROJECT_ROLE_DESCRIPTION, PROJECT_ROLE_LABEL, type ProjectRole } from '@/lib/roles';
+  import type { MemberListMember } from './member-list-types';
 
   let {
     member,
@@ -42,7 +41,7 @@
   } = $props();
 
   const perms = useProjectPermissions();
-  // useTransition: one pending flag for every action of this row.
+  // In-flight counter: one pending flag for every action of this row.
   let running = $state(0);
   const isPending = $derived(running > 0);
   let dialog = $state<'remove' | 'transfer' | null>(null);
@@ -105,7 +104,7 @@
   </a>
 
   {#if canManage}
-    <!-- Controlled like React: the trigger keeps showing the server role until the refresh lands. -->
+    <!-- Controlled: the trigger keeps showing the server role until the refresh lands. -->
     <Select
       items={roleItems}
       bind:value={() => member.role, (v) => v && v !== member.role && changeRole(v)}

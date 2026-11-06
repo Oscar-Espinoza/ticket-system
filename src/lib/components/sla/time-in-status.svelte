@@ -1,7 +1,6 @@
 <!--
   "3d 4h · since Mar 4" for the issue's current state; hovering (or focusing)
   loads how long the issue spent in every state from its activity history.
-  Port of src/components/sla/time-in-status.tsx (same props: issue, now).
 -->
 <script lang="ts">
   import { getTimeInStatus } from '@/lib/actions/sla';

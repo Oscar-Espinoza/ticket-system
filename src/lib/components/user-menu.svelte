@@ -1,4 +1,4 @@
-<!-- Sidebar footer account menu (port of src/components/user-menu.tsx). -->
+<!-- Sidebar footer account menu. -->
 <script lang="ts">
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
   import LogOutIcon from '@lucide/svelte/icons/log-out';

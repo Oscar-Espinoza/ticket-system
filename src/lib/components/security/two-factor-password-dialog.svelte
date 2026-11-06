@@ -1,5 +1,5 @@
 <!--
-  Password confirmation dialog (PasswordDialog in two-factor-settings.tsx),
+  Password confirmation dialog,
   used to disable 2FA and to regenerate backup codes. Mounted only while open.
 -->
 <script lang="ts">

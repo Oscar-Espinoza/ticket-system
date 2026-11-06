@@ -1,7 +1,7 @@
 <!--
   Registers public/sw.js (offline shell + asset cache). Production only, so dev
   never serves stale bundles — add ?sw=1 to try it in dev, ?sw=0 to unregister.
-  Port of src/components/pwa/register-sw.tsx (RegisterServiceWorker). Renders nothing.
+  Renders nothing.
 -->
 <script lang="ts">
   import { dev } from '$app/env';

@@ -1,13 +1,9 @@
 <!--
-  One list row. Port of src/components/issues/issue-row.tsx (same props;
-  `ref` is bindable). Attachments put on <IssueRow> ({@attach …}, e.g. the
-  list's sortable) land on the row element. `relativeTime` is re-exported
-  from the module script, as the React file did.
+  One list row (`ref` is bindable). Attachments put on <IssueRow> ({@attach …},
+  e.g. the list's sortable) land on the row element.
 -->
 <script module lang="ts">
   import type { IssuePatch, IssueRow as Issue } from '@/lib/issue-model';
-
-  export { relativeTime } from './issue-properties';
 
   export interface IssueRowProps {
     issue: Issue;
@@ -25,6 +21,7 @@
 <script lang="ts">
   import UserRoundIcon from '@lucide/svelte/icons/user-round';
 
+  import { rowAttr } from '@/lib/components/issues/issue-dom';
   import { AssigneePicker, PriorityPicker, StatePicker } from '@/lib/components/issue-pickers';
   import { useProjectData, useProjectPermission } from '@/lib/components/project/project-data.svelte';
   import SlaChip from '@/lib/components/sla/sla-chip.svelte';
@@ -39,8 +36,9 @@
   import { cn } from '@/lib/utils';
   import { useDisplayOptions } from './display-options.svelte';
   import DueDateChip from './due-date-chip.svelte';
+  import { focusIssueRow } from './issue-dom';
   import EstimateChip from './estimate-chip.svelte';
-  import { relativeTime } from './issue-properties';
+  import { relativeTime } from '@/lib/relative-time';
   import LabelChips from './label-chips.svelte';
   import RowButton from './row-button.svelte';
   import SelectCheckbox from './select-checkbox.svelte';
@@ -78,17 +76,17 @@
   // Pickers hand focus back to the row, not their trigger, so j/k keep working.
   const refocusRow = (event: Event) => {
     event.preventDefault();
-    document.querySelector<HTMLElement>(`[data-issue-row="${issue.id}"]`)?.focus();
+    focusIssueRow(issue.id);
   };
 </script>
 
-<!-- The row is the tab stop and a click target, as in React (role-less div). -->
+<!-- The row is the tab stop and a click target (role-less div). -->
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <div
   bind:this={ref}
   {...rest}
   tabindex={0}
-  data-issue-row={issue.id}
+  {...rowAttr(issue.id)}
   data-active={active}
   aria-label={`${issue.key} ${issue.title}, ${issue.state.name}`}
   aria-current={active ? 'true' : undefined}

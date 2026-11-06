@@ -17,7 +17,7 @@
 //
 // Server-only. Imported by src/lib/auth.ts — never import auth.ts / session.ts.
 
-import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import { lookup, resolveTxt } from 'node:dns/promises';
 import { isPublicRoutableHost } from '@better-auth/core/utils/host';
 import { discoverOIDCConfig } from '@better-auth/sso';
@@ -38,7 +38,9 @@ import {
   workspaces,
 } from '@/db/schema';
 import { appUrl } from '@/lib/integrations/app-url';
+import { appSecret, hmacHex, safeEqual } from '@/lib/server/secrets';
 import { recordWorkspaceEvent } from '@/lib/audit';
+import { workspaceRoleAllows } from '@/lib/workspace-types';
 
 // ---------------------------------------------------------------------------
 // Ids and URLs
@@ -132,8 +134,7 @@ export const domainMatches = (domain: string, providerDomain: string) =>
 export const DOMAIN_TXT_LABEL = '_ticket-system';
 
 export function domainVerificationValue(workspaceId: string): string {
-  const secret = process.env.BETTER_AUTH_SECRET ?? '';
-  const digest = createHmac('sha256', secret).update(`sso-domain:${workspaceId}`).digest('hex');
+  const digest = hmacHex(`sso-domain:${workspaceId}`, appSecret(''));
   return `ticket-system-verification=${digest.slice(0, 32)}`;
 }
 
@@ -191,7 +192,10 @@ export async function discoverOidcEndpoints(issuer: string) {
   };
   if (!allowPrivate) {
     const host = new URL(issuer).hostname;
-    const resolved = await lookup(host, { all: true }).catch(() => []);
+    const resolved = await lookup(host, { all: true }).catch((err) => {
+      console.warn(`[sso] DNS lookup failed for ${host}`, err instanceof Error ? err.message : err);
+      return [];
+    });
     if (!isPublicRoutableHost(host) || resolved.some((r) => !isPublicRoutableHost(r.address))) {
       throw new Error('The issuer must be a public address.');
     }
@@ -220,7 +224,8 @@ export interface WorkspaceSsoView {
   ssoMemberIds: string[];
 }
 
-function parseJson<T>(value: string | null): T | null {
+/** A stored JSON config column; null when empty or unparsable. */
+export function parseStored<T>(value: string | null | undefined): T | null {
   if (!value) return null;
   try {
     return JSON.parse(value) as T;
@@ -273,8 +278,8 @@ export async function getWorkspaceSso(workspaceId: string): Promise<WorkspaceSso
 
   let provider: WorkspaceSsoView['provider'] = null;
   if (link.providerId && link.domain && link.issuer) {
-    const saml = parseJson<StoredSamlConfig>(link.samlConfig);
-    const oidc = parseJson<StoredOidcConfig>(link.oidcConfig);
+    const saml = parseStored<StoredSamlConfig>(link.samlConfig);
+    const oidc = parseStored<StoredOidcConfig>(link.oidcConfig);
     provider = {
       providerId: link.providerId,
       protocol: oidc ? 'oidc' : 'saml',
@@ -623,7 +628,7 @@ export async function canGenerateScimToken(userId: string, providerId: string): 
     .from(workspaceMembers)
     .where(and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.userId, userId)))
     .limit(1);
-  return member?.role === 'owner' || member?.role === 'admin';
+  return member ? workspaceRoleAllows(member.role, 'admin') : false;
 }
 
 /**
@@ -682,9 +687,8 @@ async function verifyScimBearer(header: string | null | undefined): Promise<stri
     .limit(1);
   if (!row) return null;
   // Same digest as the plugin's storeSCIMToken: 'hashed' (SHA-256, base64url, no padding).
-  const digest = Buffer.from(createHash('sha256').update(base).digest('base64url'));
-  const stored = Buffer.from(row.scimToken);
-  return digest.length === stored.length && timingSafeEqual(digest, stored) ? providerId : null;
+  const digest = createHash('sha256').update(base).digest('base64url');
+  return safeEqual(digest, row.scimToken) ? providerId : null;
 }
 
 /**

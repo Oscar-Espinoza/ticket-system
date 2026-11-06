@@ -1,5 +1,5 @@
 /**
- * Avatar (React: src/components/ui/avatar.tsx, Radix Avatar → bits-ui Avatar).
+ * Avatar (Radix Avatar → bits-ui Avatar).
  *
  * Caller translation:
  * - `<Avatar size="sm" className>` → `<Avatar size="sm" class>`; same `size` values.

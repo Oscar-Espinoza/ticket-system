@@ -10,11 +10,10 @@
 
   function summaryParts(t: ProjectTemplateRow): string[] {
     const s = t.summary;
-    const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
     return [
-      plural(s.states, 'state'),
-      plural(s.labels, 'label'),
-      s.issueTemplates > 0 && plural(s.issueTemplates, 'issue template'),
+      pluralize(s.states, 'state'),
+      pluralize(s.labels, 'label'),
+      s.issueTemplates > 0 && pluralize(s.issueTemplates, 'issue template'),
       s.estimateScale !== 'none' && `${ESTIMATE_SCALE_LABEL[s.estimateScale]} estimates`,
       s.cyclesEnabled && 'Cycles',
       s.triageEnabled && 'Triage',
@@ -24,13 +23,14 @@
 </script>
 
 <script lang="ts">
+  import { pluralize } from '@/lib/format';
   import EllipsisIcon from '@lucide/svelte/icons/ellipsis';
   import LayoutTemplateIcon from '@lucide/svelte/icons/layout-template';
   import PencilIcon from '@lucide/svelte/icons/pencil';
   import PlusIcon from '@lucide/svelte/icons/plus';
   import Trash2Icon from '@lucide/svelte/icons/trash-2';
 
-  import { relativeTime } from '@/lib/components/issues/issue-properties';
+  import { relativeTime } from '@/lib/relative-time';
   import { EmptyState, LabelChip } from '@/lib/components/ui-icons';
   import { Button } from '@/lib/components/ui/button';
   import {
@@ -40,10 +40,8 @@
     DropdownMenuTrigger,
   } from '@/lib/components/ui/dropdown-menu';
   import DeleteTemplateDialog from './delete-template-dialog.svelte';
-  import TemplateDialog, {
-    type TemplateSourceProject,
-    type TemplateWorkspaceOption,
-  } from './template-dialog.svelte';
+  import TemplateDialog from './template-dialog.svelte';
+  import type { TemplateSourceProject, TemplateWorkspaceOption } from './template-types';
 
   let {
     templates,
@@ -149,7 +147,7 @@
   {/if}
 
   <!-- The create/update/delete wrappers refresh the page data themselves, so
-       React's router.refresh() after saving / deleting is not repeated. -->
+       The action wrappers refresh the page after saving / deleting. -->
   <TemplateDialog
     open={dialog !== null}
     onOpenChange={(open) => {

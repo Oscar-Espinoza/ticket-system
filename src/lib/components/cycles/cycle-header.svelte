@@ -15,7 +15,7 @@
     formatCycleDay,
     formatCycleRange,
     type CycleStatus,
-  } from '@/lib/components/cycles/cycle-utils';
+  } from '@/lib/cycle-utils';
   import CompleteCycleDialog from './complete-cycle-dialog.svelte';
   import CycleFormDialog, { type EditableCycle } from './cycle-form-dialog.svelte';
   import CycleGlyph from './cycle-glyph.svelte';
@@ -84,7 +84,7 @@
 
   <CycleFormDialog {projectId} bind:open={editing} {cycle} />
   {#if canWrite && !cycle.completedAt}
-    <!-- React keyed this on `completing` so the rollover choice resets per open. -->
+    <!-- Keyed on `completing` so the rollover choice resets per open. -->
     {#key completing}
       <CompleteCycleDialog
         {projectId}

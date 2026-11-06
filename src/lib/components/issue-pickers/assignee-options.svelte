@@ -16,16 +16,13 @@
   import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/lib/components/ui/command';
   import { Avatar } from '@/lib/components/ui-icons';
   import { useProjectData } from '@/lib/components/project/project-data.svelte';
+  import { viewerFirst } from './option-builders';
   import { keywordFilter } from './picker-utils';
 
   let { value, onSelect }: AssigneeOptionsProps = $props();
 
   const data = useProjectData();
-  // Viewer first — assigning to yourself is the common case.
-  const ordered = $derived([
-    ...data.members.filter((m) => m.id === data.viewer.id),
-    ...data.members.filter((m) => m.id !== data.viewer.id),
-  ]);
+  const ordered = $derived(viewerFirst(data.members, data.viewer.id));
 </script>
 
 <Command filter={keywordFilter}>

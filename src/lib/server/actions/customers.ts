@@ -3,13 +3,21 @@
 // from another project match nothing. Referenced tickets, customers and owners
 // are validated against the project before anything is written.
 
-import { revalidatePath } from '@/lib/kit/request';
 import { and, arrayOverlaps, eq, ne } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
-import { customerRequests, customers, projectMembers, projects, tickets } from '@/db/schema';
+import { customerRequests, customers, projects, tickets } from '@/db/schema';
 import { authorizeProjectAction } from '@/lib/action-auth';
 import { emitIssueEvent } from '@/lib/events';
+import { getMemberProject } from '@/lib/project-access';
+import {
+  fail,
+  isFail,
+  refreshesData,
+  requiredText,
+  type ActionResult,
+  type Fail,
+} from '@/lib/server/action-kit';
 import { getCustomerOptions, getIssueCustomerRequests } from '@/lib/customers';
 import {
   CUSTOMER_DOMAINS_MAX,
@@ -27,20 +35,13 @@ import {
   type CustomerStatus,
   type Importance,
   type IssueCustomerRequest,
-} from '@/lib/components/customers/customer-model';
+} from '@/lib/customer-model';
+import { formatIssueKey } from '@/lib/tickets';
 
-type Fail = { ok: false; error: string; field?: string };
-export type CustomerActionResult<T = object> = ({ ok: true } & T) | Fail;
+export type CustomerActionResult<T = object> = ActionResult<T>;
 
-const fail = (error: string, field?: string): Fail => ({ ok: false, error, field });
-const isFail = (value: unknown): value is Fail =>
-  typeof value === 'object' && value !== null && (value as Fail).ok === false;
 const deny = (error: string) =>
   fail(error === 'Forbidden' ? "You don't have permission to do that in this project." : error);
-
-function revalidate(projectId: string) {
-  revalidatePath(`/dashboard/projects/${projectId}/customers`, 'layout');
-}
 
 const isId = (value: unknown): value is string =>
   typeof value === 'string' && value.length > 0 && value.length <= 64;
@@ -70,15 +71,6 @@ type CustomerChanges = Partial<{
   ownerId: string | null;
   notes: string | null;
 }>;
-
-function validName(value: unknown): string | Fail {
-  const trimmed = typeof value === 'string' ? value.trim() : '';
-  if (!trimmed) return fail('Name is required.', 'name');
-  if (trimmed.length > CUSTOMER_NAME_MAX) {
-    return fail(`Name must be ${CUSTOMER_NAME_MAX} characters or fewer.`, 'name');
-  }
-  return trimmed;
-}
 
 function validAmount(value: unknown, field: string, label: string): number | null | Fail {
   if (value == null || value === '') return null;
@@ -128,15 +120,6 @@ async function validDomains(
   return domains;
 }
 
-async function isProjectMember(projectId: string, userId: string) {
-  const [row] = await db
-    .select({ id: projectMembers.id })
-    .from(projectMembers)
-    .where(and(eq(projectMembers.projectId, projectId), eq(projectMembers.userId, userId)))
-    .limit(1);
-  return Boolean(row);
-}
-
 /** Validates the provided fields (absent = untouched). */
 async function validateCustomerInput(
   projectId: string,
@@ -146,7 +129,7 @@ async function validateCustomerInput(
   if (typeof input !== 'object' || input === null) return fail('Invalid input.');
   const changes: CustomerChanges = {};
   if (input.name !== undefined) {
-    const value = validName(input.name);
+    const value = requiredText(input.name, 'name', CUSTOMER_NAME_MAX);
     if (isFail(value)) return value;
     changes.name = value;
   }
@@ -181,7 +164,7 @@ async function validateCustomerInput(
   }
   if (input.ownerId !== undefined) {
     if (input.ownerId !== null && !isId(input.ownerId)) return fail('Invalid owner.', 'ownerId');
-    if (input.ownerId && !(await isProjectMember(projectId, input.ownerId))) {
+    if (input.ownerId && !(await getMemberProject(projectId, input.ownerId))) {
       return fail('The owner must be a member of this project.', 'ownerId');
     }
     changes.ownerId = input.ownerId;
@@ -234,7 +217,7 @@ export async function createCustomer(
     createdAt: now,
     updatedAt: now,
   });
-  revalidate(projectId);
+  refreshesData();
   return { ok: true, id };
 }
 
@@ -256,7 +239,7 @@ export async function updateCustomer(input: {
     .update(customers)
     .set({ ...changes, updatedAt: new Date() })
     .where(and(eq(customers.id, customer.id), eq(customers.projectId, input.projectId)));
-  revalidate(input.projectId);
+  refreshesData();
   return { ok: true };
 }
 
@@ -272,7 +255,7 @@ export async function deleteCustomer(input: {
   await db
     .delete(customers)
     .where(and(eq(customers.id, customer.id), eq(customers.projectId, input.projectId)));
-  revalidate(input.projectId);
+  refreshesData();
   return { ok: true };
 }
 
@@ -293,7 +276,7 @@ async function loadTicket(projectId: string, ticketId: unknown) {
     .innerJoin(projects, eq(tickets.projectId, projects.id))
     .where(and(eq(tickets.id, ticketId), eq(tickets.projectId, projectId)))
     .limit(1);
-  return row ? { id: row.id, key: `${row.ticketKey}-${row.number}`, title: row.title } : null;
+  return row ? { id: row.id, key: formatIssueKey(row.ticketKey, row.number), title: row.title } : null;
 }
 
 export async function getIssueCustomers(input: {
@@ -341,7 +324,7 @@ export async function addCustomerRequest(input: {
     customer = await loadCustomer(projectId, input.customerId);
     if (!customer) return fail('Customer not found.', 'customerId');
   } else {
-    const name = validName(input.newCustomerName);
+    const name = requiredText(input.newCustomerName, 'name', CUSTOMER_NAME_MAX);
     if (isFail(name)) return name;
     customer = { id: crypto.randomUUID(), name };
     await db.insert(customers).values({
@@ -381,7 +364,7 @@ export async function addCustomerRequest(input: {
       requestId: id,
     },
   });
-  revalidate(projectId);
+  refreshesData();
   return { ok: true, id, customerId: customer.id };
 }
 
@@ -433,7 +416,7 @@ export async function updateCustomerRequest(input: {
     .update(customerRequests)
     .set(changes)
     .where(and(eq(customerRequests.id, request.id), eq(customerRequests.projectId, input.projectId)));
-  revalidate(input.projectId);
+  refreshesData();
   return { ok: true };
 }
 
@@ -477,6 +460,6 @@ export async function removeCustomerRequest(input: {
       },
     });
   }
-  revalidate(input.projectId);
+  refreshesData();
   return { ok: true };
 }

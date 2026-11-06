@@ -1,12 +1,12 @@
 // Per-IssuesView facts that rows, cards and the toolbar slot read without prop
 // drilling: sub-issue progress per parent and the saved view being shown.
 //
-// API (port of src/components/views/view-context.tsx):
+// API:
 //   setIssuesViewContext(() => ({ subIssues, savedView }))   provider; GETTER arg
 //   <IssuesViewContextProvider value={…}>                    same, as a component
 //   useSubIssueCount(issueId | () => issueId): { readonly current: SubIssueCount | null }
 //   useSavedView(): { readonly current: SavedViewInfo | null }
-// Outside a provider both read the empty defaults (as React's default context).
+// Outside a provider both read the empty defaults.
 
 import { createContext } from 'svelte';
 

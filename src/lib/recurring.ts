@@ -11,17 +11,16 @@
 // occurrence due, and the next run finds its issue instead of creating a
 // second one or skipping it. Missed occurrences collapse into one issue.
 
-import { createHmac } from 'node:crypto';
 import { and, asc, eq, inArray, lte, ne } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
-import { notifications, projectMembers, recurringIssues, tickets, userProfiles } from '@/db/schema';
+import { projectMembers, recurringIssues, tickets } from '@/db/schema';
 import { createIssue, SYSTEM_ACTOR, type IssueActor, type IssueResult } from '@/lib/issue-service';
 import type { CreateIssueInput } from '@/lib/issue-model';
-import { deliverToChannels } from '@/lib/notifications/channels';
-import { prefEnabled } from '@/lib/notifications/types';
-import { sanitizeIssueDefaults, TEMPLATE_FIELDS } from '@/lib/components/productivity/issue-defaults';
-import { DAY_MS, toDateInput, utcDay } from '@/lib/components/cycles/cycle-utils';
+import { createNotifications } from '@/lib/notifications/create';
+import { hmacHex, requiredAppSecret } from '@/lib/server/secrets';
+import { sanitizeIssueDefaults, TEMPLATE_FIELDS } from '@/lib/issue-defaults';
+import { DAY_MS, toDateInput, utcDay } from '@/lib/cycle-utils';
 import {
   DUE_IN_DAYS_MAX,
   nextOccurrence,
@@ -29,7 +28,7 @@ import {
   type RecurringDefaults,
   type RecurringIssue,
   type RecurringSchedule,
-} from '@/lib/components/recurring/schedule';
+} from '@/lib/recurring-schedule';
 
 export type RecurringRow = typeof recurringIssues.$inferSelect;
 
@@ -125,9 +124,7 @@ export async function createFromSchedule(row: RecurringRow, day: Date, id?: stri
  * create id equal to it would otherwise make the runner skip the occurrence).
  */
 export function occurrenceIssueId(scheduleId: string, dueAt: Date): string {
-  const secret = process.env.BETTER_AUTH_SECRET;
-  if (!secret) throw new Error('BETTER_AUTH_SECRET is required for recurring issues.');
-  const hex = createHmac('sha256', secret).update(`recurring:${scheduleId}:${dueAt.toISOString()}`).digest('hex');
+  const hex = hmacHex(`recurring:${scheduleId}:${dueAt.toISOString()}`, requiredAppSecret('recurring issues'));
   // RFC 9562 layout, version 8 (custom), variant 10.
   const variant = ((parseInt(hex[16], 16) & 0x3) | 0x8).toString(16);
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-8${hex.slice(13, 16)}-${variant}${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
@@ -137,14 +134,13 @@ export function occurrenceIssueId(scheduleId: string, dueAt: Date): string {
 async function notifyOwner(row: RecurringRow, issue: { id: string; key: string; title: string }) {
   if (!row.createdById) return;
   const [member] = await db
-    .select({ prefs: userProfiles.notificationPrefs })
+    .select({ userId: projectMembers.userId })
     .from(projectMembers)
-    .leftJoin(userProfiles, eq(userProfiles.userId, projectMembers.userId))
     .where(
       and(eq(projectMembers.projectId, row.projectId), eq(projectMembers.userId, row.createdById)),
     )
     .limit(1);
-  if (!member || !prefEnabled(member.prefs, 'recurring_created')) return;
+  if (!member) return;
   const rows = [
     {
       id: crypto.randomUUID(),
@@ -157,8 +153,7 @@ async function notifyOwner(row: RecurringRow, issue: { id: string; key: string; 
       createdAt: new Date(),
     },
   ];
-  await db.insert(notifications).values(rows);
-  await deliverToChannels(rows);
+  await createNotifications(rows);
 }
 
 export interface RecurringRunResult {

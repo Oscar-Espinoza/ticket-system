@@ -1,7 +1,7 @@
 <!-- Cycle sidebar: progress per assignee / label over the cycle's current issues. -->
 <script module lang="ts">
   import type { IssueRow } from '@/lib/issue-model';
-  import type { ChartUnit } from '@/lib/components/cycles/cycle-utils';
+  import type { ChartUnit } from '@/lib/cycle-utils';
 
   type BucketIcon =
     | { kind: 'avatar'; name: string; image: string | null }
@@ -43,7 +43,7 @@
 
   import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/lib/components/ui/tabs';
   import { Avatar } from '@/lib/components/ui-icons';
-  import { percent } from '@/lib/components/cycles/cycle-utils';
+  import { percent } from '@/lib/cycle-utils';
   import UnitToggle from './unit-toggle.svelte';
 
   let {

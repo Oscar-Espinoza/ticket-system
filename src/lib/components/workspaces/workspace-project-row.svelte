@@ -1,5 +1,6 @@
-<!-- One team of the workspace: link or Join, counts, role, remove (ProjectRow in workspace-projects.tsx). -->
+<!-- One team of the workspace: link or Join, counts, role, remove. -->
 <script lang="ts">
+  import { pluralize } from '@/lib/format';
   import { goto } from '$app/navigation';
   import CornerDownRightIcon from '@lucide/svelte/icons/corner-down-right';
   import EllipsisIcon from '@lucide/svelte/icons/ellipsis';
@@ -8,7 +9,7 @@
   import UnlinkIcon from '@lucide/svelte/icons/unlink';
   import { toast } from 'svelte-sonner';
 
-  import { PROJECT_ROLE_LABEL } from '@/lib/components/workspaces/role-rules';
+  import { PROJECT_ROLE_LABEL } from '@/lib/roles';
   import { joinWorkspaceProject, removeProjectFromWorkspace } from '@/lib/actions/workspaces';
   import { Button } from '@/lib/components/ui/button';
   import {
@@ -18,7 +19,7 @@
     DropdownMenuTrigger,
   } from '@/lib/components/ui/dropdown-menu';
   import { LabelChip } from '@/lib/components/ui-icons';
-  import type { WorkspaceTeamRow } from './workspace-projects.svelte';
+  import type { WorkspaceTeamRow } from './workspace-project-types';
 
   let {
     workspaceId,
@@ -91,7 +92,7 @@
     <span class="flex min-w-0 flex-1 items-center gap-2">{@render body()}</span>
   {/if}
   <span class="shrink-0 text-xs text-muted-foreground tabular-nums">
-    {project.openCount !== null ? `${project.openCount} open · ` : ''}{project.memberCount} member{project.memberCount === 1 ? '' : 's'}
+    {project.openCount !== null ? `${project.openCount} open · ` : ''}{pluralize(project.memberCount, 'member')}
   </span>
   {#if project.viewerRole !== null}
     <span class="w-16 shrink-0 text-right text-xs text-muted-foreground">

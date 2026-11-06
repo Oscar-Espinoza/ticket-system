@@ -104,10 +104,10 @@ import { addLinkAttachment } from '@/lib/attachments';
 import { formatMention } from '@/lib/mentions';
 import { snapshotProject } from '@/lib/project-templates';
 import { firstRunFrom } from '@/lib/recurring';
-import { normalizeSchedule } from '@/lib/components/recurring/schedule';
+import { normalizeSchedule } from '@/lib/recurring-schedule';
 import { normalizeIssueFilters } from '@/lib/issue-filtering';
 import { DEFAULT_WORKFLOW_STATES } from '@/lib/workflow';
-import { newWidget, normalizeWidgets, type Widget } from '@/lib/components/dashboards/widget-model';
+import { newWidget, normalizeWidgets, type Widget } from '@/lib/widget-model';
 import { localDb } from './fixtures';
 
 // ---------------------------------------------------------------------------

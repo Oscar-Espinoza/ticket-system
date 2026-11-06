@@ -3,9 +3,10 @@
 // hostile bytes: nosniff, a sandbox CSP and never an SVG / HTML type inline.
 
 import type { RequestHandler } from './$types';
+import { SANDBOX_CSP } from '../../_lib/http';
 import { allowOptions } from '../../_lib/options';
 
-import { isPreviewableImage } from '@/lib/components/issue-hierarchy/attachment-utils';
+import { isPreviewableImage } from '@/lib/attachment-utils';
 import { getUploadFile } from '@/lib/uploads';
 
 export const GET: RequestHandler = async ({ params, locals }) => {
@@ -24,12 +25,11 @@ export const GET: RequestHandler = async ({ params, locals }) => {
       'Content-Disposition': `${inline ? 'inline' : 'attachment'}; filename="${ascii}"`,
       'Content-Length': String(bytes.byteLength),
       'X-Content-Type-Options': 'nosniff',
-      'Content-Security-Policy': "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; sandbox",
+      'Content-Security-Policy': SANDBOX_CSP,
       // Ids are unguessable and rows immutable.
       'Cache-Control': 'private, max-age=86400, immutable',
     },
   });
 };
 
-// Next answered OPTIONS automatically (204 + Allow); Kit would 405.
 export const OPTIONS = allowOptions('GET');

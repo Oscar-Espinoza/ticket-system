@@ -3,9 +3,10 @@
 // nested values (views, blocks) JSON-encoded. Never throws: network errors,
 // timeouts and HTTP 429 come back as { ok: false, error }.
 
-import { slackConfig, slackUrls } from './config';
+import { SLACK_URL_PREFIX } from '@/lib/integrations/event-types';
+import { SLACK_TIMEOUT_MS } from '@/lib/integrations/timeouts';
 
-const TIMEOUT_MS = 3000;
+import { slackConfig, slackUrls } from './config';
 
 export type SlackResponse = { ok: boolean; error?: string } & Record<string, unknown>;
 
@@ -30,7 +31,7 @@ async function post(url: string, params: Params, token?: string): Promise<SlackR
       },
       body: form(params),
       redirect: 'manual',
-      signal: AbortSignal.timeout(TIMEOUT_MS),
+      signal: AbortSignal.timeout(SLACK_TIMEOUT_MS),
     });
     // Rate limited: callers skip rather than retry (Retry-After can be a minute).
     if (res.status === 429) return { ok: false, error: 'ratelimited' };
@@ -48,14 +49,14 @@ export function slackApi(method: string, token: string, params: Params = {}): Pr
 /** Posts to an interaction's response_url (valid 30 min, 5 uses). */
 export async function respond(responseUrl: string, message: Params): Promise<boolean> {
   // Only ever Slack's own hooks: the URL came from a verified payload, but be strict.
-  if (!responseUrl.startsWith('https://hooks.slack.com/')) return false;
+  if (!responseUrl.startsWith(SLACK_URL_PREFIX)) return false;
   try {
     const res = await fetch(responseUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(message),
       redirect: 'manual',
-      signal: AbortSignal.timeout(TIMEOUT_MS),
+      signal: AbortSignal.timeout(SLACK_TIMEOUT_MS),
     });
     return res.ok;
   } catch {

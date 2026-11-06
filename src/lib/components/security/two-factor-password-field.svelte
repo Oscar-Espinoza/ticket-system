@@ -1,4 +1,4 @@
-<!-- Password input for the two-factor dialogs (PasswordField in two-factor-settings.tsx). -->
+<!-- Password input for the two-factor dialogs. -->
 <script lang="ts">
   import Field from '@/lib/components/settings/field.svelte';
   import { Input } from '@/lib/components/ui/input';

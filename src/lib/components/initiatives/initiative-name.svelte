@@ -1,7 +1,7 @@
-<!-- initiative-detail.tsx InitiativeName. -->
+<!-- Editable initiative title. -->
 <script lang="ts">
   import { Textarea } from '@/lib/components/ui/textarea';
-  import { INITIATIVE_NAME_MAX } from '@/lib/components/initiatives/initiative-model';
+  import { INITIATIVE_NAME_MAX } from '@/lib/initiative-model';
 
   let { name, onSave }: { name: string; onSave: (name: string) => void } = $props();
 

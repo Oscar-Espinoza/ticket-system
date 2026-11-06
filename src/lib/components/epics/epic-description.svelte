@@ -1,10 +1,10 @@
-<!-- Epic description: markdown view + editor (epic-detail.tsx EpicDescription). -->
+<!-- Epic description: markdown view + editor. -->
 <script lang="ts">
   import PencilIcon from '@lucide/svelte/icons/pencil';
 
   import { Button } from '@/lib/components/ui/button';
   import { cn } from '@/lib/utils';
-  import { EPIC_DESCRIPTION_MAX } from '@/lib/components/epics/epic-model';
+  import { EPIC_DESCRIPTION_MAX } from '@/lib/epic-model';
   import RichText from './rich-text.svelte';
   import RichTextEditor from './rich-text-editor.svelte';
 

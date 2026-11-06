@@ -1,6 +1,5 @@
 <!--
-  "Register OAuth app" dialog — the non-exported RegisterAppDialog of
-  src/components/oauth/oauth-app-settings.tsx. Mounted only while open.
+  "Register OAuth app" dialog. Mounted only while open.
 -->
 <script lang="ts">
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
@@ -20,7 +19,7 @@
   import { Input } from '@/lib/components/ui/input';
   import { RadioGroup, RadioGroupItem } from '@/lib/components/ui/radio-group';
   import { Textarea } from '@/lib/components/ui/textarea';
-  import { APP_NAME_MAX, REDIRECT_URIS_MAX, type OAuthAppView } from '@/lib/components/oauth/oauth-model';
+  import { APP_NAME_MAX, REDIRECT_URIS_MAX, type OAuthAppView } from '@/lib/oauth-model';
 
   let {
     onClose,

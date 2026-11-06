@@ -17,7 +17,7 @@
 
   import { deleteDraft, discardAllDrafts } from '@/lib/actions/drafts';
   import { projectHref } from '@/lib/components/app-shell/routes';
-  import { relativeTime } from '@/lib/components/issues/issue-properties';
+  import { relativeTime } from '@/lib/relative-time';
   import {
     AlertDialog,
     AlertDialogAction,
@@ -37,8 +37,8 @@
 
   let { drafts }: { drafts: DraftListItem[] } = $props();
 
-  // useOptimistic: ops stay applied over `drafts` while any call is running
-  // (React clears them together once every transition has settled — by then
+  // Optimistic: ops stay applied over `drafts` while any call is running
+  // (they clear together once every call has settled — by then
   // the action's refresh has delivered the new server list).
   let ops = $state.raw<Op[]>([]);
   let running = 0;

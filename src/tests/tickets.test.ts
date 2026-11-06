@@ -8,7 +8,6 @@ const session = vi.hoisted(() => ({ userId: '' }));
 vi.mock('@/lib/kit/request', async (orig) => ({
   ...(await orig<typeof import('@/lib/kit/request')>()),
   headers: async () => new Headers(),
-  revalidatePath: vi.fn(),
 }));
 
 
@@ -35,7 +34,7 @@ import {
 } from '@/lib/server/actions/tickets';
 import { getProjectIssues } from '@/lib/tickets';
 import { getProjectData } from '@/lib/project-data';
-import { UNASSIGNED, filterIssues } from '@/lib/issue-model';
+import { UNASSIGNED, filterIssues } from '@/lib/issue-filtering';
 import { getMemberProject } from '@/lib/project-access';
 import { workflowStateInserts } from '@/lib/workflow-server';
 

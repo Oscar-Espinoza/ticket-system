@@ -12,26 +12,11 @@
   } from '@/lib/actions/developer';
   import SectionHeading from '@/lib/components/settings/section-heading.svelte';
   import { Button } from '@/lib/components/ui/button';
-  import BitbucketMark from './bitbucket-mark.svelte';
   import DisconnectButton from './disconnect-button.svelte';
-  import type { VcsIntegrationView } from './developer-settings.svelte';
-  import GitlabMark from './gitlab-mark.svelte';
+  import type { VcsIntegrationView } from './developer-types';
   import VcsConnectForm from './vcs-connect-form.svelte';
-
-  const VCS_COPY = {
-    gitlab: {
-      name: 'GitLab',
-      description:
-        'Link a GitLab project (gitlab.com or self-hosted) so merge requests and commits update issues, with pipeline and approval status on each issue.',
-      pr: 'merge requests',
-    },
-    bitbucket: {
-      name: 'Bitbucket',
-      description:
-        'Link a Bitbucket Cloud repository so pull requests and commits update issues, with build and approval status on each issue.',
-      pr: 'pull requests',
-    },
-  } as const;
+  import { VCS_HOSTS, type VcsHostProvider } from './vcs-hosts';
+  import VcsMark from './vcs-mark.svelte';
 
   let {
     provider,
@@ -39,13 +24,13 @@
     canEdit,
     integration,
   }: {
-    provider: 'gitlab' | 'bitbucket';
+    provider: VcsHostProvider;
     projectId: string;
     canEdit: boolean;
     integration: VcsIntegrationView | null;
   } = $props();
 
-  const copy = $derived(VCS_COPY[provider]);
+  const copy = $derived(VCS_HOSTS[provider]);
   let pending = $state(false);
   let action = $state<'webhook' | 'disconnect' | null>(null);
 
@@ -81,11 +66,7 @@
 </script>
 
 {#snippet mark()}
-  {#if provider === 'gitlab'}
-    <GitlabMark class="size-4 text-[#e24329]" />
-  {:else}
-    <BitbucketMark class="size-4 text-[#2684ff]" />
-  {/if}
+  <VcsMark {provider} class="size-4 {copy.markColor}" />
 {/snippet}
 
 {#snippet headingDescription()}

@@ -14,7 +14,6 @@
 //
 // PROJ-01 mocking strategy (Plan 02 deviation — Rule 3 blocker fix):
 //   - next/headers throws outside a Next.js server context; mocked to return empty Headers
-//   - next/cache revalidatePath is a no-op in tests
 //   - @/lib/auth getSession is mocked to return SESSION_USER_ID (a real user row inserted in beforeAll)
 //   - This lets createProject run its full validation + DB logic without a running Next.js server
 
@@ -30,7 +29,6 @@ const SESSION_USER_ID = `test-proj-session-user-${Date.now()}`;
 vi.mock('@/lib/kit/request', async (orig) => ({
   ...(await orig<typeof import('@/lib/kit/request')>()),
   headers: async () => new Headers(),
-  revalidatePath: vi.fn(),
 }));
 
 

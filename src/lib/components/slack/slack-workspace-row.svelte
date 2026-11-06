@@ -1,4 +1,4 @@
-<!-- One installed Slack workspace: where unlinked Asks land, uninstall (WorkspaceRow in slack-app-settings.tsx). -->
+<!-- One installed Slack workspace: where unlinked Asks land, uninstall. -->
 <script lang="ts">
   import LoaderCircleIcon from '@lucide/svelte/icons/loader-circle';
   import { toast } from 'svelte-sonner';
@@ -17,7 +17,7 @@
   import { Button } from '@/lib/components/ui/button';
   import { Label } from '@/lib/components/ui/label';
   import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/lib/components/ui/select';
-  import type { SlackAdminProject, SlackWorkspace } from './slack-app-settings.svelte';
+  import type { SlackAdminProject, SlackWorkspace } from './slack-types';
 
   const NONE = '__none';
   const NONE_LABEL = 'Nowhere (linked users only)';

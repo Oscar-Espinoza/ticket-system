@@ -1,6 +1,5 @@
 <!--
-  Hover / focus tooltip of the SVG charts. React's `rows[].swatch: ReactNode` is
-  `swatch: { color, kind? }` here (rendered with <Swatch>).
+  Hover / focus tooltip of the SVG charts. `rows[].swatch` is `{ color, kind? }` (rendered with <Swatch>).
 -->
 <script module lang="ts">
   import type { Snippet } from 'svelte';

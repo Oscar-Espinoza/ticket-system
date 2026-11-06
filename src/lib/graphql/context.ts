@@ -18,10 +18,10 @@ import {
   users,
   workflowStates,
 } from '@/db/schema';
+import { checkProjectAccess } from '@/lib/api-access';
 import type { ApiCredential, ApiScope } from '@/lib/api-auth';
 import type { IssueRow } from '@/lib/issue-model';
-import type { ProjectRole } from '@/lib/roles';
-import { roleAllows, type AccessLevel } from '@/lib/roles';
+import type { AccessLevel, ProjectRole } from '@/lib/roles';
 import { queryIssues } from '@/lib/tickets';
 import { createLoader, groupBy } from './loader';
 
@@ -206,12 +206,9 @@ export async function roleIn(
   level: AccessLevel = 'read',
 ): Promise<ProjectRole | null> {
   viewer(ctx);
-  const role = await ctx.loaders.role.load(projectId);
-  if (!role) return null;
-  if (!roleAllows(role, level)) {
-    throw gqlError('FORBIDDEN', `This requires ${level} access to the project.`);
-  }
-  return role;
+  const access = checkProjectAccess(await ctx.loaders.role.load(projectId), level);
+  if (access.kind === 'forbidden') throw gqlError('FORBIDDEN', access.message);
+  return access.kind === 'ok' ? access.role : null;
 }
 
 /** Like roleIn, but a non-member is NOT_FOUND (same as a missing project). */

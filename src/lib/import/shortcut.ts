@@ -6,6 +6,7 @@
 // state named like theirs. Owners map to members by email; sub-task stories
 // (`parent_story_id`) become sub-issues, ordered after their parent.
 
+import { SHORTCUT_TIMEOUT_MS } from '@/lib/integrations/timeouts';
 import { requestJson } from '@/lib/vcs/http';
 import { summarize, type ExternalFetchResult } from './external';
 import { EXTERNAL_IMPORT_CAP, type ImportLabel, type ImportRecord } from './records';
@@ -50,7 +51,7 @@ function request<T>(token: string, path: string, body?: unknown): Promise<T> {
     method: body ? 'POST' : 'GET',
     body: body ? JSON.stringify(body) : undefined,
     headers: { 'Shortcut-Token': token },
-    timeoutMs: 20_000,
+    timeoutMs: SHORTCUT_TIMEOUT_MS,
   });
 }
 
@@ -60,7 +61,10 @@ export async function listShortcutSources(
   const [workflows, projects] = await Promise.all([
     request<ShortcutWorkflow[]>(token, '/workflows'),
     // Projects are optional in Shortcut (older workspaces); an error here just means none.
-    request<{ id: number; name: string; archived?: boolean }[]>(token, '/projects').catch(() => []),
+    request<{ id: number; name: string; archived?: boolean }[]>(token, '/projects').catch((err) => {
+      console.error('[import] shortcut projects lookup failed', err);
+      return [];
+    }),
   ]);
   return {
     workflows: workflows.map(({ id, name }) => ({ id, name })),

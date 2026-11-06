@@ -3,14 +3,10 @@
   Initiatives (B8) indented below. With no workspace yet it still renders a
   single "Create a workspace" row — it's the feature's only entry point
   besides the palette. The list (getUserWorkspaces) comes from the dashboard
-  layout load. Port of src/components/app-shell/slots/sidebar-workspaces.tsx.
+  layout load.
 -->
 <script module lang="ts">
-  export interface SidebarWorkspace {
-    id: string;
-    slug: string;
-    name: string;
-  }
+  import type { SidebarWorkspace } from '../sidebar-types';
 
   export interface SidebarWorkspacesProps {
     /** getUserWorkspaces(session user id), from the dashboard layout load. */

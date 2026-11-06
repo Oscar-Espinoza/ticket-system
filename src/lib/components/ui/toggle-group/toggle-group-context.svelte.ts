@@ -1,13 +1,13 @@
 import { createContext } from 'svelte';
 import type { ToggleVariants } from '@/lib/components/ui/toggle';
 
-/** Same shape as the React `ToggleGroupContext` value. */
+/** Value of the toggle-group context. */
 export type ToggleGroupContextValue = ToggleVariants & {
   spacing?: number;
   orientation?: 'horizontal' | 'vertical';
 };
 
-/** React's `createContext(...)` default, used when an item has no ToggleGroup ancestor. */
+/** Default, used when an item has no ToggleGroup ancestor. */
 const DEFAULT_CONTEXT: ToggleGroupContextValue = {
   size: 'default',
   variant: 'default',
@@ -25,7 +25,7 @@ export function setToggleGroupContext(value: ToggleGroupContextValue): ToggleGro
   return setContext(value);
 }
 
-/** `React.useContext(ToggleGroupContext)`: the nearest group's values, or the React default. */
+/** The nearest group's values, or the default. */
 export function getToggleGroupContext(): ToggleGroupContextValue {
   return hasContext() ? getContext() : DEFAULT_CONTEXT;
 }

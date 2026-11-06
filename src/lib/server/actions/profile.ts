@@ -3,11 +3,12 @@
 // changes — no user id is ever read from the form.
 
 import { headers } from '@/lib/kit/request';
-import { revalidatePath } from '@/lib/kit/request';
 
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { userProfiles } from '@/db/schema';
+import { formField as field, refreshesData } from '@/lib/server/action-kit';
+import { getSession } from '@/lib/session';
 
 export type ProfileState = {
   errors?: {
@@ -20,9 +21,6 @@ export type ProfileState = {
   };
   success?: boolean;
 };
-
-const field = (formData: FormData, key: string) =>
-  ((formData.get(key) as string | null) ?? '').trim();
 
 function isHttpUrl(value: string) {
   try {
@@ -46,8 +44,7 @@ export async function updateProfile(
   _prev: ProfileState,
   formData: FormData,
 ): Promise<ProfileState> {
-  const requestHeaders = await headers();
-  const session = await auth.api.getSession({ headers: requestHeaders });
+  const session = await getSession();
   if (!session?.user) return { errors: { server: 'Not authenticated' } };
 
   const name = field(formData, 'name');
@@ -74,7 +71,7 @@ export async function updateProfile(
     try {
       await auth.api.updateUser({
         body: { name, image: image || null },
-        headers: requestHeaders,
+        headers: await headers(),
       });
     } catch {
       return { errors: { server: 'Could not update your account. Try again.' } };
@@ -93,6 +90,6 @@ export async function updateProfile(
     .values({ userId: session.user.id, ...profile, createdAt: now })
     .onConflictDoUpdate({ target: userProfiles.userId, set: profile });
 
-  revalidatePath('/dashboard', 'layout');
+  refreshesData();
   return { success: true };
 }

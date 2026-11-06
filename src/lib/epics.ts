@@ -3,7 +3,7 @@
 // non-member reads nothing. Progress is aggregated in SQL, never by loading
 // every issue.
 //
-// Cross-project epics (D4b): issues of sibling projects in the workspace may
+// Cross-project epics: issues of sibling projects in the workspace may
 // join an epic, so issue reads and progress select by epic id — not by the
 // epic's project — and filter each issue by the viewer's membership of *its*
 // project. A viewer never sees (or counts) issues of projects they aren't in.
@@ -22,10 +22,12 @@ import {
   or,
   sql,
   type SQL,
+  type SQLWrapper,
 } from 'drizzle-orm';
-import { alias, type AnyPgColumn } from 'drizzle-orm/pg-core';
+import { alias } from 'drizzle-orm/pg-core';
 
 import { db } from '@/lib/db';
+import { projectMemberOf } from '@/lib/project-access';
 import {
   epicLabelLinks,
   epicLabels,
@@ -33,13 +35,11 @@ import {
   epicUpdates,
   epics,
   milestones,
-  projectMembers,
   projects,
   tickets,
   users,
   workflowStates,
 } from '@/db/schema';
-import { availableEpicsForProject } from '@/lib/issue-service';
 import { activeIssue, issueQueries, memberOfIssueProject, mergeIssueRows } from '@/lib/tickets';
 import type { IssueRow } from '@/lib/issue-model';
 import {
@@ -55,22 +55,11 @@ import {
   type MilestoneRow,
   type Progress,
   type ProjectRef,
-} from '@/lib/components/epics/epic-model';
+} from '@/lib/epic-model';
 
 const leadUsers = alias(users, 'lead');
 const authorUsers = alias(users, 'author');
 const otherEpics = alias(epics, 'other_epic');
-
-/** EXISTS: `userId` is a member of the project in `projectColumn`. */
-export function viewerIsMember(projectColumn: AnyPgColumn, userId: string): SQL {
-  const viewer = alias(projectMembers, 'viewer');
-  return exists(
-    db
-      .select({ one: sql`1` })
-      .from(viewer)
-      .where(and(eq(viewer.projectId, projectColumn), eq(viewer.userId, userId))),
-  );
-}
 
 /** Aggregate columns for progress over tickets ⨝ workflow_state. */
 export const progressColumns = {
@@ -106,7 +95,7 @@ export const epicColumns = {
 };
 
 /** Epics joined with their lead; add your own `where`. */
-export function selectEpics(where: SQL | undefined) {
+function selectEpics(where: SQL | undefined) {
   return db
     .select(epicColumns)
     .from(epics)
@@ -123,7 +112,7 @@ function progressMap(rows: ProgressRow[]) {
   return new Map(rows.map(({ key, ...progress }) => [key, progress]));
 }
 
-export function toEpicRow(row: EpicSelectRow, progress: Map<string | null, Progress>): EpicRow {
+function toEpicRow(row: EpicSelectRow, progress: Map<string | null, Progress>): EpicRow {
   const { leadId, leadName, leadImage, ...epic } = row;
   return {
     ...epic,
@@ -133,13 +122,32 @@ export function toEpicRow(row: EpicSelectRow, progress: Map<string | null, Progr
 }
 
 /** Progress per epic for tickets matching `where`. */
-export function epicProgressQuery(where: SQL | undefined) {
+function epicProgressQuery(where: SQL | undefined) {
   return db
     .select({ key: tickets.epicId, ...progressColumns })
     .from(tickets)
     .innerJoin(workflowStates, eq(tickets.stateId, workflowStates.id))
     .where(and(isNotNull(tickets.epicId), inProgressScope(), where))
     .groupBy(tickets.epicId);
+}
+
+/** Progress per epic (as `key`) of the issues `userId` can see, for the epics `epicIds` selects. */
+export function epicProgressFor(epicIds: SQLWrapper, userId: string) {
+  return epicProgressQuery(and(inArray(tickets.epicId, epicIds), projectMemberOf(tickets.projectId, userId)));
+}
+
+/** Batch-ready queries for `[epic rows, their progress]` of the epics matching `where`; read with `toEpicRows`. */
+export function epicRowQueries(where: SQL | undefined, userId: string) {
+  const ids = db.select({ id: epics.id }).from(epics).where(where);
+  return [selectEpics(where), epicProgressFor(ids, userId)] as const;
+}
+
+export function toEpicRows(
+  rows: EpicSelectRow[],
+  progressRows: Awaited<ReturnType<typeof epicProgressQuery>>,
+): EpicRow[] {
+  const progress = progressMap(progressRows);
+  return rows.map((row) => toEpicRow(row, progress));
 }
 
 function selectMilestones(where: SQL | undefined) {
@@ -194,7 +202,7 @@ function selectEpicLabels(projectId: string, userId: string) {
   return db
     .select({ id: epicLabels.id, name: epicLabels.name, color: epicLabels.color })
     .from(epicLabels)
-    .where(and(eq(epicLabels.projectId, projectId), viewerIsMember(epicLabels.projectId, userId)))
+    .where(and(eq(epicLabels.projectId, projectId), projectMemberOf(epicLabels.projectId, userId)))
     .orderBy(asc(epicLabels.name));
 }
 
@@ -221,8 +229,8 @@ export const getProjectEpics = cache(
   async (projectId: string, userId: string): Promise<ProjectEpics> => {
     const empty: ProjectEpics = { epics: [], milestones: [], labels: [], dependencies: [] };
     if (!projectId || !userId) return empty;
-    const isMember = viewerIsMember(epics.projectId, userId);
-    const ticketMember = viewerIsMember(tickets.projectId, userId);
+    const isMember = projectMemberOf(epics.projectId, userId);
+    const ticketMember = projectMemberOf(tickets.projectId, userId);
 
     const [
       epicRows,
@@ -310,7 +318,7 @@ const relationEpicColumns = {
 function selectEpicRelations(projectId: string, epicId: string, userId: string) {
   const otherInProject = and(
     eq(otherEpics.projectId, projectId),
-    viewerIsMember(otherEpics.projectId, userId),
+    projectMemberOf(otherEpics.projectId, userId),
   );
   return db
     .select({
@@ -340,7 +348,7 @@ function relationKind(type: string, outgoing: boolean): EpicRelationKind {
 export const getEpicDetail = cache(
   async (projectId: string, epicId: string, userId: string): Promise<EpicDetail | null> => {
     if (!projectId || !epicId || !userId) return null;
-    const isMember = viewerIsMember(epics.projectId, userId);
+    const isMember = projectMemberOf(epics.projectId, userId);
     const inEpic = and(eq(epics.id, epicId), eq(epics.projectId, projectId), isMember);
     // Not scoped to the project: sibling projects' issues may join this epic.
     // The epic itself is checked (inEpic) — no row, no detail.
@@ -396,7 +404,7 @@ export const getEpicDetail = cache(
       ? await db
           .select({ id: projects.id, name: projects.name, ticketKey: projects.ticketKey })
           .from(projects)
-          .where(and(inArray(projects.id, foreignIds), viewerIsMember(projects.id, userId)))
+          .where(and(inArray(projects.id, foreignIds), projectMemberOf(projects.id, userId)))
           .orderBy(asc(projects.name))
       : [];
 
@@ -423,23 +431,88 @@ export const getEpicDetail = cache(
 );
 
 /**
- * Non-archived epics of the *other* projects in this project's workspace that
- * its issues may join, as seen by `userId` — D4a's `availableEpicsForProject`
- * (the issue service's own rule, so the picker never offers what a write
+ * SQL predicate over the `epic` table: an issue of `projectId` may point at
+ * this epic, for `userId`. Own epics always; another project's epics when both
+ * projects share a workspace and `userId` is a member of the epic's project.
+ * System actors (null) only get the project's own epics.
+ */
+export function epicAvailableTo(projectId: string, userId: string | null): SQL {
+  const own = eq(epics.projectId, projectId);
+  if (!userId) return own;
+  const epicProject = alias(projects, 'epic_project');
+  const issueProject = alias(projects, 'issue_project');
+  return or(
+    own,
+    and(
+      exists(
+        db
+          .select({ one: sql`1` })
+          .from(epicProject)
+          .innerJoin(issueProject, eq(issueProject.workspaceId, epicProject.workspaceId))
+          .where(and(eq(epicProject.id, epics.projectId), eq(issueProject.id, projectId))),
+      ),
+      projectMemberOf(epics.projectId, userId),
+    ),
+  )!;
+}
+
+export const epicAvailableSql = (projectId: string, userId: string | null) =>
+  sql<boolean>`(${epicAvailableTo(projectId, userId)})`.mapWith(Boolean);
+
+/**
+ * Non-archived epics (+ milestones) of the *other* projects in this project's
+ * workspace that its issues may join, as seen by `userId` — `epicAvailableTo`
+ * (the rule issue writes enforce, so the picker never offers what a write
  * would reject), minus the project's own epics (project data has those).
+ * Ordered by project name, sortOrder, name. [] when `userId` isn't a member of
+ * `projectId`.
  */
 export const getCrossProjectEpicOptions = cache(
   async (projectId: string, userId: string): Promise<ForeignEpicOption[]> => {
-    const available = await availableEpicsForProject(projectId, userId);
-    return available
-      .filter((epic) => epic.external)
-      .map((epic) => ({
-        id: epic.id,
-        name: epic.name,
-        color: epic.color,
-        status: epic.status,
-        project: { id: epic.projectId, name: epic.projectName, ticketKey: epic.ticketKey },
-        milestones: epic.milestones.map((m) => ({ id: m.id, name: m.name })),
-      }));
+    if (!projectId || !userId) return [];
+    const where = and(
+      isNull(epics.archivedAt),
+      ne(epics.projectId, projectId),
+      epicAvailableTo(projectId, userId),
+      projectMemberOf(sql`${projectId}`, userId),
+    );
+    const [epicRows, milestoneRows] = await db.batch([
+      db
+        .select({
+          id: epics.id,
+          name: epics.name,
+          color: epics.color,
+          status: epics.status,
+          projectId: epics.projectId,
+          projectName: projects.name,
+          ticketKey: projects.ticketKey,
+        })
+        .from(epics)
+        .innerJoin(projects, eq(epics.projectId, projects.id))
+        .where(where)
+        .orderBy(asc(projects.name), asc(epics.sortOrder), asc(epics.name)),
+      db
+        .select({ id: milestones.id, name: milestones.name, epicId: milestones.epicId })
+        .from(milestones)
+        .innerJoin(epics, eq(milestones.epicId, epics.id))
+        .where(where)
+        .orderBy(asc(milestones.sortOrder), asc(milestones.name)),
+    ]);
+
+    const byId = new Map<string, ForeignEpicOption>(
+      epicRows.map((epic) => [
+        epic.id,
+        {
+          id: epic.id,
+          name: epic.name,
+          color: epic.color,
+          status: epic.status,
+          project: { id: epic.projectId, name: epic.projectName, ticketKey: epic.ticketKey },
+          milestones: [],
+        },
+      ]),
+    );
+    for (const m of milestoneRows) byId.get(m.epicId)?.milestones.push({ id: m.id, name: m.name });
+    return [...byId.values()];
   },
 );

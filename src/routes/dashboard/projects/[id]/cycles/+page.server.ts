@@ -1,13 +1,7 @@
 // Cycles list. The project layout already checked membership (non-members 404)
 // and provides project data; the cycle reads below are scoped by project id.
 
-import { error, redirect } from '@sveltejs/kit';
-import { eq } from 'drizzle-orm';
-
-import { db } from '@/lib/db';
-import { projects } from '@/db/schema';
-import { getSession } from '@/lib/session';
-import { getProjectData } from '@/lib/project-data';
+import { getCycleSettings } from '@/lib/project-settings-read';
 import { roleAllows } from '@/lib/roles';
 import { cycleTotals, getProjectCycles, loadCycleHistory } from '@/lib/cycles';
 import type { CycleListItem } from '@/lib/components/cycles/cycles-list.svelte';
@@ -17,39 +11,26 @@ import {
   cycleName,
   cycleStatus,
   utcDay,
-} from '@/lib/components/cycles/cycle-utils';
+} from '@/lib/cycle-utils';
+import { featureOff } from '../project-load';
 import type { PageServerLoad } from './$types';
 
 /** Past cycles shown in the velocity chart. */
 const VELOCITY_CYCLES = 8;
 
-export const load: PageServerLoad = async ({ params }) => {
+export const load: PageServerLoad = async ({ params, parent }) => {
   const { id } = params;
-  const session = await getSession();
-  if (!session?.user) redirect(303, '/login');
-  const data = await getProjectData(id, session.user.id);
-  if (!data) error(404, 'Not found');
+  const data = (await parent()).projectData;
   const { project } = data;
 
   if (!project.cyclesEnabled && data.cycles.length === 0) {
-    return {
-      featureOff: true as const,
-      projectId: id,
-      canEnable: roleAllows(project.role, 'admin'),
-    };
+    return featureOff(id, project.role);
   }
 
-  const [rows, history, [settings]] = await Promise.all([
+  const [rows, history, settings] = await Promise.all([
     getProjectCycles(id),
     loadCycleHistory(id),
-    db
-      .select({
-        durationWeeks: projects.cycleDurationWeeks,
-        cooldownWeeks: projects.cycleCooldownWeeks,
-      })
-      .from(projects)
-      .where(eq(projects.id, id))
-      .limit(1),
+    getCycleSettings(id),
   ]);
   const now = new Date();
   const items: CycleListItem[] = rows.map((row) => ({

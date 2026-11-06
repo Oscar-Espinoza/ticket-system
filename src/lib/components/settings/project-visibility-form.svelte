@@ -11,7 +11,7 @@
   import { Label } from '@/lib/components/ui/label';
   import { RadioGroup, RadioGroupItem } from '@/lib/components/ui/radio-group';
   import { createActionState, useResultToast } from './action-state.svelte';
-  import type { ProjectGeneralFormProps } from './project-general-form.svelte';
+  import type { ProjectGeneralFormProps } from './project-general-types';
 
   const VISIBILITY_COPY: Record<ProjectVisibility, { label: string; hint: string }> = {
     private: {

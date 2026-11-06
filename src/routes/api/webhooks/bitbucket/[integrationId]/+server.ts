@@ -7,18 +7,18 @@ import type { RequestHandler } from './$types';
 import { allowOptions } from '../../../_lib/options';
 
 import { after } from '@/lib/kit/request';
-import { verifySignature } from '@/lib/github/webhooks';
 import { syncBitbucketEvent } from '@/lib/vcs/bitbucket-sync';
 import { getWebhookIntegration, type BitbucketConfig } from '@/lib/vcs/integrations';
-import { decryptToken } from '@/lib/vcs/secrets';
-import { readJsonBody, rejected } from '@/lib/vcs/webhook-request';
+import { decryptToken } from '@/lib/server/crypto';
+import { verifyHmac } from '@/lib/server/secrets';
+import { readWebhookBody, rejected } from '@/lib/vcs/webhook-request';
 
 export const POST: RequestHandler = async ({ request, params }) => {
   const { integrationId } = params;
   const signature = request.headers.get('x-hub-signature');
   if (!signature) return rejected();
 
-  const body = await readJsonBody(request);
+  const body = await readWebhookBody(request);
   if (!body.ok) return body.response;
 
   let found: Awaited<ReturnType<typeof getWebhookIntegration<BitbucketConfig>>>;
@@ -29,7 +29,7 @@ export const POST: RequestHandler = async ({ request, params }) => {
     return Response.json({ error: 'Internal error' }, { status: 500 });
   }
   const secret = found?.integration.secret;
-  if (!found || !secret || !verifySignature(body.raw, signature, secret)) return rejected();
+  if (!found || !secret || !verifyHmac(signature, body.raw, secret, 'sha256=')) return rejected();
 
   const event = request.headers.get('x-event-key') ?? '';
   const { project, integration } = found;
@@ -45,5 +45,4 @@ export const POST: RequestHandler = async ({ request, params }) => {
   return Response.json({ ok: true }, { status: 202 });
 };
 
-// Next answered OPTIONS automatically (204 + Allow); Kit would 405.
 export const OPTIONS = allowOptions('POST');

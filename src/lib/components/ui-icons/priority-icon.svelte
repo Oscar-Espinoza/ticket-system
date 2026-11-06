@@ -9,7 +9,7 @@
 
   export interface PriorityIconProps extends GlyphProps {
     priority: Priority;
-    /** 14 or 16 px (C4 contract, matches StatusIcon). */
+    /** 14 or 16 px (matches StatusIcon). */
     size?: 14 | 16;
   }
 </script>

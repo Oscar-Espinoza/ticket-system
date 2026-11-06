@@ -3,53 +3,50 @@
 // credential — so it only ever reveals the project name, silently drops likely
 // spam (honeypot, too-fast submits) and caps the rate per project.
 
-import { revalidatePath } from '@/lib/kit/request';
 import { and, count, eq, gte } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
-import { customerRequests, projects, workflowStates } from '@/db/schema';
+import { customerRequests, projects } from '@/db/schema';
+import { projectStatesQuery } from '@/lib/workflow-server';
 import { authorizeProjectAction } from '@/lib/action-auth';
 import { matchCustomerByEmail } from '@/lib/customers';
-import { createIssue, SYSTEM_ACTOR } from '@/lib/issue-service';
+import { createIssue, SYSTEM_ACTOR, TITLE_MAX } from '@/lib/issue-service';
 import { stripMentions } from '@/lib/mentions';
 import { defaultNewIssueState, firstStateOfType } from '@/lib/workflow';
 import { appUrl } from '@/lib/integrations/app-url';
 import { checkFormStamp, generateIntakeToken } from '@/lib/integrations/intake';
-
-type Result<T = object> = ({ ok: true } & T) | { ok: false; error: string };
+import { EMAIL_RE, refreshesData, type ActionResult } from '@/lib/server/action-kit';
 
 const RATE_WINDOW_MS = 10 * 60 * 1000;
 const RATE_MAX = 20;
 const NAME_MAX = 100;
 const EMAIL_MAX = 200;
-const TITLE_MAX = 200;
 const DESCRIPTION_MAX = 8000;
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const intakeUrl = (token: string) => `${appUrl()}/request/${token}`;
 
-async function setToken(projectId: string, token: string | null): Promise<Result<{ url: string | null }>> {
+async function setToken(projectId: string, token: string | null): Promise<ActionResult<{ url: string | null }>> {
   const gate = await authorizeProjectAction(projectId, 'admin');
-  if (!gate.ok) return { ok: false, error: gate.error };
+  if (!gate.ok) return gate;
   await db
     .update(projects)
     .set({ intakeToken: token, updatedAt: new Date() })
     .where(eq(projects.id, projectId));
-  revalidatePath(`/dashboard/projects/${projectId}/settings/intake`);
+  refreshesData();
   return { ok: true, url: token ? intakeUrl(token) : null };
 }
 
 export async function setIntakeEnabled(input: {
   projectId: string;
   enabled: boolean;
-}): Promise<Result<{ url: string | null }>> {
+}): Promise<ActionResult<{ url: string | null }>> {
   return setToken(input?.projectId, input?.enabled ? generateIntakeToken() : null);
 }
 
 /** New public link; the old one (and any embeds of it) stops working. */
 export async function rotateIntakeToken(input: {
   projectId: string;
-}): Promise<Result<{ url: string | null }>> {
+}): Promise<ActionResult<{ url: string | null }>> {
   return setToken(input?.projectId, generateIntakeToken());
 }
 
@@ -136,17 +133,7 @@ export async function submitIntakeRequest(
     };
   }
 
-  const states = await db
-    .select({
-      id: workflowStates.id,
-      name: workflowStates.name,
-      type: workflowStates.type,
-      color: workflowStates.color,
-      position: workflowStates.position,
-      description: workflowStates.description,
-    })
-    .from(workflowStates)
-    .where(eq(workflowStates.projectId, project.id));
+  const states = await projectStatesQuery(project.id);
   const state =
     (project.triageEnabled ? firstStateOfType(states, 'triage') : undefined) ??
     defaultNewIssueState(states);
@@ -166,7 +153,7 @@ export async function submitIntakeRequest(
     return { values, errors: { server: 'Something went wrong. Please try again.' } };
   }
 
-  // A known customer's domain links the request to them (D6). Best effort: the
+  // A known customer's domain links the request to them. Best effort: the
   // issue already exists, so a failed lookup must not fail the submission.
   const customer = await matchCustomerByEmail(project.id, values.email).catch((err) => {
     console.error('[intake] customer match failed', err);

@@ -1,4 +1,4 @@
-<!-- One schedule in Settings → Recurring issues (local helper of recurring-settings.tsx). -->
+<!-- One schedule in Settings → Recurring issues. -->
 <script lang="ts">
   import CirclePause from '@lucide/svelte/icons/circle-pause';
   import CirclePlay from '@lucide/svelte/icons/circle-play';
@@ -20,7 +20,7 @@
   import { Avatar, PriorityIcon, StateIcon } from '@/lib/components/ui-icons';
   import { formatEstimate } from '@/lib/estimates';
   import { cn } from '@/lib/utils';
-  import { describeSchedule, formatRunDay, type RecurringIssue } from '@/lib/components/recurring/schedule';
+  import { describeSchedule, formatRunDay, type RecurringIssue } from '@/lib/recurring-schedule';
   import { defaultsToPatch } from './recurring-defaults';
 
   let {

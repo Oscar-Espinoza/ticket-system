@@ -1,4 +1,4 @@
-<!-- Calendar chip body (IssueChip in src/components/views/calendar-view.tsx). -->
+<!-- Calendar chip body. -->
 <script lang="ts">
   import { StateIcon } from '@/lib/components/ui-icons';
   import type { IssueRow } from '@/lib/issue-model';
@@ -11,7 +11,7 @@
     overlay = false,
   }: {
     issue: IssueRow;
-    /** React passed `onSelect`; only its presence mattered here (cursor). */
+    /** Only its presence matters here (cursor). */
     selectable?: boolean;
     overlay?: boolean;
   } = $props();

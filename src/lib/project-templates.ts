@@ -1,11 +1,11 @@
-// Project templates (.planning/features/D4a-project-templates.md): snapshot a
+// Project templates: snapshot a
 // project's setup into `project_template.config` and seed new projects from it.
 // Server-only (imports db). No authorization here — callers check access.
 //
 // Snapshots store names, never ids: issue-template defaults reference states
 // and labels by name and are re-mapped to the new project's rows on create.
 
-import { and, asc, eq, inArray, or } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, or } from 'drizzle-orm';
 import type { BatchItem } from 'drizzle-orm/batch';
 
 import { db } from '@/lib/db';
@@ -14,12 +14,15 @@ import {
   labels,
   projects,
   projectTemplates,
+  users,
   workflowStates,
   workspaceMembers,
+  workspaces,
 } from '@/db/schema';
 import { isEstimateScale, type EstimateScale } from '@/lib/estimates';
 import { isPriority, isStateType, type Priority, type StateType } from '@/lib/issue-model';
 import { normalizeSlaPolicy } from '@/lib/sla';
+import { clippedText } from '@/lib/text';
 import { workflowStateInserts } from '@/lib/workflow-server';
 
 export interface TemplateState {
@@ -72,7 +75,7 @@ export interface ProjectTemplateConfig {
   issueTemplates: TemplateIssueTemplate[];
 }
 
-export const TEMPLATE_LIMITS = { states: 50, labels: 200, issueTemplates: 100 } as const;
+const TEMPLATE_LIMITS = { states: 50, labels: 200, issueTemplates: 100 } as const;
 
 const DEFAULT_SETTINGS: TemplateSettings = {
   estimateScale: 'none',
@@ -95,9 +98,6 @@ const DEFAULT_SETTINGS: TemplateSettings = {
 const str = (value: unknown, max: number): string | null =>
   typeof value === 'string' && value.trim() && value.trim().length <= max ? value.trim() : null;
 
-const optStr = (value: unknown, max: number): string | null =>
-  typeof value === 'string' ? value.trim().slice(0, max) || null : null;
-
 const int = (value: unknown, min: number, max: number): number | null =>
   Number.isInteger(value) && (value as number) >= min && (value as number) <= max
     ? (value as number)
@@ -107,7 +107,7 @@ const list = (value: unknown, max: number): unknown[] =>
   Array.isArray(value) ? value.slice(0, max) : [];
 
 /** Drops anything malformed; duplicate names keep the first. */
-export function normalizeTemplateConfig(raw: unknown): ProjectTemplateConfig {
+function normalizeTemplateConfig(raw: unknown): ProjectTemplateConfig {
   const input = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
 
   const seenStates = new Set<string>();
@@ -123,7 +123,7 @@ export function normalizeTemplateConfig(raw: unknown): ProjectTemplateConfig {
       type: s.type,
       color,
       position: typeof s.position === 'number' && Number.isFinite(s.position) ? s.position : states.length,
-      description: optStr(s.description, 500),
+      description: clippedText(s.description, 500),
     });
   }
 
@@ -135,7 +135,7 @@ export function normalizeTemplateConfig(raw: unknown): ProjectTemplateConfig {
     const color = str(l.color, 32);
     if (!name || !color || seenLabels.has(name.toLowerCase())) continue;
     seenLabels.add(name.toLowerCase());
-    labelList.push({ name, color, description: optStr(l.description, 500) });
+    labelList.push({ name, color, description: clippedText(l.description, 500) });
   }
 
   const s = (input.settings ?? {}) as Record<string, unknown>;
@@ -175,7 +175,7 @@ export function normalizeTemplateConfig(raw: unknown): ProjectTemplateConfig {
     templates.push({
       name,
       title: typeof t.title === 'string' ? t.title.slice(0, 200) : '',
-      description: optStr(t.description, 10_000),
+      description: clippedText(t.description, 10_000),
       data,
     });
   }
@@ -230,7 +230,7 @@ export async function snapshotProject(projectId: string): Promise<ProjectTemplat
   });
 }
 
-export function templateSummary(config: ProjectTemplateConfig) {
+function templateSummary(config: ProjectTemplateConfig) {
   return {
     states: config.states.length,
     labels: config.labels.length,
@@ -320,7 +320,7 @@ export function projectSeed(
 // ---------------------------------------------------------------------------
 
 /** Templates `userId` may use: their own + ones shared with a workspace they're in. */
-export function usableTemplateFilter(userId: string) {
+function usableTemplateFilter(userId: string) {
   return or(
     eq(projectTemplates.ownerId, userId),
     inArray(
@@ -331,6 +331,46 @@ export function usableTemplateFilter(userId: string) {
         .where(eq(workspaceMembers.userId, userId)),
     ),
   )!;
+}
+
+export interface ProjectTemplateRow {
+  id: string;
+  name: string;
+  description: string | null;
+  workspaceId: string | null;
+  workspaceName: string | null;
+  ownerName: string | null;
+  /** The viewer owns it (may edit / delete). */
+  isOwner: boolean;
+  updatedAt: string;
+  summary: ReturnType<typeof templateSummary>;
+}
+
+/** The templates `userId` may use, newest first; `id` narrows to one. */
+export async function readProjectTemplates(userId: string, id?: string): Promise<ProjectTemplateRow[]> {
+  const rows = await db
+    .select({
+      id: projectTemplates.id,
+      name: projectTemplates.name,
+      description: projectTemplates.description,
+      workspaceId: projectTemplates.workspaceId,
+      workspaceName: workspaces.name,
+      ownerId: projectTemplates.ownerId,
+      ownerName: users.name,
+      config: projectTemplates.config,
+      updatedAt: projectTemplates.updatedAt,
+    })
+    .from(projectTemplates)
+    .leftJoin(workspaces, eq(projectTemplates.workspaceId, workspaces.id))
+    .leftJoin(users, eq(projectTemplates.ownerId, users.id))
+    .where(and(usableTemplateFilter(userId), id ? eq(projectTemplates.id, id) : undefined))
+    .orderBy(desc(projectTemplates.updatedAt), asc(projectTemplates.name));
+  return rows.map(({ config, ownerId, updatedAt, ...row }) => ({
+    ...row,
+    isOwner: ownerId === userId,
+    updatedAt: updatedAt.toISOString(),
+    summary: templateSummary(normalizeTemplateConfig(config)),
+  }));
 }
 
 /** The template's normalized config when `userId` may use it; null otherwise. */

@@ -5,7 +5,6 @@
 // plaintext client secret is returned exactly once (create / rotate).
 
 import { headers } from '@/lib/kit/request';
-import { revalidatePath } from '@/lib/kit/request';
 import { and, count, eq } from 'drizzle-orm';
 
 import { auth } from '@/lib/auth';
@@ -16,25 +15,27 @@ import {
   oauthConsents,
   oauthRefreshTokens,
 } from '@/db/schema';
-import { getSession } from '@/lib/session';
+import {
+  fail,
+  isFail,
+  NOT_AUTHENTICATED,
+  refreshesData,
+  requiredText,
+  type ActionResult,
+} from '@/lib/server/action-kit';
+import { sessionUserId } from '@/lib/session';
 import {
   APP_NAME_MAX,
   OAUTH_APP_SCOPES,
   REDIRECT_URIS_MAX,
   type OAuthAppView,
-} from '@/lib/components/oauth/oauth-model';
+} from '@/lib/oauth-model';
 
 type Field = 'name' | 'redirectUris' | 'logoUrl' | 'homepageUrl';
-type Result<T = object> = ({ ok: true } & T) | { ok: false; error: string; field?: Field };
+type Result<T = object> = ActionResult<T, Field>;
 
 const APPS_MAX = 20;
 const URL_MAX = 500;
-const PAGE = '/dashboard/settings/oauth-apps';
-
-async function sessionUserId(): Promise<string | null> {
-  const session = await getSession();
-  return session?.user?.id ?? null;
-}
 
 /** Better Auth APIError → message (their body carries error_description / message). */
 function authErrorMessage(err: unknown, fallback: string): string {
@@ -49,15 +50,15 @@ function authErrorMessage(err: unknown, fallback: string): string {
 function optionalUrl(raw: unknown, field: Field, label: string, httpsOnly: boolean): Result<{ url?: string }> {
   const value = typeof raw === 'string' ? raw.trim() : '';
   if (!value) return { ok: true };
-  if (value.length > URL_MAX) return { ok: false, error: `${label} is too long.`, field };
+  if (value.length > URL_MAX) return fail(`${label} is too long.`, field);
   try {
     const url = new URL(value);
     if (url.protocol !== 'https:' && (httpsOnly || url.protocol !== 'http:')) {
-      return { ok: false, error: `${label} must use https.`, field };
+      return fail(`${label} must use https.`, field);
     }
     return { ok: true, url: url.toString() };
   } catch {
-    return { ok: false, error: `${label} must be a valid URL.`, field };
+    return fail(`${label} must be a valid URL.`, field);
   }
 }
 
@@ -68,27 +69,27 @@ function parseRedirectUris(raw: unknown): Result<{ uris: string[] }> {
     .map((line) => line.trim())
     .filter(Boolean);
   const uris = [...new Set(lines)];
-  if (uris.length === 0) return { ok: false, error: 'Add at least one redirect URI.', field };
+  if (uris.length === 0) return fail('Add at least one redirect URI.', field);
   if (uris.length > REDIRECT_URIS_MAX) {
-    return { ok: false, error: `At most ${REDIRECT_URIS_MAX} redirect URIs.`, field };
+    return fail(`At most ${REDIRECT_URIS_MAX} redirect URIs.`, field);
   }
   for (const uri of uris) {
     let url: URL;
     try {
       url = new URL(uri);
     } catch {
-      return { ok: false, error: `“${uri}” is not a valid URL.`, field };
+      return fail(`“${uri}” is not a valid URL.`, field);
     }
-    if (uri.length > URL_MAX) return { ok: false, error: 'Redirect URI is too long.', field };
+    if (uri.length > URL_MAX) return fail('Redirect URI is too long.', field);
     if (url.hash || uri.includes('#')) {
-      return { ok: false, error: 'Redirect URIs can’t contain a #fragment.', field };
+      return fail('Redirect URIs can’t contain a #fragment.', field);
     }
     const loopback = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname) || url.hostname.endsWith('.localhost');
     if (url.protocol === 'http:' && !loopback) {
-      return { ok: false, error: 'Redirect URIs must use https (http only for localhost).', field };
+      return fail('Redirect URIs must use https (http only for localhost).', field);
     }
     if (['javascript:', 'data:', 'vbscript:', 'file:'].includes(url.protocol)) {
-      return { ok: false, error: `“${url.protocol}” redirect URIs aren’t allowed.`, field };
+      return fail(`“${url.protocol}” redirect URIs aren’t allowed.`, field);
     }
   }
   return { ok: true, uris };
@@ -102,13 +103,10 @@ export async function createOAuthApp(input: {
   kind: 'confidential' | 'public';
 }): Promise<Result<{ app: OAuthAppView; clientSecret: string | null }>> {
   const userId = await sessionUserId();
-  if (!userId) return { ok: false, error: 'Not authenticated' };
+  if (!userId) return NOT_AUTHENTICATED;
 
-  const name = typeof input?.name === 'string' ? input.name.trim() : '';
-  if (!name) return { ok: false, error: 'Name is required.', field: 'name' };
-  if (name.length > APP_NAME_MAX) {
-    return { ok: false, error: `Name must be ${APP_NAME_MAX} characters or fewer.`, field: 'name' };
-  }
+  const name = requiredText(input?.name, 'name', APP_NAME_MAX);
+  if (isFail(name)) return name;
   const redirects = parseRedirectUris(input.redirectUris);
   if (!redirects.ok) return redirects;
   const logo = optionalUrl(input.logoUrl, 'logoUrl', 'Logo URL', true);
@@ -121,7 +119,7 @@ export async function createOAuthApp(input: {
     .select({ total: count() })
     .from(oauthClients)
     .where(eq(oauthClients.userId, userId));
-  if (total >= APPS_MAX) return { ok: false, error: `You can register at most ${APPS_MAX} apps.` };
+  if (total >= APPS_MAX) return fail(`You can register at most ${APPS_MAX} apps.`);
 
   try {
     const created = await auth.api.createOAuthClient({
@@ -138,7 +136,7 @@ export async function createOAuthApp(input: {
         ...(isPublic ? {} : { type: 'web' as const }),
       },
     });
-    revalidatePath(PAGE);
+    refreshesData();
     return {
       ok: true,
       clientSecret: created.client_secret ?? null,
@@ -153,7 +151,7 @@ export async function createOAuthApp(input: {
       },
     };
   } catch (err) {
-    return { ok: false, error: authErrorMessage(err, 'Could not register the app.') };
+    return fail(authErrorMessage(err, 'Could not register the app.'));
   }
 }
 
@@ -161,34 +159,34 @@ export async function rotateOAuthAppSecret(input: {
   clientId: string;
 }): Promise<Result<{ clientSecret: string }>> {
   const userId = await sessionUserId();
-  if (!userId) return { ok: false, error: 'Not authenticated' };
-  if (typeof input?.clientId !== 'string') return { ok: false, error: 'App not found.' };
+  if (!userId) return NOT_AUTHENTICATED;
+  if (typeof input?.clientId !== 'string') return fail('App not found.');
   try {
     const rotated = await auth.api.rotateClientSecret({
       headers: await headers(),
       body: { client_id: input.clientId },
     });
-    if (!rotated.client_secret) return { ok: false, error: 'Public apps have no secret.' };
+    if (!rotated.client_secret) return fail('Public apps have no secret.');
     return { ok: true, clientSecret: rotated.client_secret };
   } catch (err) {
-    return { ok: false, error: authErrorMessage(err, 'Could not rotate the secret.') };
+    return fail(authErrorMessage(err, 'Could not rotate the secret.'));
   }
 }
 
 export async function deleteOAuthApp(input: { clientId: string }): Promise<Result> {
   const userId = await sessionUserId();
-  if (!userId) return { ok: false, error: 'Not authenticated' };
-  if (typeof input?.clientId !== 'string') return { ok: false, error: 'App not found.' };
+  if (!userId) return NOT_AUTHENTICATED;
+  if (typeof input?.clientId !== 'string') return fail('App not found.');
   try {
     // Tokens and consents cascade with the client row.
     await auth.api.deleteOAuthClient({
       headers: await headers(),
       body: { client_id: input.clientId },
     });
-    revalidatePath(PAGE);
+    refreshesData();
     return { ok: true };
   } catch (err) {
-    return { ok: false, error: authErrorMessage(err, 'Could not delete the app.') };
+    return fail(authErrorMessage(err, 'Could not delete the app.'));
   }
 }
 
@@ -198,15 +196,15 @@ export async function deleteOAuthApp(input: { clientId: string }): Promise<Resul
  */
 export async function revokeOAuthConsent(input: { id: string }): Promise<Result> {
   const userId = await sessionUserId();
-  if (!userId) return { ok: false, error: 'Not authenticated' };
-  if (typeof input?.id !== 'string') return { ok: false, error: 'Authorization not found.' };
+  if (!userId) return NOT_AUTHENTICATED;
+  if (typeof input?.id !== 'string') return fail('Authorization not found.');
 
   const [consent] = await db
     .select({ clientId: oauthConsents.clientId })
     .from(oauthConsents)
     .where(and(eq(oauthConsents.id, input.id), eq(oauthConsents.userId, userId)))
     .limit(1);
-  if (!consent) return { ok: false, error: 'Authorization not found.' };
+  if (!consent) return fail('Authorization not found.');
 
   const { clientId } = consent;
   // Access tokens first: they reference refresh tokens.
@@ -221,6 +219,6 @@ export async function revokeOAuthConsent(input: { id: string }): Promise<Result>
       .delete(oauthConsents)
       .where(and(eq(oauthConsents.clientId, clientId), eq(oauthConsents.userId, userId))),
   ]);
-  revalidatePath(PAGE);
+  refreshesData();
   return { ok: true };
 }

@@ -1,8 +1,6 @@
 <!--
   Spreadsheet layout: one row per issue, one column per visible property,
   inline editing through the shared pickers, sortable headers (= ordering).
-  Port of src/components/views/table-view.tsx (default export TableView,
-  IssueViewProps).
 -->
 <script lang="ts">
   import ArrowDownIcon from '@lucide/svelte/icons/arrow-down';
@@ -16,8 +14,10 @@
     PriorityPicker,
     StatePicker,
   } from '@/lib/components/issue-pickers';
+  import { rowAttr } from '@/lib/components/issues/issue-dom';
   import { useDisplayOptions, type DisplayProperty } from '@/lib/components/issues/display-options.svelte';
-  import { DueDateChip, EstimateChip, LabelChips, relativeTime } from '@/lib/components/issues/issue-properties';
+  import { DueDateChip, EstimateChip, LabelChips } from '@/lib/components/issues/issue-properties';
+  import { relativeTime } from '@/lib/relative-time';
   import SelectCheckbox from '@/lib/components/issues/select-checkbox.svelte';
   import {
     handleSelectionClick,
@@ -29,7 +29,7 @@
   import { useProjectData, useProjectPermission } from '@/lib/components/project/project-data.svelte';
   import { Avatar, EmptyState, PriorityIcon, StateIcon } from '@/lib/components/ui-icons';
   import SlaChip from '@/lib/components/sla/sla-chip.svelte';
-  import StartDatePicker from '@/lib/components/issue-detail/slots/start-date-picker.svelte';
+  import StartDatePicker from '@/lib/components/issue-detail/start-date-picker.svelte';
   import { registerHotkeys } from '@/lib/svelte/hotkeys.svelte';
   import type { OrderBy } from '@/lib/issue-grouping';
   import { PRIORITY_LABEL, type IssuePatch, type IssueRow } from '@/lib/issue-model';
@@ -41,6 +41,7 @@
   import TableCellButton from './table-cell-button.svelte';
   import TableSubIssuesCell from './table-sub-issues-cell.svelte';
   import type { IssueViewProps } from '@/lib/components/issues/views';
+  import { focusIssueRow } from '@/lib/components/issues/issue-dom';
 
   let { issues, mutations, selectedId, onSelect }: IssueViewProps = $props();
 
@@ -131,7 +132,7 @@
       // Pickers hand focus back to the row, so j/k keep working.
       refocus: (event) => {
         event.preventDefault();
-        document.querySelector<HTMLElement>(`tr[data-issue-row="${issue.id}"]`)?.focus();
+        focusIssueRow(issue.id, 'tr');
       },
     };
   }
@@ -404,7 +405,7 @@
           <tr
             {@attach trackRow(issue.id)}
             tabindex="0"
-            data-issue-row={issue.id}
+            {...rowAttr(issue.id)}
             aria-current={active ? 'true' : undefined}
             aria-selected={selection.enabled ? checked : undefined}
             aria-label={`${issue.key} ${issue.title}, ${issue.state.name}`}

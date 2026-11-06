@@ -4,39 +4,27 @@
 // request bodies at 1 MB.
 
 import type { RequestHandler } from './$types';
+import { authFailResponse, fail, readUploadForm, uploadedFile } from '../_lib/http';
 import { allowOptions } from '../_lib/options';
 
 import { authorizeProjectAction } from '@/lib/action-auth';
 import { createUpload } from '@/lib/uploads';
-import { MAX_ATTACHMENT_BYTES, MAX_ATTACHMENT_LABEL } from '@/lib/components/issue-hierarchy/attachment-utils';
+import { MAX_ATTACHMENT_BYTES, MAX_ATTACHMENT_LABEL } from '@/lib/attachment-utils';
 
-// Multipart boundaries + the other fields.
-const FORM_OVERHEAD = 64 * 1024;
 const TOO_LARGE = `Images can be at most ${MAX_ATTACHMENT_LABEL}.`;
 
-function fail(error: string, status: number) {
-  return Response.json({ ok: false, error }, { status });
-}
-
 export const POST: RequestHandler = async ({ request }) => {
-  // Reject oversized bodies before buffering them.
-  const length = Number(request.headers.get('content-length'));
-  if (length > MAX_ATTACHMENT_BYTES + FORM_OVERHEAD) return fail(TOO_LARGE, 413);
-
-  let form: FormData;
-  try {
-    form = await request.formData();
-  } catch {
-    return fail('Invalid upload.', 400);
-  }
+  const read = await readUploadForm(request, MAX_ATTACHMENT_BYTES, TOO_LARGE);
+  if (!read.ok) return read.response;
+  const { form } = read;
 
   const projectId = form.get('projectId');
   const authz = await authorizeProjectAction(projectId, 'comment');
-  if (!authz.ok) return fail(authz.error, authz.error === 'Not authenticated' ? 401 : 403);
+  if (!authz.ok) return authFailResponse(authz);
 
-  const file = form.get('file');
-  if (!(file instanceof File)) return fail('No file received.', 400);
-  if (file.size > MAX_ATTACHMENT_BYTES) return fail(TOO_LARGE, 413);
+  const upload = uploadedFile(form, MAX_ATTACHMENT_BYTES, TOO_LARGE);
+  if (!upload.ok) return upload.response;
+  const { file } = upload;
 
   const result = await createUpload(authz.userId, projectId as string, {
     name: file.name,
@@ -47,5 +35,4 @@ export const POST: RequestHandler = async ({ request }) => {
   return Response.json(result, { status: 201 });
 };
 
-// Next answered OPTIONS automatically (204 + Allow); Kit would 405.
 export const OPTIONS = allowOptions('POST');

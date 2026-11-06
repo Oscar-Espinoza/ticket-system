@@ -1,5 +1,4 @@
-// Shared helpers for CapacityMeter / CapacityBadge (port of the non-exported
-// helpers in src/components/cycles/cycle-capacity.tsx).
+// Shared helpers for CapacityMeter / CapacityBadge.
 
 import {
   capacityOf,
@@ -7,7 +6,7 @@ import {
   scopeOf,
   type CycleCapacity,
   type CycleTotals,
-} from '@/lib/components/cycles/cycle-utils';
+} from '@/lib/cycle-utils';
 
 export function amount(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(1);

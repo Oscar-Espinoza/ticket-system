@@ -1,6 +1,8 @@
 // Shared (client + server) pieces of the collaboration protocol: key format,
 // base64 for binary Yjs updates in JSON, and the wire types.
 
+import { isEntityId } from '@/lib/ids';
+
 export type CollabKind = 'doc' | 'issue';
 
 export const collabKey = (kind: CollabKind, id: string) => `${kind}:${id}`;
@@ -10,14 +12,12 @@ export const issueCollabKey = (ticketId: string) => collabKey('issue', ticketId)
 /** Awareness rows share the update table (and its id sequence) under this key. */
 export const awarenessKey = (key: string) => `aw:${key}`;
 
-const ID = /^[A-Za-z0-9_-]{1,64}$/;
-
 export function parseCollabKey(key: string): { kind: CollabKind; id: string } | null {
   const at = key.indexOf(':');
   if (at < 0) return null;
   const kind = key.slice(0, at);
   const id = key.slice(at + 1);
-  if ((kind !== 'doc' && kind !== 'issue') || !ID.test(id)) return null;
+  if ((kind !== 'doc' && kind !== 'issue') || !isEntityId(id)) return null;
   return { kind, id };
 }
 

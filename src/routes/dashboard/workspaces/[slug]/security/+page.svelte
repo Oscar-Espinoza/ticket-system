@@ -3,6 +3,7 @@
   import ScrollTextIcon from '@lucide/svelte/icons/scroll-text';
   import ShieldCheckIcon from '@lucide/svelte/icons/shield-check';
 
+  import { workspaceRoleAllows } from '@/lib/workspace-types';
   import { Button } from '@/lib/components/ui/button';
   import { Separator } from '@/lib/components/ui/separator';
   import { EmptyState } from '@/lib/components/ui-icons';
@@ -35,7 +36,7 @@
         Single sign-on and user provisioning for {workspace.name}.
       </p>
     </div>
-    {#if workspace.role !== 'member'}
+    {#if workspaceRoleAllows(workspace.role, 'admin')}
       <Button variant="outline" size="sm" href={`/dashboard/workspaces/${workspace.slug}/audit`}>
         <ScrollTextIcon />
         Audit log
@@ -56,7 +57,7 @@
   </div>
 {:else}
   {@const security = data.security}
-  <!-- Next remounted the page when [slug] changed; Kit reuses it, so key the local state. -->
+  <!-- Kit reuses the page when [slug] changes, so key the local state. -->
   {#key security.workspaceId}
   <div class="mx-auto flex max-w-3xl flex-col gap-10">
     {@render header()}

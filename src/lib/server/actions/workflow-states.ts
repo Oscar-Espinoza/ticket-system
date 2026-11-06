@@ -8,67 +8,33 @@
 // change (same rule as stateTransitionTimestamps). Each action writes one
 // project-level activity row (ticketId null) with a `summary`.
 
-import { revalidatePath } from '@/lib/kit/request';
 import { and, eq, ne, sql, type SQL } from 'drizzle-orm';
 import type { BatchItem } from 'drizzle-orm/batch';
 
 import { db } from '@/lib/db';
 import { projects, tickets, workflowStates } from '@/db/schema';
+import { projectStatesQuery } from '@/lib/workflow-server';
 import { authorizeProjectAction } from '@/lib/action-auth';
+import { isUniqueViolation } from '@/lib/db-errors';
 import { emitIssueEvent, prepareIssueEvents, publishIssueEvents } from '@/lib/events';
+import {
+  descriptionOrNull,
+  fail,
+  hexColor,
+  isFail,
+  refreshesData,
+  requiredText,
+  type ActionResult,
+} from '@/lib/server/action-kit';
 import { isStateType, STATE_TYPE_LABEL, type StateType } from '@/lib/issue-model';
 
 export type WorkflowStateField = 'name' | 'color' | 'description' | 'type' | 'replacementId';
 
-export type WorkflowStateResult =
-  | { ok: true; id?: string }
-  | { ok: false; error: string; field?: WorkflowStateField };
+export type WorkflowStateResult = ActionResult<{ id?: string }, WorkflowStateField>;
 
 const NAME_MAX = 40;
 const DESCRIPTION_MAX = 200;
-const COLOR_RE = /^#[0-9a-fA-F]{6}$/;
-const DUPLICATE: WorkflowStateResult = {
-  ok: false,
-  error: 'A state with this name already exists.',
-  field: 'name',
-};
-
-function validateName(name: unknown): string | WorkflowStateResult {
-  const value = typeof name === 'string' ? name.trim() : '';
-  if (!value) return { ok: false, error: 'Name is required.', field: 'name' };
-  if (value.length > NAME_MAX) {
-    return { ok: false, error: `Name must be ${NAME_MAX} characters or fewer.`, field: 'name' };
-  }
-  return value;
-}
-
-function validateColor(color: unknown): string | WorkflowStateResult {
-  if (typeof color !== 'string' || !COLOR_RE.test(color)) {
-    return { ok: false, error: 'Color must be a hex value like #5e6ad2.', field: 'color' };
-  }
-  return color.toLowerCase();
-}
-
-function validateDescription(value: unknown): string | null | WorkflowStateResult {
-  if (value == null) return null;
-  if (typeof value !== 'string' || value.length > DESCRIPTION_MAX) {
-    return {
-      ok: false,
-      error: `Description must be ${DESCRIPTION_MAX} characters or fewer.`,
-      field: 'description',
-    };
-  }
-  return value.trim() || null;
-}
-
-const isError = (value: unknown): value is WorkflowStateResult =>
-  typeof value === 'object' && value !== null && 'ok' in value;
-
-function isUniqueViolation(err: unknown) {
-  const code =
-    (err as { code?: string })?.code ?? (err as { cause?: { code?: string } })?.cause?.code;
-  return code === '23505';
-}
+const DUPLICATE = fail('A state with this name already exists.', 'name');
 
 async function nameTaken(projectId: string, name: string, exceptId?: string) {
   const [row] = await db
@@ -85,25 +51,6 @@ async function nameTaken(projectId: string, name: string, exceptId?: string) {
   return Boolean(row);
 }
 
-async function projectStates(projectId: string) {
-  return db
-    .select({
-      id: workflowStates.id,
-      name: workflowStates.name,
-      type: workflowStates.type,
-      color: workflowStates.color,
-      description: workflowStates.description,
-      position: workflowStates.position,
-    })
-    .from(workflowStates)
-    .where(eq(workflowStates.projectId, projectId));
-}
-
-function revalidate(projectId: string) {
-  // States feed every picker, list group and board column in the project.
-  revalidatePath(`/dashboard/projects/${projectId}`, 'layout');
-}
-
 function activity(projectId: string, actorId: string, type: string, data: Record<string, unknown>) {
   return { projectId, ticketId: null, actorId, type, data };
 }
@@ -118,19 +65,19 @@ export async function createWorkflowState(input: {
   const authz = await authorizeProjectAction(input?.projectId, 'admin');
   if (!authz.ok) return authz;
 
-  if (!isStateType(input.type)) return { ok: false, error: 'Pick a state type.', field: 'type' };
-  const name = validateName(input.name);
-  if (isError(name)) return name;
-  const color = validateColor(input.color);
-  if (isError(color)) return color;
-  const description = validateDescription(input.description);
-  if (isError(description)) return description;
+  if (!isStateType(input.type)) return fail('Pick a state type.', 'type');
+  const name = requiredText(input.name, 'name', NAME_MAX);
+  if (isFail(name)) return name;
+  const color = hexColor(input.color);
+  if (isFail(color)) return color;
+  const description = descriptionOrNull(input.description, DESCRIPTION_MAX);
+  if (isFail(description)) return description;
 
-  const states = await projectStates(input.projectId);
+  const states = await projectStatesQuery(input.projectId);
   const sameType = states.filter((s) => s.type === input.type);
   // Linear has a single triage inbox; B7's triage view assumes one.
   if (input.type === 'triage' && sameType.length > 0) {
-    return { ok: false, error: 'A project has at most one triage state.', field: 'type' };
+    return fail('A project has at most one triage state.', 'type');
   }
   if (states.some((s) => s.name.toLowerCase() === name.toLowerCase())) return DUPLICATE;
 
@@ -160,7 +107,7 @@ export async function createWorkflowState(input: {
       summary: `added the ${STATE_TYPE_LABEL[input.type].toLowerCase()} state “${name}”`,
     }),
   );
-  revalidate(input.projectId);
+  refreshesData();
   return { ok: true, id };
 }
 
@@ -174,26 +121,26 @@ export async function updateWorkflowState(input: {
   const authz = await authorizeProjectAction(input?.projectId, 'admin');
   if (!authz.ok) return authz;
 
-  const [current] = (await projectStates(input.projectId)).filter((s) => s.id === input.id);
-  if (!current) return { ok: false, error: 'State not found.' };
+  const [current] = (await projectStatesQuery(input.projectId)).filter((s) => s.id === input.id);
+  if (!current) return fail('State not found.');
 
   const changes: { name?: string; color?: string; description?: string | null } = {};
   if (input.name !== undefined) {
-    const name = validateName(input.name);
-    if (isError(name)) return name;
+    const name = requiredText(input.name, 'name', NAME_MAX);
+    if (isFail(name)) return name;
     if (name !== current.name) {
       if (await nameTaken(input.projectId, name, input.id)) return DUPLICATE;
       changes.name = name;
     }
   }
   if (input.color !== undefined) {
-    const color = validateColor(input.color);
-    if (isError(color)) return color;
+    const color = hexColor(input.color);
+    if (isFail(color)) return color;
     if (color !== current.color) changes.color = color;
   }
   if (input.description !== undefined) {
-    const description = validateDescription(input.description);
-    if (isError(description)) return description;
+    const description = descriptionOrNull(input.description, DESCRIPTION_MAX);
+    if (isFail(description)) return description;
     if (description !== current.description) changes.description = description;
   }
   if (Object.keys(changes).length === 0) return { ok: true, id: current.id };
@@ -220,7 +167,7 @@ export async function updateWorkflowState(input: {
         : `updated the state “${current.name}”`,
     }),
   );
-  revalidate(input.projectId);
+  refreshesData();
   return { ok: true, id: current.id };
 }
 
@@ -232,12 +179,12 @@ export async function moveWorkflowState(input: {
   const authz = await authorizeProjectAction(input?.projectId, 'admin');
   if (!authz.ok) return authz;
   if (input.direction !== 'up' && input.direction !== 'down') {
-    return { ok: false, error: 'Invalid direction.' };
+    return fail('Invalid direction.');
   }
 
-  const states = await projectStates(input.projectId);
+  const states = await projectStatesQuery(input.projectId);
   const state = states.find((s) => s.id === input.id);
-  if (!state) return { ok: false, error: 'State not found.' };
+  if (!state) return fail('State not found.');
 
   const ordered = states
     .filter((s) => s.type === state.type)
@@ -263,7 +210,7 @@ export async function moveWorkflowState(input: {
   await db.batch([insert, ...updates]);
   publishIssueEvents(stored);
 
-  revalidate(input.projectId);
+  refreshesData();
   return { ok: true, id: state.id };
 }
 
@@ -292,7 +239,7 @@ export async function deleteWorkflowState(input: {
   if (!authz.ok) return authz;
 
   const [states, [project]] = await Promise.all([
-    projectStates(input.projectId),
+    projectStatesQuery(input.projectId),
     db
       .select({ triageEnabled: projects.triageEnabled })
       .from(projects)
@@ -300,21 +247,18 @@ export async function deleteWorkflowState(input: {
       .limit(1),
   ]);
   const state = states.find((s) => s.id === input.id);
-  if (!state || !project) return { ok: false, error: 'State not found.' };
+  if (!state || !project) return fail('State not found.');
   const replacement = states.find((s) => s.id === input.replacementId);
   if (!replacement || replacement.id === state.id) {
-    return { ok: false, error: 'Pick another state for its issues.', field: 'replacementId' };
+    return fail('Pick another state for its issues.', 'replacementId');
   }
 
   const remainingOfType = states.filter((s) => s.type === state.type && s.id !== state.id);
   if (state.type === 'triage' && project.triageEnabled) {
-    return { ok: false, error: 'Turn off triage before deleting the triage state.' };
+    return fail('Turn off triage before deleting the triage state.');
   }
   if (state.type !== 'triage' && remainingOfType.length === 0) {
-    return {
-      ok: false,
-      error: `Keep at least one ${STATE_TYPE_LABEL[state.type].toLowerCase()} state.`,
-    };
+    return fail(`Keep at least one ${STATE_TYPE_LABEL[state.type].toLowerCase()} state.`);
   }
 
   const [{ count }] = await db
@@ -362,6 +306,6 @@ export async function deleteWorkflowState(input: {
   ]);
   publishIssueEvents(stored);
 
-  revalidate(input.projectId);
+  refreshesData();
   return { ok: true };
 }

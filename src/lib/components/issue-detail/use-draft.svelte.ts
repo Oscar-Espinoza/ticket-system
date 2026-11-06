@@ -1,4 +1,3 @@
-// Port of src/components/issue-detail/use-draft.ts.
 //
 // Local draft that resets whenever the saved value changes (including an
 // optimistic rollback), without an effect.
@@ -7,10 +6,9 @@
 //   title.current            read (reactive)
 //   title.current = 'x'      write (or bind:value={title.current}, or title.set('x'))
 //
-// React returned `[draft, setDraft]`; reading `.current` replaces `draft`.
+// Read the draft through `.current`.
 // Pass a getter: the draft resets only when the saved *value* changes, not
-// when the object it comes from is replaced with an equal value (as React's
-// `saved !== base` check did).
+// when the object it comes from is replaced with an equal value .
 
 export interface Draft {
   current: string;

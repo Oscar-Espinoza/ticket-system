@@ -1,23 +1,21 @@
-// Navigation loading state for the dashboard (replaces Next's loading.tsx
-// Suspense fallbacks). Read by the dashboard and project layouts.
+// Navigation loading state for the dashboard. Read by the dashboard and project layouts.
 //
 //   const loading = useNavigationLoading();
 //   loading.active      a navigation has been running for > DELAY_MS (progress bar)
-//   loading.dashboard   show the dashboard skeleton (src/app/dashboard/loading.tsx)
-//   loading.project     show the project issues skeleton (src/app/dashboard/projects/[id]/loading.tsx)
+//   loading.dashboard   show the dashboard skeleton
+//   loading.project     show the project issues skeleton
 //
-// Next keyed each loading.tsx Suspense boundary by the route segment directly
-// below the layout that owns it, and ran navigations as transitions: a
-// boundary that already shows content keeps the old UI while deeper segments
-// load. So a skeleton shows only when that child segment changes:
+// A skeleton is keyed by the route segment directly below the layout that owns
+// it: a layout that already shows content keeps the old UI while deeper
+// segments load. So a skeleton shows only when that child segment changes:
 //   dashboard   the segment after /dashboard ('' for the dashboard page itself,
 //               'settings', 'projects', 'views', …; a dynamic one by its value).
 //               /dashboard/projects/A -> /dashboard/projects/B shows nothing.
 //   project     within the same project, the segment after /projects/[id]
 //               ('', 'issues', 'settings', 'cycles', …). Issue permalink to
 //               issue permalink, or settings tab to settings tab, shows nothing.
-// Destinations that had their own loading.tsx elsewhere (inbox, cycles, triage,
-// members, workflow, workspace, person) only get the progress bar. Same-path
+// Destinations with their own loading UI (inbox, cycles, triage, members,
+// workflow, workspace, person) only get the progress bar. Same-path
 // navigations (search params, e.g. the search box) keep the page.
 
 import { navigating } from '$app/state';
@@ -29,7 +27,7 @@ export const DELAY_MS = 150;
 const DASHBOARD = '/dashboard';
 const PROJECT = '/dashboard/projects/[id]';
 
-/** Routes that had their own loading.tsx (other lanes); no skeleton of ours for them. */
+/** Routes with their own loading UI; no skeleton of ours for them. */
 const OWN_LOADING = [
   '/dashboard/inbox',
   '/dashboard/people/[userId]',

@@ -2,7 +2,7 @@
   Settings › Workflow: the project's states grouped by type, with inline add /
   edit (name, color, description), up/down reordering within a type and
   delete-with-replacement. States come from useProjectData(), which the
-  actions refresh by revalidating the project layout.
+  action wrappers refresh (refreshesData).
 -->
 <script lang="ts">
   import PlusIcon from '@lucide/svelte/icons/plus';

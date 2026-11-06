@@ -1,8 +1,7 @@
 <!--
   Month calendar by due date: drag a chip to another day to reschedule, drag
   from / to the "No due date" sidebar to set / clear it.
-  Port of src/components/views/calendar-view.tsx (default export CalendarView,
-  IssueViewProps). Client only in React (next/dynamic ssr: false): "today" and
+  Client only (registry `ssr: false`): "today" and
   the visible month depend on the viewer's timezone — the registry should
   render it only in the browser.
 -->
@@ -16,6 +15,7 @@
   import { Button } from '@/lib/components/ui/button';
   import { addDays, toDateString } from '@/lib/dates';
   import type { IssueRow } from '@/lib/issue-model';
+  import { dateOfDropId } from './calendar-ids';
   import CalendarDayCell from './calendar-day-cell.svelte';
   import CalendarIssueChip from './calendar-issue-chip.svelte';
   import CalendarNoDateSidebar from './calendar-no-date-sidebar.svelte';
@@ -23,8 +23,6 @@
 
   let { issues, mutations, onSelect }: IssueViewProps = $props();
 
-  const NO_DATE = 'no-date';
-  const DAY_PREFIX = 'day:';
   const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   const monthFormat = new Intl.DateTimeFormat('en', { month: 'long', year: 'numeric' });
@@ -42,7 +40,7 @@
     return Array.from({ length: weeks * 7 }, (_, i) => addDays(start, i));
   }
 
-  // Only the pointer sensor, as in React. dnd-kit#2112: build the manager
+  // Only the pointer sensor. dnd-kit#2112: build the manager
   // ourselves so items registered before the provider's effect use these
   // sensors, and still pass `sensors` (undefined would reset to the defaults).
   const sensors = [PointerSensor];
@@ -50,7 +48,7 @@
   onDestroy(() => manager.destroy());
 
   let month = $state(monthStart(new Date()));
-  // React recomputed "today" on every render; re-derive whenever the view updates.
+  // "Today" is re-derived whenever the view updates.
   const today = $derived.by(() => {
     void issues;
     void month;
@@ -84,7 +82,7 @@
     const issue = issues.find((i) => i.id === source?.id);
     const targetId = target ? String(target.id) : null;
     if (!issue || !targetId) return;
-    const dueDate = targetId === NO_DATE ? null : targetId.slice(DAY_PREFIX.length);
+    const dueDate = dateOfDropId(targetId);
     mutations.update(issue, { dueDate });
   };
 </script>

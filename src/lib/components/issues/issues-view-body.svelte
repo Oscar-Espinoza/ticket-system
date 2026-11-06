@@ -1,4 +1,4 @@
-<!-- IssuesViewBody (issues-view.tsx): everything below the filter / display providers. -->
+<!-- Everything below the filter / display providers. -->
 <script lang="ts">
   import LayersIcon from '@lucide/svelte/icons/layers-2';
   import ListTodoIcon from '@lucide/svelte/icons/list-todo';
@@ -12,6 +12,7 @@
   import DisplayMenu from '@/lib/components/views/display-menu.svelte';
   import IssuesViewContextProvider from '@/lib/components/views/issues-view-context-provider.svelte';
   import type { SubIssueCount } from '@/lib/components/views/view-context.svelte';
+  import { afterFrame } from '@/lib/svelte/focus';
   import { registerPaletteCommands } from '@/lib/svelte/palette-commands.svelte';
   import { useSearchParams } from '@/lib/svelte/search-params.svelte';
   import {
@@ -27,16 +28,17 @@
   import { isClosed } from '@/lib/workflow';
   import { isViewLayout, normalizeDisplayOptions, useDisplayOptions, type ViewLayout } from './display-options.svelte';
   import IssueContextMenu from './issue-context-menu.svelte';
+  import { focusIssueElement } from './issue-dom';
   import IssueFilters from './issue-filters.svelte';
   import { setSearchParams, useIssueFilters, useSetIssueFilters } from './issue-filters.svelte.ts';
   import IssueSelectionProvider from './issue-selection-provider.svelte';
   import type { IssuesViewProps } from './issues-view.svelte';
   import IssueViewHost from './issue-view-host.svelte';
   import NewIssueDialog from './new-issue-dialog.svelte';
-  import BulkBar from './slots/bulk-bar.svelte';
-  import IssueShortcuts from './slots/issue-shortcuts.svelte';
-  import ListOverlay from './slots/list-overlay.svelte';
-  import ToolbarExtra from './slots/toolbar-extra.svelte';
+  import BulkBar from './bulk-bar.svelte';
+  import IssueShortcuts from './issue-shortcuts.svelte';
+  import ListOverlay from './list-overlay.svelte';
+  import ToolbarExtra from './toolbar-extra.svelte';
   import { isPendingIssue, useIssueMutations } from './use-issue-mutations.svelte';
   import ViewSwitcher from './view-switcher.svelte';
   import { ISSUE_VIEWS, preloadViews } from './views';
@@ -170,11 +172,7 @@
   const closeIssue = () => {
     setSearchParams({ issue: null });
     const id = openerId ?? selected?.id;
-    requestAnimationFrame(() => {
-      document
-        .querySelector<HTMLElement>(`[data-issue-row="${id}"], [data-board-card="${id}"], [data-issue-chip="${id}"]`)
-        ?.focus();
-    });
+    afterFrame(() => focusIssueElement(id));
   };
 </script>
 
@@ -199,7 +197,7 @@
         action={canWrite.current ? newIssueAction : undefined}
       />
     {/if}
-  {:else if listed.length === 0 && filtered && layout !== 'calendar'}
+  {:else if listed.length === 0 && filtered && view.showsFilteredEmpty}
     <EmptyState title="No matching issues" description="No issues match the current filters.">
       {#snippet icon()}<SearchXIcon />{/snippet}
       {#snippet action()}

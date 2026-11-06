@@ -1,13 +1,13 @@
 <!--
   Settings → SLAs: a response target per priority (empty = no SLA) and a way
   to re-apply the saved policy to issues that are already open.
-  Port of src/components/sla/sla-settings-form.tsx (same props: projectId, initial, canEdit).
 -->
 <script lang="ts">
   import LoaderCircleIcon from '@lucide/svelte/icons/loader-circle';
   import { untrack } from 'svelte';
   import { toast } from 'svelte-sonner';
 
+  import { actionErrorText } from '@/lib/action-errors';
   import { applySlaPolicyToOpenIssues, updateSlaPolicy } from '@/lib/actions/sla';
   import {
     AlertDialog,
@@ -98,7 +98,7 @@
     try {
       const result = await updateSlaPolicy({ projectId, policy: current.policy });
       if (!result.ok) {
-        toast.error(result.error === 'Forbidden' ? 'Only admins can change SLAs.' : result.error);
+        toast.error(actionErrorText(result.error, 'Only admins can change SLAs.'));
         return;
       }
       saved = result.policy;
@@ -113,7 +113,7 @@
     try {
       const result = await applySlaPolicyToOpenIssues({ projectId });
       if (!result.ok) {
-        toast.error(result.error === 'Forbidden' ? 'Only admins can change SLAs.' : result.error);
+        toast.error(actionErrorText(result.error, 'Only admins can change SLAs.'));
         return;
       }
       toast.success(`Updated ${result.updated} open ${result.updated === 1 ? 'issue' : 'issues'}`);

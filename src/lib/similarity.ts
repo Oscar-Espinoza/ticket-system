@@ -1,5 +1,5 @@
 // Similar-issue engine (server-only) behind duplicate detection and triage
-// suggestions. Pure Postgres heuristics — no LLM (see .planning/PAID-FEATURES.md):
+// suggestions. Pure Postgres heuristics — no LLM:
 //
 // - candidates come from two GIN indexes: trigram `title % $title`
 //   (ticket_title_trgm_idx, pg_trgm's default 0.3 threshold) OR full-text match
@@ -12,12 +12,14 @@
 // Scoped in SQL to the project AND the viewer's membership; trashed issues never
 // come back.
 
-import { and, desc, eq, inArray, isNull, notInArray, sql, type SQL } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNotNull, isNull, notInArray, or, sql, type SQL } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
-import { tickets, workflowStates } from '@/db/schema';
+import { issueRelations, tickets, workflowStates } from '@/db/schema';
 import type { IssueRow } from '@/lib/issue-model';
-import { memberOfIssueProject, queryIssues } from '@/lib/tickets';
+import { stripMentions } from '@/lib/mentions';
+import { getTicketById, issueDocument, memberOfIssueProject, queryIssues } from '@/lib/tickets';
+import { closedStateType } from '@/lib/workflow-server';
 
 export interface SimilarIssue {
   issue: IssueRow;
@@ -44,8 +46,6 @@ const MAX_DESCRIPTION = 1000;
 const DESCRIPTION_LEXEMES = 10;
 const CLOSED_DAMPING = 0.85;
 
-// Must match the index expression in 0003_seed_workflow_states.sql exactly.
-const issueDocument = sql`to_tsvector('english', coalesce(${tickets.title}, '') || ' ' || coalesce(${tickets.description}, ''))`;
 
 /** Distinct words for an OR full-text query ("login or safari or redirect"). */
 function orQuery(text: string): string {
@@ -91,7 +91,7 @@ export async function findSimilarIssues(
   const raw = descriptionOverlap
     ? sql`0.6 * ${trigram} + 0.3 * ${coverage} + 0.1 * ${descriptionOverlap}`
     : sql`(0.6 * ${trigram} + 0.3 * ${coverage}) / 0.9`;
-  const closed = sql`(${workflowStates.type} in ('completed', 'canceled') or ${tickets.archivedAt} is not null)`;
+  const closed = or(closedStateType(), isNotNull(tickets.archivedAt))!;
   const score = sql<number>`(${raw}) * (case when ${closed} then ${sql.raw(String(CLOSED_DAMPING))} else 1 end)`;
 
   const match: SQL[] = [sql`${tickets.title} % ${title}`];
@@ -139,5 +139,37 @@ export async function findSimilarIssues(
         reason: describe(hit.trigram, Number(hit.matched), Number(hit.total)),
       },
     ];
+  });
+}
+
+/**
+ * Issues similar to an existing one, minus the ones already tied to it:
+ * relations in either direction, its parent and its sub-issues. Null when the
+ * issue doesn't exist (or is trashed).
+ */
+export async function findIssuesSimilarTo(
+  userId: string,
+  projectId: string,
+  ticketId: string,
+): Promise<SimilarIssue[] | null> {
+  const issue = await getTicketById(projectId, ticketId);
+  if (!issue || issue.deletedAt) return null;
+
+  const [relations, children] = await db.batch([
+    db
+      .select({ a: issueRelations.ticketId, b: issueRelations.relatedTicketId })
+      .from(issueRelations)
+      .where(or(eq(issueRelations.ticketId, issue.id), eq(issueRelations.relatedTicketId, issue.id))),
+    db.select({ id: tickets.id }).from(tickets).where(eq(tickets.parentId, issue.id)),
+  ]);
+  const exclude = new Set<string>([issue.id, ...children.map((c) => c.id)]);
+  if (issue.parentId) exclude.add(issue.parentId);
+  for (const r of relations) exclude.add(r.a).add(r.b);
+
+  return findSimilarIssues(userId, projectId, {
+    title: issue.title,
+    description: issue.description ? stripMentions(issue.description) : null,
+    excludeIds: [...exclude],
+    limit: 5,
   });
 }

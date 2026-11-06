@@ -1,9 +1,8 @@
-<!-- Search (port of src/app/dashboard/search/page.tsx). -->
 <script lang="ts">
   import SearchIcon from '@lucide/svelte/icons/search';
   import SearchXIcon from '@lucide/svelte/icons/search-x';
 
-  import { documentPath } from '@/lib/components/documents/document-model';
+  import { documentPath } from '@/lib/document-model';
   import DocumentIcon from '@/lib/components/documents/document-icon.svelte';
   import Highlight from '@/lib/components/navigation/highlight.svelte';
   import NavList from '@/lib/components/navigation/list-navigation.svelte';

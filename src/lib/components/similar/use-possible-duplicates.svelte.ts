@@ -1,7 +1,7 @@
 // Possible duplicates of a title being typed: debounced, only once the title is
 // long enough to mean something, and only the latest request's answer counts.
 //
-// Port of src/components/similar/use-possible-duplicates.ts:
+// Usage:
 //   const similar = usePossibleDuplicates(() => projectId, () => title, () => enabled);
 //   similar.current: SimilarIssue[]   (each argument may also be a plain value)
 // Call during component init (it creates an $effect).

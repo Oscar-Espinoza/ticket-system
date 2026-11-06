@@ -3,8 +3,7 @@
   widgets. The owner edits in place — every change is applied optimistically
   and saved with updateDashboard (reverted with a toast if it fails).
 
-  The widget list / shared flag are seeded from `dashboard` once (like the React
-  useState); mount this inside `{#key dashboard.id}` so another dashboard
+  The widget list / shared flag are seeded from `dashboard` once; mount this inside `{#key dashboard.id}` so another dashboard
   starts fresh.
 -->
 <script lang="ts">
@@ -60,7 +59,7 @@
     type DashboardRecord,
     type Widget,
     type WidgetType,
-  } from '@/lib/components/dashboards/widget-model';
+  } from '@/lib/widget-model';
   import DashboardDetailsDialog from './dashboard-details-dialog.svelte';
   import WidgetBody from './widget-body.svelte';
   import WidgetEditor from './widget-editor.svelte';
@@ -94,7 +93,7 @@
   let editing = $state.raw<Widget | null>(null);
   let details = $state(false);
   let confirmDelete = $state(false);
-  // useTransition: true while any save / share / duplicate / delete is in flight.
+  // In-flight counter: true while any save / share / duplicate / delete is in flight.
   let inflight = $state(0);
   const pending = $derived(inflight > 0);
   // One "now" per render pass keeps every widget consistent.

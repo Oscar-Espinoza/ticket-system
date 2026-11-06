@@ -1,4 +1,4 @@
-// Account settings index → Profile (port of src/app/dashboard/settings/page.tsx).
+// Account settings index → Profile.
 
 import { redirect } from '@sveltejs/kit';
 

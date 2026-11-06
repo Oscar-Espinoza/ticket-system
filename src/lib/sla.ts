@@ -7,6 +7,7 @@
 // restarts). Completed / canceled issues stop the clock.
 
 import { PRIORITY_LABEL, type Priority, type StateType } from '@/lib/issue-model';
+import { HOUR_MS } from '@/lib/time';
 import { isClosed } from '@/lib/workflow';
 
 export const SLA_PRIORITIES = ['urgent', 'high', 'medium', 'low'] as const satisfies readonly Priority[];
@@ -57,8 +58,6 @@ export interface SlaStatus {
   remaining: number;
 }
 
-const HOUR = 3_600_000;
-
 interface SlaIssue {
   slaDueAt: Date | string | null;
   slaBreachedAt: Date | string | null;
@@ -82,8 +81,8 @@ export function slaStatus(issue: SlaIssue, now: number = Date.now()): SlaStatus 
   if (remaining <= 0) return { kind: 'breached', remaining };
   // The window is measured from creation — a priority change restarts the
   // clock, which only makes "at risk" show a little later.
-  const window = Math.max(due - ms(issue.createdAt), HOUR);
-  return { kind: remaining < Math.max(window / 4, HOUR) ? 'risk' : 'ok', remaining };
+  const window = Math.max(due - ms(issue.createdAt), HOUR_MS);
+  return { kind: remaining < Math.max(window / 4, HOUR_MS) ? 'risk' : 'ok', remaining };
 }
 
 /** "2d 4h", "5h 10m", "12m" (two largest units); `short` keeps only the first. */

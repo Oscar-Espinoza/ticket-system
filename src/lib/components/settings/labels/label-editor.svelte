@@ -6,6 +6,7 @@
   import { createLabel, updateLabel, type LabelActionResult } from '@/lib/actions/labels';
   import { Button } from '@/lib/components/ui/button';
   import { Input } from '@/lib/components/ui/input';
+  import { LABEL_DESCRIPTION_MAX, LABEL_NAME_MAX } from '@/lib/label-model';
   import type { ProjectLabel } from '@/lib/project-data-types';
   import ColorPicker, { PRESET_COLORS } from '../workflow/color-picker.svelte';
 
@@ -65,7 +66,7 @@
   >
     <div class="flex flex-1 items-center gap-2">
       <ColorPicker value={color} onChange={(next) => (color = next)} label="Label color" />
-      <!-- React autoFocus focuses on mount; Svelte's autofocus only does so when nothing has focus. -->
+      <!-- Svelte's autofocus only works when nothing has focus; focus on mount instead. -->
       <Input
         {@attach focusOnMount}
         bind:value={name}
@@ -73,7 +74,7 @@
           if (error) error = null;
         }}
         placeholder="Label name"
-        maxlength={40}
+        maxlength={LABEL_NAME_MAX}
         aria-label="Label name"
         aria-invalid={error?.field === 'name' ? true : undefined}
         class="h-7 w-40"
@@ -81,7 +82,7 @@
       <Input
         bind:value={description}
         placeholder="Description (optional)"
-        maxlength={200}
+        maxlength={LABEL_DESCRIPTION_MAX}
         aria-label="Description"
         class="h-7 min-w-0 flex-1"
       />

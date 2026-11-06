@@ -4,71 +4,12 @@
   was clicked — or the whole selection when that issue is part of it — and
   lets the native browser menu through anywhere else.
 
-  Port of src/components/issues/issue-context-menu.tsx. The view wrapper
-  (React's asChild `children` element) is a `children` snippet that receives
-  the trigger props — spread them on the wrapper element:
+  The view wrapper is a `children` snippet that receives the trigger props —
+  spread them on the wrapper element:
     <IssueContextMenu {issues} {mutations}>
       {#snippet children({ props })}<div {...props} class={cn(props.class, '…')}>…</div>{/snippet}
     </IssueContextMenu>
-  The shared helpers are exported from the module script (same names as React):
-  applyPatch, commonValue, Coverage, labelCoverage, toggleLabel, copyIds, copyLinks.
-  CoverageMark → coverage-mark.svelte, ConfirmTrashDialog → confirm-trash-dialog.svelte.
 -->
-<script module lang="ts">
-  import { toast } from 'svelte-sonner';
-
-  import { copyIssueId, copyIssueLink } from '@/lib/components/productivity/issue-actions';
-  import { issueUrl } from '@/lib/issue-links';
-  import type { IssuePatch, IssueRow } from '@/lib/issue-model';
-  import type { IssueMutations } from './use-issue-mutations.svelte';
-
-  /** One issue → `update`; several → one `bulkUpdate` (one server call, one undo). */
-  export function applyPatch(mutations: IssueMutations, issues: IssueRow[], patch: IssuePatch) {
-    if (issues.length === 1) mutations.update(issues[0], patch);
-    else if (issues.length > 1) mutations.bulkUpdate(issues, patch);
-  }
-
-  /** The value every issue shares, or undefined when they differ. */
-  export function commonValue<T>(issues: IssueRow[], get: (issue: IssueRow) => T): T | undefined {
-    if (issues.length === 0) return undefined;
-    const first = get(issues[0]);
-    return issues.every((issue) => get(issue) === first) ? first : undefined;
-  }
-
-  export type Coverage = 'all' | 'some' | 'none';
-
-  export function labelCoverage(issues: IssueRow[], labelId: string): Coverage {
-    const count = issues.filter((i) => i.labels.some((l) => l.id === labelId)).length;
-    return count === 0 ? 'none' : count === issues.length ? 'all' : 'some';
-  }
-
-  /** Add the label to every issue, or remove it from every issue when all have it. */
-  export function toggleLabel(mutations: IssueMutations, issues: IssueRow[], labelId: string) {
-    const all = labelCoverage(issues, labelId) === 'all';
-    applyPatch(mutations, issues, all ? { removeLabelIds: [labelId] } : { addLabelIds: [labelId] });
-  }
-
-  async function copyText(text: string, what: string) {
-    try {
-      await navigator.clipboard.writeText(text);
-      toast.success(`Copied ${what}`);
-    } catch {
-      toast.error('Could not copy to the clipboard.');
-    }
-  }
-
-  /** Copy one issue's key (B10 helper) or a comma-separated list. */
-  export function copyIds(issues: IssueRow[]) {
-    if (issues.length === 1) return copyIssueId(issues[0]);
-    return copyText(issues.map((i) => i.key).join(', '), `${issues.length} IDs`);
-  }
-
-  export function copyLinks(issues: IssueRow[]) {
-    if (issues.length === 1) return copyIssueLink(issues[0]);
-    return copyText(issues.map((i) => issueUrl(i.projectId, i.key)).join('\n'), `${issues.length} links`);
-  }
-</script>
-
 <script lang="ts">
   import ArchiveIcon from '@lucide/svelte/icons/archive';
   import CalendarDaysIcon from '@lucide/svelte/icons/calendar-days';
@@ -98,14 +39,17 @@
     ContextMenuTrigger,
   } from '@/lib/components/ui/context-menu';
   import { Avatar, PriorityIcon, StateIcon } from '@/lib/components/ui-icons';
-  import { addDays, formatDueDate, toDateString } from '@/lib/dates';
+  import { PRIORITY_MENU_ORDER, dueDateQuickOptions, viewerFirst } from '@/lib/components/issue-pickers';
+  import { formatDueDate } from '@/lib/dates';
   import { formatHotkey } from '@/lib/svelte/hotkeys.svelte';
   import { issuePath } from '@/lib/issue-links';
-  import { PRIORITY_LABEL, type Priority } from '@/lib/issue-model';
+  import { PRIORITY_LABEL, type IssuePatch, type IssueRow } from '@/lib/issue-model';
+  import { applyPatch, commonValue, copyIds, copyLinks, labelCoverage, toggleLabel } from './bulk-actions';
   import ConfirmTrashDialog from './confirm-trash-dialog.svelte';
   import CoverageMark from './coverage-mark.svelte';
-  import { ISSUE_ITEM, useIssueSelection } from './selection.svelte';
-  import { isPendingIssue } from './use-issue-mutations.svelte';
+  import { ISSUE_ITEM } from './issue-dom';
+  import { useIssueSelection } from './selection.svelte';
+  import { isPendingIssue, type IssueMutations } from './use-issue-mutations.svelte';
 
   let {
     issues,
@@ -118,21 +62,6 @@
     /** The view wrapper (asChild trigger): spread `props` on it. */
     children: Snippet<[{ props: Record<string, unknown> }]>;
   } = $props();
-
-  // Same order as the priority picker (Linear: none, urgent … low).
-  const PRIORITY_MENU: Priority[] = ['none', 'urgent', 'high', 'medium', 'low'];
-
-  function dueOptions(today = new Date()) {
-    // End of week = the coming Friday (today when it's Friday), like the due date picker.
-    const friday = addDays(today, (5 - today.getDay() + 7) % 7);
-    return [
-      { label: 'Today', date: today },
-      { label: 'Tomorrow', date: addDays(today, 1) },
-      { label: 'End of this week', date: friday },
-      { label: 'In one week', date: addDays(today, 7) },
-      { label: 'In two weeks', date: addDays(today, 14) },
-    ].map((option) => ({ label: option.label, value: toDateString(option.date) }));
-  }
 
   const data = useProjectData();
   const canWrite = useProjectPermission('write');
@@ -169,10 +98,7 @@
   const clicked = $derived(issues.find((i) => i.id === target?.clicked) ?? null);
   const apply = (patch: IssuePatch) => applyPatch(mutations, targets, patch);
 
-  const members = $derived([
-    ...data.members.filter((m) => m.id === data.viewer.id),
-    ...data.members.filter((m) => m.id !== data.viewer.id),
-  ]);
+  const members = $derived(viewerFirst(data.members, data.viewer.id));
   const stateId = $derived(commonValue(targets, (i) => i.stateId));
   const priority = $derived(commonValue(targets, (i) => i.priority));
   const assigneeId = $derived(commonValue(targets, (i) => i.assignee?.id ?? null));
@@ -218,7 +144,7 @@
             Priority
           </ContextMenuSubTrigger>
           <ContextMenuSubContent class="w-44">
-            {#each PRIORITY_MENU as p (p)}
+            {#each PRIORITY_MENU_ORDER as p (p)}
               <ContextMenuItem onSelect={() => apply({ priority: p })}>
                 <PriorityIcon priority={p} size={14} />
                 {PRIORITY_LABEL[p]}
@@ -283,7 +209,7 @@
             Due date
           </ContextMenuSubTrigger>
           <ContextMenuSubContent class="w-56">
-            {#each dueOptions() as option (option.label)}
+            {#each dueDateQuickOptions() as option (option.label)}
               <ContextMenuItem onSelect={() => apply({ dueDate: option.value })}>
                 <CalendarDaysIcon class="text-muted-foreground" />
                 {option.label}

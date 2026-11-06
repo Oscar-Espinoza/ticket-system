@@ -1,6 +1,5 @@
 <!--
-  Regenerate backup codes: password first, then the new codes (RegenerateDialog
-  in two-factor-settings.tsx). Mounted only while open.
+  Regenerate backup codes: password first, then the new codes. Mounted only while open.
 -->
 <script lang="ts">
   import { authClient } from '@/lib/svelte/auth-client';

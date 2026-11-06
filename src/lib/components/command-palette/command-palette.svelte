@@ -1,5 +1,4 @@
-<!-- ⌘K command palette: built-in commands (props) + registered extensions.
-     Port of src/components/command-palette/command-palette.tsx. -->
+<!-- ⌘K command palette: built-in commands (props) + registered extensions. -->
 <script lang="ts">
   import {
     Command,
@@ -41,7 +40,7 @@
 
 <CommandDialog {open} {onOpenChange} title="Command palette" description="Search projects and actions.">
   <!-- radix-nova's CommandDialog does NOT wrap children in <Command>
-       (unlike classic shadcn) — the root must be provided here -->
+       — the root must be provided here -->
   <Command>
     <CommandInput placeholder="Search or jump to…" />
     <CommandEmpty>No results.</CommandEmpty>

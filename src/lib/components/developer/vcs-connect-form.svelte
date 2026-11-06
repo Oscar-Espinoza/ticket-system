@@ -8,18 +8,11 @@
   import { Button } from '@/lib/components/ui/button';
   import { Input } from '@/lib/components/ui/input';
 
-  const VCS_COPY = {
-    gitlab: { name: 'GitLab', repoLabel: 'Project path', repoPlaceholder: 'group/project' },
-    bitbucket: {
-      name: 'Bitbucket',
-      repoLabel: 'Repository',
-      repoPlaceholder: 'workspace/repository',
-    },
-  } as const;
+  import { VCS_HOSTS, type VcsHostProvider } from './vcs-hosts';
 
-  let { provider, projectId }: { provider: 'gitlab' | 'bitbucket'; projectId: string } = $props();
+  let { provider, projectId }: { provider: VcsHostProvider; projectId: string } = $props();
 
-  const copy = $derived(VCS_COPY[provider]);
+  const copy = $derived(VCS_HOSTS[provider]);
   const id = $props.id();
   let baseUrl = $state('');
   let repo = $state('');
@@ -64,7 +57,7 @@
 {/snippet}
 
 <form onsubmit={submit} class="flex max-w-xl flex-col gap-4">
-  {#if provider === 'gitlab'}
+  {#if copy.baseUrlField}
     <Field id="{id}-url" label="GitLab URL" hint="Leave empty for gitlab.com.">
       <Input
         id="{id}-url"
@@ -95,7 +88,7 @@
       disabled={pending}
     />
   </Field>
-  {#if provider === 'bitbucket'}
+  {#if copy.usernameField}
     <Field
       id="{id}-user"
       label="Username (optional)"

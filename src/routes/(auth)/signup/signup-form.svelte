@@ -1,5 +1,5 @@
 <!--
-  Signup form (port of src/app/(auth)/signup/signup-form.tsx) — email/password
+  Signup form — email/password
   registration via Better Auth.
 
   UI-SPEC contract:
@@ -24,6 +24,7 @@
   import GitBranchIcon from '@lucide/svelte/icons/git-branch';
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
 
+  import { MIN_PASSWORD_LENGTH } from '@/lib/auth-rules';
   import { authClient } from '@/lib/svelte/auth-client';
   import { Button } from '@/lib/components/ui/button';
   import { Input } from '@/lib/components/ui/input';
@@ -91,7 +92,7 @@
       if (error.code?.startsWith('USER_ALREADY_EXISTS')) {
         emailError = 'An account with this email already exists. Sign in instead.';
       } else if (error.code === 'PASSWORD_TOO_SHORT') {
-        passwordError = 'Password must be at least 8 characters.';
+        passwordError = `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`;
       } else {
         formError = 'Something went wrong. Please try again.';
       }

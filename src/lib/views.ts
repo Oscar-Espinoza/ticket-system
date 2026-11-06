@@ -5,11 +5,11 @@
 // Views without a project (reserved for cross-project views) are owner-only.
 
 import { cache } from '@/lib/kit/request';
-import { and, asc, desc, eq, exists, isNull, or, sql, type SQL } from 'drizzle-orm';
-import { alias } from 'drizzle-orm/pg-core';
+import { and, asc, desc, eq, isNull, or, sql, type SQL } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
-import { projectMembers, projects, savedViews, users } from '@/db/schema';
+import { projects, savedViews, users } from '@/db/schema';
+import { projectMemberOf } from '@/lib/project-access';
 
 export interface SavedViewSummary {
   id: string;
@@ -31,17 +31,11 @@ export interface SavedViewDetail extends SavedViewSummary {
 
 /** SQL predicate over `saved_view`: `userId` may see the row. */
 export function viewVisibleTo(userId: string): SQL {
-  const viewer = alias(projectMembers, 'view_viewer');
   return or(
     and(isNull(savedViews.projectId), eq(savedViews.ownerId, userId)),
     and(
       or(eq(savedViews.ownerId, userId), eq(savedViews.shared, true)),
-      exists(
-        db
-          .select({ one: sql`1` })
-          .from(viewer)
-          .where(and(eq(viewer.projectId, savedViews.projectId), eq(viewer.userId, userId))),
-      ),
+      projectMemberOf(savedViews.projectId, userId),
     ),
   )!;
 }

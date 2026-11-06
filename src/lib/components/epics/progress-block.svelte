@@ -1,6 +1,6 @@
 <!-- Thin bar with count + points lines, for sidebars. -->
 <script lang="ts">
-  import { pointsPercent, progressPercent, type Progress } from '@/lib/components/epics/epic-model';
+  import { pointsPercent, progressPercent, type Progress } from '@/lib/epic-model';
 
   let { progress, color }: { progress: Progress; color?: string | null } = $props();
 

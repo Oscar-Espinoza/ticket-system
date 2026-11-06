@@ -9,8 +9,8 @@
   import { deleteEpicUpdate } from '@/lib/actions/epics';
   import { EmptyState } from '@/lib/components/ui-icons';
   import type { ProjectMember } from '@/lib/project-data-types';
-  import type { EpicUpdateRow, Health } from '@/lib/components/epics/epic-model';
-  import { Optimistic } from './optimistic.svelte';
+  import { canDeleteUpdate, type EpicUpdateRow, type Health } from '@/lib/epic-model';
+    import { Optimistic } from './optimistic.svelte';
   import UpdateCard from './update-card.svelte';
   import UpdateComposer from './update-composer.svelte';
 
@@ -63,7 +63,7 @@
         <li>
           <UpdateCard
             {update}
-            canDelete={canWrite && (isAdmin || update.author?.id === viewer.id)}
+            canDelete={canWrite && canDeleteUpdate(isAdmin, update.author?.id, viewer.id)}
             onDelete={() => remove(update)}
           />
         </li>

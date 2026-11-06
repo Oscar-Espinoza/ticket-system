@@ -3,7 +3,6 @@
 // the project needs write access. Only the owner edits or deletes; anyone who
 // can see a dashboard can duplicate it into their own.
 
-import { revalidatePath } from '@/lib/kit/request';
 import { and, eq, inArray } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
@@ -13,36 +12,23 @@ import {
   normalizeWidgets,
   starterWidgets,
   type Widget,
-} from '@/lib/components/dashboards/widget-model';
+} from '@/lib/widget-model';
 import { authorizeProjectAction } from '@/lib/action-auth';
 import { getDashboardForViewer } from '@/lib/dashboards';
-import { getSession } from '@/lib/session';
+import {
+  fail,
+  NOT_AUTHENTICATED,
+  refreshesData,
+  type ActionResult,
+} from '@/lib/server/action-kit';
+import { sessionUserId } from '@/lib/session';
+import { clippedText } from '@/lib/text';
 
-export type DashboardActionResult = { ok: true; id: string } | { ok: false; error: string };
+export type DashboardActionResult = ActionResult<{ id: string }>;
 
 const MAX_NAME = 80;
 const MAX_DESCRIPTION = 500;
 const MAX_JSON = 32_000;
-
-function cleanName(value: unknown): string | null {
-  if (typeof value !== 'string') return null;
-  return value.trim().slice(0, MAX_NAME) || null;
-}
-
-function cleanDescription(value: unknown): string | null {
-  if (typeof value !== 'string') return null;
-  return value.trim().slice(0, MAX_DESCRIPTION) || null;
-}
-
-function revalidateDashboards(id?: string) {
-  revalidatePath('/dashboard/dashboards');
-  if (id) revalidatePath(`/dashboard/dashboards/${id}`);
-}
-
-async function sessionUserId(): Promise<string | null> {
-  const session = await getSession();
-  return session?.user?.id ?? null;
-}
 
 /**
  * Normalised widgets whose project references stay inside the dashboard's
@@ -52,17 +38,17 @@ async function validWidgets(
   raw: unknown,
   scopeProjectId: string | null,
   userId: string,
-): Promise<{ ok: true; widgets: Widget[] } | { ok: false; error: string }> {
+): Promise<ActionResult<{ widgets: Widget[] }>> {
   if (!Array.isArray(raw) || raw.length > MAX_WIDGETS) {
-    return { ok: false, error: `A dashboard holds up to ${MAX_WIDGETS} widgets.` };
+    return fail(`A dashboard holds up to ${MAX_WIDGETS} widgets.`);
   }
   let size = 0;
   try {
     size = JSON.stringify(raw).length;
   } catch {
-    return { ok: false, error: 'Invalid widgets.' };
+    return fail('Invalid widgets.');
   }
-  if (size > MAX_JSON) return { ok: false, error: 'These widgets are too large to save.' };
+  if (size > MAX_JSON) return fail('These widgets are too large to save.');
 
   const widgets = normalizeWidgets(raw);
   const referenced = [...new Set(widgets.map((w) => w.config.projectId).filter((id): id is string => !!id))];
@@ -75,7 +61,7 @@ async function validWidgets(
       .from(projectMembers)
       .where(and(eq(projectMembers.userId, userId), inArray(projectMembers.projectId, referenced)));
     const allowed = new Set(rows.map((r) => r.projectId));
-    if (referenced.some((id) => !allowed.has(id))) return { ok: false, error: 'Unknown project in a widget.' };
+    if (referenced.some((id) => !allowed.has(id))) return fail('Unknown project in a widget.');
   }
   return { ok: true, widgets };
 }
@@ -89,14 +75,14 @@ export async function createDashboard(input: {
   let userId: string | null;
   if (projectId) {
     const authz = await authorizeProjectAction(projectId, 'read');
-    if (!authz.ok) return { ok: false, error: authz.error };
+    if (!authz.ok) return authz;
     userId = authz.userId;
   } else {
     userId = await sessionUserId();
-    if (!userId) return { ok: false, error: 'Not authenticated' };
+    if (!userId) return NOT_AUTHENTICATED;
   }
-  const name = cleanName(input?.name);
-  if (!name) return { ok: false, error: 'Give the dashboard a name.' };
+  const name = clippedText(input?.name, MAX_NAME);
+  if (!name) return fail('Give the dashboard a name.');
 
   const now = new Date();
   const id = crypto.randomUUID();
@@ -105,25 +91,25 @@ export async function createDashboard(input: {
     ownerId: userId,
     projectId,
     name,
-    description: cleanDescription(input?.description),
+    description: clippedText(input?.description, MAX_DESCRIPTION),
     shared: false,
     widgets: starterWidgets() as unknown as Record<string, unknown>[],
     createdAt: now,
     updatedAt: now,
   });
-  revalidateDashboards();
+  refreshesData();
   return { ok: true, id };
 }
 
 /** Loads the dashboard and checks the caller owns it (and can still see it). */
 async function authorizeOwner(dashboardId: unknown) {
   const userId = await sessionUserId();
-  if (!userId) return { ok: false as const, error: 'Not authenticated' };
-  if (typeof dashboardId !== 'string' || !dashboardId) return { ok: false as const, error: 'Dashboard not found.' };
+  if (!userId) return NOT_AUTHENTICATED;
+  if (typeof dashboardId !== 'string' || !dashboardId) return fail('Dashboard not found.');
   const dashboard = await getDashboardForViewer(dashboardId, userId);
-  if (!dashboard) return { ok: false as const, error: 'Dashboard not found.' };
+  if (!dashboard) return fail('Dashboard not found.');
   if (dashboard.ownerId !== userId) {
-    return { ok: false as const, error: 'Only the owner can change this dashboard.' };
+    return fail('Only the owner can change this dashboard.');
   }
   return { ok: true as const, dashboard, userId };
 }
@@ -141,18 +127,18 @@ export async function updateDashboard(input: {
 
   const set: Partial<typeof dashboards.$inferInsert> = { updatedAt: new Date() };
   if (input.name !== undefined) {
-    const name = cleanName(input.name);
-    if (!name) return { ok: false, error: 'Give the dashboard a name.' };
+    const name = clippedText(input.name, MAX_NAME);
+    if (!name) return fail('Give the dashboard a name.');
     set.name = name;
   }
-  if (input.description !== undefined) set.description = cleanDescription(input.description);
+  if (input.description !== undefined) set.description = clippedText(input.description, MAX_DESCRIPTION);
   if (input.shared !== undefined) {
     if (input.shared === true) {
       if (!dashboard.projectId) {
-        return { ok: false, error: 'Only project dashboards can be shared.' };
+        return fail('Only project dashboards can be shared.');
       }
       const authz = await authorizeProjectAction(dashboard.projectId, 'write');
-      if (!authz.ok) return { ok: false, error: 'Only members who can edit issues can share dashboards.' };
+      if (!authz.ok) return fail('Only members who can edit issues can share dashboards.');
     }
     set.shared = input.shared === true;
   }
@@ -166,7 +152,7 @@ export async function updateDashboard(input: {
     .update(dashboards)
     .set(set)
     .where(and(eq(dashboards.id, dashboard.id), eq(dashboards.ownerId, userId)));
-  revalidateDashboards(dashboard.id);
+  refreshesData();
   return { ok: true, id: dashboard.id };
 }
 
@@ -176,17 +162,17 @@ export async function deleteDashboard(input: { id: string }): Promise<DashboardA
   await db
     .delete(dashboards)
     .where(and(eq(dashboards.id, auth.dashboard.id), eq(dashboards.ownerId, auth.userId)));
-  revalidateDashboards(auth.dashboard.id);
+  refreshesData();
   return { ok: true, id: auth.dashboard.id };
 }
 
 /** A private copy for the caller (any dashboard they can see). */
 export async function duplicateDashboard(input: { id: string }): Promise<DashboardActionResult> {
   const userId = await sessionUserId();
-  if (!userId) return { ok: false, error: 'Not authenticated' };
-  if (typeof input?.id !== 'string' || !input.id) return { ok: false, error: 'Dashboard not found.' };
+  if (!userId) return NOT_AUTHENTICATED;
+  if (typeof input?.id !== 'string' || !input.id) return fail('Dashboard not found.');
   const source = await getDashboardForViewer(input.id, userId);
-  if (!source) return { ok: false, error: 'Dashboard not found.' };
+  if (!source) return fail('Dashboard not found.');
 
   // A copied cross-project dashboard may point at projects the caller isn't in.
   const result = await validWidgets(source.widgets, source.projectId, userId);
@@ -207,6 +193,6 @@ export async function duplicateDashboard(input: { id: string }): Promise<Dashboa
     createdAt: now,
     updatedAt: now,
   });
-  revalidateDashboards();
+  refreshesData();
   return { ok: true, id };
 }

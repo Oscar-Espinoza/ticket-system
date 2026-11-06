@@ -1,4 +1,4 @@
-<!-- Two-step picker (kind → epic) that adds an epic dependency (epic-relations.tsx AddDependency). -->
+<!-- Two-step picker (kind → epic) that adds an epic dependency. -->
 <script lang="ts">
   import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
   import BanIcon from '@lucide/svelte/icons/ban';
@@ -18,10 +18,10 @@
     EPIC_RELATION_KINDS,
     EPIC_RELATION_LABEL,
     type EpicRelationKind,
-  } from '@/lib/components/epics/epic-model';
+  } from '@/lib/epic-model';
   import EpicIcon from './epic-icon.svelte';
   import EpicStatusIcon from './epic-status-icon.svelte';
-  import type { DependencyCandidate } from './epic-relations.svelte';
+  import type { DependencyCandidate } from './dependency-types';
 
   const KIND_ICON = {
     blocked_by: BanIcon,

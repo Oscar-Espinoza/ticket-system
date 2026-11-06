@@ -8,6 +8,7 @@
 // POST (guests follow along read-only). Unknown and foreign keys → 404.
 
 import type { RequestHandler } from './$types';
+import { abortableSleep, NO_STORE } from '../../_lib/http';
 import { allowOptions } from '../../_lib/options';
 import * as Y from 'yjs';
 import { Awareness, applyAwarenessUpdate, modifyAwarenessUpdate } from 'y-protocols/awareness';
@@ -31,6 +32,7 @@ import {
   readRowsAfter,
   seedState,
 } from '@/lib/collab/store';
+import { isHexColor } from '@/lib/colors';
 import { after as afterResponse } from '@/lib/kit/request';
 import { db } from '@/lib/db';
 import { tickets } from '@/db/schema';
@@ -47,14 +49,12 @@ async function readIssueProjection(ticketId: string): Promise<CollabProjection |
   return row ? { markdown: row.description ?? '', source: row.source ?? null, rev: row.rev } : undefined;
 }
 
-// Read by adapter-vercel (ignored by adapter-node); was `maxDuration` under Next.
+// Read by adapter-vercel (ignored by adapter-node).
 export const config = { maxDuration: 30 };
 
 const POLL_MS = 600;
 const LONG_POLL_MS = 20_000;
 const CLIENT = /^[A-Za-z0-9_-]{8,64}$/;
-const COLOR = /^#[0-9a-fA-F]{6}$/;
-const NO_STORE = { 'Cache-Control': 'no-store' };
 
 const json = (body: unknown, status = 200) => Response.json(body, { status, headers: NO_STORE });
 
@@ -77,18 +77,6 @@ async function authorize({ params, locals }: AuthorizeEvent): Promise<Authorized
   const access = await resolveCollabAccess(key, user.id);
   if (!access) return { error: json({ error: 'Not found' }, 404) };
   return { key, access, user };
-}
-
-function sleep(ms: number, signal: AbortSignal) {
-  return new Promise<void>((resolve) => {
-    const timer = setTimeout(done, ms);
-    function done() {
-      clearTimeout(timer);
-      signal.removeEventListener('abort', done);
-      resolve();
-    }
-    signal.addEventListener('abort', done);
-  });
 }
 
 export const GET: RequestHandler = async (event) => {
@@ -137,7 +125,7 @@ export const GET: RequestHandler = async (event) => {
     Date.now() - started < LONG_POLL_MS &&
     !request.signal.aborted
   ) {
-    await sleep(POLL_MS, request.signal);
+    await abortableSleep(POLL_MS, request.signal);
     if (request.signal.aborted) break;
     result = await readRowsAfter(key, result.lastId, except);
   }
@@ -168,7 +156,7 @@ export const POST: RequestHandler = async (event) => {
       const bytes = modifyAwarenessUpdate(fromBase64(body.awareness), (state: unknown) => {
         if (!state || typeof state !== 'object') return state;
         const s = state as { user?: { color?: unknown } };
-        const color = typeof s.user?.color === 'string' && COLOR.test(s.user.color) ? s.user.color : '#6b7280';
+        const color = isHexColor(s.user?.color) ? s.user.color : '#6b7280';
         return { ...s, user: { id: user.id, name: user.name, image: user.image ?? null, color } };
       });
       // Parse check on a throwaway instance: malformed input must never reach other clients.
@@ -209,5 +197,4 @@ export const POST: RequestHandler = async (event) => {
   return json({ id } satisfies CollabPostResponse);
 };
 
-// Next answered OPTIONS automatically (204 + Allow); Kit would 405.
 export const OPTIONS = allowOptions('GET', 'POST');

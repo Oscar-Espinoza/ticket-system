@@ -1,5 +1,5 @@
 <!--
-  Square app logo with a letter fallback (port of src/components/oauth/app-icon.tsx).
+  Square app logo with a letter fallback.
   Logo URLs are third-party; a broken image falls back instead of showing an
   empty box.
 -->

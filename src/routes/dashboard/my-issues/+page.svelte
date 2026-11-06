@@ -1,4 +1,3 @@
-<!-- My issues (port of src/app/dashboard/my-issues/page.tsx). -->
 <script lang="ts">
   import type { Component } from 'svelte';
   import BellIcon from '@lucide/svelte/icons/bell';

@@ -1,24 +1,25 @@
 // Customer reads (server-only). Page reads are authorized in SQL like epics:
 // every query carries an EXISTS on the viewer's project membership, so a
 // non-member reads nothing. The request helpers at the bottom trust their
-// projectId — callers authorize first (server actions, D8 dashboards, intake).
+// projectId — callers authorize first (server actions, dashboards, intake).
 
 import { cache } from '@/lib/kit/request';
-import { and, arrayOverlaps, desc, eq, exists, inArray, isNotNull, isNull, sql, type SQL } from 'drizzle-orm';
-import { alias, type AnyPgColumn } from 'drizzle-orm/pg-core';
+import { and, arrayOverlaps, desc, eq, inArray, isNotNull, isNull, sql, type SQL } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 
 import { db } from '@/lib/db';
+import { projectMemberOf } from '@/lib/project-access';
 import {
   customerRequests,
   customers,
-  projectMembers,
   projects,
   tickets,
   users,
   workflowStates,
 } from '@/db/schema';
+import { openStateType } from '@/lib/workflow-server';
 import type { IssueRow, StateType } from '@/lib/issue-model';
-import { memberOfIssueProject, queryIssues } from '@/lib/tickets';
+import { memberOfIssueProject, queryIssues, formatIssueKey } from '@/lib/tickets';
 import {
   isCustomerStatus,
   isImportance,
@@ -28,20 +29,9 @@ import {
   type CustomerRequestView,
   type CustomerRow,
   type IssueCustomerRequest,
-} from '@/lib/components/customers/customer-model';
+} from '@/lib/customer-model';
 
 const ownerUsers = alias(users, 'customer_owner');
-
-/** EXISTS: `userId` is a member of the project in `projectColumn`. */
-function viewerIsMember(projectColumn: AnyPgColumn, userId: string): SQL {
-  const viewer = alias(projectMembers, 'viewer');
-  return exists(
-    db
-      .select({ one: sql`1` })
-      .from(viewer)
-      .where(and(eq(viewer.projectId, projectColumn), eq(viewer.userId, userId))),
-  );
-}
 
 const customerColumns = {
   id: customers.id,
@@ -87,7 +77,7 @@ function toCustomerRow(row: CustomerSelect): CustomerRow {
 
 
 /** Open = linked, not trashed / archived, and not completed / canceled. */
-const openIssueFilter = sql`${tickets.id} is not null and ${tickets.deletedAt} is null and ${tickets.archivedAt} is null and ${workflowStates.type} not in ('completed', 'canceled')`;
+const openIssueFilter = sql`${tickets.id} is not null and ${tickets.deletedAt} is null and ${tickets.archivedAt} is null and ${openStateType()}`;
 
 /** Every customer of the project with request / open-issue counts. [] for non-members. */
 export async function getProjectCustomers(
@@ -97,7 +87,7 @@ export async function getProjectCustomers(
   if (!projectId || !userId) return [];
   const [rows, stats] = await Promise.all([
     selectCustomers(
-      and(eq(customers.projectId, projectId), viewerIsMember(customers.projectId, userId)),
+      and(eq(customers.projectId, projectId), projectMemberOf(customers.projectId, userId)),
     ).orderBy(customers.name),
     db
       .select({
@@ -116,7 +106,7 @@ export async function getProjectCustomers(
         and(
           eq(customerRequests.projectId, projectId),
           isNotNull(customerRequests.customerId),
-          viewerIsMember(customerRequests.projectId, userId),
+          projectMemberOf(customerRequests.projectId, userId),
         ),
       )
       .groupBy(customerRequests.customerId),
@@ -158,7 +148,7 @@ export const getCustomerDetail = cache(async function getCustomerDetail(
       and(
         eq(customers.id, customerId),
         eq(customers.projectId, projectId),
-        viewerIsMember(customers.projectId, userId),
+        projectMemberOf(customers.projectId, userId),
       ),
     ).limit(1),
     db
@@ -195,7 +185,7 @@ export const getCustomerDetail = cache(async function getCustomerDetail(
         and(
           eq(customerRequests.customerId, customerId),
           eq(customerRequests.projectId, projectId),
-          viewerIsMember(customerRequests.projectId, userId),
+          projectMemberOf(customerRequests.projectId, userId),
         ),
       )
       .orderBy(desc(customerRequests.createdAt)),
@@ -215,7 +205,7 @@ export const getCustomerDetail = cache(async function getCustomerDetail(
         ? {
             id: r.ticketId,
             projectId: r.ticketProjectId,
-            key: `${r.ticketKey}-${r.number}`,
+            key: formatIssueKey(r.ticketKey, r.number),
             title: r.title ?? '',
             stateType: (r.stateType ?? 'backlog') as StateType,
             stateColor: r.stateColor,
@@ -244,7 +234,7 @@ export const getCustomerDetail = cache(async function getCustomerDetail(
 
 /**
  * Customer requests of the given issues, grouped by ticket id (each list newest
- * first). Trusts `projectId` and filters ticket ids to it; exposed for D8's
+ * first). Trusts `projectId` and filters ticket ids to it; exposed for the
  * dashboards ("issues by customer revenue") — sum `customer.revenue` over the
  * distinct customers of a ticket (see `revenueSummary` in customer-model).
  */

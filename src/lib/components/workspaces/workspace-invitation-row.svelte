@@ -1,4 +1,4 @@
-<!-- One pending workspace invitation: resend / copy link / revoke (InvitationRow in workspace-members.tsx). -->
+<!-- One pending workspace invitation: resend / copy link / revoke. -->
 <script lang="ts">
   import CopyIcon from '@lucide/svelte/icons/copy';
   import EllipsisIcon from '@lucide/svelte/icons/ellipsis';
@@ -10,11 +10,12 @@
 
   import {
     WORKSPACE_ROLE_LABEL,
+    canManageRole,
     type WorkspaceInvitationRow,
     type WorkspaceRole,
-  } from '@/lib/components/workspaces/workspace-types';
+  } from '@/lib/workspace-types';
   import { resendWorkspaceInvitation, revokeWorkspaceInvitation } from '@/lib/actions/workspaces';
-  import { relativeTime } from '@/lib/components/issues/issue-properties';
+  import { relativeTime } from '@/lib/relative-time';
   import { Button } from '@/lib/components/ui/button';
   import {
     DropdownMenu,
@@ -24,7 +25,7 @@
     DropdownMenuTrigger,
   } from '@/lib/components/ui/dropdown-menu';
   import { LabelChip } from '@/lib/components/ui-icons';
-  import { announceSent, copyText } from './workspace-invites';
+  import { announceSent, copyText } from '@/lib/components/invite-toasts';
 
   let {
     workspaceId,
@@ -40,9 +41,7 @@
   // Rendered from a server snapshot; "expired" is recomputed whenever the row re-renders.
   const expiresAt = $derived(new Date(invitation.expiresAt));
   const expired = $derived(expiresAt.getTime() <= Date.now());
-  const manageable = $derived(
-    viewerRole === 'owner' || (viewerRole === 'admin' && invitation.role === 'member'),
-  );
+  const manageable = $derived(canManageRole(viewerRole, invitation.role));
 
   async function resend() {
     isPending = true;

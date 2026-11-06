@@ -24,7 +24,7 @@
     CommandList,
   } from '@/lib/components/ui/command';
   import type { CycleSummary } from '@/lib/project-data-types';
-  import { cycleName, cycleStatus, formatCycleRange } from '@/lib/components/cycles/cycle-utils';
+  import { cycleName, cycleStatus, formatCycleRange } from '@/lib/cycle-utils';
   import CycleGlyph from './cycle-glyph.svelte';
 
   const NO_CYCLE = '__none';

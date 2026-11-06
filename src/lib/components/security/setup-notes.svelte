@@ -1,7 +1,6 @@
 <!--
   Collapsible IdP setup notes for the free tiers people actually test with:
   Okta Integrator (developer) accounts and self-hosted Keycloak.
-  Port of SetupNotes in src/components/security/setup-notes.tsx.
 -->
 <script lang="ts">
   import Notes from './setup-notes-details.svelte';

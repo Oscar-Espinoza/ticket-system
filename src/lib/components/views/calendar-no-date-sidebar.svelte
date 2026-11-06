@@ -1,14 +1,12 @@
-<!-- "No due date" drop zone + list (NoDateSidebar in src/components/views/calendar-view.tsx;
-     renders inside the DragDropProvider). -->
+<!-- "No due date" drop zone + list. Renders inside the DragDropProvider. -->
 <script lang="ts">
   import { createDroppable } from '@dnd-kit/svelte';
   import CalendarX2Icon from '@lucide/svelte/icons/calendar-x-2';
 
   import type { IssueRow } from '@/lib/issue-model';
   import { cn } from '@/lib/utils';
+  import { NO_DATE } from './calendar-ids';
   import CalendarDraggableChip from './calendar-draggable-chip.svelte';
-
-  const NO_DATE = 'no-date';
 
   let { issues, onSelect }: { issues: IssueRow[]; onSelect?: (issue: IssueRow) => void } = $props();
 

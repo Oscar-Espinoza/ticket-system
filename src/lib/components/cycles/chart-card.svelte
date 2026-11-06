@@ -1,8 +1,8 @@
-<!-- Card frame shared by the burndown and velocity charts (local helper of cycle-charts.tsx). -->
+<!-- Card frame shared by the burndown and velocity charts. -->
 <script lang="ts">
   import type { Snippet } from 'svelte';
 
-  import type { ChartUnit } from '@/lib/components/cycles/cycle-utils';
+  import type { ChartUnit } from '@/lib/cycle-utils';
   import UnitToggle from './unit-toggle.svelte';
 
   let {

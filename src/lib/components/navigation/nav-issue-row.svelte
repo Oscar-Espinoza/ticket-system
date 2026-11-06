@@ -3,7 +3,6 @@
   archive, trash). IssueRow from components/issues needs useProjectData(), so
   it can't render outside one project. The whole row is a link to the issue's
   permalink; `actions` sit outside the link so buttons stay valid HTML.
-  Port of src/components/navigation/nav-issue-row.tsx.
 -->
 <script module lang="ts">
   import type { Snippet } from 'svelte';
@@ -30,7 +29,7 @@
   import { issuePath } from '@/lib/issue-links';
   import { PRIORITY_LABEL } from '@/lib/issue-model';
   import { cn } from '@/lib/utils';
-  import { relativeTime } from '@/lib/components/issues/issue-properties';
+  import { relativeTime } from '@/lib/relative-time';
 
   let { issue, title, below, project, time, actions }: NavIssueRowProps = $props();
 
@@ -67,7 +66,7 @@
       {#if issue.assignee}
         <Avatar name={issue.assignee.name} src={issue.assignee.image} size={20} class="shrink-0" />
       {/if}
-      <!-- React's suppressHydrationWarning: hydration keeps the server text. -->
+      <!-- Hydration keeps the server text. -->
       <time
         datetime={new Date(stamp.date).toISOString()}
         title={`${stamp.label} ${new Date(stamp.date).toLocaleString()}`}

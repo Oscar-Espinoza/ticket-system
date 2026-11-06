@@ -14,7 +14,7 @@
   type Props = WithoutChild<SheetPrimitive.ContentProps> & {
     side?: SheetSide;
     showCloseButton?: boolean;
-    /** Props for the portal React rendered implicitly (e.g. `to`, `disabled`). */
+    /** Props for the portal Radix rendered implicitly (e.g. `to`, `disabled`). */
     portalProps?: WithoutChildrenOrChild<ComponentProps<typeof SheetPortal>>;
   };
 

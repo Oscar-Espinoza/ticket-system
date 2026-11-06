@@ -86,10 +86,6 @@ export function detectMapping(headers: string[]): ImportField[] {
   return mapping;
 }
 
-// ---------------------------------------------------------------------------
-// Value parsers
-// ---------------------------------------------------------------------------
-
 const PRIORITY_WORDS: Record<string, Priority> = {
   none: 'none',
   nopriority: 'none',
@@ -169,10 +165,6 @@ export function splitLabels(raw: string): string[] {
     .map((s) => s.trim())
     .filter(Boolean);
 }
-
-// ---------------------------------------------------------------------------
-// Rows → records
-// ---------------------------------------------------------------------------
 
 export interface BuiltRecords {
   records: ImportRecord[];

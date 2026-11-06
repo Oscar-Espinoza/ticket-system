@@ -1,4 +1,4 @@
-<!-- Confirm-and-delete for one document (DeleteDocumentDialog of documents-list.tsx). -->
+<!-- Confirm-and-delete for one document. -->
 <script lang="ts">
   import { toast } from 'svelte-sonner';
 

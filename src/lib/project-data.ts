@@ -6,8 +6,7 @@
 // non-member reads nothing and gets null (the getProjectsForUser pattern).
 
 import { cache } from '@/lib/kit/request';
-import { and, asc, desc, eq, exists, isNull, sql } from 'drizzle-orm';
-import { alias } from 'drizzle-orm/pg-core';
+import { and, asc, desc, eq, isNull, sql } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import {
@@ -21,7 +20,9 @@ import {
   workflowStates,
 } from '@/db/schema';
 import { isEstimateScale } from '@/lib/estimates';
+import { projectMemberOf } from '@/lib/project-access';
 import { sortStates } from '@/lib/workflow';
+import { workflowStateColumns } from '@/lib/workflow-server';
 import type { EpicSummary, ProjectData } from '@/lib/project-data-types';
 
 export type * from '@/lib/project-data-types';
@@ -29,13 +30,7 @@ export type * from '@/lib/project-data-types';
 export const getProjectData = cache(
   async (projectId: string, userId: string): Promise<ProjectData | null> => {
     if (!projectId || !userId) return null;
-    const viewer = alias(projectMembers, 'viewer');
-    const isMember = exists(
-      db
-        .select({ one: sql`1` })
-        .from(viewer)
-        .where(and(eq(viewer.projectId, projectId), eq(viewer.userId, userId))),
-    );
+    const isMember = projectMemberOf(sql`${projectId}`, userId);
 
     const [projectRows, stateRows, labelRows, memberRows, cycleRows, epicRows, milestoneRows] =
       await db.batch([
@@ -57,14 +52,7 @@ export const getProjectData = cache(
           .where(and(eq(projectMembers.projectId, projectId), eq(projectMembers.userId, userId)))
           .limit(1),
         db
-          .select({
-            id: workflowStates.id,
-            name: workflowStates.name,
-            type: workflowStates.type,
-            color: workflowStates.color,
-            position: workflowStates.position,
-            description: workflowStates.description,
-          })
+          .select(workflowStateColumns)
           .from(workflowStates)
           .where(and(eq(workflowStates.projectId, projectId), isMember)),
         db

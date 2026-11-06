@@ -3,7 +3,7 @@
   import type { ButtonVariant } from "@/lib/components/ui/button"
   import type { Matcher } from "./calendar-utils"
 
-  /** react-day-picker class-name keys the shadcn Calendar styled (plus the ones it left default). */
+  /** react-day-picker class-name keys the Calendar styles (plus the ones it left default). */
   export type CalendarClassNames = Partial<
     Record<
       | "root"
@@ -141,7 +141,7 @@
 
   const today = $derived(todayProp ?? new Date())
 
-  // ---- class names (react-day-picker defaults + the shadcn overrides) ----
+  // ---- class names (react-day-picker defaults + the overrides) ----
   const c = $derived({
     root: cn("w-fit", "rdp-root"),
     months: cn("relative flex flex-col gap-4 md:flex-row", "rdp-months"),

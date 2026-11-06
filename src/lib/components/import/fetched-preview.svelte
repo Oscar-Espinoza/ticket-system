@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { pluralize } from '@/lib/format';
   import { EmptyState } from '@/lib/components/ui-icons';
   import { Button } from '@/lib/components/ui/button';
   import type { ExternalFetchResult } from '@/lib/import/external';
@@ -48,7 +49,7 @@
   </section>
   <div>
     <Button onclick={onImport}>
-      Import {count} issue{count === 1 ? '' : 's'}
+      Import {pluralize(count, 'issue')}
     </Button>
   </div>
 {/if}

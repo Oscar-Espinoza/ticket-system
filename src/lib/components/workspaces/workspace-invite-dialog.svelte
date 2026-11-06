@@ -1,9 +1,9 @@
-<!-- Invite by email to the workspace (InviteDialog in workspace-members.tsx). -->
+<!-- Invite by email to the workspace. -->
 <script lang="ts">
   import LoaderCircleIcon from '@lucide/svelte/icons/loader-circle';
   import { toast } from 'svelte-sonner';
 
-  import type { WorkspaceRole } from '@/lib/components/workspaces/workspace-types';
+  import { workspaceRoleAllows, type WorkspaceRole } from '@/lib/workspace-types';
   import { inviteWorkspaceMember } from '@/lib/actions/workspaces';
   import { Button } from '@/lib/components/ui/button';
   import {
@@ -17,7 +17,7 @@
   import { Input } from '@/lib/components/ui/input';
   import { Label } from '@/lib/components/ui/label';
   import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/lib/components/ui/select';
-  import { announceSent } from './workspace-invites';
+  import { announceSent } from '@/lib/components/invite-toasts';
 
   let {
     open,
@@ -98,7 +98,7 @@
             aria-invalid={error ? true : undefined}
             class="flex-1"
           />
-          {#if viewerRole === 'owner'}
+          {#if workspaceRoleAllows(viewerRole, 'owner')}
             <Select items={ROLE_ITEMS} bind:value={() => role, (v) => (role = v as 'admin' | 'member')}>
               <SelectTrigger class="w-28" aria-label="Role">
                 <SelectValue />

@@ -1,5 +1,5 @@
 // Generates SvelteKit remote-function wrappers for every server action in
-// src/lib/server/actions/*.ts (the former Next.js 'use server' files), so
+// src/lib/server/actions/*.ts, so
 // Svelte components call the SAME function bodies with the SAME arguments:
 //
 //   src/lib/remote/<name>.remote.ts   command('unchecked', …) per export (server)
@@ -9,9 +9,14 @@
 // pending counter, so a wrapper called from an $effect would otherwise make the
 // effect depend on it and re-run forever (effect_update_depth_exceeded).
 //
+// The transport itself (redirects as data, refresh, FormData entries) lives in
+// src/lib/server/action-runtime.ts and src/lib/svelte/action-runtime.svelte.ts;
+// the generated files only import it.
+//
 // Semantics kept from Next:
-// - a function whose body calls revalidatePath/revalidateTag → the client
-//   wrapper awaits refreshAfterWrite() (a coalesced refreshAll) after it resolves;
+// - a function whose body calls refreshesData() (src/lib/server/action-kit.ts)
+//   → the client wrapper awaits refreshAfterWrite() (a coalesced refreshAll)
+//   after it resolves;
 // - redirect() inside an action → the wrapper navigates with goto();
 // - (prevState, formData: FormData) actions take a real FormData on the client;
 //   it is sent as entries and rebuilt server-side (string fields only).
@@ -44,7 +49,7 @@ for (const file of sources.sort()) {
   const fns = [];
   const typeNames = [];
   // Local functions (exported or not) that refresh, directly or through other
-  // local helpers — e.g. tickets.ts calls revalidatePath only via revalidateProject().
+  // local helpers — e.g. documents.ts calls refreshesData() only inside setArchived().
   const bodies = new Map();
   for (const st of sf.statements) {
     if (ts.isFunctionDeclaration(st) && st.name && st.body) bodies.set(st.name.text, st.body.getText(sf));
@@ -57,7 +62,7 @@ for (const file of sources.sort()) {
       }
     }
   }
-  const refreshing = new Set([...bodies].filter(([, b]) => /\brevalidate(Path|Tag)\s*\(/.test(b)).map(([n]) => n));
+  const refreshing = new Set([...bodies].filter(([, b]) => /\brefreshesData\s*\(/.test(b)).map(([n]) => n));
   for (let grew = true; grew; ) {
     grew = false;
     for (const [name, body] of bodies) {
@@ -96,7 +101,7 @@ for (const file of sources.sort()) {
     fns.push({
       name,
       isForm,
-      revalidates: refreshing.has(name),
+      refreshes: refreshing.has(name),
       redirects: /\bredirect\s*\(/.test(bodyText),
     });
   }
@@ -104,52 +109,17 @@ for (const file of sources.sort()) {
   const mod = nameFor(file);
   const importPath = '@/' + path.relative(path.join(root, 'src'), file).replace(/\.tsx?$/, '');
 
+  const hasForm = fns.some((f) => f.isForm);
   const remote = [HEADER,
-    `import { isRedirect } from '@sveltejs/kit';`,
     `import { command } from '$app/server';`,
+    `import { run${hasForm ? ', formData' : ''} } from '@/lib/server/action-runtime';`,
     `import * as impl from '${importPath}';`,
-    ``,
-    `type Out<T> = { ok: true; value: Awaited<T> } | { ok: false; redirect: string };`,
-    `async function run<T>(fn: () => T): Promise<Out<T>> {`,
-    `  try {`,
-    `    return { ok: true, value: await fn() };`,
-    `  } catch (err) {`,
-    `    if (isRedirect(err)) return { ok: false, redirect: err.location };`,
-    `    throw err;`,
-    `  }`,
-    `}`,
-    `function formData(entries: [string, string][]): FormData {`,
-    `  const fd = new FormData();`,
-    `  for (const [k, v] of entries) fd.append(k, v);`,
-    `  return fd;`,
-    `}`,
-    `void formData;`,
     ``];
   const client = [HEADER,
     `import { untrack } from 'svelte';`,
-    `import { goto } from '$app/navigation';`,
-    `import { refreshAfterWrite } from '@/lib/svelte/refresh.svelte';`,
+    `import { settle${hasForm ? ', entries' : ''} } from '@/lib/svelte/action-runtime.svelte';`,
     `import * as remote from '@/lib/remote/${mod}.remote';`,
     `import type * as impl from '${importPath}';`,
-    ``,
-    `type Out<T> = { ok: true; value: T } | { ok: false; redirect: string };`,
-    `async function settle<T>(out: Out<T>, refresh: boolean): Promise<T> {`,
-    `  if (!out.ok) {`,
-    `    await goto(out.redirect, { refreshAll: true });`,
-    `    return undefined as T;`,
-    `  }`,
-    `  if (refresh) await refreshAfterWrite();`,
-    `  return out.value;`,
-    `}`,
-    `function entries(fd: FormData): [string, string][] {`,
-    `  const out: [string, string][] = [];`,
-    `  fd.forEach((v, k) => {`,
-    `    if (typeof v !== 'string') throw new Error('File fields are not supported by action wrappers; upload via /api/uploads.');`,
-    `    out.push([k, v]);`,
-    `  });`,
-    `  return out;`,
-    `}`,
-    `void entries;`,
     ``];
   for (const f of fns) {
     if (f.isForm) {
@@ -157,14 +127,14 @@ for (const file of sources.sort()) {
         `  run(() => impl.${f.name}(input[0], formData(input[1]))),`, `);`);
       client.push(`/** (prevState, formData) action, as with React's useActionState. */`,
         `export async function ${f.name}(prev: Parameters<typeof impl.${f.name}>[0], fd: FormData): Promise<Awaited<ReturnType<typeof impl.${f.name}>>> {`,
-        `  return settle(await untrack(() => remote.${f.name}([prev, entries(fd)])), ${f.revalidates});`, `}`);
+        `  return settle(await untrack(() => remote.${f.name}([prev, entries(fd)])), ${f.refreshes});`, `}`);
     } else {
       remote.push(`export const ${f.name} = command('unchecked', (args: Parameters<typeof impl.${f.name}>) =>`,
         `  run(() => impl.${f.name}(...args)),`, `);`);
       client.push(`export async function ${f.name}(...args: Parameters<typeof impl.${f.name}>): Promise<Awaited<ReturnType<typeof impl.${f.name}>>> {`,
-        `  return settle(await untrack(() => remote.${f.name}(args)), ${f.revalidates});`, `}`);
+        `  return settle(await untrack(() => remote.${f.name}(args)), ${f.refreshes});`, `}`);
     }
-    report.push(`${mod}.${f.name}${f.isForm ? ' [form]' : ''}${f.revalidates ? ' [refresh]' : ''}${f.redirects ? ' [redirect]' : ''}`);
+    report.push(`${mod}.${f.name}${f.isForm ? ' [form]' : ''}${f.refreshes ? ' [refresh]' : ''}${f.redirects ? ' [redirect]' : ''}`);
   }
   // Re-export the action module's types so callers can import them from here.
   if (typeNames.length) client.push(`export type { ${[...new Set(typeNames)].join(', ')} } from '${importPath}';`);

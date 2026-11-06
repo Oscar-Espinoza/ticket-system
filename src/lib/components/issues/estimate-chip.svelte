@@ -1,4 +1,4 @@
-<!-- Estimate chip (triangle + value). Port of EstimateChip from src/components/issues/issue-properties.tsx. -->
+<!-- Estimate chip (triangle + value). -->
 <script lang="ts">
   import TriangleIcon from '@lucide/svelte/icons/triangle';
 

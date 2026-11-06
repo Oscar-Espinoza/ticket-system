@@ -1,4 +1,4 @@
-<!-- The intake form itself (FormBody in intake-form.tsx): useActionState → state + pending. -->
+<!-- The intake form itself: form state + pending. -->
 <script lang="ts">
   import { tick } from 'svelte';
   import CircleCheckIcon from '@lucide/svelte/icons/circle-check';
@@ -29,7 +29,7 @@
     } finally {
       pending = false;
     }
-    // React 19 resets a <form action> after the action: fields go back to their
+    // The form resets after the action: fields go back to their
     // defaultValue, which is now the server's echo of what was sent.
     await tick();
     if (form.isConnected) form.reset();

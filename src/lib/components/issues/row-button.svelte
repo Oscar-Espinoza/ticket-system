@@ -2,7 +2,6 @@
   Icon buttons inside an issue row: out of the tab order (the row is the stop)
   and they don't open the issue when clicked. Trigger props (aria-*, onclick,
   data-state…) arrive from the picker's `child` snippet and are forwarded.
-  (RowButton in issue-row.tsx.)
 -->
 <script lang="ts">
   import type { HTMLButtonAttributes } from 'svelte/elements';

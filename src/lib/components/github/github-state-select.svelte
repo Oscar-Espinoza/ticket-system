@@ -12,7 +12,7 @@
     SelectTrigger,
     SelectValue,
   } from '@/lib/components/ui/select';
-  import { AUTOMATION_OFF } from '@/lib/github/automation';
+  import { AUTOMATION_OFF } from '@/lib/vcs/automation-state';
   import type { WorkflowState } from '@/lib/issue-model';
 
   let {

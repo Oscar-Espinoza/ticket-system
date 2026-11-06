@@ -1,5 +1,5 @@
 <!--
-  One-time display of 2FA backup codes (port of src/components/security/backup-codes.tsx):
+  One-time display of 2FA backup codes:
   a two-column mono grid with Copy all and Download (.txt). Shown right after
   enabling / regenerating — the server only keeps them encrypted and never
   shows them again.

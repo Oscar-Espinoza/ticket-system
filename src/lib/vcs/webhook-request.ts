@@ -1,12 +1,13 @@
-// Shared request plumbing for the per-integration webhook routes (GitLab,
-// Bitbucket, Sentry): bounded body read + JSON parse, and one uniform
-// rejection so unknown ids and bad secrets are indistinguishable.
+// Shared request plumbing for the webhook routes (GitHub, GitLab, Bitbucket,
+// Sentry): bounded body read + JSON parse (the raw text is kept for signature
+// checks), and — for the per-integration routes — one uniform rejection so
+// unknown ids and bad secrets are indistinguishable.
 
 const MAX_BODY = 5 * 1024 * 1024;
 
 export const rejected = () => Response.json({ error: 'Invalid signature' }, { status: 401 });
 
-export async function readJsonBody(
+export async function readWebhookBody(
   request: Request,
 ): Promise<{ ok: true; raw: string; payload: unknown } | { ok: false; response: Response }> {
   const raw = await request.text();

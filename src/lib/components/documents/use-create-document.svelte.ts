@@ -1,14 +1,14 @@
-// useCreateDocument (the hook exported by src/components/documents/new-document-menu.tsx).
+// useCreateDocument:
 //   const doc = useCreateDocument(projectId | () => projectId, epicId? | () => epicId)
 //   doc.create(template); doc.pending (reactive)
-// createDocument's wrapper refreshes the page (the action revalidates); then
-// we navigate to the new document, as React's router.push did.
+// createDocument's wrapper refreshes the page (refreshesData); then
+// we navigate to the new document.
 
 import { goto } from '$app/navigation';
 import { toast } from 'svelte-sonner';
 
 import { createDocument } from '@/lib/actions/documents';
-import { documentPath, type DocumentTemplateId } from '@/lib/components/documents/document-model';
+import { documentPath, type DocumentTemplateId } from '@/lib/document-model';
 
 type MaybeGetter<T> = T | (() => T);
 const read = <T>(value: MaybeGetter<T>): T => (typeof value === 'function' ? (value as () => T)() : value);

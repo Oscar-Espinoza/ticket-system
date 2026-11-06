@@ -4,114 +4,68 @@
 // to its owner unless shared with a workspace the owner belongs to, whose
 // members may then use (not edit) it. Only the owner edits or deletes.
 
-import { revalidatePath } from '@/lib/kit/request';
-import { and, asc, desc, eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
-import { projectTemplates, users, workspaces } from '@/db/schema';
+import { projectTemplates } from '@/db/schema';
 import { authorizeProjectAction } from '@/lib/action-auth';
 import {
-  normalizeTemplateConfig,
+  readProjectTemplates,
   snapshotProject,
-  templateSummary,
-  usableTemplateFilter,
+  type ProjectTemplateRow,
 } from '@/lib/project-templates';
+import {
+  fail,
+  isFail,
+  NOT_AUTHENTICATED,
+  optionalText,
+  refreshesData,
+  requiredText,
+  type ActionResult,
+} from '@/lib/server/action-kit';
 import { getSession } from '@/lib/session';
 import { getWorkspaceMembership } from '@/lib/workspace-access';
 
-export interface ProjectTemplateRow {
-  id: string;
-  name: string;
-  description: string | null;
-  workspaceId: string | null;
-  workspaceName: string | null;
-  ownerName: string | null;
-  /** The viewer owns it (may edit / delete). */
-  isOwner: boolean;
-  updatedAt: string;
-  summary: ReturnType<typeof templateSummary>;
-}
+export type { ProjectTemplateRow };
 
 type Field = 'name' | 'description' | 'workspaceId' | 'projectId';
-export type ProjectTemplateResult =
-  | { ok: true; template?: ProjectTemplateRow }
-  | { ok: false; error: string; field?: Field };
+export type ProjectTemplateResult = ActionResult<{ template?: ProjectTemplateRow }, Field>;
 
 const NAME_MAX = 60;
 const DESCRIPTION_MAX = 500;
-const NOT_AUTHENTICATED = { ok: false as const, error: 'Not authenticated' };
-const NOT_FOUND = { ok: false as const, error: 'Template not found.' };
+const NOT_FOUND = fail('Template not found.');
 
 function validate(input: { name?: unknown; description?: unknown }) {
-  const name = typeof input.name === 'string' ? input.name.trim() : '';
-  if (!name) return { ok: false as const, error: 'Name is required.', field: 'name' as const };
-  if (name.length > NAME_MAX) {
-    return { ok: false as const, error: `Name must be ${NAME_MAX} characters or fewer.`, field: 'name' as const };
-  }
-  const description = typeof input.description === 'string' ? input.description.trim() : '';
-  if (description.length > DESCRIPTION_MAX) {
-    return {
-      ok: false as const,
-      error: `Description must be ${DESCRIPTION_MAX} characters or fewer.`,
-      field: 'description' as const,
-    };
-  }
-  return { ok: true as const, name, description: description || null };
+  const name = requiredText(input.name, 'name', NAME_MAX);
+  if (isFail(name)) return name;
+  const description = optionalText(input.description, 'description', DESCRIPTION_MAX);
+  if (isFail(description)) return description;
+  return { ok: true as const, name, description };
 }
 
 /** null = private; otherwise the viewer must belong to the workspace. */
 async function resolveWorkspace(
   workspaceId: unknown,
   userId: string,
-): Promise<{ ok: true; id: string | null } | { ok: false; error: string; field: Field }> {
+): Promise<ActionResult<{ id: string | null }, Field>> {
   if (workspaceId === null || workspaceId === undefined || workspaceId === '') {
     return { ok: true, id: null };
   }
-  if (typeof workspaceId !== 'string') return { ok: false, error: 'Invalid workspace.', field: 'workspaceId' };
+  if (typeof workspaceId !== 'string') return fail('Invalid workspace.', 'workspaceId');
   const membership = await getWorkspaceMembership(workspaceId, userId);
   if (!membership || membership.workspaceId !== workspaceId) {
-    return { ok: false, error: 'You aren’t a member of that workspace.', field: 'workspaceId' };
+    return fail('You aren’t a member of that workspace.', 'workspaceId');
   }
   return { ok: true, id: workspaceId };
 }
 
-async function loadRows(userId: string, id?: string): Promise<ProjectTemplateRow[]> {
-  const rows = await db
-    .select({
-      id: projectTemplates.id,
-      name: projectTemplates.name,
-      description: projectTemplates.description,
-      workspaceId: projectTemplates.workspaceId,
-      workspaceName: workspaces.name,
-      ownerId: projectTemplates.ownerId,
-      ownerName: users.name,
-      config: projectTemplates.config,
-      updatedAt: projectTemplates.updatedAt,
-    })
-    .from(projectTemplates)
-    .leftJoin(workspaces, eq(projectTemplates.workspaceId, workspaces.id))
-    .leftJoin(users, eq(projectTemplates.ownerId, users.id))
-    .where(and(usableTemplateFilter(userId), id ? eq(projectTemplates.id, id) : undefined))
-    .orderBy(desc(projectTemplates.updatedAt), asc(projectTemplates.name));
-  return rows.map(({ config, ownerId, updatedAt, ...row }) => ({
-    ...row,
-    isOwner: ownerId === userId,
-    updatedAt: updatedAt.toISOString(),
-    summary: templateSummary(normalizeTemplateConfig(config)),
-  }));
-}
-
-function revalidateTemplates() {
-  revalidatePath('/dashboard/templates');
-}
-
 /** Templates the viewer can use (own + shared with their workspaces). */
 export async function listProjectTemplates(): Promise<
-  { ok: true; templates: ProjectTemplateRow[] } | { ok: false; error: string }
+  ActionResult<{ templates: ProjectTemplateRow[] }>
 > {
   const session = await getSession();
   if (!session?.user) return NOT_AUTHENTICATED;
-  return { ok: true, templates: await loadRows(session.user.id) };
+  return { ok: true, templates: await readProjectTemplates(session.user.id) };
 }
 
 export async function createProjectTemplate(input: {
@@ -123,7 +77,7 @@ export async function createProjectTemplate(input: {
   const auth = await authorizeProjectAction(input?.projectId, 'admin');
   if (!auth.ok) {
     return auth.error === 'Forbidden'
-      ? { ok: false, error: 'You need to be an admin of that project.', field: 'projectId' }
+      ? fail('You need to be an admin of that project.', 'projectId')
       : auth;
   }
   const fields = validate(input);
@@ -132,7 +86,7 @@ export async function createProjectTemplate(input: {
   if (!workspace.ok) return workspace;
 
   const config = await snapshotProject(input.projectId);
-  if (!config) return { ok: false, error: 'Project not found.', field: 'projectId' };
+  if (!config) return fail('Project not found.', 'projectId');
 
   const id = crypto.randomUUID();
   const now = new Date();
@@ -146,8 +100,8 @@ export async function createProjectTemplate(input: {
     createdAt: now,
     updatedAt: now,
   });
-  revalidateTemplates();
-  const [template] = await loadRows(auth.userId, id);
+  refreshesData();
+  const [template] = await readProjectTemplates(auth.userId, id);
   return { ok: true, template };
 }
 
@@ -176,8 +130,8 @@ export async function updateProjectTemplate(input: {
     .where(and(eq(projectTemplates.id, input.id), eq(projectTemplates.ownerId, session.user.id)))
     .returning({ id: projectTemplates.id });
   if (updated.length === 0) return NOT_FOUND;
-  revalidateTemplates();
-  const [template] = await loadRows(session.user.id, input.id);
+  refreshesData();
+  const [template] = await readProjectTemplates(session.user.id, input.id);
   return { ok: true, template };
 }
 
@@ -190,6 +144,6 @@ export async function deleteProjectTemplate(input: { id: string }): Promise<Proj
     .where(and(eq(projectTemplates.id, input.id), eq(projectTemplates.ownerId, session.user.id)))
     .returning({ id: projectTemplates.id });
   if (deleted.length === 0) return NOT_FOUND;
-  revalidateTemplates();
+  refreshesData();
   return { ok: true };
 }

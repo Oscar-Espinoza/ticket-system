@@ -1,4 +1,4 @@
-<!-- A customer's requests, newest first, with unlink (RequestsTimeline in customer-detail.tsx). -->
+<!-- A customer's requests, newest first, with unlink. -->
 <script lang="ts">
   import MessageSquareTextIcon from '@lucide/svelte/icons/message-square-text';
   import UnlinkIcon from '@lucide/svelte/icons/unlink';
@@ -8,7 +8,7 @@
     IMPORTANCE_LABEL,
     REQUEST_SOURCE_LABEL,
     type CustomerRequestView,
-  } from '@/lib/components/customers/customer-model';
+  } from '@/lib/customer-model';
   import { updateCustomerRequest } from '@/lib/actions/customers';
   import { Button } from '@/lib/components/ui/button';
   import { EmptyState, StatusIcon } from '@/lib/components/ui-icons';

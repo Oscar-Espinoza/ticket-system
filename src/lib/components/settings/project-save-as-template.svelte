@@ -3,7 +3,7 @@
 
   import TemplateDialog from '@/lib/components/project-templates/template-dialog.svelte';
   import { Button } from '@/lib/components/ui/button';
-  import type { ProjectGeneralFormProps } from './project-general-form.svelte';
+  import type { ProjectGeneralFormProps } from './project-general-types';
 
   let { projectId, name, ticketKey, workspaceId, templateWorkspaces }: ProjectGeneralFormProps =
     $props();

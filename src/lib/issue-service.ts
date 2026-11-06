@@ -10,18 +10,20 @@
 // │ Every function then scopes writes by (issue id, project id) and checks  │
 // │ that every referenced id (state, label, assignee, parent, cycle, epic,  │
 // │ milestone) belongs to `projectId`, so ids can't reach across projects.  │
-// │ Nothing here calls revalidatePath — callers revalidate what they show.  │
+// │ Nothing here refreshes page data — callers do (refreshesData()).        │
 // └─────────────────────────────────────────────────────────────────────────┘
 //
 // `actor.userId` null = system / integration: creatorId and activity actorId
 // are stored as null. Every successful write emits activity + events
 // (src/lib/events.ts), written in the same db.batch as the change.
 
-import { and, asc, eq, exists, inArray, isNull, or, sql, type SQL } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull, or, sql, type SQL } from 'drizzle-orm';
 import { alias, type AnyPgColumn, type PgUpdateSetSource } from 'drizzle-orm/pg-core';
 import type { BatchItem } from 'drizzle-orm/batch';
 
 import { db } from '@/lib/db';
+import { hasPgCode, isUniqueViolation } from '@/lib/db-errors';
+import { epicAvailableSql, epicAvailableTo } from '@/lib/epics';
 import {
   activities,
   cycles,
@@ -36,7 +38,6 @@ import {
   ticketKeyAliases,
   tickets,
   users,
-  workflowStates,
 } from '@/db/schema';
 import {
   ISSUE_EVENT,
@@ -59,14 +60,16 @@ import {
   type IssueUser,
   type WorkflowState,
 } from '@/lib/issue-model';
-import type { EpicSummary } from '@/lib/project-data-types';
-import { issueQueries, mergeIssueRows, queryIssues } from '@/lib/tickets';
+import { slaDeadline } from '@/lib/sla-server';
+import { issueQueries, mergeIssueRows, queryIssues, formatIssueKey } from '@/lib/tickets';
 import {
   defaultNewIssueState,
   firstStateOfType,
   sortStates,
   stateTransitionTimestamps,
 } from '@/lib/workflow';
+import { isUuid } from '@/lib/ids';
+import { projectStatesQuery } from '@/lib/workflow-server';
 
 // ---------------------------------------------------------------------------
 // Contract
@@ -222,120 +225,6 @@ interface Context {
 
 const NOTHING = sql`false`;
 
-/** Deadline from a project's SLA policy ({ priority: hours }); null when none applies. */
-export function slaDeadline(
-  policy: Record<string, number> | null | undefined,
-  priority: string,
-  from: Date,
-): Date | null {
-  const hours = policy?.[priority];
-  return typeof hours === 'number' && hours > 0 ? new Date(from.getTime() + hours * 3_600_000) : null;
-}
-
-// ---------------------------------------------------------------------------
-// Cross-project epics (.planning/features/D4a-cross-project-epics.md)
-// ---------------------------------------------------------------------------
-
-/**
- * SQL predicate over the `epic` table: an issue of `projectId` may point at
- * this epic, for `userId`. Own epics always; another project's epics when both
- * projects share a workspace and `userId` is a member of the epic's project.
- * System actors (null) only get the project's own epics.
- */
-export function epicAvailableTo(projectId: string, userId: string | null): SQL {
-  const own = eq(epics.projectId, projectId);
-  if (!userId) return own;
-  const epicProject = alias(projects, 'epic_project');
-  const issueProject = alias(projects, 'issue_project');
-  const epicMember = alias(projectMembers, 'epic_member');
-  return or(
-    own,
-    and(
-      exists(
-        db
-          .select({ one: sql`1` })
-          .from(epicProject)
-          .innerJoin(issueProject, eq(issueProject.workspaceId, epicProject.workspaceId))
-          .where(and(eq(epicProject.id, epics.projectId), eq(issueProject.id, projectId))),
-      ),
-      exists(
-        db
-          .select({ one: sql`1` })
-          .from(epicMember)
-          .where(and(eq(epicMember.projectId, epics.projectId), eq(epicMember.userId, userId))),
-      ),
-    ),
-  )!;
-}
-
-const epicAvailableSql = (projectId: string, userId: string | null) =>
-  sql<boolean>`(${epicAvailableTo(projectId, userId)})`.mapWith(Boolean);
-
-export interface AvailableEpic extends EpicSummary {
-  projectId: string;
-  projectName: string;
-  ticketKey: string;
-  /** Owned by another project than the one asked about. */
-  external: boolean;
-}
-
-/**
- * Non-archived epics (+ milestones) that issues of `projectId` may use, as seen
- * by `userId`: the project's own first (sortOrder, name), then other workspace
- * projects' (project name, sortOrder). [] when `userId` isn't a member of
- * `projectId`. Server-only; wrap it in your own authorized server action.
- */
-export async function availableEpicsForProject(
-  projectId: string,
-  userId: string,
-): Promise<AvailableEpic[]> {
-  if (!projectId || !userId) return [];
-  const viewer = alias(projectMembers, 'viewer');
-  const where = and(
-    isNull(epics.archivedAt),
-    epicAvailableTo(projectId, userId),
-    exists(
-      db
-        .select({ one: sql`1` })
-        .from(viewer)
-        .where(and(eq(viewer.projectId, projectId), eq(viewer.userId, userId))),
-    ),
-  );
-  const [epicRows, milestoneRows] = await db.batch([
-    db
-      .select({
-        id: epics.id,
-        name: epics.name,
-        color: epics.color,
-        status: epics.status,
-        projectId: epics.projectId,
-        projectName: projects.name,
-        ticketKey: projects.ticketKey,
-      })
-      .from(epics)
-      .innerJoin(projects, eq(epics.projectId, projects.id))
-      .where(where)
-      .orderBy(asc(projects.name), asc(epics.sortOrder), asc(epics.name)),
-    db
-      .select({ id: milestones.id, name: milestones.name, epicId: milestones.epicId })
-      .from(milestones)
-      .innerJoin(epics, eq(milestones.epicId, epics.id))
-      .where(where)
-      .orderBy(asc(milestones.sortOrder), asc(milestones.name)),
-  ]);
-
-  const byId = new Map<string, AvailableEpic>(
-    epicRows.map((epic) => [
-      epic.id,
-      { ...epic, external: epic.projectId !== projectId, milestones: [] },
-    ]),
-  );
-  for (const { epicId, ...milestone } of milestoneRows) byId.get(epicId)?.milestones.push(milestone);
-  const list = [...byId.values()];
-  // Stable sort: own epics first, the query's order otherwise.
-  return list.sort((a, b) => Number(a.external) - Number(b.external));
-}
-
 async function loadContext(
   projectId: string,
   actorId: string | null,
@@ -393,17 +282,7 @@ async function loadContext(
       .from(projects)
       .where(eq(projects.id, projectId))
       .limit(1),
-    db
-      .select({
-        id: workflowStates.id,
-        name: workflowStates.name,
-        type: workflowStates.type,
-        color: workflowStates.color,
-        position: workflowStates.position,
-        description: workflowStates.description,
-      })
-      .from(workflowStates)
-      .where(eq(workflowStates.projectId, projectId)),
+    projectStatesQuery(projectId),
     db
       .select({ id: labels.id, name: labels.name, color: labels.color })
       .from(labels)
@@ -483,7 +362,7 @@ async function loadContext(
 
   const [project] = projectRows;
   if (!project) return null;
-  const key = (number: number) => `${project.ticketKey}-${number}`;
+  const key = (number: number) => formatIssueKey(project.ticketKey, number);
 
   return {
     project,
@@ -715,11 +594,6 @@ export interface CreateIssueOptions {
   id?: string;
 }
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-export const isIssueUuid = (value: unknown): value is string =>
-  typeof value === 'string' && UUID_RE.test(value);
-
 /** The issue an earlier attempt with the same client id created, or why it can't be reused. */
 async function existingCreate(
   actor: IssueActor,
@@ -739,14 +613,6 @@ async function existingCreate(
   return issue ? { ok: true, issue } : fail('This issue id is already in use.');
 }
 
-const hasPgCode = (err: unknown, code: string): boolean => {
-  for (let e: unknown = err; e && typeof e === 'object'; e = (e as { cause?: unknown }).cause) {
-    if ((e as { code?: unknown }).code === code) return true;
-  }
-  return false;
-};
-
-const isUniqueViolation = (err: unknown) => hasPgCode(err, '23505');
 /** moveIssue's guard statement divides by zero when the tree changed under it. */
 const isMoveConflict = (err: unknown) => hasPgCode(err, '22012') || hasPgCode(err, '40P01');
 
@@ -788,7 +654,7 @@ export async function createIssue(
   if (patch.addLabelIds || patch.removeLabelIds) {
     return fail('Use labelIds when creating an issue.', 'labelIds');
   }
-  if (opts?.id !== undefined && !isIssueUuid(opts.id)) return fail('Invalid issue id.');
+  if (opts?.id !== undefined && !isUuid(opts.id)) return fail('Invalid issue id.');
   const requestedId = opts?.id?.toLowerCase();
   if (requestedId) {
     const replay = await existingCreate(actor, projectId, requestedId);
@@ -899,7 +765,7 @@ export async function createIssue(
   const issue: IssueRow = {
     id,
     projectId,
-    key: `${ctx.project.ticketKey}-${bumped.number}`,
+    key: formatIssueKey(ctx.project.ticketKey, bumped.number),
     number: bumped.number,
     title: patch.title,
     description: patch.description ?? null,
@@ -1271,7 +1137,7 @@ export async function purge(actor: IssueActor, projectId: string, id: string): P
       ticketId: null,
       actorId: actor.userId,
       type: ISSUE_EVENT.purged,
-      data: { ticketId: old.id, key: `${old.key}-${old.number}`, title: old.title },
+      data: { ticketId: old.id, key: formatIssueKey(old.key, old.number), title: old.title },
     },
   ]);
   try {
@@ -1289,7 +1155,7 @@ export async function purge(actor: IssueActor, projectId: string, id: string): P
 }
 
 // ---------------------------------------------------------------------------
-// Move to another project (.planning/features/D4a-move-issues.md)
+// Move to another project
 // ---------------------------------------------------------------------------
 
 export const ISSUE_MOVED_EVENT = 'issue.moved';
@@ -1354,17 +1220,7 @@ export async function moveIssue(
         .from(projects)
         .where(eq(projects.id, toProjectId))
         .limit(1),
-      db
-        .select({
-          id: workflowStates.id,
-          name: workflowStates.name,
-          type: workflowStates.type,
-          color: workflowStates.color,
-          position: workflowStates.position,
-          description: workflowStates.description,
-        })
-        .from(workflowStates)
-        .where(eq(workflowStates.projectId, toProjectId)),
+      projectStatesQuery(toProjectId),
       db
         .select({ id: labels.id, name: labels.name, color: labels.color })
         .from(labels)

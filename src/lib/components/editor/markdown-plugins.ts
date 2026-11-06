@@ -1,4 +1,4 @@
-// Non-component parts of src/components/editor/markdown.tsx, for the
+// Non-component parts of the markdown renderer, for the
 // svelte-exmarkdown renderer (markdown.svelte): the four mdast plugins
 // (unchanged except hProperties keys, which svelte-exmarkdown spreads as-is so
 // they are written kebab-case), the shared typography classes, and
@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils';
 
 export const MENTION_PROTOCOL = 'user:';
 
-// mdast-util-to-hast's `data` fields (React got them through its module augmentation).
+// mdast-util-to-hast's `data` fields.
 type HastData = { hName?: string; hProperties?: Record<string, unknown> };
 
 function walk(node: Parent, visit: (parent: Parent, index: number) => number | void) {

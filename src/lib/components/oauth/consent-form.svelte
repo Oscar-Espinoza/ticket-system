@@ -1,4 +1,4 @@
-<!-- OAuth consent card (port of src/components/oauth/consent-form.tsx). -->
+<!-- OAuth consent card. -->
 <script module lang="ts">
   export interface ConsentApp {
     name: string;
@@ -38,7 +38,7 @@
     CardHeader,
     CardTitle,
   } from '@/lib/components/ui/card';
-  import { describeScope } from '@/lib/components/oauth/oauth-model';
+  import { describeScope } from '@/lib/oauth-model';
   import AppIcon from './app-icon.svelte';
 
   let {

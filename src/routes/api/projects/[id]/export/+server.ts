@@ -12,7 +12,7 @@ import { toCsv } from '@/lib/import/csv';
 import { PRIORITY_LABEL, STATE_TYPE_LABEL } from '@/lib/issue-model';
 import { formatEstimate } from '@/lib/estimates';
 import { getMemberProject } from '@/lib/project-access';
-import { issueQueries, mergeIssueRows } from '@/lib/tickets';
+import { issueQueries, mergeIssueRows, formatIssueKey } from '@/lib/tickets';
 
 const iso = (date: Date | null) => (date ? date.toISOString() : null);
 
@@ -66,7 +66,7 @@ export const GET: RequestHandler = async ({ url, params, locals }) => {
   const cycleName = new Map(cycleRows.map((c) => [c.id, c.name || `Cycle ${c.number}`]));
   const epicName = new Map(epicRows.map((e) => [e.id, e.name]));
   const milestoneName = new Map(milestoneRows.map((m) => [m.id, m.name]));
-  const parentKey = new Map(numberRows.map((t) => [t.id, `${member.ticketKey}-${t.number}`]));
+  const parentKey = new Map(numberRows.map((t) => [t.id, formatIssueKey(member.ticketKey, t.number)]));
   const scale = projectRows[0]?.estimateScale ?? 'none';
 
   const records = issues.map((issue) => ({
@@ -171,5 +171,4 @@ export const GET: RequestHandler = async ({ url, params, locals }) => {
   });
 };
 
-// Next answered OPTIONS automatically (204 + Allow); Kit would 405.
 export const OPTIONS = allowOptions('GET');

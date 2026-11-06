@@ -3,19 +3,20 @@
 // Every action resolves the session and the caller's project role itself —
 // the settings UI hiding controls is UX only. Owner/admin may edit details;
 // changing the key and deleting are owner-only (they break links for everyone).
-// Team structure (D4a): parent team (sub-teams) and visibility (private teams)
+// Team structure: parent team (sub-teams) and visibility (private teams)
 // are admin settings.
 
-import { headers } from '@/lib/kit/request';
-import { revalidatePath } from '@/lib/kit/request';
 import { redirect } from '@/lib/kit/request';
 import { and, eq, sql } from 'drizzle-orm';
 
-import { auth } from '@/lib/auth';
+import { authorizeProjectAction } from '@/lib/action-auth';
 import { db } from '@/lib/db';
+import { isUniqueViolation } from '@/lib/db-errors';
 import { projectMembers, projects, tickets } from '@/db/schema';
 import { isEstimateScale } from '@/lib/estimates';
-import { roleAllows, type ProjectRole } from '@/lib/roles';
+import type { ProjectRole } from '@/lib/roles';
+import { formField as field, refreshesData } from '@/lib/server/action-kit';
+import { projectKeyError, projectNameError } from '@/lib/server/project-create';
 
 export type ProjectSettingsState = {
   errors?: {
@@ -31,9 +32,6 @@ export type ProjectSettingsState = {
   success?: boolean;
 };
 
-const field = (formData: FormData, key: string) =>
-  ((formData.get(key) as string | null) ?? '').trim();
-
 type Need = 'admin' | 'owner';
 
 /** Session + role gate. Returns the role, or an error state to hand back. */
@@ -41,36 +39,10 @@ async function authorize(
   projectId: string,
   need: Need,
 ): Promise<{ userId: string; role: ProjectRole } | { error: ProjectSettingsState }> {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session?.user) return { error: { errors: { server: 'Not authenticated' } } };
-  if (!projectId) return { error: { errors: { server: 'Forbidden' } } };
-
-  const [membership] = await db
-    .select({ role: projectMembers.role })
-    .from(projectMembers)
-    .where(
-      and(eq(projectMembers.projectId, projectId), eq(projectMembers.userId, session.user.id)),
-    )
-    .limit(1);
-
-  const allowed =
-    membership &&
-    (need === 'owner' ? membership.role === 'owner' : roleAllows(membership.role, 'admin'));
-  if (!allowed) return { error: { errors: { server: 'Forbidden' } } };
-  return { userId: session.user.id, role: membership.role };
-}
-
-function isUniqueViolation(err: unknown) {
-  const code =
-    (err as { code?: string })?.code ?? (err as { cause?: { code?: string } })?.cause?.code;
-  return code === '23505';
-}
-
-function revalidateProject(projectId: string) {
-  // Names and keys show in the sidebar, breadcrumb and project list, all of
-  // which hang off the dashboard layout.
-  revalidatePath('/dashboard', 'layout');
-  revalidatePath(`/dashboard/projects/${projectId}`, 'layout');
+  const authz = await authorizeProjectAction(projectId, 'admin');
+  if (!authz.ok) return { error: { errors: { server: authz.error } } };
+  if (need === 'owner' && authz.role !== 'owner') return { error: { errors: { server: 'Forbidden' } } };
+  return { userId: authz.userId, role: authz.role };
 }
 
 export async function updateProjectDetails(
@@ -86,8 +58,8 @@ export async function updateProjectDetails(
   const estimateScale = field(formData, 'estimateScale');
 
   const errors: NonNullable<ProjectSettingsState['errors']> = {};
-  if (!name) errors.name = 'Project name is required.';
-  else if (name.length > 100) errors.name = 'Project name must be 100 characters or fewer.';
+  const nameError = projectNameError(name);
+  if (nameError) errors.name = nameError;
   if (description.length > 2000) {
     errors.description = 'Description must be 2000 characters or fewer.';
   }
@@ -99,7 +71,7 @@ export async function updateProjectDetails(
     .set({ name, description: description || null, estimateScale, updatedAt: new Date() })
     .where(eq(projects.id, projectId));
 
-  revalidateProject(projectId);
+  refreshesData();
   return { success: true };
 }
 
@@ -112,9 +84,8 @@ export async function changeProjectKey(
   if ('error' in gate) return gate.error;
 
   const ticketKey = field(formData, 'ticketKey');
-  if (!/^[A-Z]{2,6}$/.test(ticketKey)) {
-    return { errors: { ticketKey: 'Key must be 2–6 uppercase letters.' } };
-  }
+  const keyError = projectKeyError(ticketKey);
+  if (keyError) return { errors: { ticketKey: keyError } };
 
   // Issue identifiers are derived (`${ticketKey}-${ticketNumber}`), so this one
   // write renames every issue in the project.
@@ -130,7 +101,7 @@ export async function changeProjectKey(
     throw err;
   }
 
-  revalidateProject(projectId);
+  refreshesData();
   return { success: true };
 }
 
@@ -161,7 +132,7 @@ export async function deleteProject(
     db.delete(projects).where(eq(projects.id, projectId)),
   ]);
 
-  revalidatePath('/dashboard', 'layout');
+  refreshesData();
   redirect('/dashboard');
 }
 
@@ -169,7 +140,7 @@ export async function deleteProject(
 // Team structure: parent team + visibility
 // ---------------------------------------------------------------------------
 
-// Not exported: 'use server' files may only export async functions.
+// Not exported: every export of an actions module becomes a remote command.
 const PROJECT_VISIBILITIES = ['private', 'workspace'] as const;
 export type ProjectVisibility = (typeof PROJECT_VISIBILITIES)[number];
 
@@ -236,7 +207,7 @@ export async function updateProjectParent(
     .update(projects)
     .set({ parentId, updatedAt: new Date() })
     .where(eq(projects.id, projectId));
-  revalidateProject(projectId);
+  refreshesData();
   return { success: true };
 }
 
@@ -257,6 +228,6 @@ export async function updateProjectVisibility(
     .update(projects)
     .set({ visibility, updatedAt: new Date() })
     .where(eq(projects.id, projectId));
-  revalidateProject(projectId);
+  refreshesData();
   return { success: true };
 }

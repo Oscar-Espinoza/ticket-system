@@ -4,6 +4,7 @@
   import LoaderCircle from '@lucide/svelte/icons/loader-circle';
   import { toast } from 'svelte-sonner';
 
+  import { actionErrorText } from '@/lib/action-errors';
   import { completeCycleAction } from '@/lib/actions/cycles';
   import { Button } from '@/lib/components/ui/button';
   import {
@@ -16,7 +17,7 @@
   } from '@/lib/components/ui/dialog';
   import { Label } from '@/lib/components/ui/label';
   import { RadioGroup, RadioGroupItem } from '@/lib/components/ui/radio-group';
-  import { cycleName } from '@/lib/components/cycles/cycle-utils';
+  import { cycleName } from '@/lib/cycle-utils';
   import type { EditableCycle } from './cycle-form-dialog.svelte';
 
   let {
@@ -42,9 +43,6 @@
     onOpenChange?.(next);
   };
 
-  function errorText(error: string) {
-    return error === 'Forbidden' ? "You don't have permission to do that." : error;
-  }
 
   let pending = $state(false);
   // Seeded once; the caller remounts this dialog per open ({#key}) to reset it.
@@ -59,7 +57,7 @@
         rollover: choice === 'next' && !!nextCycleName,
       });
       if (!result.ok) {
-        toast.error(errorText(result.error));
+        toast.error(actionErrorText(result.error, "You don't have permission to do that."));
         return;
       }
       toast.success(result.message ?? `${cycleName(cycle)} completed`);

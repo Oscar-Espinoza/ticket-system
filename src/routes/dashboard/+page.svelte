@@ -1,4 +1,3 @@
-<!-- Port of src/app/dashboard/page.tsx (data from +page.server.ts). -->
 <script lang="ts">
   import CheckCircleIcon from '@lucide/svelte/icons/circle-check-big';
   import CircleOffIcon from '@lucide/svelte/icons/circle-off';

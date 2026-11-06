@@ -1,7 +1,6 @@
 <!--
   Project-level navigation, rendered by the project layout above every page.
   Links styled as a line tab bar (they're routes, not in-page panels).
-  Port of src/components/project/project-tabs.tsx.
 -->
 <script module lang="ts">
   import ArchiveIcon from '@lucide/svelte/icons/archive';

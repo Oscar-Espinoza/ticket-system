@@ -21,7 +21,7 @@
     SelectValue,
   } from '@/lib/components/ui/select';
   import { Textarea } from '@/lib/components/ui/textarea';
-  import type { TemplateSourceProject, TemplateWorkspaceOption } from './template-dialog.svelte';
+  import type { TemplateSourceProject, TemplateWorkspaceOption } from './template-types';
   import { invalidateProjectTemplates } from './template-select.svelte.ts';
 
   const PRIVATE = 'private';
@@ -69,7 +69,7 @@
   let workspaceId = $state(initial.workspaceId);
   let errors = $state<Errors>({});
   let pending = $state(false);
-  // React autoFocus focuses on mount; Svelte's autofocus only does so when nothing has focus.
+  // Svelte's autofocus only works when nothing has focus; focus on mount instead.
   const focusOnMount = (node: HTMLElement) => node.focus();
 
   const projectItems = untrack(() => projects).map((p) => ({ value: p.id, label: `${p.ticketKey} ${p.name}` }));

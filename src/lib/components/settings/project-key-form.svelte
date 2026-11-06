@@ -8,7 +8,7 @@
   import { Input } from '@/lib/components/ui/input';
   import { createActionState, useResultToast } from './action-state.svelte';
   import Field from './field.svelte';
-  import type { ProjectGeneralFormProps } from './project-general-form.svelte';
+  import type { ProjectGeneralFormProps } from './project-general-types';
 
   let { projectId, ticketKey, isOwner }: ProjectGeneralFormProps = $props();
 

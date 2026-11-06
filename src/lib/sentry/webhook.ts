@@ -15,25 +15,24 @@
 import { and, eq, isNull, sql } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
-import { attachments, projects, tickets, workflowStates } from '@/db/schema';
-import { emitIssueEvent } from '@/lib/events';
+import { attachments, projects, tickets } from '@/db/schema';
+import { projectStatesQuery } from '@/lib/workflow-server';
+import { emitIssueEvent, ISSUE_EVENT } from '@/lib/events';
 import { createIssue, DESCRIPTION_MAX, SYSTEM_ACTOR, TITLE_MAX } from '@/lib/issue-service';
 import { defaultNewIssueState, firstStateOfType } from '@/lib/workflow';
-import { hmacHex, safeEqual } from '@/lib/vcs/secrets';
+import { verifyHmac } from '@/lib/server/secrets';
 import type { StateType } from '@/lib/issue-model';
 import { guardedRequest } from '@/lib/integrations/url-guard';
-
-export const SENTRY_EVENT = { resolved: 'sentry.resolved' } as const;
+import { WEBHOOK_TIMEOUT_MS } from '@/lib/integrations/timeouts';
+import { clippedText } from '@/lib/text';
+import { formatIssueKey } from '@/lib/tickets';
 
 /**
  * Sentry signs `JSON.stringify(body)` — normally the raw body byte for byte;
  * the re-serialized form covers a proxy that reformatted it.
  */
 export function verifySentrySignature(raw: string, payload: unknown, signature: string | null, secret: string) {
-  if (!signature) return false;
-  return (
-    safeEqual(signature, hmacHex(raw, secret)) || safeEqual(signature, hmacHex(JSON.stringify(payload), secret))
-  );
+  return verifyHmac(signature, raw, secret) || verifyHmac(signature, JSON.stringify(payload), secret);
 }
 
 interface SentryIssueInfo {
@@ -49,9 +48,6 @@ interface SentryIssueInfo {
   rule: string | null;
 }
 
-const text = (value: unknown, max = 500): string | null =>
-  typeof value === 'string' && value.trim() ? value.trim().slice(0, max) : null;
-
 /** `…/issues/<id>/events/<event>/` → `…/issues/<id>/`. */
 function issueUrlFrom(url: string | null, id: string): string | null {
   if (!url || !/^https:\/\//.test(url)) return null;
@@ -63,21 +59,21 @@ async function fromEventAlert(data: Record<string, unknown>, token: string | nul
   const event = (data.event ?? {}) as Record<string, unknown>;
   const id = String(event.issue_id ?? '');
   if (!/^\d+$/.test(id)) return null;
-  const url = issueUrlFrom(text(event.web_url, 1000), id);
+  const url = issueUrlFrom(clippedText(event.web_url, 1000), id);
   if (!url) return null;
-  const details = token ? await fetchIssue(text(event.issue_url, 1000), id, token) : null;
-  if (details) return { ...details, rule: text(data.triggered_rule, 200) };
+  const details = token ? await fetchIssue(clippedText(event.issue_url, 1000), id, token) : null;
+  if (details) return { ...details, rule: clippedText(data.triggered_rule, 200) };
   return {
     id,
     shortId: null,
-    title: text(event.title, TITLE_MAX) ?? 'Sentry issue',
-    culprit: text(event.culprit),
+    title: clippedText(event.title, TITLE_MAX) ?? 'Sentry issue',
+    culprit: clippedText(event.culprit, 500),
     url,
-    level: text(event.level, 20),
+    level: clippedText(event.level, 20),
     count: null,
     userCount: null,
     projectName: null,
-    rule: text(data.triggered_rule, 200),
+    rule: clippedText(data.triggered_rule, 200),
   };
 }
 
@@ -85,19 +81,19 @@ function fromIssue(data: Record<string, unknown>): SentryIssueInfo | null {
   const issue = (data.issue ?? {}) as Record<string, unknown>;
   const id = String(issue.id ?? '');
   if (!/^\d+$/.test(id)) return null;
-  const url = issueUrlFrom(text(issue.web_url, 1000), id) ?? issueUrlFrom(text(issue.permalink, 1000), id);
+  const url = issueUrlFrom(clippedText(issue.web_url, 1000), id) ?? issueUrlFrom(clippedText(issue.permalink, 1000), id);
   if (!url) return null;
   const project = (issue.project ?? {}) as Record<string, unknown>;
   return {
     id,
-    shortId: text(issue.shortId, 100),
-    title: text(issue.title, TITLE_MAX) ?? 'Sentry issue',
-    culprit: text(issue.culprit),
+    shortId: clippedText(issue.shortId, 100),
+    title: clippedText(issue.title, TITLE_MAX) ?? 'Sentry issue',
+    culprit: clippedText(issue.culprit, 500),
     url,
-    level: text(issue.level, 20),
+    level: clippedText(issue.level, 20),
     count: issue.count == null ? null : String(issue.count).slice(0, 20),
     userCount: typeof issue.userCount === 'number' ? issue.userCount : null,
-    projectName: text(project.name ?? project.slug, 100),
+    projectName: clippedText(project.name ?? project.slug, 100),
     rule: null,
   };
 }
@@ -109,7 +105,7 @@ async function fetchIssue(apiUrl: string | null, id: string, token: string): Pro
     // The host comes from the payload (self-hosted Sentry): same SSRF guard as webhooks.
     const response = await guardedRequest(apiUrl, {
       headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
-      timeoutMs: 5_000,
+      timeoutMs: WEBHOOK_TIMEOUT_MS,
       maxBytes: 2 * 1024 * 1024,
     });
     if (response.status < 200 || response.status >= 300) return null;
@@ -156,17 +152,7 @@ async function openTriageIssue(projectId: string, info: SentryIssueInfo) {
 
   const [[project], states] = await Promise.all([
     db.select({ triageEnabled: projects.triageEnabled }).from(projects).where(eq(projects.id, projectId)).limit(1),
-    db
-      .select({
-        id: workflowStates.id,
-        name: workflowStates.name,
-        type: workflowStates.type,
-        color: workflowStates.color,
-        position: workflowStates.position,
-        description: workflowStates.description,
-      })
-      .from(workflowStates)
-      .where(eq(workflowStates.projectId, projectId)),
+    projectStatesQuery(projectId),
   ]);
   if (!project) return;
   const state =
@@ -206,9 +192,9 @@ async function recordResolved(projectId: string, ticketKey: string, info: Sentry
       projectId,
       ticketId: issue.id,
       actorId: null,
-      type: SENTRY_EVENT.resolved,
+      type: ISSUE_EVENT.sentryResolved,
       data: {
-        key: `${ticketKey}-${issue.number}`,
+        key: formatIssueKey(ticketKey, issue.number),
         title: issue.title,
         actorName: 'Sentry',
         summary: `resolved the Sentry issue ${name}`,

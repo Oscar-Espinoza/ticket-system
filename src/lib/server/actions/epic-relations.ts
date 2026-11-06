@@ -4,32 +4,20 @@
 // the swapped `blocks` row. One relation per pair, no self links, and no
 // cycles among `blocks` edges.
 
-import { revalidatePath } from '@/lib/kit/request';
 import { and, eq, inArray } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
 import { db } from '@/lib/db';
 import { epicRelations, epics } from '@/db/schema';
 import { authorizeProjectAction } from '@/lib/action-auth';
+import { isUniqueViolation } from '@/lib/db-errors';
 import { emitIssueEvent } from '@/lib/events';
-import { isEpicRelationKind, type EpicRelationKind } from '@/lib/components/epics/epic-model';
+import { fail, refreshesData, type ActionResult } from '@/lib/server/action-kit';
+import { isEpicRelationKind, type EpicRelationKind } from '@/lib/epic-model';
 
-export type EpicRelationActionResult =
-  | { ok: true; id?: string }
-  | { ok: false; error: string };
+export type EpicRelationActionResult = ActionResult<{ id?: string }>;
 
-const fail = (error: string): EpicRelationActionResult => ({ ok: false, error });
 const relatedEpics = alias(epics, 'related_epic');
-
-function revalidate(projectId: string) {
-  revalidatePath(`/dashboard/projects/${projectId}`, 'layout');
-}
-
-function isUniqueViolation(err: unknown) {
-  const code =
-    (err as { code?: string })?.code ?? (err as { cause?: { code?: string } })?.cause?.code;
-  return code === '23505';
-}
 
 /** True when `to` is reachable from `from` over `blocks` edges. */
 function reaches(edges: { from: string; to: string }[], from: string, to: string) {
@@ -126,7 +114,7 @@ export async function addEpicRelation(input: {
       },
     },
   ]);
-  revalidate(projectId);
+  refreshesData();
   return { ok: true, id };
 }
 
@@ -183,6 +171,6 @@ export async function removeEpicRelation(input: {
       },
     },
   ]);
-  revalidate(input.projectId);
+  refreshesData();
   return { ok: true };
 }

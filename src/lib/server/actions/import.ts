@@ -5,14 +5,18 @@
 // so Slack, outgoing webhooks and notifications skip them (no flood per row).
 // Asana / Shortcut tokens are passed per call and never stored.
 
-import { revalidatePath } from '@/lib/kit/request';
 import { and, eq, or, sql } from 'drizzle-orm';
-import { Octokit } from '@octokit/rest';
+import type { Octokit } from '@octokit/rest';
 
 import { db } from '@/lib/db';
-import { labels, projectMembers, projects, tickets, users, workflowStates } from '@/db/schema';
+import { labels, projectMembers, projects, tickets, users } from '@/db/schema';
+import { projectStatesQuery } from '@/lib/workflow-server';
 import { authorizeProjectAction } from '@/lib/action-auth';
+import { isHexColor } from '@/lib/colors';
+import { LABEL_NAME_MAX } from '@/lib/label-model';
+import { fail, refreshesData, type Fail } from '@/lib/server/action-kit';
 import { getGitHubToken } from '@/lib/github-token';
+import { octokitFor } from '@/lib/github/client';
 import { isDateString } from '@/lib/dates';
 import { estimateOptions } from '@/lib/estimates';
 import { isPriority, type StateType, type WorkflowState } from '@/lib/issue-model';
@@ -33,33 +37,23 @@ import { fetchAsanaTasks, listAsanaProjects, listAsanaWorkspaces, type AsanaOpti
 import { describeImportError, type ExternalFetchResult } from '@/lib/import/external';
 import { fetchShortcutStories, listShortcutSources, type ShortcutOption } from '@/lib/import/shortcut';
 import { VcsHttpError } from '@/lib/vcs/http';
+import { ensureLabels } from '@/lib/labels';
+import { clippedText } from '@/lib/text';
 
-type Fail = { ok: false; error: string };
-
-const LABEL_NAME_MAX = 40;
-const COLOR_RE = /^#[0-9a-f]{6}$/;
-const LABEL_COLORS = ['#5e6ad2', '#26b5ce', '#4cb782', '#f2c94c', '#f2994a', '#eb5757', '#bb87fc', '#95a2b3'];
 const REPO_RE = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
-
-// ---------------------------------------------------------------------------
-// Untrusted input → ImportRecord
-// ---------------------------------------------------------------------------
-
-const str = (value: unknown, max: number): string | null =>
-  typeof value === 'string' && value.trim() ? value.trim().slice(0, max) : null;
 
 function readSource(value: unknown): ImportSource | null {
   if (!value || typeof value !== 'object') return null;
   const raw = value as Record<string, unknown>;
   const kind = raw.kind;
-  const id = str(raw.id, 200);
+  const id = clippedText(raw.id, 200);
   if (!isImportSourceKind(kind) || !id) return null;
-  const url = str(raw.url, 500);
+  const url = clippedText(raw.url, 500);
   return {
     kind,
     id,
     url: url && /^https?:\/\//.test(url) ? url : null,
-    createdAt: str(raw.createdAt, 40),
+    createdAt: clippedText(raw.createdAt, 40),
   };
 }
 
@@ -67,10 +61,10 @@ function readLabels(value: unknown): ImportLabel[] {
   if (!Array.isArray(value)) return [];
   const out = new Map<string, ImportLabel>();
   for (const item of value.slice(0, 50)) {
-    const name = str((item as ImportLabel)?.name, LABEL_NAME_MAX);
+    const name = clippedText((item as ImportLabel)?.name, LABEL_NAME_MAX);
     if (!name) continue;
-    const color = str((item as ImportLabel)?.color, 7)?.toLowerCase();
-    out.set(name.toLowerCase(), { name, color: color && COLOR_RE.test(color) ? color : null });
+    const color = clippedText((item as ImportLabel)?.color, 7)?.toLowerCase();
+    out.set(name.toLowerCase(), { name, color: isHexColor(color) ? color : null });
   }
   return [...out.values()];
 }
@@ -78,15 +72,15 @@ function readLabels(value: unknown): ImportLabel[] {
 function readRecord(value: unknown): ImportRecord | null {
   if (!value || typeof value !== 'object') return null;
   const raw = value as Record<string, unknown>;
-  const title = str(raw.title, TITLE_MAX);
+  const title = clippedText(raw.title, TITLE_MAX);
   if (!title) return null;
   return {
     title,
-    description: str(raw.description, DESCRIPTION_MAX),
-    state: str(raw.state, 100),
+    description: clippedText(raw.description, DESCRIPTION_MAX),
+    state: clippedText(raw.state, 100),
     closed: raw.closed === true,
     priority: isPriority(raw.priority) ? raw.priority : null,
-    assignee: str(raw.assignee, 320),
+    assignee: clippedText(raw.assignee, 320),
     labels: readLabels(raw.labels),
     estimate: typeof raw.estimate === 'number' && Number.isFinite(raw.estimate) ? raw.estimate : null,
     dueDate: isDateString(raw.dueDate) ? raw.dueDate : null,
@@ -94,10 +88,6 @@ function readRecord(value: unknown): ImportRecord | null {
     parent: readSource(raw.parent),
   };
 }
-
-// ---------------------------------------------------------------------------
-// Resolution against the project
-// ---------------------------------------------------------------------------
 
 const key = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, '');
 
@@ -163,10 +153,6 @@ function withFooter(description: string | null, source: ImportSource | null): st
   return body ? `${body}\n\n---\n${footer}` : footer;
 }
 
-// ---------------------------------------------------------------------------
-// importIssues
-// ---------------------------------------------------------------------------
-
 export async function importIssues(input: {
   projectId: string;
   records: unknown[];
@@ -175,7 +161,7 @@ export async function importIssues(input: {
   if (!authz.ok) return authz;
   const { projectId } = input;
   if (!Array.isArray(input.records) || input.records.length > IMPORT_CHUNK) {
-    return { ok: false, error: `Send at most ${IMPORT_CHUNK} issues at a time.` };
+    return fail(`Send at most ${IMPORT_CHUNK} issues at a time.`);
   }
   const records = input.records.map(readRecord);
 
@@ -185,17 +171,7 @@ export async function importIssues(input: {
       .from(projects)
       .where(eq(projects.id, projectId))
       .limit(1),
-    db
-      .select({
-        id: workflowStates.id,
-        name: workflowStates.name,
-        type: workflowStates.type,
-        color: workflowStates.color,
-        position: workflowStates.position,
-        description: workflowStates.description,
-      })
-      .from(workflowStates)
-      .where(eq(workflowStates.projectId, projectId)),
+    projectStatesQuery(projectId),
     db
       .select({ id: labels.id, name: labels.name })
       .from(labels)
@@ -207,38 +183,14 @@ export async function importIssues(input: {
       .where(eq(projectMembers.projectId, projectId)),
   ]);
   const project = projectRows[0];
-  if (!project) return { ok: false, error: 'Project not found.' };
+  if (!project) return fail('Project not found.');
 
   // Labels: reuse by case-insensitive name, create the missing ones in one insert.
-  const labelIds = new Map(labelRows.map((l) => [l.name.toLowerCase(), l.id]));
-  const missing = new Map<string, ImportLabel>();
-  for (const record of records) {
-    for (const label of record?.labels ?? []) {
-      const k = label.name.toLowerCase();
-      if (!labelIds.has(k) && !missing.has(k)) missing.set(k, label);
-    }
-  }
-  if (missing.size) {
-    const now = new Date();
-    await db
-      .insert(labels)
-      .values(
-        [...missing.values()].map((label, i) => ({
-          id: crypto.randomUUID(),
-          projectId,
-          name: label.name,
-          color: label.color ?? LABEL_COLORS[(labelIds.size + i) % LABEL_COLORS.length],
-          createdAt: now,
-        })),
-      )
-      .onConflictDoNothing();
-    // Re-read so labels a concurrent writer just created resolve too.
-    const fresh = await db
-      .select({ id: labels.id, name: labels.name })
-      .from(labels)
-      .where(eq(labels.projectId, projectId));
-    for (const l of fresh) labelIds.set(l.name.toLowerCase(), l.id);
-  }
+  const { ids: labelIds, created: labelsCreated } = await ensureLabels(
+    projectId,
+    labelRows,
+    records.flatMap((record) => record?.labels ?? []),
+  );
 
   // Duplicates: the source footer is the marker (trash included — restore instead).
   // Parent markers resolve sub-issues to issues imported in earlier chunks.
@@ -319,15 +271,11 @@ export async function importIssues(input: {
     }
   }
 
-  if (result.created || missing.size) {
-    revalidatePath(`/dashboard/projects/${projectId}`, 'layout');
+  if (result.created || labelsCreated) {
+    refreshesData();
   }
   return { ok: true, ...result };
 }
-
-// ---------------------------------------------------------------------------
-// GitHub Issues
-// ---------------------------------------------------------------------------
 
 type GitHubFail = Fail & { reason?: 'no-token' };
 
@@ -338,21 +286,18 @@ async function githubClient(projectId: unknown): Promise<{ ok: true; octokit: Oc
   if (!token) {
     return { ok: false, reason: 'no-token', error: 'Connect your GitHub account first.' };
   }
-  return { ok: true, octokit: new Octokit({ auth: token }) };
+  return { ok: true, octokit: octokitFor(token) };
 }
 
 function githubError(err: unknown): Fail {
   const status = (err as { status?: number })?.status;
   if (status === 404) {
-    return {
-      ok: false,
-      error: 'Repository not found. Check the name, and that your GitHub login grants the repo scope.',
-    };
+    return fail('Repository not found. Check the name, and that your GitHub login grants the repo scope.');
   }
-  if (status === 401) return { ok: false, error: 'GitHub rejected your token. Reconnect GitHub.' };
-  if (status === 403) return { ok: false, error: 'GitHub refused the request (rate limit or access).' };
+  if (status === 401) return fail('GitHub rejected your token. Reconnect GitHub.');
+  if (status === 403) return fail('GitHub refused the request (rate limit or access).');
   console.error('[import] github failed', err);
-  return { ok: false, error: 'Could not reach GitHub.' };
+  return fail('Could not reach GitHub.');
 }
 
 export async function listGitHubRepos(
@@ -394,7 +339,7 @@ export async function fetchGitHubIssues(input: {
   includeClosed: boolean;
 }): Promise<GitHubFetchResult | GitHubFail> {
   const repo = typeof input?.repo === 'string' ? input.repo.trim() : '';
-  if (!REPO_RE.test(repo)) return { ok: false, error: 'Use the owner/name form, e.g. vercel/next.js.' };
+  if (!REPO_RE.test(repo)) return fail('Use the owner/name form, e.g. vercel/next.js.');
   const client = await githubClient(input.projectId);
   if (!client.ok) return client;
   const [owner, name] = repo.split('/');
@@ -448,10 +393,6 @@ export async function fetchGitHubIssues(input: {
   return { ok: true, records, open: records.length - closed, closed, truncated };
 }
 
-// ---------------------------------------------------------------------------
-// Asana / Shortcut (token per call, never stored)
-// ---------------------------------------------------------------------------
-
 type ExternalFail = Fail;
 
 const TOKEN_MAX = 500;
@@ -463,10 +404,10 @@ function readToken(value: unknown): string | null {
 function externalError(provider: string, err: unknown): ExternalFail {
   if (err instanceof VcsHttpError) {
     if (err.status >= 500 || err.status === 0) console.error(`[import] ${provider} failed`, err);
-    return { ok: false, error: describeImportError(provider, err.status, err.message) };
+    return fail(describeImportError(provider, err.status, err.message));
   }
   console.error(`[import] ${provider} failed`, err);
-  return { ok: false, error: `Could not reach ${provider}.` };
+  return fail(`Could not reach ${provider}.`);
 }
 
 /** Write access to the project plus a token; the token only authenticates upstream. */
@@ -474,7 +415,7 @@ async function external(projectId: unknown, token: unknown): Promise<{ ok: true;
   const authz = await authorizeProjectAction(projectId, 'write');
   if (!authz.ok) return authz;
   const value = readToken(token);
-  if (!value) return { ok: false, error: 'Enter a personal access token.' };
+  if (!value) return fail('Enter a personal access token.');
   return { ok: true, token: value };
 }
 
@@ -501,7 +442,7 @@ export async function listAsanaProjectsAction(input: {
   const auth = await external(input?.projectId, input?.token);
   if (!auth.ok) return auth;
   if (typeof input.workspace !== 'string' || !GID_RE.test(input.workspace)) {
-    return { ok: false, error: 'Pick a workspace.' };
+    return fail('Pick a workspace.');
   }
   try {
     return { ok: true, projects: await listAsanaProjects(auth.token, input.workspace) };
@@ -519,7 +460,7 @@ export async function fetchAsanaTasksAction(input: {
   const auth = await external(input?.projectId, input?.token);
   if (!auth.ok) return auth;
   if (typeof input.project !== 'string' || !GID_RE.test(input.project)) {
-    return { ok: false, error: 'Pick a project.' };
+    return fail('Pick a project.');
   }
   try {
     return { ok: true, ...(await fetchAsanaTasks(auth.token, input.project, input.includeCompleted === true)) };
@@ -556,7 +497,7 @@ export async function fetchShortcutStoriesAction(input: {
     !Number.isSafeInteger(source.id) ||
     source.id <= 0
   ) {
-    return { ok: false, error: 'Pick a workflow or project.' };
+    return fail('Pick a workflow or project.');
   }
   try {
     return {

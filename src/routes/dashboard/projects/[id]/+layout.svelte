@@ -1,5 +1,5 @@
 <!--
-  Project frame (port of src/app/dashboard/projects/[id]/layout.tsx): project
+  Project frame: project
   data + display options for every page below, live updates, the header
   (name, key chip, favorite star) and the project tabs. Data and the
   membership check come from +layout.server.ts.
@@ -26,7 +26,7 @@
   <title>{project.name} · Ticket System</title>
 </svelte:head>
 
-<!-- Next remounted this layout per project; keep that (state, providers, star). -->
+<!-- Remount per project (state, providers, star). -->
 {#key project.id}
   <ProjectDataProvider value={data.projectData}>
     <DisplayOptionsProvider>

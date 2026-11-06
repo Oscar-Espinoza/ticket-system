@@ -1,6 +1,5 @@
 <!--
   A row of label chips: at most `max`, then "+N" (title lists the rest).
-  Port of LabelChips from src/components/issues/issue-properties.tsx.
 -->
 <script lang="ts">
   import { LabelChip } from '@/lib/components/ui-icons';

@@ -27,7 +27,7 @@
   import { Button } from '@/lib/components/ui/button';
   import GithubMark from './github-mark.svelte';
   import RepoPicker from './repo-picker.svelte';
-  import type { GithubSettingsProps } from './github-settings.svelte';
+  import type { GithubSettingsProps } from './github-types';
   import { useWebhookHealth } from './use-webhook-health.svelte';
 
   let {

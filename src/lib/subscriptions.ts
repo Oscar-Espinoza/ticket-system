@@ -31,14 +31,6 @@ export async function unsubscribe(ticketId: string, userId: string) {
     .where(and(eq(issueSubscribers.ticketId, ticketId), eq(issueSubscribers.userId, userId)));
 }
 
-export async function getSubscriberIds(ticketId: string): Promise<string[]> {
-  const rows = await db
-    .select({ userId: issueSubscribers.userId })
-    .from(issueSubscribers)
-    .where(eq(issueSubscribers.ticketId, ticketId));
-  return rows.map((row) => row.userId);
-}
-
 /** Subscriber ids for many tickets at once (notification fan-out). */
 export async function getSubscriberIdsByTicket(
   ticketIds: string[],
@@ -55,13 +47,4 @@ export async function getSubscriberIdsByTicket(
     byTicket.set(row.ticketId, list);
   }
   return byTicket;
-}
-
-export async function isSubscribed(ticketId: string, userId: string): Promise<boolean> {
-  const [row] = await db
-    .select({ userId: issueSubscribers.userId })
-    .from(issueSubscribers)
-    .where(and(eq(issueSubscribers.ticketId, ticketId), eq(issueSubscribers.userId, userId)))
-    .limit(1);
-  return row != null;
 }

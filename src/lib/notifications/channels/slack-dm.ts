@@ -1,4 +1,4 @@
-// Slack DM channel (D7): users who linked their Slack account (and left DM
+// Slack DM channel: users who linked their Slack account (and left DM
 // notifications on) get their new inbox rows as ONE compact bot DM per
 // workspace per batch. Opens the IM with conversations.open, then
 // chat.postMessage. Sequential per workspace; a rate limit (429) skips the rest
@@ -7,32 +7,29 @@
 import { and, eq, inArray } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
-import { slackInstallations, slackUserLinks, users } from '@/db/schema';
+import { slackInstallations, slackUserLinks } from '@/db/schema';
 import { appUrl } from '@/lib/integrations/app-url';
-import { slackEscape } from '@/lib/integrations/slack';
 import { describeNotification, notificationData, notificationPath } from '@/lib/notifications/types';
+import { decryptToken } from '@/lib/server/crypto';
 import { slackApi } from '@/lib/slack/api';
 import { slackConfig } from '@/lib/slack/config';
-import { decryptToken } from '@/lib/slack/installations';
+import { slackEscape } from '@/lib/slack/format';
 
-import type { ChannelNotification } from './index';
+import type { ActorNames, ChannelNotification } from './index';
 
 const MAX_LINES = 10;
 
-export async function deliverSlackDm(rows: ChannelNotification[]): Promise<void> {
+/** `rows` are due now (the entry point drops snoozed ones). */
+export async function deliverSlackDm(rows: ChannelNotification[], actorNames: ActorNames): Promise<void> {
   try {
     if (rows.length === 0 || !slackConfig()) return;
-    await deliver(rows);
+    await deliver(rows, actorNames);
   } catch (err) {
     console.error('[slack-dm] delivery failed', err);
   }
 }
 
-async function deliver(all: ChannelNotification[]) {
-  // Snoozed / scheduled rows (reminders) aren't due yet.
-  const now = Date.now();
-  const rows = all.filter((row) => !row.snoozedUntil || new Date(row.snoozedUntil).getTime() <= now);
-  if (rows.length === 0) return;
+async function deliver(rows: ChannelNotification[], loadActorNames: ActorNames) {
   const userIds = [...new Set(rows.map((row) => row.userId))];
   const links = await db
     .select({
@@ -47,17 +44,7 @@ async function deliver(all: ChannelNotification[]) {
   if (links.length === 0) return;
 
   const linkedIds = new Set(links.map((link) => link.userId));
-  const actorIds = [
-    ...new Set(
-      rows
-        .filter((row) => linkedIds.has(row.userId) && row.actorId)
-        .map((row) => row.actorId as string),
-    ),
-  ];
-  const actors = actorIds.length
-    ? await db.select({ id: users.id, name: users.name }).from(users).where(inArray(users.id, actorIds))
-    : [];
-  const actorName = new Map(actors.map((actor) => [actor.id, actor.name]));
+  const actorName = await loadActorNames();
 
   const rowsByUser = new Map<string, ChannelNotification[]>();
   for (const row of rows) {

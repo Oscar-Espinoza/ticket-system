@@ -1,7 +1,5 @@
 <!--
-  Project list for the authenticated user (port of the ProjectList server
-  component in src/components/project-list.tsx; its query is
-  project-list.server.ts → getProjectsForUser, run by the dashboard page load).
+  Project list for the authenticated user.
 
   Renders inside the dashboard content seam (no full-page wrapper).
   Shows: section header + "New project" CTA, then dense project rows or an

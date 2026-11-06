@@ -1,5 +1,5 @@
 <!--
-  Project member roster (settings › Members). Port of src/components/member-list.tsx.
+  Project member roster (settings › Members).
   Each row (member-list-row.svelte) links to the member's profile and, when the
   viewer's role allows it (role-rules.ts), offers a role select, "Transfer
   ownership" (owner only) and "Remove". The server actions enforce the same
@@ -8,27 +8,12 @@
 <script module lang="ts">
   import type { ProjectRole } from '@/lib/roles';
 
-  export type MemberListMember = {
-    /** project_member row id. */
-    id: string;
-    userId: string;
-    name: string;
-    email?: string | null;
-    image?: string | null;
-    role: ProjectRole;
-  };
-
-  export type MemberListProps = {
-    members: MemberListMember[];
-    currentUserId: string;
-    projectId: string;
-  };
-
   const ROLE_ORDER: Record<ProjectRole, number> = { owner: 0, admin: 1, member: 2, guest: 3 };
 </script>
 
 <script lang="ts">
   import MemberRow from './member-list-row.svelte';
+  import type { MemberListProps } from './member-list-types';
 
   let { members, currentUserId, projectId }: MemberListProps = $props();
 

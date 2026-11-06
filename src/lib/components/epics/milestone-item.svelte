@@ -1,4 +1,4 @@
-<!-- One milestone row (milestones-section.tsx MilestoneItem). -->
+<!-- One milestone row. -->
 <script lang="ts">
   import ArrowDownIcon from '@lucide/svelte/icons/arrow-down';
   import ArrowUpIcon from '@lucide/svelte/icons/arrow-up';
@@ -17,7 +17,7 @@
   import { Input } from '@/lib/components/ui/input';
   import { formatDueDate } from '@/lib/dates';
   import { cn } from '@/lib/utils';
-  import { progressPercent, type MilestoneRow } from '@/lib/components/epics/epic-model';
+  import { progressPercent, type MilestoneRow } from '@/lib/epic-model';
   import DatePicker from './date-picker.svelte';
   import EpicProgress from './epic-progress.svelte';
   import MilestoneGlyph from './milestone-glyph.svelte';
@@ -57,7 +57,7 @@
   };
 </script>
 
-<!-- focusable row: Alt+↑/↓, Enter, as in React -->
+<!-- focusable row: Alt+↑/↓, Enter -->
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
 <div
@@ -88,7 +88,7 @@
   <MilestoneGlyph {done} {color} />
   <div class="min-w-0 flex-1">
     {#if editing}
-      <!-- React autoFocus: always focus on mount (Svelte's `autofocus` only does when
+      <!-- Always focus on mount (Svelte's `autofocus` only does when
            nothing else has focus, and the row keeps it after Enter). -->
       <Input
         {@attach (node: HTMLElement) => node.focus()}

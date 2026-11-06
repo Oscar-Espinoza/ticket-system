@@ -3,7 +3,7 @@
 // open, or when an issue already points at an epic that isn't local — and
 // refetched on the next open once it's a minute old.
 //
-// Svelte port of src/components/epics/foreign-epics-store.ts:
+// Usage:
 //   const foreign = useForeignEpics(() => project.id, () => pickerOpen || needsForeign);
 //   foreign.current   ForeignEpicOption[] | undefined (undefined until first loaded,
 //                     while `enabled` is false and nothing is cached, and during SSR)
@@ -14,7 +14,7 @@ import { browser } from '$app/env';
 import { createSubscriber } from 'svelte/reactivity';
 
 import { listAvailableEpics } from '@/lib/actions/epics';
-import type { ForeignEpicOption } from '@/lib/components/epics/epic-model';
+import type { ForeignEpicOption } from '@/lib/epic-model';
 
 const STALE_MS = 60_000;
 

@@ -1,7 +1,6 @@
 <!--
   Left-hand navigation for settings areas (account and project settings).
   Stacks above the content as a scrollable row on narrow screens.
-  Port of SettingsNav in src/components/app-shell/settings-nav.tsx.
 -->
 <script module lang="ts">
   export interface SettingsNavItem {

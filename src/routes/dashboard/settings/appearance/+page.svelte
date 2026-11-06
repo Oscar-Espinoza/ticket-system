@@ -1,4 +1,3 @@
-<!-- Account settings › Appearance (port of src/app/dashboard/settings/appearance/page.tsx). -->
 <script lang="ts">
   import AppearanceForm from '@/lib/components/settings/appearance-form.svelte';
 </script>

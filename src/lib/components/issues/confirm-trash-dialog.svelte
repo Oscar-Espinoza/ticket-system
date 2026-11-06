@@ -1,6 +1,6 @@
 <!--
   Confirm before moving one or many issues to the trash (restorable). Open
-  while `issues` is non-empty. (ConfirmTrashDialog in issue-context-menu.tsx)
+  while `issues` is non-empty.
 -->
 <script lang="ts">
   import {

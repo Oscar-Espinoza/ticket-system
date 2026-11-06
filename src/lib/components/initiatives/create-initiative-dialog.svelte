@@ -23,13 +23,13 @@
   import { Avatar } from '@/lib/components/ui-icons';
   import { formatDueDate } from '@/lib/dates';
   import type { IssueUser } from '@/lib/issue-model';
-  import { EPIC_DESCRIPTION_MAX } from '@/lib/components/epics/epic-model';
   import {
+    INITIATIVE_DESCRIPTION_MAX,
     INITIATIVE_NAME_MAX,
     INITIATIVE_STATUS_LABEL,
     initiativesPath,
     type InitiativeStatus,
-  } from '@/lib/components/initiatives/initiative-model';
+  } from '@/lib/initiative-model';
   import InitiativeStatusIcon from './initiative-status-icon.svelte';
   import InitiativeStatusPicker from './initiative-status-picker.svelte';
 
@@ -102,7 +102,7 @@
       <DialogTitle>New initiative</DialogTitle>
       <DialogDescription>A goal that groups epics across this workspace’s projects.</DialogDescription>
     </DialogHeader>
-    <!-- ⌘Enter submits, as in React -->
+    <!-- ⌘Enter submits -->
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <form
       onsubmit={(event) => void submit(event)}
@@ -130,7 +130,7 @@
           value={description}
           onChange={(next) => (description = next)}
           placeholder="Why does this matter? Markdown supported."
-          maxLength={EPIC_DESCRIPTION_MAX}
+          maxLength={INITIATIVE_DESCRIPTION_MAX}
         />
       </div>
       <div role="group" aria-label="Properties" class="flex flex-wrap gap-1.5">

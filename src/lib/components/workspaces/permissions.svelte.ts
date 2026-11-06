@@ -1,6 +1,6 @@
 // UI gating from the viewer's project role (the server re-checks everything).
 //
-// Port of src/components/workspaces/permissions.ts. Same exports:
+// Exports:
 //   projectPermissions(role): ProjectPermissions   pure snapshot for a role
 //   useProjectPermissions(): ProjectPermissions    call during component init, below a
 //                                                  ProjectDataProvider
@@ -9,8 +9,7 @@
 // fields off it in markup, $derived or $effect — destructuring takes a snapshot.
 
 import { useProjectData } from '@/lib/components/project/project-data.svelte';
-import { roleAllows, type ProjectRole } from '@/lib/roles';
-import { assignableRoles, canManageMember, type AssignableRole } from '@/lib/components/workspaces/role-rules';
+import { assignableRoles, canManageMember, roleAllows, type AssignableRole, type ProjectRole } from '@/lib/roles';
 
 export interface ProjectPermissions {
   role: ProjectRole;
@@ -43,7 +42,7 @@ export function projectPermissions(role: ProjectRole): ProjectPermissions {
 
 export function useProjectPermissions(): ProjectPermissions {
   const data = useProjectData();
-  // Memoized per role, like the React useMemo.
+  // Memoized per role.
   const current = $derived(projectPermissions(data.project.role));
   return {
     get role() {

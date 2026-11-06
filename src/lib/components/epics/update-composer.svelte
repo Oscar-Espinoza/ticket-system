@@ -1,4 +1,4 @@
-<!-- Health toggle + markdown body, ⌘Enter to post (epic-updates.tsx UpdateComposer). -->
+<!-- Health toggle + markdown body, ⌘Enter to post. -->
 <script lang="ts">
   import { toast } from 'svelte-sonner';
 
@@ -11,7 +11,7 @@
     UPDATE_BODY_MAX,
     isHealth,
     type Health,
-  } from '@/lib/components/epics/epic-model';
+  } from '@/lib/epic-model';
   import HealthDot from './health-dot.svelte';
   import RichTextEditor from './rich-text-editor.svelte';
 

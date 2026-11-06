@@ -1,6 +1,6 @@
 <!--
   Public intake form (/request/[token]). No app chrome; every state renders
-  inline (the React page had no Toaster).
+  inline.
 -->
 <script lang="ts">
   import IntakeFormBody from './intake-form-body.svelte';

@@ -1,4 +1,4 @@
-<!-- One workspace member: profile link, role select / chip, remove (MemberRow in workspace-members.tsx). -->
+<!-- One workspace member: profile link, role select / chip, remove. -->
 <script lang="ts">
   import EllipsisIcon from '@lucide/svelte/icons/ellipsis';
   import LoaderCircleIcon from '@lucide/svelte/icons/loader-circle';
@@ -7,9 +7,11 @@
 
   import {
     WORKSPACE_ROLE_LABEL,
+    canChangeMemberRole,
+    canRemoveMember,
     type WorkspaceMemberRow,
     type WorkspaceRole,
-  } from '@/lib/components/workspaces/workspace-types';
+  } from '@/lib/workspace-types';
   import { removeWorkspaceMember, updateWorkspaceMemberRole } from '@/lib/actions/workspaces';
   import { Button } from '@/lib/components/ui/button';
   import {
@@ -39,12 +41,8 @@
   ];
 
   let isPending = $state(false);
-  const canChangeRole = $derived(viewerRole === 'owner' && !isSelf && member.role !== 'owner');
-  const canRemove = $derived(
-    !isSelf &&
-      member.role !== 'owner' &&
-      (viewerRole === 'owner' || (viewerRole === 'admin' && member.role === 'member')),
-  );
+  const canChangeRole = $derived(canChangeMemberRole(viewerRole, member.role, isSelf));
+  const canRemove = $derived(canRemoveMember(viewerRole, member.role, isSelf));
 
   async function changeRole(role: string) {
     isPending = true;
@@ -89,7 +87,7 @@
     </span>
   </a>
   {#if canChangeRole}
-    <!-- Strictly controlled: shows the server role until the refresh lands, as in React. -->
+    <!-- Strictly controlled: shows the server role until the refresh lands. -->
     <Select items={ROLE_ITEMS} bind:value={() => member.role, (v) => changeRole(v)} disabled={isPending}>
       <SelectTrigger size="sm" class="w-28" aria-label="Role of {member.name}">
         <SelectValue />

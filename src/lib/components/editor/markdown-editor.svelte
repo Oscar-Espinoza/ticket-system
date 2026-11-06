@@ -1,16 +1,17 @@
 <!--
   Markdown editor used by descriptions, comments, epic descriptions / updates
-  and templates (port of src/components/editor/markdown-editor.tsx). WYSIWYG
+  and templates. WYSIWYG
   (Tiptap) by default with slash commands, @mentions, issue references, image
   paste / drop and embeds; a "Markdown" mode swaps in the raw textarea. Plain
   markdown in, plain markdown out — the value is controlled by the caller.
 
-  Svelte differences: `actions` is a snippet; `className` → `class`; the
-  imperative handle (React `ref`) is bind:this + `focus()` / `getEditor()`.
+  `actions` is a snippet; the imperative handle is bind:this + `focus()` / `getEditor()`.
 -->
 <script module lang="ts">
   import type { Snippet } from 'svelte';
   import { createSubscriber } from 'svelte/reactivity';
+  import { afterFrame } from '@/lib/svelte/focus';
+  import { readStorage, writeStorage } from '@/lib/svelte/storage';
   import type { AnyExtension, Editor } from '@tiptap/core';
   import type { LucideIcon } from '@lucide/svelte';
   import Bold from '@lucide/svelte/icons/bold';
@@ -73,19 +74,11 @@
   const modeListeners = new Set<() => void>();
 
   function readMode(): Mode {
-    try {
-      return localStorage.getItem(MODE_KEY) === 'markdown' ? 'markdown' : 'rich';
-    } catch {
-      return 'rich';
-    }
+    return readStorage(MODE_KEY) === 'markdown' ? 'markdown' : 'rich';
   }
 
   function writeMode(mode: Mode) {
-    try {
-      localStorage.setItem(MODE_KEY, mode);
-    } catch {
-      // Private mode / blocked storage: the choice just doesn't persist.
-    }
+    writeStorage(MODE_KEY, mode);
     modeListeners.forEach((listener) => listener());
   }
 
@@ -98,7 +91,7 @@
     };
   }
 
-  // useSyncExternalStore(subscribeMode, readMode) → a shared subscriber.
+  // A shared subscriber on the mode.
   const trackMode = createSubscriber((update) => subscribeMode(update));
 
   /** A typed link: bare hosts get https://; only web, mail and in-app links pass. */
@@ -278,7 +271,7 @@
     if (!editor || disabled) return;
     const href = editor.getAttributes('link').href;
     link = typeof href === 'string' ? href : '';
-    requestAnimationFrame(() => linkInput?.select());
+    afterFrame(() => linkInput?.select());
   }
 
   function closeLink() {
@@ -317,10 +310,10 @@
     link = null;
     if (next === 'rich') lossy = false;
     writeMode(next);
-    requestAnimationFrame(() => (next === 'rich' ? rich?.focus() : raw?.focus()));
+    afterFrame(() => (next === 'rich' ? rich?.focus() : raw?.focus()));
   }
 
-  // React's onBlur on the container is the bubbling focusout.
+  // onBlur on the container is the bubbling focusout.
   function onContainerFocusOut(e: FocusEvent & { currentTarget: HTMLDivElement }) {
     if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
     // The window lost focus (file picker, app switch): still editing.

@@ -2,7 +2,7 @@
   import CheckIcon from '@lucide/svelte/icons/check';
 
   import { cn } from '@/lib/utils';
-  import { EPIC_COLORS } from '@/lib/components/epics/epic-model';
+  import { EPIC_COLORS } from '@/lib/epic-model';
 
   let {
     value,

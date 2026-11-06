@@ -1,7 +1,6 @@
 <!--
   Editor dialog for a recurring issue: title, description, cadence, default
-  properties, due offset, with a preview of the next runs (local helper of
-  recurring-settings.tsx).
+  properties, due offset, with a preview of the next runs.
 -->
 <script lang="ts">
   import { untrack } from 'svelte';
@@ -26,7 +25,7 @@
   import { Textarea } from '@/lib/components/ui/textarea';
   import { ToggleGroup, ToggleGroupItem } from '@/lib/components/ui/toggle-group';
   import type { IssuePatch } from '@/lib/issue-model';
-  import { toDateInput, WEEKDAYS } from '@/lib/components/cycles/cycle-utils';
+  import { toDateInput, WEEKDAYS } from '@/lib/cycle-utils';
   import {
     DUE_IN_DAYS_MAX,
     FREQUENCIES,
@@ -39,7 +38,7 @@
     type Frequency,
     type RecurringIssue,
     type RecurringSchedule,
-  } from '@/lib/components/recurring/schedule';
+  } from '@/lib/recurring-schedule';
   import { defaultsToPatch } from './recurring-defaults';
 
   const PREVIEW_RUNS = 5;
@@ -186,7 +185,7 @@
             </SelectContent>
           </Select>
           <span class="text-muted-foreground">every</span>
-          <!-- One-way value + oninput keeps the raw string, like React (bind:value would coerce). -->
+          <!-- One-way value + oninput keeps the raw string (bind:value would coerce). -->
           <Input
             type="number"
             inputmode="numeric"

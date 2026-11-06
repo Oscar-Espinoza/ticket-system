@@ -1,6 +1,5 @@
 <!--
-  C2 app shell (port of src/components/app-shell/app-shell.tsx). The React
-  server half resolved the projects and the async sidebar slots; here the
+  App shell. The server half resolved the projects and the async sidebar slots; here the
   dashboard layout load does that (app-shell.server.ts → loadAppShellData) and
   passes the results in as props. ShellFrame renders the chrome.
 -->
@@ -9,7 +8,7 @@
 
   import type { SidebarFavorite } from '@/lib/favorites';
   import type { ShellProject } from './shell-frame.svelte';
-  import type { SidebarWorkspace } from './slots/sidebar-workspaces.svelte';
+  import type { SidebarWorkspace } from './sidebar-types';
 
   export interface AppShellUser {
     id: string;

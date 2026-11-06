@@ -1,7 +1,6 @@
 <!--
   Someone's local time, ticking once a minute, with the offset from the
   viewer's clock ("3h ahead"). Renders nothing for an unknown time zone.
-  Port of src/components/people/local-time.tsx.
 -->
 <script module lang="ts">
   function formatIn(timeZone: string, now: Date): string | null {
@@ -57,7 +56,7 @@
 
   // A minute-resolution clock: null on the server and during the first
   // hydration (the time depends on the viewer's clock), then polled every 15 s
-  // like the React useSyncExternalStore subscription. A component mounted by a
+  // like a store subscription. A component mounted by a
   // client-side navigation reads the clock on its first render.
   let minute = $state<number | null>(isAppHydrated() ? minuteSnapshot() : null);
 

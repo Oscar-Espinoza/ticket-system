@@ -1,6 +1,6 @@
 <script lang="ts">
   import { StatusIcon } from '@/lib/components/ui-icons';
-  import { INITIATIVE_STATUS_LABEL, type InitiativeStatus } from '@/lib/components/initiatives/initiative-model';
+  import { INITIATIVE_STATUS_LABEL, type InitiativeStatus } from '@/lib/initiative-model';
 
   const GLYPH = {
     planned: 'unstarted',

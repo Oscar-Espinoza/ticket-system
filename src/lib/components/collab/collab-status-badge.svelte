@@ -1,4 +1,4 @@
-<!-- Nothing while synced; otherwise a quiet "Connecting…" / "Offline" note (CollabStatusBadge of collab-avatars.tsx). -->
+<!-- Nothing while synced; otherwise a quiet "Connecting…" / "Offline" note. -->
 <script lang="ts">
   import CloudOff from '@lucide/svelte/icons/cloud-off';
   import Loader2 from '@lucide/svelte/icons/loader-circle';

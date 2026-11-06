@@ -3,7 +3,7 @@
 // on drop it becomes one mutations.update: the target group's patch (if the
 // issue changed group) plus a midpoint sortOrder (manual ordering).
 //
-// API (port of src/components/views/use-sortable-groups.ts):
+// API:
 //   const sortable = useSortableGroups(() => ({ containers, mutations, manual }))
 //     — call during component init with a GETTER (containers change every render).
 //   sortable.itemsOf(containerId)  → { id, issue }[] in live (dragging) order (reactive)

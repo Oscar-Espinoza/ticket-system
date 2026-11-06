@@ -13,7 +13,7 @@
   }: {
     id: string;
     label: string;
-    /** Plain text, or a snippet for rich content (React: ReactNode). */
+    /** Plain text, or a snippet for rich content. */
     hint?: string | Snippet;
     error?: string;
     children?: Snippet;

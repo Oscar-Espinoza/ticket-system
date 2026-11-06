@@ -1,4 +1,3 @@
-// Web app manifest (was src/app/manifest.ts under Next; same content).
 import manifest from '@/lib/manifest';
 import type { RequestHandler } from './$types';
 

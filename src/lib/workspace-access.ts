@@ -8,9 +8,12 @@ import { cache } from '@/lib/kit/request';
 import { and, asc, eq, gt, isNull } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
+import { appUrl } from '@/lib/integrations/app-url';
 import { workspaceInvitations, workspaceMembers, workspaces } from '@/db/schema';
 
-export type WorkspaceRole = 'owner' | 'admin' | 'member';
+import type { WorkspaceRole } from '@/lib/workspace-types';
+
+export type { WorkspaceRole };
 
 export type WorkspaceMembership = {
   workspaceId: string;
@@ -19,13 +22,6 @@ export type WorkspaceMembership = {
   userId: string;
   role: WorkspaceRole;
 };
-
-export class WorkspaceAccessError extends Error {
-  constructor(message = 'Not a workspace member') {
-    super(message);
-    this.name = 'WorkspaceAccessError';
-  }
-}
 
 /** Membership by workspace slug or id; null for non-members (enumeration-safe). */
 export const getWorkspaceMembership = cache(
@@ -51,26 +47,6 @@ export const getWorkspaceMembership = cache(
     return null;
   },
 );
-
-export async function requireWorkspaceMember(
-  slugOrId: string,
-  userId: string,
-): Promise<WorkspaceMembership> {
-  const membership = await getWorkspaceMembership(slugOrId, userId);
-  if (!membership) throw new WorkspaceAccessError();
-  return membership;
-}
-
-export async function requireWorkspaceAdmin(
-  slugOrId: string,
-  userId: string,
-): Promise<WorkspaceMembership> {
-  const membership = await requireWorkspaceMember(slugOrId, userId);
-  if (membership.role === 'member') {
-    throw new WorkspaceAccessError('Not a workspace admin');
-  }
-  return membership;
-}
 
 export interface UserWorkspace {
   id: string;
@@ -107,8 +83,7 @@ export const WORKSPACE_INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 export const newWorkspaceInviteToken = () => randomBytes(32).toString('base64url');
 
-export const workspaceInviteUrl = (token: string) =>
-  `${process.env.PUBLIC_APP_URL ?? ''}/invite/workspace/${token}`;
+export const workspaceInviteUrl = (token: string) => `${appUrl()}/invite/workspace/${token}`;
 
 export interface PendingWorkspaceInvite {
   id: string;

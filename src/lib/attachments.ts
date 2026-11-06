@@ -23,11 +23,22 @@ import {
   normalizeContentType,
   parseLinkUrl,
   type AttachmentView,
-} from '@/lib/components/issue-hierarchy/attachment-utils';
+} from '@/lib/attachment-utils';
+import { formatIssueKey } from '@/lib/tickets';
 
 export type AttachmentResult =
   | { ok: true; attachment: AttachmentView }
   | { ok: false; error: string };
+
+export type AttachmentsResult =
+  | { ok: true; attachments: AttachmentView[] }
+  | { ok: false; error: string };
+
+/** `listAttachments` for an untrusted `ticketId`; a missing id is "not found". */
+export async function readAttachments(projectId: string, ticketId: unknown): Promise<AttachmentsResult> {
+  if (typeof ticketId !== 'string' || !ticketId) return { ok: false, error: 'Issue not found.' };
+  return { ok: true, attachments: await listAttachments(projectId, ticketId) };
+}
 
 /** The issue's attachments, newest first. */
 export async function listAttachments(projectId: string, ticketId: string): Promise<AttachmentView[]> {
@@ -72,7 +83,7 @@ async function loadIssue(projectId: string, ticketId: unknown): Promise<IssueRef
     .where(and(eq(tickets.id, ticketId), eq(tickets.projectId, projectId)))
     .limit(1);
   if (!row || row.deletedAt) return null;
-  return { id: row.id, key: `${row.ticketKey}-${row.number}`, title: row.title };
+  return { id: row.id, key: formatIssueKey(row.ticketKey, row.number), title: row.title };
 }
 
 function attachmentEvent(

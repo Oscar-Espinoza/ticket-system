@@ -2,7 +2,7 @@
 // X-Slack-Signature = "v0=" + hex(HMAC-SHA256(signing secret, "v0:{timestamp}:{raw body}")).
 // Old timestamps are rejected so a captured request can't be replayed.
 
-import { createHmac, timingSafeEqual } from 'node:crypto';
+import { verifyHmac } from '@/lib/server/secrets';
 
 import { slackConfig } from './config';
 
@@ -18,11 +18,7 @@ export function verifySlackSignature(
 ): boolean {
   if (!timestamp || !signature || !/^\d{1,12}$/.test(timestamp)) return false;
   if (Math.abs(now / 1000 - Number(timestamp)) > MAX_AGE_S) return false;
-  const expected = Buffer.from(
-    `v0=${createHmac('sha256', secret).update(`v0:${timestamp}:${body}`).digest('hex')}`,
-  );
-  const given = Buffer.from(signature);
-  return expected.length === given.length && timingSafeEqual(expected, given);
+  return verifyHmac(signature, `v0:${timestamp}:${body}`, secret, 'v0=');
 }
 
 /**

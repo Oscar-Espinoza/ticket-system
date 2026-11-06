@@ -1,4 +1,4 @@
-<!-- Color dot button + swatch popover (epic-labels.tsx ColorButton). -->
+<!-- Color dot button + swatch popover. -->
 <script lang="ts">
   import { Button } from '@/lib/components/ui/button';
   import { Popover, PopoverContent, PopoverTrigger } from '@/lib/components/ui/popover';

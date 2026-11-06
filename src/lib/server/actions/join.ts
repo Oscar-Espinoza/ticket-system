@@ -10,35 +10,29 @@
 //     insert, so two concurrent accepts can't both succeed. The member joins
 //     with the invitation's role; an existing member keeps theirs.
 //   - Existing membership → idempotent success; 23505 is the race backstop.
-//   - redirect() stays outside every try/catch (it throws NEXT_REDIRECT).
+//   - redirect() stays outside every try/catch (it throws).
 
-import { headers } from '@/lib/kit/request';
-import { revalidatePath } from '@/lib/kit/request';
 import { redirect } from '@/lib/kit/request';
 import { and, eq, gt, isNull } from 'drizzle-orm';
 
-import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { isUniqueViolation } from '@/lib/db-errors';
+import { formField, NOT_AUTHENTICATED, refreshesData } from '@/lib/server/action-kit';
+import { getSession } from '@/lib/session';
 import { invitations, projectMembers } from '@/db/schema';
 
 export type JoinProjectState = {
-  error?: 'Not authenticated' | 'invalid' | 'wrong-account';
+  error?: typeof NOT_AUTHENTICATED.error | 'invalid' | 'wrong-account';
 };
-
-function isUniqueViolation(err: unknown) {
-  const code =
-    (err as { code?: string })?.code ?? (err as { cause?: { code?: string } })?.cause?.code;
-  return code === '23505';
-}
 
 export async function joinProject(
   _prevState: JoinProjectState,
   formData: FormData,
 ): Promise<JoinProjectState> {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session?.user) return { error: 'Not authenticated' };
+  const session = await getSession();
+  if (!session?.user) return { error: NOT_AUTHENTICATED.error };
 
-  const token = ((formData.get('token') as string | null) ?? '').trim();
+  const token = formField(formData, 'token');
   if (!token) return { error: 'invalid' };
 
   const now = new Date();
@@ -108,6 +102,6 @@ export async function joinProject(
     }
   }
 
-  revalidatePath('/dashboard', 'layout');
+  refreshesData();
   redirect(`/dashboard/projects/${projectId}`);
 }

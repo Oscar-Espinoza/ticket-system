@@ -1,6 +1,6 @@
 <script lang="ts">
   import { LabelChip } from '@/lib/components/ui-icons';
-  import { CUSTOMER_STATUS_LABEL, type CustomerStatus } from '@/lib/components/customers/customer-model';
+  import { CUSTOMER_STATUS_LABEL, type CustomerStatus } from '@/lib/customer-model';
 
   let { status, class: className }: { status: CustomerStatus; class?: string } = $props();
 

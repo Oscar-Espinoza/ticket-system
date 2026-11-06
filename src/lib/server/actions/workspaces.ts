@@ -8,7 +8,6 @@
 // add it. Every action resolves the session itself; ids from the client are
 // re-scoped to the workspace in every query.
 
-import { revalidatePath } from '@/lib/kit/request';
 import { redirect } from '@/lib/kit/request';
 import { and, eq, gt, isNull, ne, or, sql } from 'drizzle-orm';
 
@@ -24,20 +23,31 @@ import {
 } from '@/db/schema';
 import { getSession } from '@/lib/session';
 import { authorizeProjectAction } from '@/lib/action-auth';
+import {
+  emailAddress,
+  fail,
+  FORBIDDEN,
+  isFail,
+  NOT_AUTHENTICATED,
+  refreshesData,
+  requiredText,
+  type ActionResult,
+} from '@/lib/server/action-kit';
+import { createProjectRecord, firstProjectError } from '@/lib/server/project-create';
+import { authorizeWorkspaceAction } from '@/lib/server/workspace-authz';
+import { isUniqueViolation } from '@/lib/db-errors';
 import { getSharedProjects } from '@/lib/project-access';
 import {
   getPendingWorkspaceInvite,
-  getWorkspaceMembership,
   newWorkspaceInviteToken,
   WORKSPACE_INVITE_TTL_MS,
   workspaceInviteUrl,
   type WorkspaceInviteRole,
   type WorkspaceMembership,
-  type WorkspaceRole,
 } from '@/lib/workspace-access';
-import { getUsableTemplateConfig, projectSeed } from '@/lib/project-templates';
+import { inviteRolesFor, workspaceRoleAllows } from '@/lib/workspace-types';
 import { sendEmail } from '@/lib/email';
-import { isValidSlug, slugify } from '@/lib/components/workspaces/slug';
+import { isValidSlug, slugify } from '@/lib/workspace-slug';
 
 export type WorkspaceField =
   | 'name'
@@ -49,55 +59,12 @@ export type WorkspaceField =
   | 'projectId'
   | 'templateId';
 
-export type WorkspaceActionResult =
-  | { ok: true; slug?: string; added?: boolean; emailed?: boolean; url?: string }
-  | { ok: false; error: string; field?: WorkspaceField };
+export type WorkspaceActionResult = ActionResult<
+  { slug?: string; added?: boolean; emailed?: boolean; url?: string },
+  WorkspaceField
+>;
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const NAME_MAX = 60;
-
-const NOT_AUTHENTICATED: WorkspaceActionResult = { ok: false, error: 'Not authenticated' };
-const FORBIDDEN: WorkspaceActionResult = { ok: false, error: 'Forbidden' };
-
-function isUniqueViolation(err: unknown) {
-  const code =
-    (err as { code?: string })?.code ?? (err as { cause?: { code?: string } })?.cause?.code;
-  return code === '23505';
-}
-
-function validateName(value: unknown): string | WorkspaceActionResult {
-  const name = typeof value === 'string' ? value.trim() : '';
-  if (!name) return { ok: false, error: 'Name is required.', field: 'name' };
-  if (name.length > NAME_MAX) {
-    return { ok: false, error: `Name must be ${NAME_MAX} characters or fewer.`, field: 'name' };
-  }
-  return name;
-}
-
-const isError = (value: unknown): value is WorkspaceActionResult =>
-  typeof value === 'object' && value !== null && 'ok' in value;
-
-function revalidateWorkspace(slug?: string) {
-  // The sidebar lists workspaces on every dashboard page.
-  revalidatePath('/dashboard', 'layout');
-  if (slug) revalidatePath(`/dashboard/workspaces/${slug}`, 'layout');
-}
-
-/** Session + workspace membership (+ minimum role). */
-async function authorizeWorkspace(
-  workspaceId: unknown,
-  need: WorkspaceRole,
-): Promise<{ userId: string; membership: WorkspaceMembership } | WorkspaceActionResult> {
-  const session = await getSession();
-  if (!session?.user) return NOT_AUTHENTICATED;
-  if (typeof workspaceId !== 'string' || !workspaceId) return FORBIDDEN;
-  const membership = await getWorkspaceMembership(workspaceId, session.user.id);
-  // Only by id: slugs are for URLs, actions always carry the id.
-  if (!membership || membership.workspaceId !== workspaceId) return FORBIDDEN;
-  const rank: Record<WorkspaceRole, number> = { owner: 2, admin: 1, member: 0 };
-  if (rank[membership.role] < rank[need]) return FORBIDDEN;
-  return { userId: session.user.id, membership };
-}
 
 // ---------------------------------------------------------------------------
 // Workspace lifecycle
@@ -110,15 +77,11 @@ export async function createWorkspace(input: {
   const session = await getSession();
   if (!session?.user) return NOT_AUTHENTICATED;
 
-  const name = validateName(input?.name);
-  if (isError(name)) return name;
+  const name = requiredText(input?.name, 'name', NAME_MAX);
+  if (isFail(name)) return name;
   const slug = (typeof input.slug === 'string' && input.slug.trim()) || slugify(name);
   if (!isValidSlug(slug)) {
-    return {
-      ok: false,
-      error: 'URL must be 2–40 lowercase letters, numbers or dashes.',
-      field: 'slug',
-    };
+    return fail('URL must be 2–40 lowercase letters, numbers or dashes.', 'slug');
   }
 
   const id = crypto.randomUUID();
@@ -143,12 +106,12 @@ export async function createWorkspace(input: {
     ]);
   } catch (err) {
     if (isUniqueViolation(err)) {
-      return { ok: false, error: 'This URL is taken. Try another one.', field: 'slug' };
+      return fail('This URL is taken. Try another one.', 'slug');
     }
     throw err;
   }
 
-  revalidateWorkspace();
+  refreshesData();
   return { ok: true, slug };
 }
 
@@ -156,16 +119,16 @@ export async function renameWorkspace(input: {
   workspaceId: string;
   name: string;
 }): Promise<WorkspaceActionResult> {
-  const authz = await authorizeWorkspace(input?.workspaceId, 'admin');
-  if (isError(authz)) return authz;
-  const name = validateName(input.name);
-  if (isError(name)) return name;
+  const authz = await authorizeWorkspaceAction(input?.workspaceId, 'admin');
+  if (!authz.ok) return authz;
+  const name = requiredText(input.name, 'name', NAME_MAX);
+  if (isFail(name)) return name;
 
   await db
     .update(workspaces)
     .set({ name, updatedAt: new Date() })
     .where(eq(workspaces.id, authz.membership.workspaceId));
-  revalidateWorkspace(authz.membership.slug);
+  refreshesData();
   return { ok: true, slug: authz.membership.slug };
 }
 
@@ -174,22 +137,22 @@ export async function deleteWorkspace(input: {
   workspaceId: string;
   confirm: string;
 }): Promise<WorkspaceActionResult> {
-  const authz = await authorizeWorkspace(input?.workspaceId, 'owner');
-  if (isError(authz)) return authz;
+  const authz = await authorizeWorkspaceAction(input?.workspaceId, 'owner');
+  if (!authz.ok) return authz;
   if ((input.confirm ?? '').trim() !== authz.membership.name) {
-    return { ok: false, error: 'Type the workspace name exactly to confirm.', field: 'confirm' };
+    return fail('Type the workspace name exactly to confirm.', 'confirm');
   }
 
   await db.delete(workspaces).where(eq(workspaces.id, authz.membership.workspaceId));
-  revalidatePath('/dashboard', 'layout');
+  refreshesData();
   redirect('/dashboard');
 }
 
 export async function leaveWorkspace(input: { workspaceId: string }): Promise<WorkspaceActionResult> {
-  const authz = await authorizeWorkspace(input?.workspaceId, 'member');
-  if (isError(authz)) return authz;
+  const authz = await authorizeWorkspaceAction(input?.workspaceId, 'member');
+  if (!authz.ok) return authz;
   if (authz.membership.role === 'owner') {
-    return { ok: false, error: 'The owner can’t leave. Delete the workspace instead.' };
+    return fail('The owner can’t leave. Delete the workspace instead.');
   }
 
   await db
@@ -200,7 +163,7 @@ export async function leaveWorkspace(input: { workspaceId: string }): Promise<Wo
         eq(workspaceMembers.userId, authz.userId),
       ),
     );
-  revalidatePath('/dashboard', 'layout');
+  refreshesData();
   redirect('/dashboard');
 }
 
@@ -212,11 +175,11 @@ export async function addProjectToWorkspace(input: {
   workspaceId: string;
   projectId: string;
 }): Promise<WorkspaceActionResult> {
-  const authz = await authorizeWorkspace(input?.workspaceId, 'admin');
-  if (isError(authz)) return authz;
+  const authz = await authorizeWorkspaceAction(input?.workspaceId, 'admin');
+  if (!authz.ok) return authz;
   const project = await authorizeProjectAction(input.projectId, 'admin');
   if (!project.ok) {
-    return { ok: false, error: 'You need to be an admin of that project.', field: 'projectId' };
+    return fail('You need to be an admin of that project.', 'projectId');
   }
 
   // Sub-team links never cross workspaces: the project leaves its old parent
@@ -228,8 +191,7 @@ export async function addProjectToWorkspace(input: {
       .where(eq(projects.id, input.projectId)),
     detachSubTeams(input.projectId, authz.membership.workspaceId),
   ]);
-  revalidateWorkspace(authz.membership.slug);
-  revalidatePath(`/dashboard/projects/${input.projectId}`, 'layout');
+  refreshesData();
   return { ok: true };
 }
 
@@ -238,10 +200,9 @@ export async function removeProjectFromWorkspace(input: {
   workspaceId: string;
   projectId: string;
 }): Promise<WorkspaceActionResult> {
-  const authz = await authorizeWorkspace(input?.workspaceId, 'member');
-  if (isError(authz)) return authz;
-  const isWorkspaceAdmin = authz.membership.role !== 'member';
-  if (!isWorkspaceAdmin) {
+  const authz = await authorizeWorkspaceAction(input?.workspaceId, 'member');
+  if (!authz.ok) return authz;
+  if (!workspaceRoleAllows(authz.membership.role, 'admin')) {
     const project = await authorizeProjectAction(input.projectId, 'admin');
     if (!project.ok) return FORBIDDEN;
   }
@@ -252,12 +213,11 @@ export async function removeProjectFromWorkspace(input: {
     .set({ workspaceId: null, parentId: null, updatedAt: new Date() })
     .where(and(eq(projects.id, projectId), eq(projects.workspaceId, authz.membership.workspaceId)))
     .returning({ id: projects.id });
-  if (updated.length === 0) return { ok: false, error: 'Project not found in this workspace.' };
+  if (updated.length === 0) return fail('Project not found in this workspace.');
   // Only once the project is confirmed to have been in this workspace.
   await detachSubTeams(projectId, null);
 
-  revalidateWorkspace(authz.membership.slug);
-  revalidatePath(`/dashboard/projects/${input.projectId}`, 'layout');
+  refreshesData();
   return { ok: true };
 }
 
@@ -276,77 +236,32 @@ function detachSubTeams(projectId: string, workspaceId: string | null) {
     );
 }
 
-/**
- * Same shape as createProject (project + owner row + states, one batch), inside
- * the workspace. `templateId` seeds it from a project template (D4a).
- */
+/** createProject inside the workspace; `templateId` seeds it from a project template. */
 export async function createWorkspaceProject(input: {
   workspaceId: string;
   name: string;
   ticketKey: string;
   templateId?: string;
 }): Promise<WorkspaceActionResult & { projectId?: string }> {
-  const authz = await authorizeWorkspace(input?.workspaceId, 'member');
-  if (isError(authz)) return authz;
+  const authz = await authorizeWorkspaceAction(input?.workspaceId, 'member');
+  if (!authz.ok) return authz;
 
-  const name = typeof input.name === 'string' ? input.name.trim() : '';
-  if (!name) return { ok: false, error: 'Project name is required.', field: 'name' };
-  if (name.length > 100) {
-    return { ok: false, error: 'Project name must be 100 characters or fewer.', field: 'name' };
-  }
-  const ticketKey = typeof input.ticketKey === 'string' ? input.ticketKey.trim() : '';
-  if (!/^[A-Z]{2,6}$/.test(ticketKey)) {
-    return { ok: false, error: 'Key must be 2–6 uppercase letters.', field: 'ticketKey' };
-  }
+  const created = await createProjectRecord({
+    userId: authz.userId,
+    name: typeof input.name === 'string' ? input.name.trim() : '',
+    ticketKey: typeof input.ticketKey === 'string' ? input.ticketKey.trim() : '',
+    templateId: typeof input.templateId === 'string' ? input.templateId : '',
+    workspaceId: authz.membership.workspaceId,
+  });
+  if (!created.ok) return firstProjectError(created.errors);
+  const { projectId } = created;
 
-  const templateId = typeof input.templateId === 'string' ? input.templateId : '';
-  const template = templateId ? await getUsableTemplateConfig(templateId, authz.userId) : null;
-  if (templateId && !template) {
-    return { ok: false, error: 'That template is no longer available.', field: 'templateId' };
-  }
-
-  const projectId = crypto.randomUUID();
-  const now = new Date();
-  const seed = projectSeed(projectId, now, template, authz.userId);
-  try {
-    await db.batch([
-      db.insert(projects).values({
-        id: projectId,
-        name,
-        ticketKey,
-        ticketCounter: 0,
-        ownerId: authz.userId,
-        workspaceId: authz.membership.workspaceId,
-        ...seed.settings,
-        createdAt: now,
-        updatedAt: now,
-      }),
-      db.insert(projectMembers).values({
-        id: crypto.randomUUID(),
-        projectId,
-        userId: authz.userId,
-        role: 'owner',
-        createdAt: now,
-      }),
-      ...seed.statements,
-    ]);
-  } catch (err) {
-    if (isUniqueViolation(err)) {
-      return {
-        ok: false,
-        error: 'This key is already in use. Choose a different one.',
-        field: 'ticketKey',
-      };
-    }
-    throw err;
-  }
-
-  revalidateWorkspace(authz.membership.slug);
+  refreshesData();
   return { ok: true, projectId };
 }
 
 /**
- * Private teams (D4a): any workspace member may join a project of the
+ * Private teams: any workspace member may join a project of the
  * workspace whose visibility is 'workspace', as a member. Private projects
  * answer "not found" so their existence doesn't leak.
  */
@@ -354,8 +269,8 @@ export async function joinWorkspaceProject(input: {
   workspaceId: string;
   projectId: string;
 }): Promise<WorkspaceActionResult & { projectId?: string }> {
-  const authz = await authorizeWorkspace(input?.workspaceId, 'member');
-  if (isError(authz)) return authz;
+  const authz = await authorizeWorkspaceAction(input?.workspaceId, 'member');
+  if (!authz.ok) return authz;
   const projectId = typeof input.projectId === 'string' ? input.projectId : '';
   const [project] = await db
     .select({ id: projects.id })
@@ -368,7 +283,7 @@ export async function joinWorkspaceProject(input: {
       ),
     )
     .limit(1);
-  if (!project) return { ok: false, error: 'Project not found.', field: 'projectId' };
+  if (!project) return fail('Project not found.', 'projectId');
 
   await db
     .insert(projectMembers)
@@ -380,17 +295,13 @@ export async function joinWorkspaceProject(input: {
       createdAt: new Date(),
     })
     .onConflictDoNothing();
-  revalidateWorkspace(authz.membership.slug);
-  revalidatePath(`/dashboard/projects/${projectId}`, 'layout');
+  refreshesData();
   return { ok: true, projectId };
 }
 
 // ---------------------------------------------------------------------------
 // Members
 // ---------------------------------------------------------------------------
-
-const inviteRolesFor = (role: WorkspaceRole): readonly WorkspaceRole[] =>
-  role === 'owner' ? ['admin', 'member'] : role === 'admin' ? ['member'] : [];
 
 /**
  * Add someone by email. A person who already shares a project with you is
@@ -403,16 +314,14 @@ export async function inviteWorkspaceMember(input: {
   email: string;
   role: 'admin' | 'member';
 }): Promise<WorkspaceActionResult> {
-  const authz = await authorizeWorkspace(input?.workspaceId, 'admin');
-  if (isError(authz)) return authz;
+  const authz = await authorizeWorkspaceAction(input?.workspaceId, 'admin');
+  if (!authz.ok) return authz;
 
-  const email = typeof input.email === 'string' ? input.email.trim().toLowerCase() : '';
-  if (!EMAIL_RE.test(email) || email.length > 254) {
-    return { ok: false, error: 'Enter a valid email address.', field: 'email' };
-  }
+  const email = emailAddress(input.email);
+  if (isFail(email)) return email;
   const role = input.role;
   if ((role !== 'admin' && role !== 'member') || !inviteRolesFor(authz.membership.role).includes(role)) {
-    return { ok: false, error: 'You can’t invite people with that role.', field: 'role' };
+    return fail('You can’t invite people with that role.', 'role');
   }
   const workspaceId = authz.membership.workspaceId;
 
@@ -431,7 +340,7 @@ export async function inviteWorkspaceMember(input: {
       .from(workspaceMembers)
       .where(and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.userId, target.id)))
       .limit(1);
-    if (existing) return { ok: false, error: `${target.name} is already a member.`, field: 'email' };
+    if (existing) return fail(`${target.name} is already a member.`, 'email');
     try {
       await db.insert(workspaceMembers).values({
         id: crypto.randomUUID(),
@@ -443,7 +352,7 @@ export async function inviteWorkspaceMember(input: {
     } catch (err) {
       if (!isUniqueViolation(err)) throw err;
     }
-    revalidateWorkspace(authz.membership.slug);
+    refreshesData();
     return { ok: true, added: true };
   }
 
@@ -473,7 +382,7 @@ export async function inviteWorkspaceMember(input: {
       }),
     ]);
   } catch (err) {
-    if (isUniqueViolation(err)) return { ok: false, error: 'Could not create the invitation, try again.' };
+    if (isUniqueViolation(err)) return fail('Could not create the invitation, try again.');
     throw err;
   }
 
@@ -484,7 +393,7 @@ export async function inviteWorkspaceMember(input: {
     role,
     token,
   });
-  revalidateWorkspace(authz.membership.slug);
+  refreshesData();
   return { ok: true, added: false, emailed, url: workspaceInviteUrl(token) };
 }
 
@@ -545,10 +454,10 @@ export async function resendWorkspaceInvitation(input: {
   workspaceId: string;
   invitationId: string;
 }): Promise<WorkspaceActionResult> {
-  const authz = await authorizeWorkspace(input?.workspaceId, 'admin');
-  if (isError(authz)) return authz;
+  const authz = await authorizeWorkspaceAction(input?.workspaceId, 'admin');
+  if (!authz.ok) return authz;
   const invitation = await manageableInvitation(authz, input.invitationId);
-  if (!invitation) return { ok: false, error: 'Invitation not found.' };
+  if (!invitation) return fail('Invitation not found.');
 
   await db
     .update(workspaceInvitations)
@@ -566,7 +475,7 @@ export async function resendWorkspaceInvitation(input: {
     role: invitation.role,
     token: invitation.token,
   });
-  revalidateWorkspace(authz.membership.slug);
+  refreshesData();
   return { ok: true, emailed, url: workspaceInviteUrl(invitation.token) };
 }
 
@@ -574,10 +483,10 @@ export async function revokeWorkspaceInvitation(input: {
   workspaceId: string;
   invitationId: string;
 }): Promise<WorkspaceActionResult> {
-  const authz = await authorizeWorkspace(input?.workspaceId, 'admin');
-  if (isError(authz)) return authz;
+  const authz = await authorizeWorkspaceAction(input?.workspaceId, 'admin');
+  if (!authz.ok) return authz;
   const invitation = await manageableInvitation(authz, input.invitationId);
-  if (!invitation) return { ok: false, error: 'Invitation not found.' };
+  if (!invitation) return fail('Invitation not found.');
 
   await db
     .delete(workspaceInvitations)
@@ -587,7 +496,7 @@ export async function revokeWorkspaceInvitation(input: {
         eq(workspaceInvitations.workspaceId, authz.membership.workspaceId),
       ),
     );
-  revalidateWorkspace(authz.membership.slug);
+  refreshesData();
   return { ok: true };
 }
 
@@ -597,12 +506,12 @@ export async function updateWorkspaceMemberRole(input: {
   userId: string;
   role: 'admin' | 'member';
 }): Promise<WorkspaceActionResult> {
-  const authz = await authorizeWorkspace(input?.workspaceId, 'owner');
-  if (isError(authz)) return authz;
+  const authz = await authorizeWorkspaceAction(input?.workspaceId, 'owner');
+  if (!authz.ok) return authz;
   if (input.role !== 'admin' && input.role !== 'member') {
-    return { ok: false, error: 'Pick admin or member.', field: 'role' };
+    return fail('Pick admin or member.', 'role');
   }
-  if (input.userId === authz.userId) return { ok: false, error: 'You can’t change your own role.' };
+  if (input.userId === authz.userId) return fail('You can’t change your own role.');
 
   const updated = await db
     .update(workspaceMembers)
@@ -615,7 +524,7 @@ export async function updateWorkspaceMemberRole(input: {
       ),
     )
     .returning({ id: workspaceMembers.id });
-  if (updated.length === 0) return { ok: false, error: 'Member not found.' };
+  if (updated.length === 0) return fail('Member not found.');
 
   await recordWorkspaceEvent(authz.membership.workspaceId, {
     actorId: authz.userId,
@@ -623,7 +532,7 @@ export async function updateWorkspaceMemberRole(input: {
     summary: `changed a member's workspace role to ${input.role}`,
     data: { userId: input.userId, role: input.role },
   });
-  revalidateWorkspace(authz.membership.slug);
+  refreshesData();
   return { ok: true };
 }
 
@@ -632,10 +541,10 @@ export async function removeWorkspaceMember(input: {
   workspaceId: string;
   userId: string;
 }): Promise<WorkspaceActionResult> {
-  const authz = await authorizeWorkspace(input?.workspaceId, 'admin');
-  if (isError(authz)) return authz;
+  const authz = await authorizeWorkspaceAction(input?.workspaceId, 'admin');
+  if (!authz.ok) return authz;
   if (input.userId === authz.userId) {
-    return { ok: false, error: 'Use “Leave workspace” to remove yourself.' };
+    return fail('Use “Leave workspace” to remove yourself.');
   }
 
   const workspaceId = authz.membership.workspaceId;
@@ -649,8 +558,8 @@ export async function removeWorkspaceMember(input: {
       ),
     )
     .limit(1);
-  if (!target) return { ok: false, error: 'Member not found.' };
-  if (target.role === 'owner') return { ok: false, error: 'The owner can’t be removed.' };
+  if (!target) return fail('Member not found.');
+  if (target.role === 'owner') return fail('The owner can’t be removed.');
   if (target.role === 'admin' && authz.membership.role !== 'owner') return FORBIDDEN;
 
   await db
@@ -664,7 +573,7 @@ export async function removeWorkspaceMember(input: {
     summary: 'removed a member from the workspace',
     data: { userId: input.userId },
   });
-  revalidateWorkspace(authz.membership.slug);
+  refreshesData();
   return { ok: true };
 }
 
@@ -673,7 +582,7 @@ export async function removeWorkspaceMember(input: {
 // ---------------------------------------------------------------------------
 
 export type AcceptWorkspaceInviteState = {
-  error?: 'Not authenticated' | 'invalid' | 'wrong-account';
+  error?: typeof NOT_AUTHENTICATED.error | 'invalid' | 'wrong-account';
 };
 
 export async function acceptWorkspaceInvite(
@@ -681,7 +590,7 @@ export async function acceptWorkspaceInvite(
   formData: FormData,
 ): Promise<AcceptWorkspaceInviteState> {
   const session = await getSession();
-  if (!session?.user) return { error: 'Not authenticated' };
+  if (!session?.user) return { error: NOT_AUTHENTICATED.error };
 
   const invite = await getPendingWorkspaceInvite(
     ((formData.get('token') as string | null) ?? '').trim(),
@@ -741,6 +650,6 @@ export async function acceptWorkspaceInvite(
     summary: `joined the workspace as ${invite.role}`,
     data: { userId: session.user.id, role: invite.role },
   });
-  revalidatePath('/dashboard', 'layout');
+  refreshesData();
   redirect(`/dashboard/workspaces/${workspace.slug}`);
 }

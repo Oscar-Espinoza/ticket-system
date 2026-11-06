@@ -1,4 +1,3 @@
-<!-- One saved view (port of src/app/dashboard/projects/[id]/views/[viewId]/page.tsx). -->
 <script lang="ts">
   import ChevronLeftIcon from '@lucide/svelte/icons/chevron-left';
   import UsersIcon from '@lucide/svelte/icons/users';
@@ -16,8 +15,7 @@
   <title>{view.name}</title>
 </svelte:head>
 
-<!-- Keyed on the view so switching views remounts the whole body, as Next
-     remounted the page segment: the favorite star and the filters / display
+<!-- Keyed on the view so switching views remounts the whole body: the favorite star and the filters / display
      options re-seed from the new view's data. -->
 {#key view.id}
 <div class="flex min-h-0 flex-1 flex-col">

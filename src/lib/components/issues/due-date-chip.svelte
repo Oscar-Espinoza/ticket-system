@@ -1,6 +1,5 @@
 <!--
   "Mar 4" — red when overdue, amber when due today (unless the issue is closed).
-  Port of DueDateChip from src/components/issues/issue-properties.tsx.
 -->
 <script lang="ts">
   import CalendarDaysIcon from '@lucide/svelte/icons/calendar-days';

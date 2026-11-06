@@ -24,7 +24,7 @@
 // (member / workflow / epic changes) unless they are a listed webhook type
 // (`issue.purged`, whose issue is gone). Receivers get issue events only.
 
-import { createHmac, randomBytes } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 import { and, asc, desc, eq, inArray, isNotNull, isNull, lt, lte, type SQL } from 'drizzle-orm';
 import type { BatchItem } from 'drizzle-orm/batch';
 
@@ -33,18 +33,19 @@ import { activities, webhookDeliveries, webhooks } from '@/db/schema';
 import type { StoredIssueEvent } from '@/lib/events';
 import { issueSummary, loadEventContext } from '@/lib/integrations/event-context';
 import { isWebhookEventType } from '@/lib/integrations/event-types';
+import { WEBHOOK_TIMEOUT_MS } from '@/lib/integrations/timeouts';
 import { guardedRequest, isDeliverableUrl } from '@/lib/integrations/url-guard';
+import { hmacHex } from '@/lib/server/secrets';
+import { MINUTE_MS } from '@/lib/time';
 
-const TIMEOUT_MS = 5000;
-const MINUTE = 60_000;
 /** Wait before retry n (after the n-th failed attempt). */
-export const RETRY_DELAYS_MS = [MINUTE, 5 * MINUTE, 30 * MINUTE, 120 * MINUTE, 720 * MINUTE];
+export const RETRY_DELAYS_MS = [MINUTE_MS, 5 * MINUTE_MS, 30 * MINUTE_MS, 120 * MINUTE_MS, 720 * MINUTE_MS];
 /** Initial attempt + one retry per delay. */
 export const MAX_ATTEMPTS = RETRY_DELAYS_MS.length + 1;
 /** A claimed row is retried again after this if its runner dies mid-send. */
-const CLAIM_LEASE_MS = 5 * MINUTE;
+const CLAIM_LEASE_MS = 5 * MINUTE_MS;
 /** Delivery log retention (finished rows only). */
-const RETENTION_MS = 30 * 24 * 60 * MINUTE;
+const RETENTION_MS = 30 * 24 * 60 * MINUTE_MS;
 const ERROR_MAX = 200;
 
 export interface WebhookPayload {
@@ -76,7 +77,7 @@ export function generateWebhookSecret(): string {
 }
 
 export function signWebhookBody(secret: string, body: string): string {
-  return `sha256=${createHmac('sha256', secret).update(body).digest('hex')}`;
+  return `sha256=${hmacHex(body, secret)}`;
 }
 
 export const isSuccess = (status: number | null) => status !== null && status >= 200 && status < 300;
@@ -112,7 +113,7 @@ export async function sendWebhook(
         'X-Webhook-Signature': signWebhookBody(hook.secret, body),
       },
       body,
-      timeoutMs: TIMEOUT_MS,
+      timeoutMs: WEBHOOK_TIMEOUT_MS,
     });
     return {
       status: res.status,
@@ -133,7 +134,7 @@ export async function sendWebhook(
     return {
       status: 0,
       error: (timedOut
-        ? `Timed out after ${TIMEOUT_MS / 1000} s.`
+        ? `Timed out after ${WEBHOOK_TIMEOUT_MS / 1000} s.`
         : `Could not connect${detail ? `: ${detail}` : '.'}`
       ).slice(0, ERROR_MAX),
     };
@@ -165,7 +166,7 @@ function touchWebhook(id: string, status: number, now: number) {
 
 /**
  * Send `rows` to one webhook in order. A network failure stops the batch — a
- * dead endpoint must not cost TIMEOUT_MS per event — and the rest wait a minute
+ * dead endpoint must not cost a full timeout per event — and the rest wait a minute
  * without spending an attempt. Records everything in one write batch.
  */
 async function sendBatch(hook: WebhookTarget, rows: Pick<DeliveryRow, 'id' | 'attempt' | 'payload'>[]) {
@@ -179,7 +180,7 @@ async function sendBatch(hook: WebhookTarget, rows: Pick<DeliveryRow, 'id' | 'at
     writes.push(updateDelivery(row.id, attemptUpdate(attempt, last, true, Date.now())));
     if (last.status === 0) break;
   }
-  const later = new Date(Date.now() + MINUTE);
+  const later = new Date(Date.now() + MINUTE_MS);
   for (const row of rows.slice(index + 1)) {
     writes.push(
       updateDelivery(row.id, {
@@ -191,10 +192,6 @@ async function sendBatch(hook: WebhookTarget, rows: Pick<DeliveryRow, 'id' | 'at
   if (!last) return;
   await db.batch([touchWebhook(hook.id, last.status, Date.now()), ...writes]);
 }
-
-// ---------------------------------------------------------------------------
-// New events
-// ---------------------------------------------------------------------------
 
 /** Whether a webhook could receive this event (stored as activity.webhook_pending_project_id). */
 export function isWebhookDeliverable(event: Pick<StoredIssueEvent, 'data' | 'ticketId' | 'type'>): boolean {
@@ -308,8 +305,8 @@ export async function deliverWebhooks(events: StoredIssueEvent[]): Promise<void>
 }
 
 /** Pending events younger than this are left to their own after-response dispatcher. */
-const SWEEP_GRACE_MS = 2 * MINUTE;
-const SWEEP_GIVE_UP_MS = 3 * 24 * 60 * MINUTE;
+const SWEEP_GRACE_MS = 2 * MINUTE_MS;
+const SWEEP_GIVE_UP_MS = 3 * 24 * 60 * MINUTE_MS;
 
 /**
  * Materialize deliveries for events whose dispatcher never finished (process
@@ -353,10 +350,6 @@ export async function sweepPendingEvents(
     return 0;
   }
 }
-
-// ---------------------------------------------------------------------------
-// Retries
-// ---------------------------------------------------------------------------
 
 /**
  * Claim and resend due deliveries of enabled webhooks (optionally only some
@@ -431,11 +424,7 @@ export async function pruneDeliveries(now = new Date()): Promise<number> {
   return rows.length;
 }
 
-// ---------------------------------------------------------------------------
-// Manual sends (settings UI) — callers authorize and scope the webhook first.
-// ---------------------------------------------------------------------------
-
-/** Send + log a one-off delivery (tests are never retried). */
+/** Send + log a one-off delivery from the settings UI (tests are never retried). Callers authorize and scope the webhook first. */
 export async function sendLoggedDelivery(
   hook: WebhookTarget,
   payload: WebhookPayload,

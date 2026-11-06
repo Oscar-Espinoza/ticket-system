@@ -1,5 +1,5 @@
 <!--
-  Settings → Security → Sessions (port of src/components/security/sessions-list.tsx):
+  Settings → Security → Sessions:
   every signed-in device, newest activity first; revoke one or all others.
   Revocation goes through server actions that map the session id to its token
   server-side.
@@ -14,10 +14,10 @@
     updatedAt: string;
   }
 
-  const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' });
 </script>
 
 <script lang="ts">
+  import { DATE_MEDIUM_LOCAL_FORMAT } from '@/lib/format';
   import { untrack } from 'svelte';
   import LaptopIcon from '@lucide/svelte/icons/laptop';
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
@@ -25,7 +25,7 @@
   import { toast } from 'svelte-sonner';
 
   import { revokeOtherSessions, revokeSession } from '@/lib/actions/security';
-  import { relativeTime } from '@/lib/components/issues/issue-properties';
+  import { relativeTime } from '@/lib/relative-time';
   import { Button } from '@/lib/components/ui/button';
   import { LabelChip } from '@/lib/components/ui-icons';
   import { describeUserAgent, isMobileUserAgent } from '@/lib/components/security/user-agent';
@@ -78,7 +78,7 @@
             {[
               session.ipAddress,
               current ? 'Active now' : `Active ${relativeTime(new Date(session.updatedAt))}`,
-              `Signed in ${dateFormat.format(new Date(session.createdAt))}`,
+              `Signed in ${DATE_MEDIUM_LOCAL_FORMAT.format(new Date(session.createdAt))}`,
             ]
               .filter(Boolean)
               .join(' · ')}

@@ -1,4 +1,4 @@
-<!-- An @mention inside rendered markdown (exported MentionChip of markdown.tsx). -->
+<!-- An @mention inside rendered markdown. -->
 <script lang="ts">
   import type { Snippet } from 'svelte';
 

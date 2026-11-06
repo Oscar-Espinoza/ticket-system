@@ -21,30 +21,32 @@ import {
   lte,
   max,
   ne,
-  notInArray,
   or,
   sql,
 } from 'drizzle-orm';
 import type { BatchItem } from 'drizzle-orm/batch';
 
 import { db } from '@/lib/db';
-import { activities, cycles, projects, tickets, workflowStates } from '@/db/schema';
+import { activities, cycles, tickets, workflowStates } from '@/db/schema';
 import { bulkUpdate, BULK_MAX, type IssueActor } from '@/lib/issue-service';
 import {
-  DAY_MS,
   EMPTY_TOTALS,
   MAX_COOLDOWN_WEEKS,
+  MAX_CYCLE_WEEKS,
+  MIN_CYCLE_WEEKS,
   UPCOMING_CYCLES,
   alignOnOrAfter,
   alignOnOrBefore,
   utcDay,
   type BurndownPoint,
+  type CycleCadence,
   type CycleTotals,
-} from '@/lib/components/cycles/cycle-utils';
+} from '@/lib/cycle-utils';
+import { DAY_MS, WEEK_MS } from '@/lib/time';
+import { openStateType } from '@/lib/workflow-server';
 
 export type CycleRow = typeof cycles.$inferSelect;
 
-const WEEK_MS = 7 * DAY_MS;
 /** Cap on the cycle-change history read per project (newest kept). */
 const HISTORY_LIMIT = 5000;
 
@@ -132,22 +134,16 @@ export async function insertCycles(
  * changes re-lay those through rescheduleUpcomingCycles); otherwise a fresh
  * cadence starts on the most recent `weekday` (project.cycle_start_weekday).
  * Gaps (nobody opened the project for weeks) are skipped whole-cycle, so no
- * empty past cycles are created. Consecutive cycles are `cooldownWeeks` apart
- * (project.cycle_cooldown_weeks, read when not passed).
+ * empty past cycles are created. Consecutive cycles are `cooldownWeeks` apart.
  */
 export async function ensureUpcomingCycles(
   projectId: string,
-  durationWeeks: number,
+  { durationWeeks, weekday, cooldownWeeks }: CycleCadence,
   now: Date,
-  weekday: number,
-  cooldownWeeks?: number,
 ): Promise<CycleRow[]> {
-  const [rows, cooldownRaw] = await Promise.all([
-    getProjectCycles(projectId),
-    cooldownWeeks ?? getCooldownWeeks(projectId),
-  ]);
+  const rows = await getProjectCycles(projectId);
   const duration = clampWeeks(durationWeeks) * WEEK_MS;
-  const cooldown = clampCooldown(cooldownRaw) * WEEK_MS;
+  const cooldown = clampCooldown(cooldownWeeks) * WEEK_MS;
   const period = duration + cooldown;
   const t = now.getTime();
 
@@ -191,10 +187,8 @@ export async function ensureUpcomingCycles(
  */
 export async function rescheduleUpcomingCycles(
   projectId: string,
-  durationWeeks: number,
-  weekday: number,
+  { durationWeeks, weekday, cooldownWeeks }: CycleCadence,
   now: Date = new Date(),
-  cooldownWeeks = 0,
 ): Promise<void> {
   const rows = await getProjectCycles(projectId);
   const duration = clampWeeks(durationWeeks) * WEEK_MS;
@@ -240,21 +234,12 @@ export async function rescheduleUpcomingCycles(
   if (statements.length) await db.batch(statements as [BatchItem<'pg'>, ...BatchItem<'pg'>[]]);
 }
 
-async function getCooldownWeeks(projectId: string): Promise<number> {
-  const [row] = await db
-    .select({ weeks: projects.cycleCooldownWeeks })
-    .from(projects)
-    .where(eq(projects.id, projectId))
-    .limit(1);
-  return row?.weeks ?? 0;
-}
-
 function clampCooldown(weeks: number): number {
   return Math.min(MAX_COOLDOWN_WEEKS, Math.max(0, Math.round(weeks) || 0));
 }
 
 function clampWeeks(weeks: number): number {
-  return Math.min(8, Math.max(1, Math.round(weeks) || 2));
+  return Math.min(MAX_CYCLE_WEEKS, Math.max(MIN_CYCLE_WEEKS, Math.round(weeks) || 2));
 }
 
 // ---------------------------------------------------------------------------
@@ -315,7 +300,7 @@ export async function completeCycle(
         eq(tickets.cycleId, cycle.id),
         isNull(tickets.archivedAt),
         isNull(tickets.deletedAt),
-        notInArray(workflowStates.type, ['completed', 'canceled']),
+        openStateType(),
       ),
     );
   let moved = 0;

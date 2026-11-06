@@ -1,34 +1,22 @@
 // Issue server actions: authorize (session + membership + role level) → the
-// issue service (validation, write, activity/events) → revalidate. The service
+// issue service (validation, write, activity/events) → refresh the page data. The service
 // scopes every write by (issue id, project id) and checks every referenced id
 // belongs to the project, so ids from another project match nothing.
 
-import { revalidatePath } from '@/lib/kit/request';
-
 import { authorizeProjectAction } from '@/lib/action-auth';
+import { refreshesData, type ActionResult } from '@/lib/server/action-kit';
 import * as issues from '@/lib/issue-service';
 import type { IssueField, IssuePatch, IssueRow } from '@/lib/issue-model';
 
-export type TicketActionResult =
-  | { ok: true; ticket?: IssueRow }
-  | { ok: false; error: string; field?: IssueField };
+export type TicketActionResult = ActionResult<{ ticket?: IssueRow }, IssueField>;
 
-export type BulkTicketActionResult =
-  | { ok: true; tickets: IssueRow[] }
-  | { ok: false; error: string; field?: IssueField };
+export type BulkTicketActionResult = ActionResult<{ tickets: IssueRow[] }, IssueField>;
 
 export type CreateTicketInput = issues.CreateIssueInput & {
   projectId: string;
   /** Idempotency key: a client-chosen UUID for the new issue (see CreateIssueOptions.id). */
   clientId?: string;
 };
-
-function revalidateProject(projectId: string) {
-  // 'layout': every page under the project (issues, views, cycles, …).
-  revalidatePath(`/dashboard/projects/${projectId}`, 'layout');
-  // Sidebar / project list open-resolved counts.
-  revalidatePath('/dashboard');
-}
 
 function toResult(result: issues.IssueResult | issues.PurgeResult): TicketActionResult {
   if (!result.ok) return result;
@@ -45,7 +33,7 @@ export async function createTicket(input: CreateTicketInput): Promise<TicketActi
     fields,
     clientId === undefined ? undefined : { id: clientId },
   );
-  if (result.ok) revalidateProject(projectId);
+  if (result.ok) refreshesData();
   return toResult(result);
 }
 
@@ -65,7 +53,7 @@ export async function updateIssue(input: {
     input.patch,
     input.descriptionSource === 'collab' ? { descriptionSource: 'collab' } : undefined,
   );
-  if (result.ok) revalidateProject(input.projectId);
+  if (result.ok) refreshesData();
   return toResult(result);
 }
 
@@ -83,7 +71,7 @@ export async function bulkUpdateIssues(input: {
     input.patch,
   );
   if (!result.ok) return result;
-  revalidateProject(input.projectId);
+  refreshesData();
   return { ok: true, tickets: result.issues };
 }
 
@@ -93,7 +81,7 @@ export async function archiveIssue(input: IssueRef): Promise<TicketActionResult>
   const authz = await authorizeProjectAction(input?.projectId, 'write');
   if (!authz.ok) return authz;
   const result = await issues.archive({ userId: authz.userId }, input.projectId, input.id);
-  if (result.ok) revalidateProject(input.projectId);
+  if (result.ok) refreshesData();
   return toResult(result);
 }
 
@@ -101,7 +89,7 @@ export async function unarchiveIssue(input: IssueRef): Promise<TicketActionResul
   const authz = await authorizeProjectAction(input?.projectId, 'write');
   if (!authz.ok) return authz;
   const result = await issues.unarchive({ userId: authz.userId }, input.projectId, input.id);
-  if (result.ok) revalidateProject(input.projectId);
+  if (result.ok) refreshesData();
   return toResult(result);
 }
 
@@ -110,7 +98,7 @@ export async function deleteTicket(input: IssueRef): Promise<TicketActionResult>
   const authz = await authorizeProjectAction(input?.projectId, 'write');
   if (!authz.ok) return authz;
   const result = await issues.softDelete({ userId: authz.userId }, input.projectId, input.id);
-  if (result.ok) revalidateProject(input.projectId);
+  if (result.ok) refreshesData();
   return toResult(result);
 }
 
@@ -119,7 +107,7 @@ export async function restoreIssue(input: IssueRef): Promise<TicketActionResult>
   const authz = await authorizeProjectAction(input?.projectId, 'write');
   if (!authz.ok) return authz;
   const result = await issues.restore({ userId: authz.userId }, input.projectId, input.id);
-  if (result.ok) revalidateProject(input.projectId);
+  if (result.ok) refreshesData();
   return toResult(result);
 }
 
@@ -134,7 +122,7 @@ async function lifecycleMany(
   if (!authz.ok) return authz;
   const result = await change({ userId: authz.userId }, input.projectId, input.ids);
   if (!result.ok) return result;
-  revalidateProject(input.projectId);
+  refreshesData();
   return { ok: true, tickets: result.issues };
 }
 
@@ -160,7 +148,7 @@ export async function purgeIssue(input: IssueRef): Promise<TicketActionResult> {
   const authz = await authorizeProjectAction(input?.projectId, 'admin');
   if (!authz.ok) return authz;
   const result = await issues.purge({ userId: authz.userId }, input.projectId, input.id);
-  if (result.ok) revalidateProject(input.projectId);
+  if (result.ok) refreshesData();
   return toResult(result);
 }
 

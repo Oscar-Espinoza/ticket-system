@@ -1,5 +1,4 @@
-<!-- Global palette commands owned by navigation (search, my issues tabs, views).
-     Port of src/components/navigation/navigation-commands.tsx. Renders nothing. -->
+<!-- Global palette commands owned by navigation (search, my issues tabs, views). Renders nothing. -->
 <script lang="ts">
   import { goto } from '$app/navigation';
 

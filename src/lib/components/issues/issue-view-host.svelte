@@ -1,12 +1,11 @@
 <!--
   Renders one IssueViewDefinition (views.ts): the list directly, code-split
-  views behind their loading skeleton (React: next/dynamic with `loading`).
+  views behind their loading skeleton.
   - `lazy.ssr: true` (board, table): the server awaits the chunk (async SSR)
-    and renders the view's HTML, as next/dynamic did by default; the client
-    hydrates that HTML once its own import resolves, without showing the
-    skeleton.
+    and renders the view's HTML; the client hydrates that HTML once its own
+    import resolves, without showing the skeleton.
   - `lazy.ssr: false` (calendar, timeline): the server renders the skeleton
-    and the client swaps the view in (next/dynamic `ssr: false`).
+    and the client swaps the view in.
   - On the client, switching to a not-yet-loaded view shows the skeleton
     (fresh boundary per view id); loaded modules are cached in the browser,
     so switching back renders at once.
@@ -50,7 +49,7 @@
   {#if view.lazy?.loading === 'board'}
     <div class="flex gap-3">
       {#each { length: 5 }, i (i)}
-        <Skeleton variant="card" class="h-64 w-[272px] shrink-0" />
+        <Skeleton variant="card" class={`h-64 ${view.lazy.skeletonColumnClass} shrink-0`} />
       {/each}
     </div>
   {:else if view.lazy?.loading === 'rows'}

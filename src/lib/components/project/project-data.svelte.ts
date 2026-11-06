@@ -1,7 +1,7 @@
 // Per-project data (states, labels, members, cycles, epics, viewer) loaded once
 // by the project layout and read anywhere below it with useProjectData().
 //
-// API (port of src/components/project/project-data.tsx):
+// API:
 //   setProjectDataContext(() => data)     provider; call during component init with a
 //                                         GETTER (layout data changes on refreshAll and
 //                                         when the [id] param changes without a remount).

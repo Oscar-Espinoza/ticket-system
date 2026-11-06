@@ -1,22 +1,18 @@
 // Vercel Cron entry point (see vercel.json). Vercel sends
 // `Authorization: Bearer $CRON_SECRET`; anything else is rejected.
 
-import { timingSafeEqual } from 'node:crypto';
-
 import type { RequestHandler } from './$types';
 import { allowOptions } from '../../_lib/options';
 
 import { runDailyJobs } from '@/lib/cron';
+import { safeEqual } from '@/lib/server/secrets';
 
-// Read by adapter-vercel (ignored by adapter-node); was `maxDuration` under Next.
+// Read by adapter-vercel (ignored by adapter-node).
 export const config = { maxDuration: 60 };
 
 function authorized(header: string | null): boolean {
   const secret = process.env.CRON_SECRET;
-  if (!secret || !header) return false;
-  const expected = Buffer.from(`Bearer ${secret}`);
-  const given = Buffer.from(header);
-  return expected.length === given.length && timingSafeEqual(expected, given);
+  return !!secret && safeEqual(header, `Bearer ${secret}`);
 }
 
 export const GET: RequestHandler = async ({ request }) => {
@@ -27,5 +23,4 @@ export const GET: RequestHandler = async ({ request }) => {
   return Response.json({ ok: true, results });
 };
 
-// Next answered OPTIONS automatically (204 + Allow); Kit would 405.
 export const OPTIONS = allowOptions('GET');

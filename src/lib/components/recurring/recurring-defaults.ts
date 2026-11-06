@@ -1,9 +1,8 @@
-// Stored defaults → property chips value (port of the non-exported helper in
-// src/components/recurring/recurring-settings.tsx).
+// Stored defaults → property chips value.
 
 import { isPriority, type IssuePatch } from '@/lib/issue-model';
 import type { ProjectData } from '@/lib/project-data-types';
-import type { RecurringDefaults } from '@/lib/components/recurring/schedule';
+import type { RecurringDefaults } from '@/lib/recurring-schedule';
 
 /** Stored defaults → chips value, dropping ids the project no longer has. */
 export function defaultsToPatch(

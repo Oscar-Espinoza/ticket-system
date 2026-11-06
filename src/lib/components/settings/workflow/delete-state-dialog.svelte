@@ -21,7 +21,7 @@
     SelectValue,
   } from '@/lib/components/ui/select';
   import { STATE_TYPE_LABEL, type WorkflowState } from '@/lib/issue-model';
-  import { issuesLabel } from './workflow-utils';
+  import { pluralize } from '@/lib/format';
 
   let {
     projectId,
@@ -93,7 +93,7 @@
       <DialogDescription>
         {blocked ??
           (count > 0
-            ? `${issuesLabel(count)} use this state. Choose where they should move.`
+            ? `${pluralize(count, 'issue')} use this state. Choose where they should move.`
             : 'No issues use this state.')}
       </DialogDescription>
     </DialogHeader>

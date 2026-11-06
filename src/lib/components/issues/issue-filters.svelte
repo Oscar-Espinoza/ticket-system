@@ -1,7 +1,6 @@
 <!--
   Toolbar: Filter button (`f`), active filter chips, quick text box, Clear.
-  (Component half of src/components/issues/issue-filters.tsx; the filter state
-  and provider live in issue-filters.svelte.ts.)
+  (The filter state and provider live in issue-filters.svelte.ts.)
 -->
 <script lang="ts">
   import type { ComponentProps } from 'svelte';
@@ -13,6 +12,8 @@
   import FilterMenu from '@/lib/components/views/filter-menu.svelte';
   import FilterChips from '@/lib/components/views/filter-chips.svelte';
   import SearchSyntaxHelp from '@/lib/components/views/search-syntax-help.svelte';
+  import { appendToken } from '@/lib/search-token';
+  import { createDebouncer } from '@/lib/svelte/debounce';
   import { registerHotkeys } from '@/lib/svelte/hotkeys.svelte';
   import { cn } from '@/lib/utils';
   import {
@@ -62,12 +63,6 @@
     return unchanged ? { ...filters, q } : next;
   }
 
-  /** Appends `token` to `query` with a separating space (search-syntax-help's appendToken). */
-  function appendToken(query: string, token: string): string {
-    const base = query.trimEnd();
-    return base ? `${base} ${token} ` : `${token} `;
-  }
-
   const value = $derived(filters.current.q);
   let draft = $state(filters.current.q);
   let synced = filters.current.q;
@@ -88,8 +83,9 @@
   $effect(() => {
     if (draft === value) return;
     const q = draft;
-    const id = setTimeout(() => commit(q), 200);
-    return () => clearTimeout(id);
+    const debounce = createDebouncer();
+    debounce.schedule(() => commit(q), 200);
+    return debounce.cancel;
   });
 
   const syntax = $derived(/(^|\s)-?[a-z]+:/i.test(draft));
