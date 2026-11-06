@@ -6,10 +6,8 @@
 // plugin re-verifies the signature.
 
 import { redirect } from '@sveltejs/kit';
-import { eq } from 'drizzle-orm';
 
-import { db } from '@/lib/db';
-import { oauthClients } from '@/db/schema';
+import { getConsentClient } from '@/lib/public-links-read';
 import type { PageServerLoad } from './$types';
 
 /** The query regrouped by key (first-seen order), repeated values kept together. */
@@ -46,20 +44,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
   const clientId = query.get('client_id');
   const valid = !!clientId && !!query.get('sig') && notExpired(query.get('exp'));
 
-  const [client] = valid
-    ? await db
-        .select({
-          name: oauthClients.name,
-          icon: oauthClients.icon,
-          uri: oauthClients.uri,
-          policy: oauthClients.policy,
-          tos: oauthClients.tos,
-          disabled: oauthClients.disabled,
-        })
-        .from(oauthClients)
-        .where(eq(oauthClients.clientId, clientId))
-        .limit(1)
-    : [];
+  const client = valid ? await getConsentClient(clientId) : undefined;
 
   const scopes = [...new Set((query.get('scope') ?? '').split(' ').filter(Boolean))];
 

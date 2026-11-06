@@ -9,7 +9,7 @@
   <title>{data.epic.name}</title>
 </svelte:head>
 
-<!-- Next remounted the page per epic; keep that so drafts and pending
+<!-- Remount per epic so drafts and pending
      optimistic ops never carry over from one epic to the next. -->
 {#key data.epic.id}
 <EpicDetail

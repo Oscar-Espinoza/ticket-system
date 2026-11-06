@@ -1,7 +1,5 @@
 <!--
-  Member profile (port of src/app/dashboard/people/[userId]/page.tsx).
-  loading.tsx is not ported per page: the dashboard layout shows the
-  navigation progress indicator (PLAN.md "Pages and data loading").
+  Member profile. The dashboard layout shows the navigation progress indicator.
 -->
 <script lang="ts">
   import ActivityIcon from '@lucide/svelte/icons/activity';

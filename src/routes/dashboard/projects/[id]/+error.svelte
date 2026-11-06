@@ -1,9 +1,7 @@
 <!--
   Errors in pages under a project, rendered inside the project layout.
-  404 → "Project not found" (port of src/app/dashboard/projects/[id]/not-found.tsx,
-  which Next showed for notFound() from these pages). Other errors → the
-  dashboard error state (src/app/dashboard/error.tsx; Next rendered it in place
-  of the whole project layout, SvelteKit keeps the project header around it).
+  404 → "Project not found". Other errors → the dashboard error state, with the
+  project header kept around it.
 -->
 <script lang="ts">
   import { goto } from '$app/navigation';
@@ -21,8 +19,8 @@
   // unstable_retry(): re-run the loads and re-render the segment.
   const retry = () => goto(page.url.href, { replace: true, refreshAll: true, reset: false });
 
-  // Next titled a page-level miss from its generateMetadata ("Issue not found";
-  // no suffix under a project).
+  // A page-level miss is titled by its own message ("Issue not found"; no
+  // suffix under a project).
   const specificMessage = $derived(
     page.error?.message && !/^not found$/i.test(page.error.message) ? page.error.message : null,
   );

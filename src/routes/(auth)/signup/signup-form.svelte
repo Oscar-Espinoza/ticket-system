@@ -1,5 +1,5 @@
 <!--
-  Signup form (port of src/app/(auth)/signup/signup-form.tsx) — email/password
+  Signup form — email/password
   registration via Better Auth.
 
   UI-SPEC contract:

@@ -1,9 +1,6 @@
 import { error } from '@sveltejs/kit';
-import { and, asc, eq } from 'drizzle-orm';
-import { alias } from 'drizzle-orm/pg-core';
 
-import { projectMembers, projects, workspaces } from '@/db/schema';
-import { db } from '@/lib/db';
+import { getGeneralSettings, getWorkspaceProjectsForViewer } from '@/lib/project-settings-read';
 import { roleAllows } from '@/lib/roles';
 import { getUserWorkspaces } from '@/lib/workspace-access';
 import { loadViewerProject } from '../../project-load';
@@ -28,43 +25,12 @@ export const load: PageServerLoad = async ({ params }) => {
   const { id } = params;
   const { user, project: membership } = await loadViewerProject(id);
   const userId = user.id;
-  const [[project], userWorkspaces] = await Promise.all([
-    db
-      .select({
-        name: projects.name,
-        ticketKey: projects.ticketKey,
-        description: projects.description,
-        estimateScale: projects.estimateScale,
-        workspaceId: projects.workspaceId,
-        workspaceName: workspaces.name,
-        parentId: projects.parentId,
-        visibility: projects.visibility,
-      })
-      .from(projects)
-      .leftJoin(workspaces, eq(projects.workspaceId, workspaces.id))
-      .where(eq(projects.id, id))
-      .limit(1),
-    getUserWorkspaces(userId),
-  ]);
+  const [project, userWorkspaces] = await Promise.all([getGeneralSettings(id), getUserWorkspaces(userId)]);
   if (!project) error(404, 'Not found');
 
   // Candidate parents: same workspace, viewer is a member, not in our subtree.
   // Names of teams the viewer isn't in stay hidden, except the current parent.
-  const viewer = alias(projectMembers, 'viewer');
-  const siblings = project.workspaceId
-    ? await db
-        .select({
-          id: projects.id,
-          name: projects.name,
-          ticketKey: projects.ticketKey,
-          parentId: projects.parentId,
-          member: viewer.id,
-        })
-        .from(projects)
-        .leftJoin(viewer, and(eq(viewer.projectId, projects.id), eq(viewer.userId, userId)))
-        .where(eq(projects.workspaceId, project.workspaceId))
-        .orderBy(asc(projects.name))
-    : [];
+  const siblings = project.workspaceId ? await getWorkspaceProjectsForViewer(project.workspaceId, userId) : [];
   const excluded = subtree(id, siblings);
   const parentOptions = siblings
     .filter((p) => !excluded.has(p.id) && (p.member !== null || p.id === project.parentId))

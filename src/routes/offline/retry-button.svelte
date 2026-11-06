@@ -1,4 +1,3 @@
-<!-- Port of src/app/offline/retry-button.tsx. -->
 <script lang="ts">
   import RotateCwIcon from '@lucide/svelte/icons/rotate-cw';
 

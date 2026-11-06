@@ -2,20 +2,13 @@
 // see the requests; only admins toggle or rotate the public link.
 
 import { error } from '@sveltejs/kit';
-import { and, desc, eq } from 'drizzle-orm';
-import { alias } from 'drizzle-orm/pg-core';
-
 import { customerPath } from '@/lib/customer-model';
-import { customerRequests, customers, projects, tickets, workflowStates } from '@/db/schema';
-import { db } from '@/lib/db';
 import { appUrl } from '@/lib/integrations/app-url';
 import { issuePath } from '@/lib/issue-links';
+import { getIntakeRequests, getIntakeSettings } from '@/lib/project-settings-read';
 import { roleAllows } from '@/lib/roles';
-import { memberOfIssueProject } from '@/lib/tickets';
 import { loadViewerProject } from '../../project-load';
 import type { PageServerLoad } from './$types';
-
-const issueProject = alias(projects, 'issue_project');
 
 const REQUESTS_SHOWN = 50;
 const EXCERPT = 180;
@@ -25,44 +18,9 @@ export const load: PageServerLoad = async ({ params }) => {
   const { id } = params;
   const { user, project: membership } = await loadViewerProject(id);
 
-  const [[project], requests] = await Promise.all([
-    db
-      .select({ intakeToken: projects.intakeToken, triageEnabled: projects.triageEnabled })
-      .from(projects)
-      .where(eq(projects.id, id))
-      .limit(1),
-    db
-      .select({
-        id: customerRequests.id,
-        name: customerRequests.name,
-        email: customerRequests.email,
-        body: customerRequests.body,
-        createdAt: customerRequests.createdAt,
-        linkedTicketId: customerRequests.ticketId,
-        ticketProjectId: tickets.projectId,
-        ticketKey: issueProject.ticketKey,
-        number: tickets.ticketNumber,
-        title: tickets.title,
-        deletedAt: tickets.deletedAt,
-        stateName: workflowStates.name,
-        stateType: workflowStates.type,
-        stateColor: workflowStates.color,
-        customerId: customers.id,
-        customerName: customers.name,
-      })
-      .from(customerRequests)
-      // The issue may have moved to a project the viewer can't see: join it
-      // only through membership of its current project, keyed by that project.
-      .leftJoin(
-        tickets,
-        and(eq(customerRequests.ticketId, tickets.id), memberOfIssueProject(user.id)),
-      )
-      .leftJoin(issueProject, eq(issueProject.id, tickets.projectId))
-      .leftJoin(workflowStates, eq(tickets.stateId, workflowStates.id))
-      .leftJoin(customers, eq(customerRequests.customerId, customers.id))
-      .where(eq(customerRequests.projectId, id))
-      .orderBy(desc(customerRequests.createdAt))
-      .limit(REQUESTS_SHOWN),
+  const [project, requests] = await Promise.all([
+    getIntakeSettings(id),
+    getIntakeRequests(id, user.id, REQUESTS_SHOWN),
   ]);
   if (!project) error(404, 'Not found');
 

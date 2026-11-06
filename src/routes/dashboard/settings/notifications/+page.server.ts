@@ -1,9 +1,6 @@
 // Account settings › Notifications.
 
-import { desc, eq } from 'drizzle-orm';
-
-import { pushSubscriptions, userProfiles } from '@/db/schema';
-import { db } from '@/lib/db';
+import { getNotificationSettings } from '@/lib/account-settings-read';
 import { isDigestFrequency } from '@/lib/notifications/types';
 import { pushConfigured, vapidPublicKey } from '@/lib/push';
 import { requireUser } from '@/lib/session';
@@ -12,28 +9,7 @@ import type { PageServerLoad } from './$types';
 export const load: PageServerLoad = async () => {
   const user = await requireUser();
 
-  const [[profile], devices] = await Promise.all([
-    db
-      .select({
-        emailNotifications: userProfiles.emailNotifications,
-        prefs: userProfiles.notificationPrefs,
-        digest: userProfiles.digestFrequency,
-        push: userProfiles.pushNotifications,
-      })
-      .from(userProfiles)
-      .where(eq(userProfiles.userId, user.id))
-      .limit(1),
-    db
-      .select({
-        id: pushSubscriptions.id,
-        endpoint: pushSubscriptions.endpoint,
-        userAgent: pushSubscriptions.userAgent,
-        createdAt: pushSubscriptions.createdAt,
-      })
-      .from(pushSubscriptions)
-      .where(eq(pushSubscriptions.userId, user.id))
-      .orderBy(desc(pushSubscriptions.createdAt)),
-  ]);
+  const { profile, devices } = await getNotificationSettings(user.id);
 
   const configured = pushConfigured();
   const digest = profile?.digest;

@@ -1,4 +1,3 @@
-<!-- Search (port of src/app/dashboard/search/page.tsx). -->
 <script lang="ts">
   import SearchIcon from '@lucide/svelte/icons/search';
   import SearchXIcon from '@lucide/svelte/icons/search-x';

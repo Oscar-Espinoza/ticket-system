@@ -57,7 +57,7 @@
   </div>
 {:else}
   {@const security = data.security}
-  <!-- Next remounted the page when [slug] changed; Kit reuses it, so key the local state. -->
+  <!-- Kit reuses the page when [slug] changes, so key the local state. -->
   {#key security.workspaceId}
   <div class="mx-auto flex max-w-3xl flex-col gap-10">
     {@render header()}

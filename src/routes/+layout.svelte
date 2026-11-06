@@ -1,5 +1,5 @@
 <!--
-  Root layout (port of src/app/layout.tsx). The <html>/<body> classes, PWA and
+  Root layout. The <html>/<body> classes, PWA and
   theme-color metas, icons, manifest and the density boot script live in
   src/app.html; Geist / Geist Mono come from src/app.css (@fontsource).
 -->
@@ -39,7 +39,5 @@
   <Toaster position="bottom-right" />
 </ThemeProvider>
 
-<!-- ===== Lane L1 (PWA): <RegisterServiceWorker /> and <OfflineBanner />,
-     after the app, as src/app/layout.tsx did. ===== -->
 <RegisterServiceWorker />
 <OfflineBanner />

@@ -5,13 +5,9 @@
 // member of.
 
 import { error } from '@sveltejs/kit';
-import { and, desc, eq, inArray } from 'drizzle-orm';
-
-import { db } from '@/lib/db';
-import { activities, projects, tickets, userProfiles, users } from '@/db/schema';
-import { openStateType } from '@/lib/workflow-server';
+import { getAssignedOpenIssues } from '@/lib/issue-lists-read';
+import { getPerson, getRecentActivity } from '@/lib/people-read';
 import { getSharedProjects } from '@/lib/project-access';
-import { activeIssue, memberOfIssueProject, queryIssues } from '@/lib/tickets';
 import { activitySummary } from '@/lib/components/people/activity-summary';
 import { requireUser } from '@/lib/session';
 import type { PageServerLoad } from './$types';
@@ -40,51 +36,10 @@ export const load: PageServerLoad = async ({ params }) => {
   const isSelf = viewerId === userId;
   const sharedIds = shared.map((project) => project.id);
 
-  const [[person], recent, assigned] = await Promise.all([
-    db
-      .select({
-        name: users.name,
-        email: users.email,
-        image: users.image,
-        title: userProfiles.title,
-        bio: userProfiles.bio,
-        timezone: userProfiles.timezone,
-      })
-      .from(users)
-      .leftJoin(userProfiles, eq(userProfiles.userId, users.id))
-      .where(eq(users.id, userId))
-      .limit(1),
-    sharedIds.length === 0
-      ? []
-      : db
-          .select({
-            id: activities.id,
-            type: activities.type,
-            data: activities.data,
-            createdAt: activities.createdAt,
-            ticketId: activities.ticketId,
-            projectId: activities.projectId,
-            projectName: projects.name,
-            ticketKey: projects.ticketKey,
-            number: tickets.ticketNumber,
-            title: tickets.title,
-            deletedAt: tickets.deletedAt,
-          })
-          .from(activities)
-          .innerJoin(projects, eq(activities.projectId, projects.id))
-          .leftJoin(tickets, eq(activities.ticketId, tickets.id))
-          .where(and(eq(activities.actorId, userId), inArray(activities.projectId, sharedIds)))
-          .orderBy(desc(activities.createdAt))
-          .limit(20),
-    queryIssues(
-      and(
-        eq(tickets.assigneeId, userId),
-        memberOfIssueProject(viewerId),
-        activeIssue(),
-        openStateType(),
-      ),
-      { limit: 50, orderBy: [desc(tickets.updatedAt)] },
-    ),
+  const [person, recent, assigned] = await Promise.all([
+    getPerson(userId),
+    sharedIds.length === 0 ? [] : getRecentActivity(userId, sharedIds),
+    getAssignedOpenIssues(userId, viewerId),
   ]);
   if (!person) error(404, 'Profile not found');
 

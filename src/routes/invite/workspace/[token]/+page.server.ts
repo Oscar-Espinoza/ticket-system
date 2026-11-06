@@ -12,7 +12,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
   const invite = await getPendingWorkspaceInvite(token);
   return {
     token,
-    /** The segment as it appears in the URL (Next's raw `params.token`). */
+    /** The segment as it appears in the URL (the raw `params.token`). */
     rawToken: encodeURIComponent(token),
     invite: invite ? { email: invite.email, role: invite.role, workspaceName: invite.workspaceName } : null,
     user: locals.user ? { email: locals.user.email } : null,

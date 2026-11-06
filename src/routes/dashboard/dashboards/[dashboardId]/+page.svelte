@@ -14,7 +14,7 @@
 </svelte:head>
 
 <div class="mx-auto flex w-full max-w-7xl flex-col">
-  <!-- Next remounted the page per dashboard id; keep that (local widget state is seeded once). -->
+  <!-- Remount per dashboard id (local widget state is seeded once). -->
   {#key data.dashboard.id}
     <DashboardView
       dashboard={data.dashboard}

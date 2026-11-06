@@ -2,12 +2,9 @@
 // into Slack workspaces (Asks → issues), pick where Asks land, and link your
 // own Slack account for DM notifications.
 
-import { and, asc, eq, inArray, or } from 'drizzle-orm';
-
-import { projectMembers, projects, slackInstallations, slackUserLinks, users } from '@/db/schema';
-import { db } from '@/lib/db';
-import { rolesAllowing } from '@/lib/roles';
+import { getAdminProjects } from '@/lib/project-settings-read';
 import { requireUser } from '@/lib/session';
+import { getSlackInstallationsFor, getSlackUserLinks } from '@/lib/slack-settings-read';
 import { slackConfig, slackManifest, slackUrls } from '@/lib/slack/config';
 import type { SlackWorkspace } from '@/lib/components/slack/slack-types';
 import type { PageServerLoad } from './$types';
@@ -37,39 +34,10 @@ export const load: PageServerLoad = async ({ url }) => {
   const status = single('slack');
   const reason = single('reason');
 
-  const [links, adminProjects] = await Promise.all([
-    db
-      .select({ teamId: slackUserLinks.teamId, notify: slackUserLinks.notify })
-      .from(slackUserLinks)
-      .where(eq(slackUserLinks.userId, userId)),
-    db
-      .select({ id: projects.id, name: projects.name, ticketKey: projects.ticketKey })
-      .from(projectMembers)
-      .innerJoin(projects, eq(projects.id, projectMembers.projectId))
-      .where(and(eq(projectMembers.userId, userId), inArray(projectMembers.role, rolesAllowing('admin'))))
-      .orderBy(asc(projects.name)),
-  ]);
+  const [links, adminProjects] = await Promise.all([getSlackUserLinks(userId), getAdminProjects(userId)]);
 
   const linkedTeams = links.map((link) => link.teamId);
-  const installs = await db
-    .select({
-      teamId: slackInstallations.teamId,
-      teamName: slackInstallations.teamName,
-      installedById: slackInstallations.installedById,
-      installedByName: users.name,
-      defaultProjectId: slackInstallations.defaultProjectId,
-      defaultProjectName: projects.name,
-      createdAt: slackInstallations.createdAt,
-    })
-    .from(slackInstallations)
-    .leftJoin(users, eq(users.id, slackInstallations.installedById))
-    .leftJoin(projects, eq(projects.id, slackInstallations.defaultProjectId))
-    .where(
-      linkedTeams.length
-        ? or(eq(slackInstallations.installedById, userId), inArray(slackInstallations.teamId, linkedTeams))
-        : eq(slackInstallations.installedById, userId),
-    )
-    .orderBy(asc(slackInstallations.createdAt));
+  const installs = await getSlackInstallationsFor(userId, linkedTeams);
 
   const adminIds = new Set(adminProjects.map((p) => p.id));
   const notifyByTeam = new Map(links.map((link) => [link.teamId, link.notify]));

@@ -3,14 +3,12 @@
 // (project id, cycle id) and the issue read is membership-gated in SQL too.
 
 import { error } from '@sveltejs/kit';
-import { and, eq } from 'drizzle-orm';
 
-import { tickets } from '@/db/schema';
 import { requireUser } from '@/lib/session';
 import { roleAllows } from '@/lib/roles';
-import { activeIssue, memberOfIssueProject, queryIssues } from '@/lib/tickets';
+import { getCycleIssues } from '@/lib/issue-lists-read';
 import { isClosed } from '@/lib/workflow';
-import { VIEW_COOKIE } from '@/lib/issue-model';
+import { readDefaultView } from '@/lib/issue-view-read';
 import {
   cycleBurndown,
   cycleTotals,
@@ -30,14 +28,7 @@ export const load: PageServerLoad = async ({ params, cookies, parent }) => {
   if (!cycle) error(404, 'Not found');
 
   const [issues, history, next, allCycles] = await Promise.all([
-    queryIssues(
-      and(
-        eq(tickets.projectId, id),
-        eq(tickets.cycleId, cycle.id),
-        activeIssue(),
-        memberOfIssueProject(user.id),
-      ),
-    ),
+    getCycleIssues(id, cycle.id, user.id),
     loadCycleHistory(id),
     cycle.completedAt ? null : findNextCycle(id, cycle),
     getProjectCycles(id),
@@ -80,6 +71,6 @@ export const load: PageServerLoad = async ({ params, cookies, parent }) => {
     capacity,
     burndown: cycleBurndown(history, cycle, now),
     issues,
-    defaultView: cookies.get(VIEW_COOKIE),
+    defaultView: readDefaultView(cookies),
   };
 };

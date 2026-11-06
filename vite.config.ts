@@ -24,8 +24,8 @@ export default defineConfig(async ({ mode }) => {
   // Vite and SvelteKit don't put .env / .env.local into process.env, and the
   // server code reads process.env. Real environment variables win over files.
   Object.assign(process.env, { ...loadEnv(mode, process.cwd(), ''), ...process.env });
-  // Public values inlined at build time. NEXT_PUBLIC_* are the names from the
-  // Next.js era, still accepted so existing .env files and deployments work.
+  // Public values inlined at build time. NEXT_PUBLIC_* are the legacy names,
+  // still accepted so existing .env files and deployments work.
   const appUrl = process.env.PUBLIC_APP_URL ?? process.env.NEXT_PUBLIC_APP_URL;
   const vapidKey = process.env.PUBLIC_VAPID_PUBLIC_KEY ?? process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 
@@ -62,7 +62,7 @@ export default defineConfig(async ({ mode }) => {
       'process.env.PUBLIC_APP_URL': JSON.stringify(appUrl ?? ''),
       'process.env.PUBLIC_VAPID_PUBLIC_KEY': JSON.stringify(vapidKey ?? ''),
     },
-    // Same port as the Next.js app had, so .env.local and OAuth callback URLs keep working.
+    // Fixed port, so .env.local and OAuth callback URLs keep working.
     server: { port: 3000 },
     preview: { port: 3000 },
     test: {

@@ -10,7 +10,7 @@ import { error } from '@sveltejs/kit';
 import { documentsForEpic } from '@/lib/documents';
 import { getEpicDetail } from '@/lib/epics';
 import { getInitiativeOptions } from '@/lib/initiatives';
-import { VIEW_COOKIE } from '@/lib/issue-model';
+import { readDefaultView } from '@/lib/issue-view-read';
 import { requireUser } from '@/lib/session';
 import { getWorkspaceMembership } from '@/lib/workspace-access';
 import type { PageServerLoad } from './$types';
@@ -41,6 +41,6 @@ export const load: PageServerLoad = async ({ params, cookies, parent }) => {
     documents: docs,
     initiatives,
     workspaceSlug: membership?.slug ?? null,
-    defaultView: cookies.get(VIEW_COOKIE),
+    defaultView: readDefaultView(cookies),
   };
 };

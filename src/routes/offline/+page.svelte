@@ -1,4 +1,3 @@
-<!-- Port of src/app/offline/page.tsx. -->
 <script lang="ts">
   import WifiOffIcon from '@lucide/svelte/icons/wifi-off';
 

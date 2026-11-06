@@ -2,10 +2,7 @@
 // here; every action re-checks the admin role. Tokens and secrets never leave
 // the server — the client only learns what's connected.
 
-import { eq, sql } from 'drizzle-orm';
-
-import { projectIntegrations, users } from '@/db/schema';
-import { db } from '@/lib/db';
+import { getProjectIntegrations } from '@/lib/project-settings-read';
 import { isUnreachableUrl } from '@/lib/vcs/webhook-url';
 import { roleAllows } from '@/lib/roles';
 import { GITLAB_DEFAULT_URL } from '@/lib/vcs/gitlab';
@@ -23,17 +20,7 @@ export const load: PageServerLoad = async ({ params }) => {
   const { id } = params;
   const { project: membership } = await loadViewerProject(id);
 
-  const rows = await db
-    .select({
-      id: projectIntegrations.id,
-      provider: projectIntegrations.provider,
-      config: projectIntegrations.config,
-      hasToken: sql<boolean>`${projectIntegrations.token} is not null`,
-      connectedByName: users.name,
-    })
-    .from(projectIntegrations)
-    .leftJoin(users, eq(users.id, projectIntegrations.createdById))
-    .where(eq(projectIntegrations.projectId, id));
+  const rows = await getProjectIntegrations(id);
 
   const vcs = (provider: 'gitlab' | 'bitbucket'): VcsIntegrationView | null => {
     const row = rows.find((r) => r.provider === provider);

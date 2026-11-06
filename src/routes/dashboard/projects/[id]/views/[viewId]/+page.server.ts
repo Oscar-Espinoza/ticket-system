@@ -4,7 +4,7 @@
 import { error } from '@sveltejs/kit';
 
 import { getFavoritedIds } from '@/lib/favorites';
-import { VIEW_COOKIE } from '@/lib/issue-model';
+import { readDefaultView } from '@/lib/issue-view-read';
 import { getProjectIssues } from '@/lib/tickets';
 import { getViewForUser } from '@/lib/views';
 import { requireUser } from '@/lib/session';
@@ -23,6 +23,6 @@ export const load: PageServerLoad = async ({ params, cookies }) => {
     view,
     issues,
     favorited: favorited.has(view.id),
-    defaultView: cookies.get(VIEW_COOKIE),
+    defaultView: readDefaultView(cookies),
   };
 };

@@ -3,12 +3,10 @@
 // Membership is checked here; every action re-checks the admin role.
 
 import { error } from '@sveltejs/kit';
-import { eq } from 'drizzle-orm';
 
-import { projects, users } from '@/db/schema';
-import { db } from '@/lib/db';
 import { getGithubAccount, githubMessage, type GithubAccountStatus } from '@/lib/github/client';
 import { webhookUrl } from '@/lib/github/webhooks';
+import { getGithubSettings } from '@/lib/project-settings-read';
 import { isUnreachableUrl } from '@/lib/vcs/webhook-url';
 import { roleAllows } from '@/lib/roles';
 import { loadViewerProject } from '../../project-load';
@@ -26,19 +24,8 @@ export const load: PageServerLoad = async ({ params, url }) => {
   const { id } = params;
   const { user, project: membership } = await loadViewerProject(id);
 
-  const [[project], account] = await Promise.all([
-    db
-      .select({
-        repo: projects.githubRepo,
-        webhookId: projects.githubWebhookId,
-        prOpenStateId: projects.githubPrOpenStateId,
-        prMergeStateId: projects.githubPrMergeStateId,
-        connectedByName: users.name,
-      })
-      .from(projects)
-      .leftJoin(users, eq(users.id, projects.githubConnectedById))
-      .where(eq(projects.id, id))
-      .limit(1),
+  const [project, account] = await Promise.all([
+    getGithubSettings(id),
     getGithubAccount(user.id).catch((err): GithubAccountStatus | { status: 'error' } => {
       console.error('[github] account lookup failed', githubMessage(err));
       return { status: 'error' };

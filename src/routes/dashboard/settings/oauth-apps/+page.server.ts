@@ -1,10 +1,7 @@
 // OAuth apps: apps the user registered against our OAuth 2.0 provider, and third-party
 // apps the user has authorized. See docs/API.md → OAuth.
 
-import { asc, desc, eq } from 'drizzle-orm';
-
-import { db } from '@/lib/db';
-import { oauthClients, oauthConsents } from '@/db/schema';
+import { getOAuthSettings } from '@/lib/account-settings-read';
 import { appUrl } from '@/lib/integrations/app-url';
 import type { AuthorizedAppView, OAuthAppView } from '@/lib/oauth-model';
 import { requireUser } from '@/lib/session';
@@ -13,35 +10,7 @@ import type { PageServerLoad } from './$types';
 export const load: PageServerLoad = async () => {
   const { id: userId } = await requireUser();
 
-  const [apps, consents] = await Promise.all([
-    db
-      .select({
-        clientId: oauthClients.clientId,
-        name: oauthClients.name,
-        icon: oauthClients.icon,
-        uri: oauthClients.uri,
-        redirectUris: oauthClients.redirectUris,
-        isPublic: oauthClients.public,
-        createdAt: oauthClients.createdAt,
-      })
-      .from(oauthClients)
-      .where(eq(oauthClients.userId, userId))
-      .orderBy(asc(oauthClients.createdAt)),
-    db
-      .select({
-        id: oauthConsents.id,
-        clientId: oauthConsents.clientId,
-        scopes: oauthConsents.scopes,
-        grantedAt: oauthConsents.updatedAt,
-        name: oauthClients.name,
-        icon: oauthClients.icon,
-        uri: oauthClients.uri,
-      })
-      .from(oauthConsents)
-      .innerJoin(oauthClients, eq(oauthClients.clientId, oauthConsents.clientId))
-      .where(eq(oauthConsents.userId, userId))
-      .orderBy(desc(oauthConsents.updatedAt)),
-  ]);
+  const { apps, consents } = await getOAuthSettings(userId);
 
   return {
     origin: appUrl(),

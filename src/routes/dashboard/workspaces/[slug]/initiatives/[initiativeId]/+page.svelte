@@ -9,7 +9,7 @@
   <title>{data.detail.initiative.name} · Ticket System</title>
 </svelte:head>
 
-<!-- Next remounted the page per initiative; keep that so drafts and pending
+<!-- Remount per initiative so drafts and pending
      optimistic ops never carry over from one initiative to the next. -->
 {#key data.detail.initiative.id}
 <InitiativeDetail

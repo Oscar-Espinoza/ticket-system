@@ -10,33 +10,13 @@
 //
 // Visiting is read-only: joining is the explicit POST in joinProject.
 
-import { and, eq, gt, isNull } from 'drizzle-orm';
-
-import { db } from '@/lib/db';
-import { invitations, projects, users } from '@/db/schema';
+import { getOpenInvitation } from '@/lib/public-links-read';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
   const { token } = params;
 
-  const [invitation] = await db
-    .select({
-      email: invitations.email,
-      role: invitations.role,
-      projectName: projects.name,
-      inviterName: users.name,
-    })
-    .from(invitations)
-    .innerJoin(projects, eq(invitations.projectId, projects.id))
-    .leftJoin(users, eq(invitations.invitedById, users.id))
-    .where(
-      and(
-        eq(invitations.token, token),
-        gt(invitations.expiresAt, new Date()),
-        isNull(invitations.acceptedAt),
-      ),
-    )
-    .limit(1);
+  const invitation = await getOpenInvitation(token);
 
   return {
     token,

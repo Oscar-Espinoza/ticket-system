@@ -1,8 +1,6 @@
 <!--
-  Errors in dashboard pages (port of src/app/dashboard/error.tsx), rendered
-  inside the dashboard shell. A 404 here had no dashboard-level not-found.tsx
-  in Next (it fell through to Next's built-in 404 page), so it renders that
-  page's text instead of the error state.
+  Errors in dashboard pages, rendered inside the dashboard shell. A 404 renders
+  the plain not-found text instead of the error state.
 -->
 <script lang="ts">
   import { goto } from '$app/navigation';
@@ -26,8 +24,8 @@
 
 <svelte:head>
   {#if page.status === 404}
-    <!-- A page's generateMetadata named the miss ("Profile not found"); otherwise
-         Next's built-in not-found title. -->
+    <!-- A page's error message names the miss ("Profile not found"); otherwise
+         the plain not-found title. -->
     {#if specificMessage}
       <title>{specificMessage} · Ticket System</title>
     {:else}
