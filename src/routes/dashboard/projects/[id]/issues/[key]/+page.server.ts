@@ -1,10 +1,12 @@
 // Issue permalink — the stable, shareable URL for one issue (notifications,
 // Slack, emails, search and "Copy link" all point here). The project layout
-// 404s non-members; `await parent()` waits for that check.
+// also 404s non-members; this page checks membership itself (getProjectData is
+// memoized per request) so its own "Issue not found" stays the 404 message.
 
 import { error, redirect } from '@sveltejs/kit';
 
 import { issuePath } from '@/lib/issue-links';
+import { getProjectData } from '@/lib/project-data';
 import { requireUser } from '@/lib/session';
 import { getIssueByKey, getProjectIssues, parseIssueKey } from '@/lib/tickets';
 import type { PageServerLoad } from './$types';
@@ -18,14 +20,14 @@ function parseKeyNumber(raw: string): number | null {
   }
 }
 
-export const load: PageServerLoad = async ({ params, parent }) => {
+export const load: PageServerLoad = async ({ params }) => {
   const { id, key } = params;
   const { id: userId } = await requireUser();
-  await parent();
   const number = parseKeyNumber(key);
 
   // Passing the viewer enables the moved-issue alias fallback (ticket_key_alias).
-  const issue = number === null ? null : await getIssueByKey(id, number, userId);
+  const member = number !== null && (await getProjectData(id, userId)) !== null;
+  const issue = member ? await getIssueByKey(id, number, userId) : null;
   if (!issue) error(404, 'Issue not found');
 
   // Lowercase keys, keys from before a project-key rename and issues moved to

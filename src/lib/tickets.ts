@@ -300,7 +300,8 @@ export async function resolveIssueKey(
   key: string,
 ): Promise<{ id: string; projectId: string } | null> {
   const parsed = parseIssueKey(key);
-  if (!parsed) return null;
+  // REST v1 and GraphQL accept key prefixes of at most 10 characters (project keys are 2–6).
+  if (!parsed || parsed.prefix.length > 10) return null;
 
   const [current, alias] = await db.batch([
     db
