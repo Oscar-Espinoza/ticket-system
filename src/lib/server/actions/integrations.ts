@@ -9,13 +9,15 @@ import { and, count, eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { projects, webhookDeliveries, webhooks } from '@/db/schema';
 import { authorizeProjectAction } from '@/lib/action-auth';
+import type { ActionResult, Fail as KitFail } from '@/lib/server/action-kit';
 import {
   isWebhookEventType,
   normalizeSlackEvents,
   parseSlackSetting,
   SLACK_URL_PREFIX,
 } from '@/lib/integrations/event-types';
-import { sendSlackMessage, slackEscape } from '@/lib/integrations/slack';
+import { sendSlackMessage } from '@/lib/integrations/slack';
+import { slackEscape } from '@/lib/slack/format';
 import {
   generateWebhookSecret,
   isSuccess,
@@ -26,8 +28,9 @@ import {
 } from '@/lib/integrations/outgoing-webhooks';
 import { checkOutgoingUrl } from '@/lib/integrations/url-guard';
 
-type Fail = { ok: false; error: string; field?: 'url' | 'events' };
-type Result<T = object> = ({ ok: true } & T) | Fail;
+type Field = 'url' | 'events';
+type Fail = KitFail<Field>;
+type Result<T = object> = ActionResult<T, Field>;
 
 /** What the settings UI shows for a webhook (never the secret). */
 export interface WebhookView {
@@ -104,10 +107,6 @@ function statusError(status: number, service: string): Fail {
   };
 }
 
-// ---------------------------------------------------------------------------
-// Slack
-// ---------------------------------------------------------------------------
-
 export async function saveSlackSettings(input: {
   projectId: string;
   url: string;
@@ -182,10 +181,6 @@ export async function sendSlackTest(input: { projectId: string }): Promise<Resul
   });
   return status >= 200 && status < 300 ? { ok: true } : statusError(status, 'Slack');
 }
-
-// ---------------------------------------------------------------------------
-// Outgoing webhooks
-// ---------------------------------------------------------------------------
 
 function normalizeEvents(raw: unknown): string[] | Fail {
   if (!Array.isArray(raw)) return { ok: false, error: 'Invalid events.', field: 'events' };
@@ -340,10 +335,6 @@ export async function sendWebhookTest(input: {
   }
   return { ok: true, webhook: toView(row), delivery: toDeliveryView(delivery) };
 }
-
-// ---------------------------------------------------------------------------
-// Delivery log + retries
-// ---------------------------------------------------------------------------
 
 async function findWebhook(projectId: string, id: unknown) {
   if (typeof id !== 'string' || !id) return null;

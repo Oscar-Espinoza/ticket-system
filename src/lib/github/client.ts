@@ -1,13 +1,14 @@
 // Per-request Octokit clients built from the acting user's own OAuth token
-// (never a shared PAT). Server-only: goes through getGitHubToken (D-04).
+// (never a shared PAT). Server-only: goes through getGitHubToken.
 
 import { Octokit } from '@octokit/rest';
 
 import { getGitHubToken } from '@/lib/github-token';
+import { PROVIDER_TIMEOUT_MS } from '@/lib/integrations/timeouts';
 import { REQUIRED_SCOPES } from '@/lib/github/scopes';
 
 export function octokitFor(token: string) {
-  return new Octokit({ auth: token, userAgent: 'ticket-system', request: { timeout: 10_000 } });
+  return new Octokit({ auth: token, userAgent: 'ticket-system', request: { timeout: PROVIDER_TIMEOUT_MS } });
 }
 
 export async function userOctokit(userId: string): Promise<Octokit | null> {

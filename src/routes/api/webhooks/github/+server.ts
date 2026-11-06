@@ -1,4 +1,4 @@
-// GitHub webhook receiver (GH-03..06). Public endpoint: no session. A delivery
+// GitHub webhook receiver. Public endpoint: no session. A delivery
 // is trusted only if its X-Hub-Signature-256 matches the per-project secret
 // of a project connected to that hook / repository; everything after that is
 // scoped to the verified project. Responds fast and does the work in after()
@@ -12,7 +12,7 @@ import { allowOptions } from '../../_lib/options';
 import { after } from '@/lib/kit/request';
 import { db } from '@/lib/db';
 import { projects } from '@/db/schema';
-import { verifySignature } from '@/lib/github/webhooks';
+import { verifyHmac } from '@/lib/server/crypto';
 import {
   syncCheckRun,
   syncCheckSuite,
@@ -85,7 +85,7 @@ export const POST: RequestHandler = async ({ request }) => {
     );
     verified = found.filter(
       (project) =>
-        project.githubWebhookSecret && verifySignature(raw, signature, project.githubWebhookSecret),
+        project.githubWebhookSecret && verifyHmac(signature, raw, project.githubWebhookSecret, 'sha256='),
     );
   } catch (err) {
     console.error('[github-webhook] project lookup failed', err);
@@ -112,5 +112,4 @@ export const POST: RequestHandler = async ({ request }) => {
   return Response.json({ ok: true }, { status: 202 });
 };
 
-// Next answered OPTIONS automatically (204 + Allow); Kit would 405.
 export const OPTIONS = allowOptions('POST');

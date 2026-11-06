@@ -12,17 +12,13 @@ export const NOTIFICATION_TYPES = [
   'completed',
   'reminder',
   'github',
-  // Inserted by cron jobs (D5 / D8), not by dispatch.
+  // Created by cron jobs and the recurring runner, not by dispatch.
   'sla_breached',
   'recurring_created',
   'pulse',
 ] as const;
 
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
-
-export function isNotificationType(value: unknown): value is NotificationType {
-  return typeof value === 'string' && (NOTIFICATION_TYPES as readonly string[]).includes(value);
-}
 
 /** Types the user can switch off. Reminders are self-set, so always on. */
 export const NOTIFICATION_PREFS: { type: NotificationType; label: string; description: string }[] = [
@@ -80,7 +76,7 @@ export function describeNotification(
   data: NotificationData,
   actor: string | null,
 ): string {
-  const who = actor ?? (type === 'github' ? 'GitHub' : 'Automation');
+  const who = actor ?? 'Automation';
   switch (type) {
     case 'assigned':
       return `${who} assigned you`;
@@ -94,7 +90,7 @@ export function describeNotification(
       return data.state ? `${who} marked it ${data.state.name}` : `${who} completed it`;
     case 'reminder':
       return 'Reminder';
-    case 'github':
+    case 'github': // pull / merge requests of every code host
       return data.summary ? `${capitalize(data.summary)}` : 'Pull request merged';
     case 'sla_breached':
       return data.summary ? capitalize(data.summary) : 'SLA breached';

@@ -8,7 +8,6 @@
 
 import { githubMessage, splitRepo, userOctokit } from '@/lib/github/client';
 import {
-  PR_EVENT,
   resetChecks,
   syncClosingCommits,
   syncPullRequest as syncVcsPullRequest,
@@ -17,8 +16,6 @@ import {
   type VcsProject,
 } from '@/lib/vcs/automation';
 import { combineChecks, combineReviews, type ChecksState, type ReviewDecision } from '@/lib/vcs/providers';
-
-export const GITHUB_EVENT = PR_EVENT;
 
 export interface SyncProject {
   id: string;
@@ -172,10 +169,6 @@ export async function syncPush(project: SyncProject, payload: PushPayload) {
   });
 }
 
-// ---------------------------------------------------------------------------
-// Reviews
-// ---------------------------------------------------------------------------
-
 async function octokitFor(project: SyncProject) {
   if (!project.githubConnectedById) return null;
   return userOctokit(project.githubConnectedById).catch(() => null);
@@ -224,10 +217,6 @@ export async function syncPullRequestReview(project: SyncProject, payload: PullR
   await updatePullRequestStatus(project.id, { provider: 'github', repo, numbers: [number] }, { reviewDecision: decision });
 }
 
-// ---------------------------------------------------------------------------
-// Checks (check_suite / check_run / status)
-// ---------------------------------------------------------------------------
-
 function fromCheck(status: string, conclusion: Conclusion): ChecksState | null {
   if (status !== 'completed') return 'pending';
   switch (conclusion) {
@@ -241,8 +230,6 @@ function fromCheck(status: string, conclusion: Conclusion): ChecksState | null {
     case 'action_required':
     case 'startup_failure':
       return 'failure';
-    case 'stale':
-      return null;
     default:
       return null;
   }

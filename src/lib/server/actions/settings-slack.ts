@@ -11,13 +11,12 @@ import { db } from '@/lib/db';
 import { projectMembers, slackInstallations, slackUserLinks } from '@/db/schema';
 import { getSession } from '@/lib/session';
 import { authorizeProjectAction } from '@/lib/action-auth';
+import type { ActionResult } from '@/lib/server/action-kit';
 import { slackApi } from '@/lib/slack/api';
-import { slackConfig } from '@/lib/slack/config';
-import { decryptToken, deleteInstallation } from '@/lib/slack/installations';
+import { slackConfig, SLACK_SETTINGS_PATH } from '@/lib/slack/config';
+import { deleteInstallation } from '@/lib/slack/installations';
+import { decryptToken } from '@/lib/server/crypto';
 
-type Result = { ok: true } | { ok: false; error: string };
-
-const PATH = '/dashboard/settings/slack';
 const ADMIN_ROLES = ['owner', 'admin'] as const;
 
 async function viewerId(): Promise<string | null> {
@@ -67,7 +66,7 @@ async function manageable(userId: string, teamId: unknown) {
 export async function setSlackDefaultProject(input: {
   teamId: string;
   projectId: string | null;
-}): Promise<Result> {
+}): Promise<ActionResult> {
   const userId = await viewerId();
   if (!userId) return { ok: false, error: 'Not authenticated' };
   const install = await manageable(userId, input?.teamId);
@@ -82,11 +81,11 @@ export async function setSlackDefaultProject(input: {
     .update(slackInstallations)
     .set({ defaultProjectId: projectId, updatedAt: new Date() })
     .where(eq(slackInstallations.teamId, install.teamId));
-  revalidatePath(PATH);
+  revalidatePath(SLACK_SETTINGS_PATH);
   return { ok: true };
 }
 
-export async function uninstallSlack(input: { teamId: string }): Promise<Result> {
+export async function uninstallSlack(input: { teamId: string }): Promise<ActionResult> {
   const userId = await viewerId();
   if (!userId) return { ok: false, error: 'Not authenticated' };
   const install = await manageable(userId, input?.teamId);
@@ -103,11 +102,11 @@ export async function uninstallSlack(input: { teamId: string }): Promise<Result>
     if (!res.ok) console.error('[slack] apps.uninstall failed', res.error);
   }
   await deleteInstallation(install.teamId);
-  revalidatePath(PATH);
+  revalidatePath(SLACK_SETTINGS_PATH);
   return { ok: true };
 }
 
-export async function setSlackDmNotify(input: { teamId: string; notify: boolean }): Promise<Result> {
+export async function setSlackDmNotify(input: { teamId: string; notify: boolean }): Promise<ActionResult> {
   const userId = await viewerId();
   if (!userId) return { ok: false, error: 'Not authenticated' };
   if (typeof input?.teamId !== 'string' || typeof input.notify !== 'boolean') {
@@ -117,17 +116,17 @@ export async function setSlackDmNotify(input: { teamId: string; notify: boolean 
     .update(slackUserLinks)
     .set({ notify: input.notify })
     .where(and(eq(slackUserLinks.userId, userId), eq(slackUserLinks.teamId, input.teamId)));
-  revalidatePath(PATH);
+  revalidatePath(SLACK_SETTINGS_PATH);
   return { ok: true };
 }
 
-export async function unlinkSlack(input: { teamId: string }): Promise<Result> {
+export async function unlinkSlack(input: { teamId: string }): Promise<ActionResult> {
   const userId = await viewerId();
   if (!userId) return { ok: false, error: 'Not authenticated' };
   if (typeof input?.teamId !== 'string') return { ok: false, error: 'Invalid input' };
   await db
     .delete(slackUserLinks)
     .where(and(eq(slackUserLinks.userId, userId), eq(slackUserLinks.teamId, input.teamId)));
-  revalidatePath(PATH);
+  revalidatePath(SLACK_SETTINGS_PATH);
   return { ok: true };
 }

@@ -4,13 +4,14 @@
 
 import { inArray } from 'drizzle-orm';
 // web-push is CommonJS: Node's ESM loader (SvelteKit SSR) can't see its named
-// exports, so use the default export (works under Next's bundler too).
+// exports, so use the default export.
 import webPush, { type VapidKeys } from 'web-push';
 
 const { sendNotification, WebPushError } = webPush;
 
 import { db } from '@/lib/db';
 import { pushSubscriptions } from '@/db/schema';
+import { PUSH_TIMEOUT_MS } from '@/lib/integrations/timeouts';
 
 /** What public/sw.js reads from `event.data.json()`. */
 export interface PushPayload {
@@ -68,7 +69,7 @@ export async function sendPushes(targets: PushTarget[]): Promise<{ sent: number;
         sendNotification(
           { endpoint: target.endpoint, keys: { p256dh: target.p256dh, auth: target.auth } },
           JSON.stringify(target.payload),
-          { TTL: TTL_SECONDS, vapidDetails: vapid, timeout: 15_000 },
+          { TTL: TTL_SECONDS, vapidDetails: vapid, timeout: PUSH_TIMEOUT_MS },
         ),
       ),
     );

@@ -3,7 +3,9 @@
 // also set as an httpOnly cookie, so a callback only completes in the browser
 // that started it (login-CSRF / link-hijack safe).
 
-import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
+import { createHmac, randomBytes } from 'node:crypto';
+
+import { appSecret, safeEqual } from '@/lib/server/crypto';
 
 export type SlackOAuthPurpose = 'install' | 'link';
 
@@ -17,21 +19,14 @@ interface StatePayload {
   e: number;
 }
 
-const secret = () => process.env.BETTER_AUTH_SECRET || 'slack-dev-secret';
 const sign = (value: string) =>
-  createHmac('sha256', secret()).update(`slack-oauth:${value}`).digest('base64url');
+  createHmac('sha256', appSecret('slack-dev-secret')).update(`slack-oauth:${value}`).digest('base64url');
 
 export function createState(purpose: SlackOAuthPurpose, userId: string): { state: string; nonce: string } {
   const nonce = randomBytes(16).toString('base64url');
   const payload: StatePayload = { p: purpose, u: userId, n: nonce, e: Date.now() + STATE_MAX_AGE_S * 1000 };
   const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
   return { state: `${body}.${sign(body)}`, nonce };
-}
-
-function safeEqual(a: string, b: string): boolean {
-  const x = Buffer.from(a);
-  const y = Buffer.from(b);
-  return x.length === y.length && timingSafeEqual(x, y);
 }
 
 export function readState(

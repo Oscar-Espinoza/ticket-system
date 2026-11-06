@@ -8,35 +8,28 @@
 // `webhook_pending_project_id` set (atomically with the mutation when the writer uses
 // prepareIssueEvents in its batch). The after-response dispatcher clears it
 // when it has created the delivery rows; if it never runs (crash, timeout, DB
-// blip) the sweep in outgoing-webhooks picks the event up later.
+// blip) the sweep in outgoing-webhooks picks the event up later. Notifications,
+// Slack and push run once with no retry.
 //
 // Conventions for `data`:
 //   - issue.* events carry { key, title } so dispatchers can render without a lookup.
 //   - issue.updated carries { changes: IssueChange[] } with human-usable values
 //     (state/label/user names alongside ids).
 //   - issue.purged has ticketId null (the row is gone) and { ticketId, key, title }.
-//   - comment.created carries { commentId, mentions: userId[] } (B1).
+//   - comment.created carries { commentId, mentions: userId[] }.
 
 import { after } from '@/lib/kit/request';
 
 import { db } from '@/lib/db';
 import { activities } from '@/db/schema';
+import { ISSUE_EVENT } from '@/lib/event-names';
 import { dispatchNotifications } from '@/lib/notifications/dispatch';
 import { postToSlack } from '@/lib/integrations/slack';
 import { deliverWebhooks, isWebhookDeliverable } from '@/lib/integrations/outgoing-webhooks';
 
-export const ISSUE_EVENT = {
-  created: 'issue.created',
-  updated: 'issue.updated',
-  archived: 'issue.archived',
-  unarchived: 'issue.unarchived',
-  deleted: 'issue.deleted',
-  restored: 'issue.restored',
-  purged: 'issue.purged',
-  commentCreated: 'comment.created',
-} as const;
+export { ISSUE_EVENT };
 
-/** Known core types; Wave B agents add their own strings (relation.*, github.*, …). */
+/** Known core types; other modules add their own strings (relation.*, github.*, …). */
 export type IssueEventType = (typeof ISSUE_EVENT)[keyof typeof ISSUE_EVENT];
 
 export interface IssueEventInput {

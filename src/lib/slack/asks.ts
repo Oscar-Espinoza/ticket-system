@@ -14,11 +14,11 @@ import { isPriority, PRIORITY_LABEL, PRIORITY_ORDER, type Priority } from '@/lib
 import { stripMentions } from '@/lib/mentions';
 import { firstStateOfType } from '@/lib/workflow';
 import { absoluteIssueUrl, appUrl } from '@/lib/integrations/app-url';
-import { slackEscape } from '@/lib/integrations/slack';
 import { roleAllows } from '@/lib/roles';
 
 import { respond, slackApi } from './api';
-import { ASK_VIEW_ID } from './config';
+import { ASK_VIEW_ID, SLACK_SETTINGS_PATH } from './config';
+import { slackEscape } from './format';
 import { getInstallation, linkedUserId, type SlackInstall } from './installations';
 
 const WRITE_ROLES = (['owner', 'admin', 'member', 'guest'] as const).filter((role) =>
@@ -45,7 +45,7 @@ export interface AskProject {
   ticketKey: string;
 }
 
-export const settingsUrl = () => `${appUrl()}/dashboard/settings/slack`;
+const settingsUrl = () => `${appUrl()}${SLACK_SETTINGS_PATH}`;
 
 /** Slack mrkdwn → markdown-ish plain text: links, user/channel refs, entities. */
 export function fromSlackText(text: string): string {
@@ -236,10 +236,6 @@ export async function openAskModal(input: {
     console.error('[slack] openAskModal failed', err);
   }
 }
-
-// ---------------------------------------------------------------------------
-// Submission
-// ---------------------------------------------------------------------------
 
 type StateValues = Record<string, Record<string, { value?: string | null; selected_option?: { value?: string } | null }>>;
 

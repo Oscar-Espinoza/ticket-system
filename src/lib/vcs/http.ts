@@ -2,6 +2,7 @@
 // Asana / Shortcut importers): JSON in and out, timeout, errors carry the HTTP
 // status and the provider's own message. Server-only.
 
+import { PROVIDER_TIMEOUT_MS } from '@/lib/integrations/timeouts';
 import { guardedRequest, type GuardedResponse } from '@/lib/integrations/url-guard';
 import { VCS_PROVIDER_LABEL, type VcsProvider } from '@/lib/vcs/providers';
 
@@ -39,7 +40,7 @@ export async function requestJson<T>(
   url: string,
   init: RequestInit & { headers: Record<string, string>; timeoutMs?: number },
 ): Promise<T> {
-  const { timeoutMs = 10_000, method, body: payload, headers } = init;
+  const { timeoutMs = PROVIDER_TIMEOUT_MS, method, body: payload, headers } = init;
   if (payload !== undefined && payload !== null && typeof payload !== 'string') {
     throw new VcsHttpError(0, 'Only JSON string bodies are supported.');
   }

@@ -7,12 +7,14 @@
 
 import { revalidatePath } from '@/lib/kit/request';
 import { and, eq, or, sql } from 'drizzle-orm';
-import { Octokit } from '@octokit/rest';
+import type { Octokit } from '@octokit/rest';
 
 import { db } from '@/lib/db';
 import { labels, projectMembers, projects, tickets, users, workflowStates } from '@/db/schema';
 import { authorizeProjectAction } from '@/lib/action-auth';
+import type { Fail } from '@/lib/server/action-kit';
 import { getGitHubToken } from '@/lib/github-token';
+import { octokitFor } from '@/lib/github/client';
 import { isDateString } from '@/lib/dates';
 import { estimateOptions } from '@/lib/estimates';
 import { isPriority, type StateType, type WorkflowState } from '@/lib/issue-model';
@@ -34,16 +36,10 @@ import { describeImportError, type ExternalFetchResult } from '@/lib/import/exte
 import { fetchShortcutStories, listShortcutSources, type ShortcutOption } from '@/lib/import/shortcut';
 import { VcsHttpError } from '@/lib/vcs/http';
 
-type Fail = { ok: false; error: string };
-
 const LABEL_NAME_MAX = 40;
 const COLOR_RE = /^#[0-9a-f]{6}$/;
 const LABEL_COLORS = ['#5e6ad2', '#26b5ce', '#4cb782', '#f2c94c', '#f2994a', '#eb5757', '#bb87fc', '#95a2b3'];
 const REPO_RE = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
-
-// ---------------------------------------------------------------------------
-// Untrusted input → ImportRecord
-// ---------------------------------------------------------------------------
 
 const str = (value: unknown, max: number): string | null =>
   typeof value === 'string' && value.trim() ? value.trim().slice(0, max) : null;
@@ -94,10 +90,6 @@ function readRecord(value: unknown): ImportRecord | null {
     parent: readSource(raw.parent),
   };
 }
-
-// ---------------------------------------------------------------------------
-// Resolution against the project
-// ---------------------------------------------------------------------------
 
 const key = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, '');
 
@@ -162,10 +154,6 @@ function withFooter(description: string | null, source: ImportSource | null): st
   const body = description && description.length > room ? `${description.slice(0, room)}…` : description;
   return body ? `${body}\n\n---\n${footer}` : footer;
 }
-
-// ---------------------------------------------------------------------------
-// importIssues
-// ---------------------------------------------------------------------------
 
 export async function importIssues(input: {
   projectId: string;
@@ -325,10 +313,6 @@ export async function importIssues(input: {
   return { ok: true, ...result };
 }
 
-// ---------------------------------------------------------------------------
-// GitHub Issues
-// ---------------------------------------------------------------------------
-
 type GitHubFail = Fail & { reason?: 'no-token' };
 
 async function githubClient(projectId: unknown): Promise<{ ok: true; octokit: Octokit } | GitHubFail> {
@@ -338,7 +322,7 @@ async function githubClient(projectId: unknown): Promise<{ ok: true; octokit: Oc
   if (!token) {
     return { ok: false, reason: 'no-token', error: 'Connect your GitHub account first.' };
   }
-  return { ok: true, octokit: new Octokit({ auth: token }) };
+  return { ok: true, octokit: octokitFor(token) };
 }
 
 function githubError(err: unknown): Fail {
@@ -447,10 +431,6 @@ export async function fetchGitHubIssues(input: {
   const closed = records.filter((r) => r.closed).length;
   return { ok: true, records, open: records.length - closed, closed, truncated };
 }
-
-// ---------------------------------------------------------------------------
-// Asana / Shortcut (token per call, never stored)
-// ---------------------------------------------------------------------------
 
 type ExternalFail = Fail;
 

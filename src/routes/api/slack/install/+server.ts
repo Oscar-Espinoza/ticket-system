@@ -7,5 +7,4 @@ import { startSlackOAuth } from '@/lib/slack/oauth';
 
 export const GET: RequestHandler = () => startSlackOAuth('install');
 
-// Next answered OPTIONS automatically (204 + Allow); Kit would 405.
 export const OPTIONS = allowOptions('GET');

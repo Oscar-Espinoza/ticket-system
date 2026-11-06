@@ -1,4 +1,4 @@
-// Daily sweep for outgoing webhooks (D10a): materialize events whose dispatcher
+// Daily sweep for outgoing webhooks: materialize events whose dispatcher
 // never ran (activity.webhook_pending_project_id), resend every due delivery (lazy
 // retries also run after new deliveries and on the integrations page), then
 // prune the delivery log. Idempotent — due rows are claimed atomically, so a

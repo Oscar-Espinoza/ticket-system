@@ -13,27 +13,22 @@ import { and, desc, eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { githubPullRequests, projectIntegrations, projects } from '@/db/schema';
 import { authorizeProjectAction } from '@/lib/action-auth';
+import type { Fail } from '@/lib/server/action-kit';
 import { githubMessage, userOctokit } from '@/lib/github/client';
 import {
   getRepoWebhookEvents,
-  isUnreachableUrl,
   missingWebhookEvents,
   updateRepoWebhookEvents,
 } from '@/lib/github/webhooks';
+import { getBitbucketRepo, isBitbucketRepo, type BitbucketAuth } from '@/lib/vcs/bitbucket';
+import { getGitlabProject, isGitlabPath, normalizeGitlabUrl } from '@/lib/vcs/gitlab';
 import {
-  createBitbucketHook,
-  deleteBitbucketHook,
-  getBitbucketRepo,
-  isBitbucketRepo,
-  type BitbucketAuth,
-} from '@/lib/vcs/bitbucket';
-import {
-  createGitlabHook,
-  deleteGitlabHook,
-  getGitlabProject,
-  isGitlabPath,
-  normalizeGitlabUrl,
-} from '@/lib/vcs/gitlab';
+  hookHost,
+  isUnreachableUrl,
+  unreachableWebhookWarning,
+  type HookConfig,
+  type HookHost,
+} from '@/lib/vcs/hosts';
 import { describeVcsError } from '@/lib/vcs/http';
 import {
   getProjectIntegration,
@@ -53,8 +48,6 @@ import {
 } from '@/lib/vcs/providers';
 import { decryptToken, encryptToken, newSecret } from '@/lib/server/crypto';
 
-type Fail = { ok: false; error: string };
-
 const TOKEN_MAX = 500;
 
 function revalidateSettings(projectId: string) {
@@ -63,10 +56,6 @@ function revalidateSettings(projectId: string) {
 
 const str = (value: unknown, max: number): string =>
   typeof value === 'string' ? value.trim().slice(0, max) : '';
-
-// ---------------------------------------------------------------------------
-// Issue pane: linked pull requests, code hosts
-// ---------------------------------------------------------------------------
 
 export interface PullRequestView {
   id: string;
@@ -161,22 +150,16 @@ export async function getVcsConnections(
   return { ok: true, connections };
 }
 
-// ---------------------------------------------------------------------------
-// GitLab / Bitbucket connections (admin)
-// ---------------------------------------------------------------------------
-
 export type VcsConnectResult =
   | { ok: true; repo: string; webhook: 'registered' | 'unreachable' | 'failed'; warning?: string }
   | Fail;
-
-type HookHost = 'gitlab' | 'bitbucket';
 
 /** Upsert the provider row (fresh secret, no hook yet). */
 async function saveIntegration(
   projectId: string,
   provider: HookHost,
   userId: string,
-  config: GitlabConfig | BitbucketConfig,
+  config: HookConfig,
   token: string,
 ): Promise<{ id: string; secret: string }> {
   const now = new Date();
@@ -195,43 +178,32 @@ async function saveIntegration(
   return { id: row.id, secret: values.secret };
 }
 
-async function setWebhookId(integrationId: string, config: GitlabConfig | BitbucketConfig, webhookId: string | null) {
+async function setWebhookId(integrationId: string, config: HookConfig, webhookId: string | null) {
   await db
     .update(projectIntegrations)
     .set({ config: { ...config, webhookId } as unknown as Record<string, unknown>, updatedAt: new Date() })
     .where(eq(projectIntegrations.id, integrationId));
 }
 
-async function deleteHook(provider: HookHost, config: GitlabConfig | BitbucketConfig, token: string | null) {
+async function deleteHook(provider: HookHost, config: HookConfig, token: string | null) {
   if (!config.webhookId || !token) return false;
-  if (provider === 'gitlab') {
-    const c = config as GitlabConfig;
-    return deleteGitlabHook(c.baseUrl, token, c.remoteId, c.webhookId!);
-  }
-  const c = config as BitbucketConfig;
-  return deleteBitbucketHook({ token, username: c.username }, c.repo, c.webhookId!);
+  return hookHost(provider).deleteHook(config, token, config.webhookId);
 }
 
 /** Create the hook for a saved integration (secret already stored, so the first delivery verifies). */
 async function registerHook(
   provider: HookHost,
   integrationId: string,
-  config: GitlabConfig | BitbucketConfig,
+  config: HookConfig,
   token: string,
   secret: string,
 ): Promise<Omit<Extract<VcsConnectResult, { ok: true }>, 'ok' | 'repo'>> {
   const url = integrationWebhookUrl(provider, integrationId);
   if (isUnreachableUrl(url)) {
-    return {
-      webhook: 'unreachable',
-      warning: `${provider === 'gitlab' ? 'GitLab' : 'Bitbucket'} can't reach ${url}. Merge request automation needs a public URL — set PUBLIC_APP_URL (or GITHUB_WEBHOOK_BASE_URL for a tunnel) and register the webhook again.`,
-    };
+    return { webhook: 'unreachable', warning: unreachableWebhookWarning(provider, url) };
   }
   try {
-    const hookId =
-      provider === 'gitlab'
-        ? await createGitlabHook((config as GitlabConfig).baseUrl, token, (config as GitlabConfig).remoteId, url, secret)
-        : await createBitbucketHook({ token, username: (config as BitbucketConfig).username }, config.repo, url, secret);
+    const hookId = await hookHost(provider).createHook(config, token, url, secret);
     await setWebhookId(integrationId, config, hookId);
     return { webhook: 'registered' };
   } catch (err) {
@@ -244,11 +216,11 @@ async function connect(
   projectId: string,
   provider: HookHost,
   userId: string,
-  config: GitlabConfig | BitbucketConfig,
+  config: HookConfig,
   token: string,
 ): Promise<VcsConnectResult> {
   // Replacing a connection: drop its hook first (best effort, with its own token).
-  const previous = await getProjectIntegration<GitlabConfig | BitbucketConfig>(projectId, provider);
+  const previous = await getProjectIntegration<HookConfig>(projectId, provider);
   if (previous?.config.webhookId) await deleteHook(provider, previous.config, await decryptToken(previous.token));
 
   const saved = await saveIntegration(projectId, provider, userId, config, token);
@@ -326,7 +298,7 @@ export async function registerIntegrationWebhook(input: {
   const authz = await authorizeProjectAction(input?.projectId, 'admin');
   if (!authz.ok) return authz;
   if (input.provider !== 'gitlab' && input.provider !== 'bitbucket') return { ok: false, error: 'Unknown provider.' };
-  const row = await getProjectIntegration<GitlabConfig | BitbucketConfig>(input.projectId, input.provider);
+  const row = await getProjectIntegration<HookConfig>(input.projectId, input.provider);
   if (!row) return { ok: false, error: 'Not connected.' };
   const token = await decryptToken(row.token);
   if (!token) return { ok: false, error: 'The stored access token can no longer be read. Connect again with a new token.' };
@@ -357,7 +329,7 @@ export async function disconnectIntegration(input: {
   if (input.provider !== 'sentry' && row.config.webhookId) {
     const removed = await deleteHook(
       input.provider,
-      row.config as GitlabConfig | BitbucketConfig,
+      row.config as HookConfig,
       await decryptToken(row.token),
     ).catch(() => false);
     if (!removed) {
@@ -369,10 +341,6 @@ export async function disconnectIntegration(input: {
   revalidateSettings(input.projectId);
   return { ok: true, warning };
 }
-
-// ---------------------------------------------------------------------------
-// Sentry (admin)
-// ---------------------------------------------------------------------------
 
 export async function connectSentry(input: {
   projectId: string;
@@ -402,10 +370,6 @@ export async function connectSentry(input: {
   revalidateSettings(input.projectId);
   return { ok: true, webhookUrl: integrationWebhookUrl('sentry', row.id) };
 }
-
-// ---------------------------------------------------------------------------
-// GitHub webhook events (admin) — review / CI events added after round 1
-// ---------------------------------------------------------------------------
 
 export type GithubWebhookHealth =
   | { ok: true; status: 'current' }

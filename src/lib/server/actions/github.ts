@@ -11,6 +11,7 @@ import { and, eq, isNull } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { projects, tickets, users, workflowStates } from '@/db/schema';
 import { authorizeProjectAction } from '@/lib/action-auth';
+import { PR_EVENT } from '@/lib/event-names';
 import { emitIssueEvent } from '@/lib/events';
 import { getTicketById } from '@/lib/tickets';
 import {
@@ -20,18 +21,13 @@ import {
   splitRepo,
   userOctokit,
 } from '@/lib/github/client';
-import { AUTOMATION_OFF } from '@/lib/github/automation';
 import { branchNameFor, branchPrefix, isValidBranchName } from '@/lib/github/branch';
-import { GITHUB_EVENT } from '@/lib/github/sync';
-import {
-  createRepoWebhook,
-  deleteRepoWebhook,
-  isUnreachableUrl,
-  newWebhookSecret,
-  webhookUrl,
-} from '@/lib/github/webhooks';
-
-type Fail = { ok: false; error: string };
+import { createRepoWebhook, deleteRepoWebhook, webhookUrl } from '@/lib/github/webhooks';
+import type { Fail } from '@/lib/server/action-kit';
+import { newSecret } from '@/lib/server/crypto';
+import { AUTOMATION_OFF } from '@/lib/vcs/automation-state';
+import { isUnreachableUrl, unreachableWebhookWarning } from '@/lib/vcs/hosts';
+import { branchUrl } from '@/lib/vcs/providers';
 
 function revalidateProject(projectId: string) {
   revalidatePath(`/dashboard/projects/${projectId}`, 'layout');
@@ -48,10 +44,6 @@ async function loadProjectGithub(projectId: string) {
     .limit(1);
   return project ?? null;
 }
-
-// ---------------------------------------------------------------------------
-// Viewer status (issue header)
-// ---------------------------------------------------------------------------
 
 export type GithubViewer = {
   ok: true;
@@ -80,10 +72,6 @@ export async function getGithubViewer(projectId: string): Promise<GithubViewer |
     return { ok: true, repo, connected: !revoked, login: null };
   }
 }
-
-// ---------------------------------------------------------------------------
-// Branches
-// ---------------------------------------------------------------------------
 
 /** Remember the issue's branch name the first time it's copied (first writer wins). */
 export async function saveBranchName(input: {
@@ -189,7 +177,7 @@ export async function createBranch(input: {
         projectId: input.projectId,
         ticketId: issue.id,
         actorId: authz.userId,
-        type: GITHUB_EVENT.branchCreated,
+        type: PR_EVENT.branchCreated,
         data: {
           key: issue.key,
           title: issue.title,
@@ -204,17 +192,13 @@ export async function createBranch(input: {
       ok: true,
       branch,
       existed,
-      url: `https://github.com/${project.repo}/tree/${branch.split('/').map(encodeURIComponent).join('/')}`,
+      url: branchUrl('github', `https://github.com/${project.repo}`, branch),
     };
   } catch (err) {
     console.error('[github] createBranch failed', githubMessage(err));
     return { ok: false, error: describeGithubError(err, project.repo) };
   }
 }
-
-// ---------------------------------------------------------------------------
-// Settings → GitHub (admin)
-// ---------------------------------------------------------------------------
 
 export interface GithubRepoOption {
   fullName: string;
@@ -276,11 +260,11 @@ async function registerFor(
     await setHook(null, null);
     return {
       webhook: 'unreachable',
-      warning: `GitHub can't reach ${url}. Pull request automation needs a public URL — set PUBLIC_APP_URL (or GITHUB_WEBHOOK_BASE_URL for a tunnel) and register the webhook again.`,
+      warning: unreachableWebhookWarning('github', url),
     };
   }
   // Secret first: GitHub's immediate `ping` must already verify.
-  const secret = newWebhookSecret();
+  const secret = newSecret();
   await setHook(null, secret);
   try {
     const hookId = await createRepoWebhook(octokit, repo, secret);

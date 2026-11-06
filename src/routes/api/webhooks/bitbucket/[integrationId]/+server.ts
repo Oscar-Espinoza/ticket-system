@@ -7,10 +7,9 @@ import type { RequestHandler } from './$types';
 import { allowOptions } from '../../../_lib/options';
 
 import { after } from '@/lib/kit/request';
-import { verifySignature } from '@/lib/github/webhooks';
 import { syncBitbucketEvent } from '@/lib/vcs/bitbucket-sync';
 import { getWebhookIntegration, type BitbucketConfig } from '@/lib/vcs/integrations';
-import { decryptToken } from '@/lib/server/crypto';
+import { decryptToken, verifyHmac } from '@/lib/server/crypto';
 import { readJsonBody, rejected } from '@/lib/vcs/webhook-request';
 
 export const POST: RequestHandler = async ({ request, params }) => {
@@ -29,7 +28,7 @@ export const POST: RequestHandler = async ({ request, params }) => {
     return Response.json({ error: 'Internal error' }, { status: 500 });
   }
   const secret = found?.integration.secret;
-  if (!found || !secret || !verifySignature(body.raw, signature, secret)) return rejected();
+  if (!found || !secret || !verifyHmac(signature, body.raw, secret, 'sha256=')) return rejected();
 
   const event = request.headers.get('x-event-key') ?? '';
   const { project, integration } = found;
@@ -45,5 +44,4 @@ export const POST: RequestHandler = async ({ request, params }) => {
   return Response.json({ ok: true }, { status: 202 });
 };
 
-// Next answered OPTIONS automatically (204 + Allow); Kit would 405.
 export const OPTIONS = allowOptions('POST');

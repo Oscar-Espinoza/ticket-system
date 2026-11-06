@@ -1,4 +1,4 @@
-// Delivery settings (D11): email digest cadence, account-wide push switch and a
+// Delivery settings: email digest cadence, account-wide push switch and a
 // test push. Everything is pinned to the session user.
 
 import { revalidatePath } from '@/lib/kit/request';
@@ -7,10 +7,9 @@ import { eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { pushSubscriptions, userProfiles } from '@/db/schema';
 import { pushConfigured, sendPushes } from '@/lib/push';
+import type { ActionResult } from '@/lib/server/action-kit';
 import { isDigestFrequency, type DigestFrequency } from '@/lib/notifications/types';
 import { getSession } from '@/lib/session';
-
-type ActionResult<T = object> = ({ ok: true } & T) | { ok: false; error: string };
 
 export async function updateDeliverySettings(input: {
   digest?: DigestFrequency;

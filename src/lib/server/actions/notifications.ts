@@ -9,13 +9,13 @@ import { and, eq, gt, inArray, isNotNull, isNull, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { notifications, projects, tickets, userProfiles } from '@/db/schema';
 import { authorizeProjectAction } from '@/lib/action-auth';
+import { NOT_AUTHENTICATED, type ActionResult } from '@/lib/server/action-kit';
 import { sendEmail } from '@/lib/email';
 import { settingsUrl, testEmail } from '@/lib/notifications/email-templates';
+import { createNotifications } from '@/lib/notifications/create';
 import { countUnreadNotifications, visibleNotification } from '@/lib/notifications/inbox';
 import { NOTIFICATION_PREFS } from '@/lib/notifications/types';
 import { getSession } from '@/lib/session';
-
-export type ActionResult<T = object> = ({ ok: true } & T) | { ok: false; error: string };
 
 const MAX_IDS = 500;
 const MAX_AHEAD_MS = 366 * 24 * 60 * 60 * 1000;
@@ -43,12 +43,7 @@ function futureDate(value: unknown): Date | null {
   return date;
 }
 
-const NOT_AUTHENTICATED = { ok: false, error: 'Not authenticated' } as const;
 const INVALID = { ok: false, error: 'Invalid request' } as const;
-
-// ---------------------------------------------------------------------------
-// Inbox
-// ---------------------------------------------------------------------------
 
 export async function getUnreadNotificationCount(): Promise<number> {
   const user = await sessionUser();
@@ -127,10 +122,6 @@ export async function snoozeNotifications(input: {
   return { ok: true };
 }
 
-// ---------------------------------------------------------------------------
-// Preferences
-// ---------------------------------------------------------------------------
-
 const PREF_TYPES = new Set<string>(NOTIFICATION_PREFS.map((pref) => pref.type));
 
 export async function updateNotificationPrefs(input: {
@@ -179,10 +170,6 @@ export async function sendTestEmail(): Promise<ActionResult<{ delivered: boolean
   const delivered = await sendEmail({ to: user.email, ...message });
   return { ok: true, delivered };
 }
-
-// ---------------------------------------------------------------------------
-// Reminders ("Remind me" on an issue)
-// ---------------------------------------------------------------------------
 
 /** The issue's key/title, or null when it isn't in that project. */
 async function issueInProject(projectId: string, ticketId: unknown) {
@@ -236,20 +223,22 @@ export async function setIssueReminder(
   if (!issue) return { ok: false, error: 'Issue not found' };
 
   // One pending reminder per issue: setting a new time replaces it.
-  await db.batch([
-    db.delete(notifications).where(pendingReminder(auth.userId, issue.id)),
-    db.insert(notifications).values({
-      id: crypto.randomUUID(),
-      userId: auth.userId,
-      projectId: input.projectId,
-      ticketId: issue.id,
-      actorId: null,
-      type: 'reminder',
-      data: { key: issue.key, title: issue.title },
-      snoozedUntil: remindAt,
-      createdAt: new Date(),
-    }),
-  ]);
+  await createNotifications(
+    [
+      {
+        id: crypto.randomUUID(),
+        userId: auth.userId,
+        projectId: input.projectId,
+        ticketId: issue.id,
+        actorId: null,
+        type: 'reminder',
+        data: { key: issue.key, title: issue.title },
+        snoozedUntil: remindAt,
+        createdAt: new Date(),
+      },
+    ],
+    { replacing: db.delete(notifications).where(pendingReminder(auth.userId, issue.id)) },
+  );
   return { ok: true, remindAt: remindAt.toISOString() };
 }
 

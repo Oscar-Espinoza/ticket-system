@@ -1,4 +1,4 @@
-// Slack DM channel (D7): users who linked their Slack account (and left DM
+// Slack DM channel: users who linked their Slack account (and left DM
 // notifications on) get their new inbox rows as ONE compact bot DM per
 // workspace per batch. Opens the IM with conversations.open, then
 // chat.postMessage. Sequential per workspace; a rate limit (429) skips the rest
@@ -9,11 +9,11 @@ import { and, eq, inArray } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { slackInstallations, slackUserLinks, users } from '@/db/schema';
 import { appUrl } from '@/lib/integrations/app-url';
-import { slackEscape } from '@/lib/integrations/slack';
 import { describeNotification, notificationData, notificationPath } from '@/lib/notifications/types';
+import { decryptToken } from '@/lib/server/crypto';
 import { slackApi } from '@/lib/slack/api';
 import { slackConfig } from '@/lib/slack/config';
-import { decryptToken } from '@/lib/slack/installations';
+import { slackEscape } from '@/lib/slack/format';
 
 import type { ChannelNotification } from './index';
 

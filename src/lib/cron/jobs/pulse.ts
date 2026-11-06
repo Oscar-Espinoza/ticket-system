@@ -1,4 +1,4 @@
-// Daily cron job — owned by D8. Weekly Pulse: one inbox notification per
+// Daily cron job. Weekly Pulse: one inbox notification per
 // project member summarising the last 7 days (epic updates + health changes,
 // issues created / completed) of their projects with activity.
 //
@@ -11,12 +11,13 @@ import { eq, max } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import { notifications, projectMembers, userProfiles } from '@/db/schema';
-import { deliverToChannels, type ChannelNotification } from '@/lib/notifications/channels';
+import { isMondayUtc, WEEKLY_MIN_GAP_MS } from '@/lib/cron/cadence';
+import type { ChannelNotification } from '@/lib/notifications/channels';
+import { createNotifications } from '@/lib/notifications/create';
 import { prefEnabled } from '@/lib/notifications/types';
+import { DAY_MS } from '@/lib/time';
 import { describePulse, getPulse, type PulseProjectStats } from '@/lib/pulse';
 
-const DAY_MS = 86_400_000;
-const CHUNK = 500;
 const PULSE_URL = '/dashboard/dashboards?tab=pulse';
 
 export async function run(now: Date): Promise<string> {
@@ -29,7 +30,7 @@ export async function run(now: Date): Promise<string> {
 }
 
 async function sendPulses(now: Date): Promise<string> {
-  const isMonday = now.getUTCDay() === 1;
+  const isMonday = isMondayUtc(now);
 
   const [memberships, lastPulses, profiles] = await db.batch([
     db.select({ userId: projectMembers.userId, projectId: projectMembers.projectId }).from(projectMembers),
@@ -55,7 +56,7 @@ async function sendPulses(now: Date): Promise<string> {
     const previous = last.get(userId);
     if (previous === undefined) return isMonday;
     const age = now.getTime() - previous;
-    return age >= 7 * DAY_MS - 4 * 3_600_000 || (isMonday && age >= 6 * DAY_MS);
+    return age >= WEEKLY_MIN_GAP_MS || (isMonday && age >= 6 * DAY_MS);
   });
   if (due.length === 0) return 'no users due';
 
@@ -112,9 +113,6 @@ async function sendPulses(now: Date): Promise<string> {
   }
   if (rows.length === 0) return `${due.length} due, no activity`;
 
-  for (let i = 0; i < rows.length; i += CHUNK) {
-    await db.insert(notifications).values(rows.slice(i, i + CHUNK));
-  }
-  await deliverToChannels(rows);
-  return `sent ${rows.length} pulse${rows.length === 1 ? '' : 's'}`;
+  const sent = await createNotifications(rows);
+  return `sent ${sent.length} pulse${sent.length === 1 ? '' : 's'}`;
 }

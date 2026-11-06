@@ -7,14 +7,13 @@ import { CookieResponse } from '@/lib/kit/request';
 import { getSession } from '@/lib/session';
 import { appUrl } from '@/lib/integrations/app-url';
 
-import { BOT_SCOPES, slackConfig, slackUrls } from './config';
+import { BOT_SCOPES, SLACK_SETTINGS_PATH, slackConfig, slackUrls, USER_SCOPES } from './config';
 import { createState, STATE_COOKIE, STATE_MAX_AGE_S, type SlackOAuthPurpose } from './state';
 
-export const SETTINGS_PATH = '/dashboard/settings/slack';
 const COOKIE_PATH = '/api/slack';
 
 export function settingsRedirect(params: Record<string, string>): CookieResponse {
-  const url = new URL(SETTINGS_PATH, appUrl());
+  const url = new URL(SLACK_SETTINGS_PATH, appUrl());
   for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value);
   const res = CookieResponse.redirect(url);
   res.cookies.set(STATE_COOKIE, '', { path: COOKIE_PATH, maxAge: 0 });
@@ -24,7 +23,7 @@ export function settingsRedirect(params: Record<string, string>): CookieResponse
 export async function startSlackOAuth(purpose: SlackOAuthPurpose): Promise<CookieResponse> {
   const session = await getSession();
   if (!session?.user) {
-    return CookieResponse.redirect(new URL(`/login?redirect=${encodeURIComponent(SETTINGS_PATH)}`, appUrl()));
+    return CookieResponse.redirect(new URL(`/login?redirect=${encodeURIComponent(SLACK_SETTINGS_PATH)}`, appUrl()));
   }
   const config = slackConfig();
   if (!config) return settingsRedirect({ slack: 'error', reason: 'not_configured' });
@@ -41,7 +40,7 @@ export async function startSlackOAuth(purpose: SlackOAuthPurpose): Promise<Cooki
     url.searchParams.set('scope', BOT_SCOPES.join(','));
   } else {
     url.searchParams.set('response_type', 'code');
-    url.searchParams.set('scope', 'openid');
+    url.searchParams.set('scope', USER_SCOPES.join(' '));
     url.searchParams.set('nonce', nonce);
   }
 

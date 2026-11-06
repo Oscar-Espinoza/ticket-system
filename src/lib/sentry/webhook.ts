@@ -16,24 +16,20 @@ import { and, eq, isNull, sql } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import { attachments, projects, tickets, workflowStates } from '@/db/schema';
-import { emitIssueEvent } from '@/lib/events';
+import { emitIssueEvent, ISSUE_EVENT } from '@/lib/events';
 import { createIssue, DESCRIPTION_MAX, SYSTEM_ACTOR, TITLE_MAX } from '@/lib/issue-service';
 import { defaultNewIssueState, firstStateOfType } from '@/lib/workflow';
-import { hmacHex, safeEqual } from '@/lib/server/crypto';
+import { verifyHmac } from '@/lib/server/crypto';
 import type { StateType } from '@/lib/issue-model';
 import { guardedRequest } from '@/lib/integrations/url-guard';
-
-export const SENTRY_EVENT = { resolved: 'sentry.resolved' } as const;
+import { WEBHOOK_TIMEOUT_MS } from '@/lib/integrations/timeouts';
 
 /**
  * Sentry signs `JSON.stringify(body)` — normally the raw body byte for byte;
  * the re-serialized form covers a proxy that reformatted it.
  */
 export function verifySentrySignature(raw: string, payload: unknown, signature: string | null, secret: string) {
-  if (!signature) return false;
-  return (
-    safeEqual(signature, hmacHex(raw, secret)) || safeEqual(signature, hmacHex(JSON.stringify(payload), secret))
-  );
+  return verifyHmac(signature, raw, secret) || verifyHmac(signature, JSON.stringify(payload), secret);
 }
 
 interface SentryIssueInfo {
@@ -109,7 +105,7 @@ async function fetchIssue(apiUrl: string | null, id: string, token: string): Pro
     // The host comes from the payload (self-hosted Sentry): same SSRF guard as webhooks.
     const response = await guardedRequest(apiUrl, {
       headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
-      timeoutMs: 5_000,
+      timeoutMs: WEBHOOK_TIMEOUT_MS,
       maxBytes: 2 * 1024 * 1024,
     });
     if (response.status < 200 || response.status >= 300) return null;
@@ -206,7 +202,7 @@ async function recordResolved(projectId: string, ticketKey: string, info: Sentry
       projectId,
       ticketId: issue.id,
       actorId: null,
-      type: SENTRY_EVENT.resolved,
+      type: ISSUE_EVENT.sentryResolved,
       data: {
         key: `${ticketKey}-${issue.number}`,
         title: issue.title,

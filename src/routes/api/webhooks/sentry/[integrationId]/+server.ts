@@ -44,5 +44,4 @@ export const POST: RequestHandler = async ({ request, params }) => {
   return Response.json({ ok: true }, { status: 202 });
 };
 
-// Next answered OPTIONS automatically (204 + Allow); Kit would 405.
 export const OPTIONS = allowOptions('POST');

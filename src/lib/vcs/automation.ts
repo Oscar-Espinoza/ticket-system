@@ -8,14 +8,14 @@
 // changes go through the issue service as the system actor, so activity,
 // notifications, Slack and outgoing webhooks all see them.
 //
-// Event types stay `github.*` for every provider (the notification dispatcher
-// and Slack already know them); `data.provider` tells them apart and
-// `data.actorName` names the integration in the activity line.
+// Event types stay `github.*` for every provider (see PR_EVENT); `data.provider`
+// tells them apart and `data.actorName` names the integration in the activity line.
 
 import { and, eq, inArray, isNull, or, sql, type SQL } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import { githubPullRequests, tickets, workflowStates } from '@/db/schema';
+import { PR_EVENT } from '@/lib/event-names';
 import { emitIssueEvent, type IssueEventInput } from '@/lib/events';
 import { SYSTEM_ACTOR, updateIssueFields } from '@/lib/issue-service';
 import type { IssueRow, WorkflowState } from '@/lib/issue-model';
@@ -25,8 +25,8 @@ import {
   defaultPrOpenState,
   resolveAutomationState,
   shouldAdvance,
-} from '@/lib/github/automation';
-import { classifyPullRequest, closingNumbers } from '@/lib/github/references';
+} from '@/lib/vcs/automation-state';
+import { classifyPullRequest, closingNumbers } from '@/lib/vcs/references';
 import {
   prNoun,
   prNumberLabel,
@@ -35,14 +35,6 @@ import {
   type ReviewDecision,
   type VcsProvider,
 } from '@/lib/vcs/providers';
-
-export const PR_EVENT = {
-  branchCreated: 'github.branch_created',
-  prLinked: 'github.pr_linked',
-  prMerged: 'github.pr_merged',
-  prClosed: 'github.pr_closed',
-  commitClosed: 'github.commit_closed',
-} as const;
 
 export interface VcsProject {
   id: string;

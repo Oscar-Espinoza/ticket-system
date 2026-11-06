@@ -6,9 +6,10 @@ import { and, like, lt } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import { collabUpdates } from '@/db/schema';
+import { HOUR_MS } from '@/lib/time';
 
 export async function run(now: Date): Promise<string> {
-  const cutoff = new Date(now.getTime() - 60 * 60 * 1000);
+  const cutoff = new Date(now.getTime() - HOUR_MS);
   const removed = await db
     .delete(collabUpdates)
     .where(and(like(collabUpdates.key, 'aw:%'), lt(collabUpdates.createdAt, cutoff)))

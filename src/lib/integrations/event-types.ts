@@ -1,18 +1,20 @@
 // Event vocabularies for Slack and outgoing webhooks. Client-safe (the settings
 // UI renders these lists), so no imports from events.ts (which pulls in the db).
 
+import { ISSUE_EVENT } from '@/lib/event-names';
+
 /** Issue event types a webhook can subscribe to. An empty selection = all types. */
 export const WEBHOOK_EVENT_TYPES = [
-  { type: 'issue.created', label: 'Issue created' },
-  { type: 'issue.updated', label: 'Issue updated' },
-  { type: 'comment.created', label: 'Comment created' },
-  { type: 'comment.updated', label: 'Comment edited' },
-  { type: 'comment.deleted', label: 'Comment deleted' },
-  { type: 'issue.archived', label: 'Issue archived' },
-  { type: 'issue.unarchived', label: 'Issue unarchived' },
-  { type: 'issue.deleted', label: 'Issue moved to trash' },
-  { type: 'issue.restored', label: 'Issue restored' },
-  { type: 'issue.purged', label: 'Issue permanently deleted' },
+  { type: ISSUE_EVENT.created, label: 'Issue created' },
+  { type: ISSUE_EVENT.updated, label: 'Issue updated' },
+  { type: ISSUE_EVENT.commentCreated, label: 'Comment created' },
+  { type: ISSUE_EVENT.commentUpdated, label: 'Comment edited' },
+  { type: ISSUE_EVENT.commentDeleted, label: 'Comment deleted' },
+  { type: ISSUE_EVENT.archived, label: 'Issue archived' },
+  { type: ISSUE_EVENT.unarchived, label: 'Issue unarchived' },
+  { type: ISSUE_EVENT.deleted, label: 'Issue moved to trash' },
+  { type: ISSUE_EVENT.restored, label: 'Issue restored' },
+  { type: ISSUE_EVENT.purged, label: 'Issue permanently deleted' },
 ] as const;
 
 export type WebhookEventType = (typeof WEBHOOK_EVENT_TYPES)[number]['type'];
@@ -32,12 +34,7 @@ export const SLACK_EVENTS = [
 
 export type SlackEventKind = (typeof SLACK_EVENTS)[number]['kind'];
 
-const SLACK_KINDS = new Set<string>(SLACK_EVENTS.map((e) => e.kind));
 const ALL_SLACK_KINDS = SLACK_EVENTS.map((e) => e.kind) as SlackEventKind[];
-
-export function isSlackEventKind(value: unknown): value is SlackEventKind {
-  return typeof value === 'string' && SLACK_KINDS.has(value);
-}
 
 export const SLACK_URL_PREFIX = 'https://hooks.slack.com/';
 

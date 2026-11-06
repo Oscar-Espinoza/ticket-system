@@ -10,6 +10,8 @@ import { run as pulse } from './jobs/pulse';
 import { run as webhookRetries } from './jobs/webhook-retries';
 import { run as collabPrune } from './jobs/collab-prune';
 
+import { MINUTE_MS } from '@/lib/time';
+
 const JOBS: Record<string, (now: Date) => Promise<string>> = {
   automations,
   recurring,
@@ -26,7 +28,7 @@ const JOBS: Record<string, (now: Date) => Promise<string>> = {
  * skip it rather than start a second copy that would read the same state and
  * repeat its work.
  */
-export const JOB_TIMEOUT_MS = 10 * 60_000;
+export const JOB_TIMEOUT_MS = 10 * MINUTE_MS;
 
 const inFlight = new Map<string, Promise<unknown>>();
 

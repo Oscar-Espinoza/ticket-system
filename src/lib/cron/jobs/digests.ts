@@ -1,4 +1,4 @@
-// Daily cron job (D11): email digests for users with user_profile.digestFrequency
+// Daily cron job: email digests for users with user_profile.digestFrequency
 // 'daily' or 'weekly' (Mondays UTC, or once 7 days have passed). A digest lists
 // the unread, not-yet-emailed notifications since lastDigestAt, grouped by issue.
 //
@@ -12,6 +12,8 @@ import { db } from '@/lib/db';
 import { notifications, projectMembers, userProfiles, users } from '@/db/schema';
 import { sendEmail } from '@/lib/email';
 import { appUrl } from '@/lib/integrations/app-url';
+import { WEEKLY_MIN_GAP_MS, isMondayUtc } from '@/lib/cron/cadence';
+import { DAY_MS, HOUR_MS, WEEK_MS } from '@/lib/time';
 import { digestEmail, settingsUrl, type DigestGroup } from '@/lib/notifications/email-templates';
 import {
   describeNotification,
@@ -20,12 +22,9 @@ import {
   prefEnabled,
 } from '@/lib/notifications/types';
 
-const HOUR = 60 * 60 * 1000;
-const DAY = 24 * HOUR;
 /** Cron start times drift by minutes; these margins keep the cadence stable. */
-const DAILY_MIN_GAP = 20 * HOUR;
-const WEEKLY_MIN_GAP = 7 * DAY - 4 * HOUR;
-const MAX_LOOKBACK = 14 * DAY;
+const DAILY_MIN_GAP = 20 * HOUR_MS;
+const MAX_LOOKBACK = 14 * DAY_MS;
 /** Resend's free tier allows 100 emails a day; leave room for immediate ones. */
 const MAX_EMAILS_PER_RUN = 90;
 const MAX_ROWS = 500;
@@ -46,8 +45,8 @@ export function digestDue(frequency: Frequency, last: Date | null, now: Date): b
   const elapsed = last ? now.getTime() - last.getTime() : Infinity;
   if (frequency === 'daily') return elapsed >= DAILY_MIN_GAP;
   // Weekly starts on the next Monday rather than the day it was switched on.
-  if (now.getUTCDay() === 1) return elapsed >= DAILY_MIN_GAP;
-  return last !== null && elapsed >= WEEKLY_MIN_GAP;
+  if (isMondayUtc(now)) return elapsed >= DAILY_MIN_GAP;
+  return last !== null && elapsed >= WEEKLY_MIN_GAP_MS;
 }
 
 export async function run(now: Date): Promise<string> {
@@ -106,7 +105,7 @@ async function sendDigest(recipient: Recipient, now: Date): Promise<'sent' | 'em
     .returning({ userId: userProfiles.userId });
   if (claimed.length === 0) return 'claimed';
 
-  const period = recipient.frequency === 'daily' ? DAY : 7 * DAY;
+  const period = recipient.frequency === 'daily' ? DAY_MS : WEEK_MS;
   const since = new Date(
     Math.max(last?.getTime() ?? now.getTime() - period, now.getTime() - MAX_LOOKBACK),
   );

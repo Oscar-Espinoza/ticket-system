@@ -7,7 +7,7 @@ import { and, eq } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import { projectIntegrations, projects } from '@/db/schema';
-import { appUrl } from '@/lib/integrations/app-url';
+import { webhookBaseUrl } from '@/lib/vcs/hosts';
 
 export const INTEGRATION_PROVIDERS = ['gitlab', 'bitbucket', 'sentry'] as const;
 export type IntegrationProvider = (typeof INTEGRATION_PROVIDERS)[number];
@@ -91,13 +91,8 @@ export async function getWebhookIntegration<C>(integrationId: string, provider: 
   };
 }
 
-/**
- * Where a provider delivers. GITHUB_WEBHOOK_BASE_URL (a tunnel in local dev)
- * applies to every code host, like it does for GitHub.
- */
 export function integrationWebhookUrl(provider: IntegrationProvider, integrationId: string): string {
-  const base = (process.env.GITHUB_WEBHOOK_BASE_URL ?? appUrl()).replace(/\/+$/, '');
-  return `${base}/api/webhooks/${provider}/${integrationId}`;
+  return `${webhookBaseUrl()}/api/webhooks/${provider}/${integrationId}`;
 }
 
 /**

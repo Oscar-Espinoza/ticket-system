@@ -1,15 +1,15 @@
-// Repository webhook lifecycle + signature verification (GH-03 / GH-06).
-// Server-only (node:crypto, Octokit with the acting user's token).
+// GitHub repository webhook lifecycle (Octokit with the acting user's token).
+// Server-only.
 
-import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import type { Octokit } from '@octokit/rest';
 
 import { githubStatus, splitRepo } from '@/lib/github/client';
+import { webhookBaseUrl } from '@/lib/vcs/hosts';
 
 export const WEBHOOK_EVENTS = [
   'pull_request',
   'push',
-  // Review decision and CI state on linked PRs (D10b).
+  // Review decision and CI state on linked PRs.
   'pull_request_review',
   'check_suite',
   'check_run',
@@ -22,41 +22,9 @@ export function missingWebhookEvents(events: readonly string[]): string[] {
   return WEBHOOK_EVENTS.filter((event) => !events.includes(event));
 }
 
-/**
- * Where GitHub delivers. GITHUB_WEBHOOK_BASE_URL lets local dev point GitHub
- * at a tunnel while auth callbacks stay on PUBLIC_APP_URL.
- */
+/** Where GitHub delivers. */
 export function webhookUrl(): string {
-  const base =
-    process.env.GITHUB_WEBHOOK_BASE_URL ??
-    process.env.PUBLIC_APP_URL ??
-    'http://localhost:3000';
-  return `${base.replace(/\/+$/, '')}/api/webhooks/github`;
-}
-
-/** GitHub can't deliver to loopback / private-network hosts. */
-export function isUnreachableUrl(url: string): boolean {
-  let host: string;
-  try {
-    host = new URL(url).hostname.replace(/^\[|\]$/g, '');
-  } catch {
-    return true;
-  }
-  return (
-    host === 'localhost' ||
-    host.endsWith('.localhost') ||
-    host.endsWith('.local') ||
-    host === '::1' ||
-    /^127\./.test(host) ||
-    /^10\./.test(host) ||
-    /^192\.168\./.test(host) ||
-    /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
-    host === '0.0.0.0'
-  );
-}
-
-export function newWebhookSecret(): string {
-  return randomBytes(32).toString('hex');
+  return `${webhookBaseUrl()}/api/webhooks/github`;
 }
 
 /**
@@ -122,14 +90,4 @@ export async function deleteRepoWebhook(
   } catch (err) {
     return githubStatus(err) === 404;
   }
-}
-
-/** Timing-safe check of `X-Hub-Signature-256` over the raw body. */
-export function verifySignature(rawBody: string, signature: string | null, secret: string): boolean {
-  if (!signature?.startsWith('sha256=')) return false;
-  const expected = Buffer.from(
-    `sha256=${createHmac('sha256', secret).update(rawBody, 'utf8').digest('hex')}`,
-  );
-  const given = Buffer.from(signature);
-  return given.length === expected.length && timingSafeEqual(given, expected);
 }
