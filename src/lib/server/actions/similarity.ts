@@ -7,11 +7,12 @@ import { eq, or } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { issueRelations, tickets } from '@/db/schema';
 import { authorizeProjectAction } from '@/lib/action-auth';
+import { fail, type ActionResult } from '@/lib/server/action-kit';
 import { stripMentions } from '@/lib/mentions';
 import { findSimilarIssues, type SimilarIssue } from '@/lib/similarity';
 import { getTicketById } from '@/lib/tickets';
 
-export type SimilarResult = { ok: true; similar: SimilarIssue[] } | { ok: false; error: string };
+export type SimilarResult = ActionResult<{ similar: SimilarIssue[] }>;
 
 /** Title typed in the new-issue dialog → up to 3 possible duplicates. */
 export async function findPossibleDuplicates(input: {
@@ -21,7 +22,7 @@ export async function findPossibleDuplicates(input: {
 }): Promise<SimilarResult> {
   const authz = await authorizeProjectAction(input?.projectId, 'read');
   if (!authz.ok) return authz;
-  if (typeof input.title !== 'string') return { ok: false, error: 'Invalid title.' };
+  if (typeof input.title !== 'string') return fail('Invalid title.');
   const similar = await findSimilarIssues(authz.userId, input.projectId, {
     title: input.title,
     description: typeof input.description === 'string' ? input.description : null,
@@ -41,10 +42,10 @@ export async function getSimilarIssues(input: {
   const authz = await authorizeProjectAction(input?.projectId, 'read');
   if (!authz.ok) return authz;
   if (typeof input.ticketId !== 'string' || !input.ticketId) {
-    return { ok: false, error: 'Issue not found.' };
+    return fail('Issue not found.');
   }
   const issue = await getTicketById(input.projectId, input.ticketId);
-  if (!issue || issue.deletedAt) return { ok: false, error: 'Issue not found.' };
+  if (!issue || issue.deletedAt) return fail('Issue not found.');
 
   const [relations, children] = await db.batch([
     db

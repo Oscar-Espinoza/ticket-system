@@ -1,13 +1,20 @@
 // Personal API keys. Scoped to the session user: a key id belonging to someone
 // else is "not found". The plaintext key is returned once, from createApiKey.
 
-import { revalidatePath } from '@/lib/kit/request';
 import { and, count, eq, isNull } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import { apiKeys } from '@/db/schema';
 import { getSession } from '@/lib/session';
 import { generateApiKey } from '@/lib/api-auth';
+import {
+  fail,
+  isFail,
+  NOT_AUTHENTICATED,
+  refreshesData,
+  requiredText,
+  type ActionResult,
+} from '@/lib/server/action-kit';
 
 export interface ApiKeyView {
   id: string;
@@ -17,31 +24,25 @@ export interface ApiKeyView {
   lastUsedAt: string | null;
 }
 
-type Result<T = object> = ({ ok: true } & T) | { ok: false; error: string; field?: 'name' };
-
 const NAME_MAX = 60;
 const KEYS_MAX = 25;
-const PAGE = '/dashboard/settings/api-keys';
 
 export async function createApiKey(input: {
   name: string;
-}): Promise<Result<{ apiKey: ApiKeyView; key: string }>> {
+}): Promise<ActionResult<{ apiKey: ApiKeyView; key: string }, 'name'>> {
   const session = await getSession();
-  if (!session?.user) return { ok: false, error: 'Not authenticated' };
+  if (!session?.user) return NOT_AUTHENTICATED;
   const userId = session.user.id;
 
-  const name = typeof input?.name === 'string' ? input.name.trim() : '';
-  if (!name) return { ok: false, error: 'Name is required.', field: 'name' };
-  if (name.length > NAME_MAX) {
-    return { ok: false, error: `Name must be ${NAME_MAX} characters or fewer.`, field: 'name' };
-  }
+  const name = requiredText(input?.name, 'name', NAME_MAX);
+  if (isFail(name)) return name;
 
   const [{ total }] = await db
     .select({ total: count() })
     .from(apiKeys)
     .where(and(eq(apiKeys.userId, userId), isNull(apiKeys.revokedAt)));
   if (total >= KEYS_MAX) {
-    return { ok: false, error: `You can have at most ${KEYS_MAX} active keys. Revoke one first.` };
+    return fail(`You can have at most ${KEYS_MAX} active keys. Revoke one first.`);
   }
 
   const { key, prefix, hash } = generateApiKey();
@@ -49,7 +50,7 @@ export async function createApiKey(input: {
   const id = crypto.randomUUID();
   await db.insert(apiKeys).values({ id, userId, name, prefix, keyHash: hash, createdAt });
 
-  revalidatePath(PAGE);
+  refreshesData();
   return {
     ok: true,
     key,
@@ -57,10 +58,10 @@ export async function createApiKey(input: {
   };
 }
 
-export async function revokeApiKey(input: { id: string }): Promise<Result> {
+export async function revokeApiKey(input: { id: string }): Promise<ActionResult> {
   const session = await getSession();
-  if (!session?.user) return { ok: false, error: 'Not authenticated' };
-  if (typeof input?.id !== 'string') return { ok: false, error: 'Key not found.' };
+  if (!session?.user) return NOT_AUTHENTICATED;
+  if (typeof input?.id !== 'string') return fail('Key not found.');
 
   const [row] = await db
     .update(apiKeys)
@@ -73,8 +74,8 @@ export async function revokeApiKey(input: { id: string }): Promise<Result> {
       ),
     )
     .returning({ id: apiKeys.id });
-  if (!row) return { ok: false, error: 'Key not found.' };
+  if (!row) return fail('Key not found.');
 
-  revalidatePath(PAGE);
+  refreshesData();
   return { ok: true };
 }

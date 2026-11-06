@@ -4,43 +4,30 @@
 // scoped by projectId, and label ids assigned to an epic must be the
 // project's own — ids from another project match nothing.
 
-import { revalidatePath } from '@/lib/kit/request';
 import { and, eq, inArray, ne, sql } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import { epicLabelLinks, epicLabels, epics } from '@/db/schema';
 import { authorizeProjectAction } from '@/lib/action-auth';
+import { isUniqueViolation } from '@/lib/db-errors';
 import { emitIssueEvent } from '@/lib/events';
+import {
+  fail,
+  hexColor,
+  isFail,
+  refreshesData,
+  requiredText,
+  type ActionResult,
+} from '@/lib/server/action-kit';
 import {
   EPIC_LABELS_MAX,
   EPIC_LABEL_NAME_MAX,
   type EpicLabelRow,
 } from '@/lib/epic-model';
 
-export type EpicLabelActionResult =
-  | { ok: true; label?: EpicLabelRow }
-  | { ok: false; error: string; field?: 'name' | 'color' };
+export type EpicLabelActionResult = ActionResult<{ label?: EpicLabelRow }, 'name' | 'color'>;
 
-type Fail = Extract<EpicLabelActionResult, { ok: false }>;
-
-const COLOR_RE = /^#[0-9a-fA-F]{6}$/;
-const DUPLICATE: Fail = { ok: false, error: 'A label with this name already exists.', field: 'name' };
-
-function validateName(value: unknown): string | Fail {
-  const name = typeof value === 'string' ? value.trim() : '';
-  if (!name) return { ok: false, error: 'Name is required.', field: 'name' };
-  if (name.length > EPIC_LABEL_NAME_MAX) {
-    return { ok: false, error: `Name must be ${EPIC_LABEL_NAME_MAX} characters or fewer.`, field: 'name' };
-  }
-  return name;
-}
-
-function validateColor(value: unknown): string | Fail {
-  if (typeof value !== 'string' || !COLOR_RE.test(value)) {
-    return { ok: false, error: 'Color must be a hex value like #5e6ad2.', field: 'color' };
-  }
-  return value.toLowerCase();
-}
+const DUPLICATE = fail('A label with this name already exists.', 'name');
 
 async function nameTaken(projectId: string, name: string, exceptId?: string) {
   const [row] = await db
@@ -57,12 +44,6 @@ async function nameTaken(projectId: string, name: string, exceptId?: string) {
   return Boolean(row);
 }
 
-function isUniqueViolation(err: unknown) {
-  const code =
-    (err as { code?: string })?.code ?? (err as { cause?: { code?: string } })?.cause?.code;
-  return code === '23505';
-}
-
 async function loadLabel(projectId: string, id: unknown) {
   if (typeof id !== 'string' || !id) return null;
   const [label] = await db
@@ -73,10 +54,6 @@ async function loadLabel(projectId: string, id: unknown) {
   return label ?? null;
 }
 
-function revalidate(projectId: string) {
-  revalidatePath(`/dashboard/projects/${projectId}`, 'layout');
-}
-
 export async function createEpicLabel(input: {
   projectId: string;
   name: string;
@@ -84,10 +61,10 @@ export async function createEpicLabel(input: {
 }): Promise<EpicLabelActionResult> {
   const authz = await authorizeProjectAction(input?.projectId, 'write');
   if (!authz.ok) return authz;
-  const name = validateName(input.name);
-  if (typeof name !== 'string') return name;
-  const color = validateColor(input.color);
-  if (typeof color !== 'string') return color;
+  const name = requiredText(input.name, 'name', EPIC_LABEL_NAME_MAX);
+  if (isFail(name)) return name;
+  const color = hexColor(input.color);
+  if (isFail(color)) return color;
 
   if (await nameTaken(input.projectId, name)) return DUPLICATE;
   const label: EpicLabelRow = { id: crypto.randomUUID(), name, color };
@@ -106,7 +83,7 @@ export async function createEpicLabel(input: {
       data: { summary: `created epic label ${name}`, labelId: label.id, name },
     },
   ]);
-  revalidate(input.projectId);
+  refreshesData();
   return { ok: true, label };
 }
 
@@ -119,20 +96,20 @@ export async function updateEpicLabel(input: {
   const authz = await authorizeProjectAction(input?.projectId, 'write');
   if (!authz.ok) return authz;
   const label = await loadLabel(input.projectId, input.id);
-  if (!label) return { ok: false, error: 'Label not found.' };
+  if (!label) return fail('Label not found.');
 
   const changes: { name?: string; color?: string } = {};
   if (input.name !== undefined) {
-    const name = validateName(input.name);
-    if (typeof name !== 'string') return name;
+    const name = requiredText(input.name, 'name', EPIC_LABEL_NAME_MAX);
+    if (isFail(name)) return name;
     if (name !== label.name) {
       if (await nameTaken(input.projectId, name, label.id)) return DUPLICATE;
       changes.name = name;
     }
   }
   if (input.color !== undefined) {
-    const color = validateColor(input.color);
-    if (typeof color !== 'string') return color;
+    const color = hexColor(input.color);
+    if (isFail(color)) return color;
     if (color !== label.color) changes.color = color;
   }
   if (Object.keys(changes).length === 0) return { ok: true, label };
@@ -162,7 +139,7 @@ export async function updateEpicLabel(input: {
       },
     },
   ]);
-  revalidate(input.projectId);
+  refreshesData();
   return { ok: true, label: next };
 }
 
@@ -174,7 +151,7 @@ export async function deleteEpicLabel(input: {
   const authz = await authorizeProjectAction(input?.projectId, 'write');
   if (!authz.ok) return authz;
   const label = await loadLabel(input.projectId, input.id);
-  if (!label) return { ok: false, error: 'Label not found.' };
+  if (!label) return fail('Label not found.');
 
   await db
     .delete(epicLabels)
@@ -188,7 +165,7 @@ export async function deleteEpicLabel(input: {
       data: { summary: `deleted epic label ${label.name}`, labelId: label.id, name: label.name },
     },
   ]);
-  revalidate(input.projectId);
+  refreshesData();
   return { ok: true };
 }
 
@@ -205,11 +182,11 @@ export async function setEpicLabels(input: {
     !Array.isArray(input.labelIds) ||
     input.labelIds.some((id) => typeof id !== 'string' || !id)
   ) {
-    return { ok: false, error: 'Invalid labels.' };
+    return fail('Invalid labels.');
   }
   const wanted = [...new Set(input.labelIds)];
   if (wanted.length > EPIC_LABELS_MAX) {
-    return { ok: false, error: `An epic can have at most ${EPIC_LABELS_MAX} labels.` };
+    return fail(`An epic can have at most ${EPIC_LABELS_MAX} labels.`);
   }
 
   const epicId = typeof input.epicId === 'string' ? input.epicId : '';
@@ -235,9 +212,9 @@ export async function setEpicLabels(input: {
       .innerJoin(epicLabels, eq(epicLabelLinks.labelId, epicLabels.id))
       .where(and(eq(epicLabelLinks.epicId, epicId), eq(epicLabels.projectId, projectId))),
   ]);
-  if (!epic) return { ok: false, error: 'Epic not found.' };
+  if (!epic) return fail('Epic not found.');
   if (found.length !== wanted.length) {
-    return { ok: false, error: 'One of the labels no longer exists — refresh and try again.' };
+    return fail('One of the labels no longer exists — refresh and try again.');
   }
 
   const before = new Set(current.map((l) => l.labelId));
@@ -277,6 +254,6 @@ export async function setEpicLabels(input: {
       },
     },
   ]);
-  revalidate(projectId);
+  refreshesData();
   return { ok: true };
 }

@@ -1,7 +1,6 @@
 // Recurring issue schedules. Writers (members and up) manage them — the same
 // bar as creating issues; every row is addressed by (projectId, id).
 
-import { revalidatePath } from '@/lib/kit/request';
 import { and, count, eq } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
@@ -17,6 +16,14 @@ import {
 import { sanitizeIssueDefaults, TEMPLATE_FIELDS } from '@/lib/issue-defaults';
 import { utcDay } from '@/lib/cycle-utils';
 import {
+  fail,
+  isFail,
+  optionalText,
+  refreshesData,
+  requiredText,
+  type ActionResult,
+} from '@/lib/server/action-kit';
+import {
   DUE_IN_DAYS_MAX,
   normalizeSchedule,
   sameSchedule,
@@ -26,14 +33,9 @@ import {
 } from '@/lib/recurring-schedule';
 
 type Field = 'title' | 'description' | 'schedule' | 'dueInDays';
-type Fail = { ok: false; error: string; field?: Field };
-export type RecurringResult = { ok: true; recurring: RecurringIssue } | Fail;
+export type RecurringResult = ActionResult<{ recurring: RecurringIssue }, Field>;
 
 const MAX_PER_PROJECT = 50;
-
-function revalidate(projectId: string) {
-  revalidatePath(`/dashboard/projects/${projectId}/settings/recurring`);
-}
 
 interface RecurringInput {
   projectId: string;
@@ -45,21 +47,12 @@ interface RecurringInput {
 
 /** Shape + ownership checks shared by create and update. */
 async function validate(input: RecurringInput) {
-  const title = typeof input.title === 'string' ? input.title.trim() : '';
-  if (!title) return { ok: false, error: 'Title is required.', field: 'title' } satisfies Fail;
-  if (title.length > TITLE_MAX) {
-    return { ok: false, error: `Title must be ${TITLE_MAX} characters or fewer.`, field: 'title' } satisfies Fail;
-  }
-  const description = typeof input.description === 'string' ? input.description.trim() : '';
-  if (description.length > DESCRIPTION_MAX) {
-    return {
-      ok: false,
-      error: `Description must be ${DESCRIPTION_MAX} characters or fewer.`,
-      field: 'description',
-    } satisfies Fail;
-  }
+  const title = requiredText(input.title, 'title', TITLE_MAX);
+  if (isFail(title)) return title;
+  const description = optionalText(input.description, 'description', DESCRIPTION_MAX);
+  if (isFail(description)) return description;
   const parsed = normalizeSchedule(input.schedule);
-  if (!parsed.ok) return { ok: false, error: parsed.error, field: 'schedule' } satisfies Fail;
+  if (!parsed.ok) return fail(parsed.error, 'schedule');
 
   const raw = input.data && typeof input.data === 'object' ? input.data : {};
   const dueInDays = raw.dueInDays ?? null;
@@ -67,11 +60,7 @@ async function validate(input: RecurringInput) {
     dueInDays !== null &&
     (!Number.isInteger(dueInDays) || dueInDays < 0 || dueInDays > DUE_IN_DAYS_MAX)
   ) {
-    return {
-      ok: false,
-      error: `Due in 0 to ${DUE_IN_DAYS_MAX} days, or leave it empty.`,
-      field: 'dueInDays',
-    } satisfies Fail;
+    return fail(`Due in 0 to ${DUE_IN_DAYS_MAX} days, or leave it empty.`, 'dueInDays');
   }
   // Only ids of this project survive.
   const props = await sanitizeIssueDefaults(input.projectId, raw, TEMPLATE_FIELDS);
@@ -79,7 +68,7 @@ async function validate(input: RecurringInput) {
   return {
     ok: true as const,
     title,
-    description: description || null,
+    description,
     data,
     schedule: parsed.schedule,
   };
@@ -95,11 +84,7 @@ async function findRow(projectId: string, id: unknown): Promise<RecurringRow | n
   return row ?? null;
 }
 
-const NO_RUNS: Fail = {
-  ok: false,
-  error: 'This schedule never runs — check the start date and repeat settings.',
-  field: 'schedule',
-};
+const NO_RUNS = fail('This schedule never runs — check the start date and repeat settings.', 'schedule');
 
 export async function createRecurringIssue(input: RecurringInput): Promise<RecurringResult> {
   const authz = await authorizeProjectAction(input?.projectId, 'write');
@@ -112,7 +97,7 @@ export async function createRecurringIssue(input: RecurringInput): Promise<Recur
     .from(recurringIssues)
     .where(eq(recurringIssues.projectId, input.projectId));
   if (total >= MAX_PER_PROJECT) {
-    return { ok: false, error: `A project can have at most ${MAX_PER_PROJECT} recurring issues.` };
+    return fail(`A project can have at most ${MAX_PER_PROJECT} recurring issues.`);
   }
 
   const now = new Date();
@@ -135,7 +120,7 @@ export async function createRecurringIssue(input: RecurringInput): Promise<Recur
       updatedAt: now,
     })
     .returning();
-  revalidate(input.projectId);
+  refreshesData();
   return { ok: true, recurring: toRecurringIssue(row) };
 }
 
@@ -145,7 +130,7 @@ export async function updateRecurringIssue(
   const authz = await authorizeProjectAction(input?.projectId, 'write');
   if (!authz.ok) return authz;
   const existing = await findRow(input.projectId, input.id);
-  if (!existing) return { ok: false, error: 'Recurring issue not found.' };
+  if (!existing) return fail('Recurring issue not found.');
   const valid = await validate(input);
   if (!valid.ok) return valid;
 
@@ -170,8 +155,8 @@ export async function updateRecurringIssue(
     })
     .where(and(eq(recurringIssues.projectId, input.projectId), eq(recurringIssues.id, existing.id)))
     .returning();
-  if (!row) return { ok: false, error: 'Recurring issue not found.' };
-  revalidate(input.projectId);
+  if (!row) return fail('Recurring issue not found.');
+  refreshesData();
   return { ok: true, recurring: toRecurringIssue(row) };
 }
 
@@ -183,7 +168,7 @@ export async function setRecurringIssueEnabled(input: {
   const authz = await authorizeProjectAction(input?.projectId, 'write');
   if (!authz.ok) return authz;
   const existing = await findRow(input.projectId, input.id);
-  if (!existing) return { ok: false, error: 'Recurring issue not found.' };
+  if (!existing) return fail('Recurring issue not found.');
   const enabled = input.enabled === true;
 
   let nextRunAt = existing.nextRunAt;
@@ -199,24 +184,24 @@ export async function setRecurringIssueEnabled(input: {
     .set({ enabled, nextRunAt, updatedAt: new Date() })
     .where(and(eq(recurringIssues.projectId, input.projectId), eq(recurringIssues.id, existing.id)))
     .returning();
-  if (!row) return { ok: false, error: 'Recurring issue not found.' };
-  revalidate(input.projectId);
+  if (!row) return fail('Recurring issue not found.');
+  refreshesData();
   return { ok: true, recurring: toRecurringIssue(row) };
 }
 
 export async function deleteRecurringIssue(input: {
   projectId: string;
   id: string;
-}): Promise<{ ok: true } | Fail> {
+}): Promise<ActionResult> {
   const authz = await authorizeProjectAction(input?.projectId, 'write');
   if (!authz.ok) return authz;
-  if (typeof input.id !== 'string' || !input.id) return { ok: false, error: 'Recurring issue not found.' };
+  if (typeof input.id !== 'string' || !input.id) return fail('Recurring issue not found.');
   const [row] = await db
     .delete(recurringIssues)
     .where(and(eq(recurringIssues.projectId, input.projectId), eq(recurringIssues.id, input.id)))
     .returning({ id: recurringIssues.id });
-  if (!row) return { ok: false, error: 'Recurring issue not found.' };
-  revalidate(input.projectId);
+  if (!row) return fail('Recurring issue not found.');
+  refreshesData();
   return { ok: true };
 }
 
@@ -224,18 +209,18 @@ export async function deleteRecurringIssue(input: {
 export async function runRecurringIssueNow(input: {
   projectId: string;
   id: string;
-}): Promise<{ ok: true; key: string } | Fail> {
+}): Promise<ActionResult<{ key: string }>> {
   const authz = await authorizeProjectAction(input?.projectId, 'write');
   if (!authz.ok) return authz;
   const existing = await findRow(input.projectId, input.id);
-  if (!existing) return { ok: false, error: 'Recurring issue not found.' };
+  if (!existing) return fail('Recurring issue not found.');
 
   // Created as the person clicking, like any manual create.
   const result = await createFromSchedule(
     { ...existing, createdById: authz.userId },
     utcDay(new Date()),
   );
-  if (!result.ok) return { ok: false, error: result.error };
-  revalidatePath(`/dashboard/projects/${input.projectId}`, 'layout');
+  if (!result.ok) return fail(result.error);
+  refreshesData();
   return { ok: true, key: result.issue.key };
 }

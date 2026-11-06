@@ -2,13 +2,18 @@
 // project (only writers can create issues); every read and delete is scoped
 // to the session user, so a draft id alone never exposes someone else's draft.
 
-import { revalidatePath } from '@/lib/kit/request';
 import { and, eq } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import { issueDrafts } from '@/db/schema';
 import { authorizeProjectAction } from '@/lib/action-auth';
-import { getSession } from '@/lib/session';
+import {
+  fail,
+  NOT_AUTHENTICATED,
+  refreshesData,
+  type ActionResult,
+} from '@/lib/server/action-kit';
+import { sessionUserId } from '@/lib/server/workspace-authz';
 import { DESCRIPTION_MAX, TITLE_MAX } from '@/lib/issue-service';
 import {
   sanitizeIssueDefaults,
@@ -22,8 +27,6 @@ export interface DraftSnapshot {
   description: string;
   data: IssueDefaults;
 }
-
-type Fail = { ok: false; error: string };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -40,11 +43,11 @@ export async function saveDraft(input: {
   title: string;
   description: string;
   data: unknown;
-}): Promise<{ ok: true } | Fail> {
+}): Promise<ActionResult> {
   const authz = await authorizeProjectAction(input?.projectId, 'write');
   if (!authz.ok) return authz;
   if (typeof input.id !== 'string' || !UUID_RE.test(input.id)) {
-    return { ok: false, error: 'Invalid draft.' };
+    return fail('Invalid draft.');
   }
 
   const title = text(input.title, TITLE_MAX);
@@ -74,17 +77,17 @@ export async function saveDraft(input: {
       ),
     })
     .returning({ id: issueDrafts.id });
-  if (rows.length === 0) return { ok: false, error: 'Invalid draft.' };
+  if (rows.length === 0) return fail('Invalid draft.');
   return { ok: true };
 }
 
 export async function getDraft(input: {
   projectId: string;
   id: string;
-}): Promise<{ ok: true; draft: DraftSnapshot } | Fail> {
+}): Promise<ActionResult<{ draft: DraftSnapshot }>> {
   const authz = await authorizeProjectAction(input?.projectId, 'write');
   if (!authz.ok) return authz;
-  if (typeof input.id !== 'string') return { ok: false, error: 'Draft not found.' };
+  if (typeof input.id !== 'string') return fail('Draft not found.');
 
   const [row] = await db
     .select()
@@ -97,7 +100,7 @@ export async function getDraft(input: {
       ),
     )
     .limit(1);
-  if (!row) return { ok: false, error: 'Draft not found.' };
+  if (!row) return fail('Draft not found.');
   return {
     ok: true,
     draft: {
@@ -110,26 +113,21 @@ export async function getDraft(input: {
   };
 }
 
-async function sessionUserId() {
-  const session = await getSession();
-  return session?.user?.id ?? null;
-}
-
-export async function deleteDraft(input: { id: string }): Promise<{ ok: true } | Fail> {
+export async function deleteDraft(input: { id: string }): Promise<ActionResult> {
   const userId = await sessionUserId();
-  if (!userId) return { ok: false, error: 'Not authenticated' };
-  if (typeof input?.id !== 'string') return { ok: false, error: 'Draft not found.' };
+  if (!userId) return NOT_AUTHENTICATED;
+  if (typeof input?.id !== 'string') return fail('Draft not found.');
   await db
     .delete(issueDrafts)
     .where(and(eq(issueDrafts.id, input.id), eq(issueDrafts.userId, userId)));
-  revalidatePath('/dashboard/drafts');
+  refreshesData();
   return { ok: true };
 }
 
-export async function discardAllDrafts(): Promise<{ ok: true } | Fail> {
+export async function discardAllDrafts(): Promise<ActionResult> {
   const userId = await sessionUserId();
-  if (!userId) return { ok: false, error: 'Not authenticated' };
+  if (!userId) return NOT_AUTHENTICATED;
   await db.delete(issueDrafts).where(eq(issueDrafts.userId, userId));
-  revalidatePath('/dashboard/drafts');
+  refreshesData();
   return { ok: true };
 }

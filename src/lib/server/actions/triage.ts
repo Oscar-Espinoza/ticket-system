@@ -4,7 +4,6 @@
 // State changes go through the issue service; the extra triage events carry a
 // `summary` for the activity timeline and notifications.
 
-import { revalidatePath } from '@/lib/kit/request';
 import { asc, eq } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
@@ -15,6 +14,7 @@ import { updateIssueFields } from '@/lib/issue-service';
 import type { IssuePatch, IssueRow, Priority, WorkflowState } from '@/lib/issue-model';
 import { isPriority } from '@/lib/issue-model';
 import { stripMentions } from '@/lib/mentions';
+import { fail, refreshesData, type ActionResult } from '@/lib/server/action-kit';
 import { createIssueRelation } from '@/lib/relations';
 import { findSimilarIssues } from '@/lib/similarity';
 import { getTicketById } from '@/lib/tickets';
@@ -26,12 +26,7 @@ import {
   type TriageSuggestions,
 } from '@/lib/triage';
 
-export type TriageActionResult = { ok: true; warning?: string } | { ok: false; error: string };
-
-function revalidateProject(projectId: string) {
-  revalidatePath(`/dashboard/projects/${projectId}`, 'layout');
-  revalidatePath('/dashboard');
-}
+export type TriageActionResult = ActionResult<{ warning?: string }>;
 
 async function loadStates(projectId: string): Promise<WorkflowState[]> {
   return db
@@ -69,23 +64,23 @@ export async function acceptTriageIssue(input: {
   const authz = await authorizeProjectAction(input?.projectId, 'write');
   if (!authz.ok) return authz;
   const found = await triageIssue(input.projectId, input.id);
-  if ('error' in found) return { ok: false, error: found.error };
+  if ('error' in found) return fail(found.error);
 
   const states = await loadStates(input.projectId);
   if (!acceptStates(states).some((s) => s.id === input.stateId)) {
-    return { ok: false, error: 'Pick an open workflow state.' };
+    return fail('Pick an open workflow state.');
   }
   const patch: IssuePatch = { stateId: input.stateId };
   if (input.priority !== undefined) {
-    if (!isPriority(input.priority)) return { ok: false, error: 'Invalid priority.' };
+    if (!isPriority(input.priority)) return fail('Invalid priority.');
     patch.priority = input.priority;
   }
   // Membership of the assignee is validated by the issue service.
   if (input.assigneeId !== undefined) patch.assigneeId = input.assigneeId;
 
   const result = await updateIssueFields({ userId: authz.userId }, input.projectId, found.issue.id, patch);
-  if (!result.ok) return { ok: false, error: result.error };
-  revalidateProject(input.projectId);
+  if (!result.ok) return fail(result.error);
+  refreshesData();
   return { ok: true };
 }
 
@@ -97,19 +92,19 @@ export async function declineTriageIssue(input: {
   const authz = await authorizeProjectAction(input?.projectId, 'write');
   if (!authz.ok) return authz;
   const found = await triageIssue(input.projectId, input.id);
-  if ('error' in found) return { ok: false, error: found.error };
+  if ('error' in found) return fail(found.error);
   const reason = typeof input.reason === 'string' ? input.reason.trim() : '';
   if (reason.length > TRIAGE_REASON_MAX) {
-    return { ok: false, error: `Keep the reason under ${TRIAGE_REASON_MAX} characters.` };
+    return fail(`Keep the reason under ${TRIAGE_REASON_MAX} characters.`);
   }
 
   const target = declineState(await loadStates(input.projectId));
-  if (!target) return { ok: false, error: 'This project has no canceled state.' };
+  if (!target) return fail('This project has no canceled state.');
   const { issue } = found;
   const result = await updateIssueFields({ userId: authz.userId }, input.projectId, issue.id, {
     stateId: target.id,
   });
-  if (!result.ok) return { ok: false, error: result.error };
+  if (!result.ok) return fail(result.error);
 
   await emitIssueEvent({
     projectId: input.projectId,
@@ -123,7 +118,7 @@ export async function declineTriageIssue(input: {
       ...(reason ? { reason } : {}),
     },
   });
-  revalidateProject(input.projectId);
+  refreshesData();
   return { ok: true };
 }
 
@@ -135,12 +130,12 @@ export async function markTriageDuplicate(input: {
   const authz = await authorizeProjectAction(input?.projectId, 'write');
   if (!authz.ok) return authz;
   const found = await triageIssue(input.projectId, input.id);
-  if ('error' in found) return { ok: false, error: found.error };
+  if ('error' in found) return fail(found.error);
   if (typeof input.originalId !== 'string' || !input.originalId) {
-    return { ok: false, error: 'Pick the original issue.' };
+    return fail('Pick the original issue.');
   }
   if (input.originalId === found.issue.id) {
-    return { ok: false, error: "An issue can't duplicate itself." };
+    return fail("An issue can't duplicate itself.");
   }
 
   // The relation service checks the original is in this project and not
@@ -152,13 +147,11 @@ export async function markTriageDuplicate(input: {
     kind: 'duplicate_of',
   });
   if (!result.ok) return result;
-  revalidateProject(input.projectId);
+  refreshesData();
   return result;
 }
 
-export type TriageSuggestionsResult =
-  | { ok: true; suggestions: TriageSuggestions }
-  | { ok: false; error: string };
+export type TriageSuggestionsResult = ActionResult<{ suggestions: TriageSuggestions }>;
 
 /** How many similar issues vote on the suggestions. */
 const SUGGESTION_NEIGHBORS = 8;
@@ -175,7 +168,7 @@ export async function getTriageSuggestions(input: {
   const authz = await authorizeProjectAction(input?.projectId, 'read');
   if (!authz.ok) return authz;
   const found = await triageIssue(input.projectId, input.id);
-  if ('error' in found) return { ok: false, error: found.error };
+  if ('error' in found) return fail(found.error);
   const { issue } = found;
 
   const [similar, [projectLabels, members]] = await Promise.all([

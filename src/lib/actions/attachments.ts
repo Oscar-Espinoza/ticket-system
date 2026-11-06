@@ -34,4 +34,3 @@ export async function addLink(...args: Parameters<typeof impl.addLink>): Promise
 export async function deleteAttachment(...args: Parameters<typeof impl.deleteAttachment>): Promise<Awaited<ReturnType<typeof impl.deleteAttachment>>> {
   return settle(await untrack(() => remote.deleteAttachment(args)), true);
 }
-export type { GetAttachmentsResult } from '@/lib/server/actions/attachments';

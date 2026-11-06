@@ -2,7 +2,6 @@
 // the project first and scopes each cycle read/write by (cycle id, project id),
 // so ids from another project match nothing.
 
-import { revalidatePath } from '@/lib/kit/request';
 import { and, eq } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
@@ -11,12 +10,18 @@ import { authorizeProjectAction } from '@/lib/action-auth';
 import { isDateString } from '@/lib/dates';
 import { completeCycle, findOverlappingCycle, getCycle, insertCycles } from '@/lib/cycles';
 import { DAY_MS, cycleName, fromDateInput } from '@/lib/cycle-utils';
+import {
+  fail,
+  isFail,
+  optionalText,
+  refreshesData,
+  type ActionResult,
+  type Fail,
+} from '@/lib/server/action-kit';
 
 export type CycleField = 'name' | 'description' | 'startDate' | 'endDate';
 
-export type CycleActionResult =
-  | { ok: true; cycleId: string; message?: string }
-  | { ok: false; error: string; field?: CycleField };
+export type CycleActionResult = ActionResult<{ cycleId: string; message?: string }, CycleField>;
 
 export interface CycleInput {
   projectId: string;
@@ -32,10 +37,6 @@ const NAME_MAX = 80;
 const DESCRIPTION_MAX = 500;
 const MAX_DAYS = 26 * 7;
 
-function revalidateCycles(projectId: string) {
-  revalidatePath(`/dashboard/projects/${projectId}`, 'layout');
-}
-
 type Validated = {
   name: string | null;
   description: string | null;
@@ -43,32 +44,24 @@ type Validated = {
   endsAt: Date;
 };
 
-function validate(input: Omit<CycleInput, 'projectId'>): Validated | Extract<CycleActionResult, { ok: false }> {
-  const name = typeof input.name === 'string' ? input.name.trim() : '';
-  if (name.length > NAME_MAX) {
-    return { ok: false, error: `Name must be ${NAME_MAX} characters or fewer.`, field: 'name' };
-  }
-  const description = typeof input.description === 'string' ? input.description.trim() : '';
-  if (description.length > DESCRIPTION_MAX) {
-    return {
-      ok: false,
-      error: `Description must be ${DESCRIPTION_MAX} characters or fewer.`,
-      field: 'description',
-    };
-  }
+function validate(input: Omit<CycleInput, 'projectId'>): Validated | Fail<CycleField> {
+  const name = optionalText(input.name, 'name', NAME_MAX);
+  if (isFail(name)) return name;
+  const description = optionalText(input.description, 'description', DESCRIPTION_MAX);
+  if (isFail(description)) return description;
   if (!isDateString(input.startDate)) {
-    return { ok: false, error: 'Pick a start date.', field: 'startDate' };
+    return fail('Pick a start date.', 'startDate');
   }
-  if (!isDateString(input.endDate)) return { ok: false, error: 'Pick an end date.', field: 'endDate' };
+  if (!isDateString(input.endDate)) return fail('Pick an end date.', 'endDate');
   const startsAt = fromDateInput(input.startDate);
   const endsAt = new Date(fromDateInput(input.endDate).getTime() + DAY_MS);
   if (endsAt <= startsAt) {
-    return { ok: false, error: 'The end date must be on or after the start date.', field: 'endDate' };
+    return fail('The end date must be on or after the start date.', 'endDate');
   }
   if (endsAt.getTime() - startsAt.getTime() > MAX_DAYS * DAY_MS) {
-    return { ok: false, error: 'A cycle can be at most 26 weeks long.', field: 'endDate' };
+    return fail('A cycle can be at most 26 weeks long.', 'endDate');
   }
-  return { name: name || null, description: description || null, startsAt, endsAt };
+  return { name, description, startsAt, endsAt };
 }
 
 async function overlapError(
@@ -76,10 +69,10 @@ async function overlapError(
   startsAt: Date,
   endsAt: Date,
   exceptId?: string,
-): Promise<Extract<CycleActionResult, { ok: false }> | null> {
+): Promise<Fail<CycleField> | null> {
   const other = await findOverlappingCycle(projectId, startsAt, endsAt, exceptId);
   return other
-    ? { ok: false, error: `These dates overlap ${cycleName(other)}.`, field: 'startDate' }
+    ? fail(`These dates overlap ${cycleName(other)}.`, 'startDate')
     : null;
 }
 
@@ -87,26 +80,26 @@ export async function createCycle(input: CycleInput): Promise<CycleActionResult>
   const authz = await authorizeProjectAction(input?.projectId, 'write');
   if (!authz.ok) return authz;
   const valid = validate(input);
-  if ('ok' in valid) return valid;
+  if (isFail(valid)) return valid;
 
   const [project] = await db
     .select({ cyclesEnabled: projects.cyclesEnabled })
     .from(projects)
     .where(eq(projects.id, input.projectId))
     .limit(1);
-  if (!project?.cyclesEnabled) return { ok: false, error: 'Cycles are turned off for this project.' };
+  if (!project?.cyclesEnabled) return fail('Cycles are turned off for this project.');
 
   const overlap = await overlapError(input.projectId, valid.startsAt, valid.endsAt);
   if (overlap) return overlap;
 
   try {
     const [cycle] = await insertCycles(input.projectId, [valid]);
-    revalidateCycles(input.projectId);
+    refreshesData();
     return { ok: true, cycleId: cycle.id };
   } catch (err) {
     // Unique (project, number): someone created one at the same moment.
     console.error('[cycles] create failed', err);
-    return { ok: false, error: 'Could not create the cycle — please try again.' };
+    return fail('Could not create the cycle — please try again.');
   }
 }
 
@@ -116,16 +109,16 @@ export async function updateCycle(
   const authz = await authorizeProjectAction(input?.projectId, 'write');
   if (!authz.ok) return authz;
   const cycle = await getCycle(input.projectId, input.cycleId);
-  if (!cycle) return { ok: false, error: 'Cycle not found.' };
+  if (!cycle) return fail('Cycle not found.');
   const valid = validate(input);
-  if ('ok' in valid) return valid;
+  if (isFail(valid)) return valid;
 
   const datesChanged =
     valid.startsAt.getTime() !== cycle.startsAt.getTime() ||
     valid.endsAt.getTime() !== cycle.endsAt.getTime();
   if (datesChanged) {
     if (cycle.completedAt) {
-      return { ok: false, error: 'A completed cycle’s dates can’t change.', field: 'startDate' };
+      return fail('A completed cycle’s dates can’t change.', 'startDate');
     }
     const overlap = await overlapError(input.projectId, valid.startsAt, valid.endsAt, cycle.id);
     if (overlap) return overlap;
@@ -139,7 +132,7 @@ export async function updateCycle(
       ...(datesChanged ? { startsAt: valid.startsAt, endsAt: valid.endsAt } : {}),
     })
     .where(and(eq(cycles.id, cycle.id), eq(cycles.projectId, input.projectId)));
-  revalidateCycles(input.projectId);
+  refreshesData();
   return { ok: true, cycleId: cycle.id };
 }
 
@@ -152,14 +145,14 @@ export async function completeCycleAction(input: {
   const authz = await authorizeProjectAction(input?.projectId, 'write');
   if (!authz.ok) return authz;
   if (typeof input.cycleId !== 'string' || !input.cycleId) {
-    return { ok: false, error: 'Cycle not found.' };
+    return fail('Cycle not found.');
   }
   const result = await completeCycle({ userId: authz.userId }, input.projectId, input.cycleId, {
     completedAt: new Date(),
     rollover: input.rollover === true,
   });
   if (!result.ok) return result;
-  revalidateCycles(input.projectId);
+  refreshesData();
   const message =
     result.moved > 0 && result.next
       ? `Moved ${result.moved} unfinished issue${result.moved === 1 ? '' : 's'} to ${cycleName(result.next)}`

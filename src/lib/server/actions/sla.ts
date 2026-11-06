@@ -2,7 +2,6 @@
 // applies to new issues and priority changes (issue service) until an admin
 // applies it to open issues here.
 
-import { revalidatePath } from '@/lib/kit/request';
 import { and, desc, eq, inArray, isNull, notInArray, sql, type SQL } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
@@ -18,24 +17,19 @@ import {
   type StateRef,
   type TimeInState,
 } from '@/lib/sla';
-
-type Fail = { ok: false; error: string };
+import { fail, refreshesData, type ActionResult } from '@/lib/server/action-kit';
 
 /** State changes read per issue (newest kept). */
 const HISTORY_LIMIT = 500;
 
-function revalidateProject(projectId: string) {
-  revalidatePath(`/dashboard/projects/${projectId}`, 'layout');
-}
-
 export async function updateSlaPolicy(input: {
   projectId: string;
   policy: SlaPolicy;
-}): Promise<{ ok: true; policy: SlaPolicy } | Fail> {
+}): Promise<ActionResult<{ policy: SlaPolicy }>> {
   const authz = await authorizeProjectAction(input?.projectId, 'admin');
   if (!authz.ok) return authz;
   const policy = normalizeSlaPolicy(input.policy);
-  if (!policy) return { ok: false, error: 'SLA targets must be whole hours between 1 and 8760.' };
+  if (!policy) return fail('SLA targets must be whole hours between 1 and 8760.');
 
   await db
     .update(projects)
@@ -48,7 +42,7 @@ export async function updateSlaPolicy(input: {
     type: 'project.sla_policy_updated',
     data: { summary: 'updated the SLA policy', policy },
   });
-  revalidateProject(input.projectId);
+  refreshesData();
   return { ok: true, policy };
 }
 
@@ -60,7 +54,7 @@ export async function updateSlaPolicy(input: {
  */
 export async function applySlaPolicyToOpenIssues(input: {
   projectId: string;
-}): Promise<{ ok: true; updated: number } | Fail> {
+}): Promise<ActionResult<{ updated: number }>> {
   const authz = await authorizeProjectAction(input?.projectId, 'admin');
   if (!authz.ok) return authz;
   const { projectId } = input;
@@ -70,7 +64,7 @@ export async function applySlaPolicyToOpenIssues(input: {
     .from(projects)
     .where(eq(projects.id, projectId))
     .limit(1);
-  if (!project) return { ok: false, error: 'Project not found.' };
+  if (!project) return fail('Project not found.');
   const policy = normalizeSlaPolicy(project.slaPolicy) ?? {};
 
   const open = and(
@@ -132,7 +126,7 @@ export async function applySlaPolicyToOpenIssues(input: {
       count: updated,
     },
   });
-  revalidateProject(projectId);
+  refreshesData();
   return { ok: true, updated };
 }
 
@@ -148,11 +142,11 @@ function stateRef(value: unknown): StateRef | null {
 export async function getTimeInStatus(input: {
   projectId: string;
   issueId: string;
-}): Promise<{ ok: true; states: TimeInState[] } | Fail> {
+}): Promise<ActionResult<{ states: TimeInState[] }>> {
   const authz = await authorizeProjectAction(input?.projectId, 'read');
   if (!authz.ok) return authz;
   if (typeof input.issueId !== 'string' || !input.issueId) {
-    return { ok: false, error: 'Issue not found.' };
+    return fail('Issue not found.');
   }
   const { projectId, issueId } = input;
 
@@ -183,7 +177,7 @@ export async function getTimeInStatus(input: {
       .limit(HISTORY_LIMIT),
   ]);
   const [issue] = issueRows;
-  if (!issue) return { ok: false, error: 'Issue not found.' };
+  if (!issue) return fail('Issue not found.');
 
   const changes: StateChange[] = [];
   for (const row of changeRows.reverse()) {

@@ -2,24 +2,29 @@
 // access to the target is re-checked when the sidebar resolves favorites, so a
 // favorite on something the user can no longer see simply disappears.
 
-import { revalidatePath } from '@/lib/kit/request';
 import { and, eq, sql } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import { favorites } from '@/db/schema';
+import {
+  fail,
+  NOT_AUTHENTICATED,
+  refreshesData,
+  type ActionResult,
+} from '@/lib/server/action-kit';
 import { getSession } from '@/lib/session';
 import { isFavoriteTarget as isTarget, type FavoriteTarget } from '@/lib/favorite-targets';
 
-export type FavoriteResult = { ok: true; favorited: boolean } | { ok: false; error: string };
+export type FavoriteResult = ActionResult<{ favorited: boolean }>;
 
 export async function toggleFavorite(input: {
   targetType: FavoriteTarget;
   targetId: string;
 }): Promise<FavoriteResult> {
   const session = await getSession();
-  if (!session?.user) return { ok: false, error: 'Not authenticated' };
+  if (!session?.user) return NOT_AUTHENTICATED;
   if (!isTarget(input.targetType) || typeof input.targetId !== 'string' || !input.targetId) {
-    return { ok: false, error: 'Invalid favorite.' };
+    return fail('Invalid favorite.');
   }
   const userId = session.user.id;
   const match = and(
@@ -48,7 +53,7 @@ export async function toggleFavorite(input: {
       .onConflictDoNothing();
   }
 
-  revalidatePath('/dashboard', 'layout');
+  refreshesData();
   return { ok: true, favorited: removed.length === 0 };
 }
 

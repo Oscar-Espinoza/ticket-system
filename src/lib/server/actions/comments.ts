@@ -7,7 +7,7 @@ import {
   announceDescriptionMentionsAs,
   createCommentAs,
   deleteCommentAs,
-  loadIssueTimeline,
+  readIssueTimeline,
   toggleReactionAs,
   updateCommentAs,
   type CommentResult,
@@ -20,10 +20,7 @@ export async function getIssueTimeline(input: {
 }): Promise<CommentResult<{ timeline: IssueTimeline }>> {
   const authz = await authorizeProjectAction(input?.projectId, 'read');
   if (!authz.ok) return authz;
-  if (typeof input.ticketId !== 'string' || !input.ticketId) {
-    return { ok: false, error: 'Issue not found.' };
-  }
-  return { ok: true, timeline: await loadIssueTimeline(input.projectId, input.ticketId) };
+  return readIssueTimeline(input.projectId, input.ticketId);
 }
 
 export async function createComment(input: {

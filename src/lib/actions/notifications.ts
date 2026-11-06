@@ -58,4 +58,3 @@ export async function setIssueReminder(...args: Parameters<typeof impl.setIssueR
 export async function cancelIssueReminder(...args: Parameters<typeof impl.cancelIssueReminder>): Promise<Awaited<ReturnType<typeof impl.cancelIssueReminder>>> {
   return settle(await untrack(() => remote.cancelIssueReminder(args)), false);
 }
-export type { ActionResult } from '@/lib/server/actions/notifications';

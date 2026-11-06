@@ -1,5 +1,5 @@
 // Generates SvelteKit remote-function wrappers for every server action in
-// src/lib/server/actions/*.ts (the former Next.js 'use server' files), so
+// src/lib/server/actions/*.ts, so
 // Svelte components call the SAME function bodies with the SAME arguments:
 //
 //   src/lib/remote/<name>.remote.ts   command('unchecked', …) per export (server)
@@ -10,8 +10,9 @@
 // effect depend on it and re-run forever (effect_update_depth_exceeded).
 //
 // Semantics kept from Next:
-// - a function whose body calls revalidatePath/revalidateTag → the client
-//   wrapper awaits refreshAfterWrite() (a coalesced refreshAll) after it resolves;
+// - a function whose body calls refreshesData() (src/lib/server/action-kit.ts),
+//   or the legacy revalidatePath/revalidateTag, → the client wrapper awaits
+//   refreshAfterWrite() (a coalesced refreshAll) after it resolves;
 // - redirect() inside an action → the wrapper navigates with goto();
 // - (prevState, formData: FormData) actions take a real FormData on the client;
 //   it is sent as entries and rebuilt server-side (string fields only).
@@ -44,7 +45,7 @@ for (const file of sources.sort()) {
   const fns = [];
   const typeNames = [];
   // Local functions (exported or not) that refresh, directly or through other
-  // local helpers — e.g. tickets.ts calls revalidatePath only via revalidateProject().
+  // local helpers — e.g. documents.ts calls refreshesData() only inside setArchived().
   const bodies = new Map();
   for (const st of sf.statements) {
     if (ts.isFunctionDeclaration(st) && st.name && st.body) bodies.set(st.name.text, st.body.getText(sf));
@@ -57,7 +58,7 @@ for (const file of sources.sort()) {
       }
     }
   }
-  const refreshing = new Set([...bodies].filter(([, b]) => /\brevalidate(Path|Tag)\s*\(/.test(b)).map(([n]) => n));
+  const refreshing = new Set([...bodies].filter(([, b]) => /\b(refreshesData|revalidate(Path|Tag))\s*\(/.test(b)).map(([n]) => n));
   for (let grew = true; grew; ) {
     grew = false;
     for (const [name, body] of bodies) {

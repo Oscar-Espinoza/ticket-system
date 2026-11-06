@@ -3,15 +3,24 @@
 // milestones and updates through their epic — so ids from another project
 // match nothing. Referenced users (lead) must be project members.
 
-import { revalidatePath } from '@/lib/kit/request';
 import { and, desc, eq, sql } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
-import { epicUpdates, epics, milestones, projectMembers } from '@/db/schema';
-import { authorizeProjectAction } from '@/lib/action-auth';
+import { epicUpdates, epics, milestones } from '@/db/schema';
+import { authorizeProjectAction, roleAllows } from '@/lib/action-auth';
+import { isHexColor } from '@/lib/colors';
 import { isDateString } from '@/lib/dates';
 import { getCrossProjectEpicOptions } from '@/lib/epics';
 import { emitIssueEvent } from '@/lib/events';
+import { getMemberProject } from '@/lib/project-access';
+import {
+  fail,
+  isFail,
+  refreshesData,
+  requiredText,
+  type ActionResult,
+  type Fail,
+} from '@/lib/server/action-kit';
 import {
   DEFAULT_EPIC_COLOR,
   EPIC_DESCRIPTION_MAX,
@@ -25,31 +34,11 @@ import {
   type Health,
 } from '@/lib/epic-model';
 
-export type EpicActionResult =
-  | { ok: true; id?: string }
-  | { ok: false; error: string; field?: string };
+export type EpicActionResult = ActionResult<{ id?: string }>;
 
-type Fail = Extract<EpicActionResult, { ok: false }>;
-const fail = (error: string, field?: string): Fail => ({ ok: false, error, field });
-const isFail = (value: unknown): value is Fail =>
-  typeof value === 'object' && value !== null && (value as Fail).ok === false;
-
-const COLOR_RE = /^#[0-9a-fA-F]{6}$/;
 const MILESTONE_NAME_MAX = 80;
 
-function revalidate(projectId: string) {
-  // 'layout': project data (epic pickers) + every page under the project.
-  revalidatePath(`/dashboard/projects/${projectId}`, 'layout');
-}
-
-function name(value: unknown, max: number): string | Fail {
-  const trimmed = typeof value === 'string' ? value.trim() : '';
-  if (!trimmed) return fail('Name is required.', 'name');
-  if (trimmed.length > max) return fail(`Name must be ${max} characters or fewer.`, 'name');
-  return trimmed;
-}
-
-function optionalText(value: unknown, max: number, field: string): string | null | Fail {
+function looseText(value: unknown, max: number, field: string): string | null | Fail {
   if (value == null) return null;
   if (typeof value !== 'string') return fail('Invalid text.', field);
   if (value.length > max) return fail(`Must be ${max} characters or fewer.`, field);
@@ -59,15 +48,6 @@ function optionalText(value: unknown, max: number, field: string): string | null
 function optionalDate(value: unknown, field: string): string | null | Fail {
   if (value == null || value === '') return null;
   return isDateString(value) ? value : fail('Invalid date.', field);
-}
-
-async function isProjectMember(projectId: string, userId: string) {
-  const [row] = await db
-    .select({ id: projectMembers.id })
-    .from(projectMembers)
-    .where(and(eq(projectMembers.projectId, projectId), eq(projectMembers.userId, userId)))
-    .limit(1);
-  return Boolean(row);
 }
 
 async function loadEpic(projectId: string, epicId: unknown) {
@@ -130,12 +110,12 @@ async function validateEpicInput(
 ): Promise<EpicChanges | Fail> {
   const changes: EpicChanges = {};
   if (input.name !== undefined) {
-    const value = name(input.name, EPIC_NAME_MAX);
+    const value = requiredText(input.name, 'name', EPIC_NAME_MAX);
     if (isFail(value)) return value;
     changes.name = value;
   }
   if (input.description !== undefined) {
-    const value = optionalText(input.description, EPIC_DESCRIPTION_MAX, 'description');
+    const value = looseText(input.description, EPIC_DESCRIPTION_MAX, 'description');
     if (isFail(value)) return value;
     changes.description = value;
   }
@@ -149,7 +129,7 @@ async function validateEpicInput(
   }
   if (input.leadId !== undefined) {
     if (input.leadId !== null) {
-      if (typeof input.leadId !== 'string' || !(await isProjectMember(projectId, input.leadId))) {
+      if (typeof input.leadId !== 'string' || !(await getMemberProject(projectId, input.leadId))) {
         return fail('The lead must be a project member.', 'leadId');
       }
     }
@@ -162,7 +142,7 @@ async function validateEpicInput(
     changes[field] = value;
   }
   if (input.color !== undefined) {
-    if (input.color !== null && (typeof input.color !== 'string' || !COLOR_RE.test(input.color))) {
+    if (input.color !== null && !isHexColor(input.color)) {
       return fail('Invalid color.', 'color');
     }
     changes.color = input.color?.toLowerCase() ?? null;
@@ -206,7 +186,7 @@ export async function createEpic(input: EpicInput & { projectId: string }): Prom
     createdAt: now,
     updatedAt: now,
   });
-  revalidate(projectId);
+  refreshesData();
   return { ok: true, id };
 }
 
@@ -235,7 +215,7 @@ export async function updateEpic(input: {
     .update(epics)
     .set({ ...changes, updatedAt: new Date() })
     .where(and(eq(epics.id, epic.id), eq(epics.projectId, projectId)));
-  revalidate(projectId);
+  refreshesData();
   return { ok: true, id: epic.id };
 }
 
@@ -251,7 +231,7 @@ async function setArchived(
     .where(and(eq(epics.id, input.id), eq(epics.projectId, input.projectId)))
     .returning({ id: epics.id });
   if (updated.length === 0) return fail('Epic not found.');
-  revalidate(input.projectId);
+  refreshesData();
   return { ok: true, id: input.id };
 }
 
@@ -265,7 +245,7 @@ export async function unarchiveEpic(input: { projectId: string; id: string }) {
 }
 
 // ---------------------------------------------------------------------------
-// Cross-project epics (D4b)
+// Cross-project epics
 // ---------------------------------------------------------------------------
 
 /**
@@ -295,7 +275,7 @@ export async function createMilestone(input: {
   if (!authz.ok) return authz;
   const epic = await loadEpic(input.projectId, input.epicId);
   if (!epic) return fail('Epic not found.');
-  const milestoneName = name(input.name, MILESTONE_NAME_MAX);
+  const milestoneName = requiredText(input.name, 'name', MILESTONE_NAME_MAX);
   if (isFail(milestoneName)) return milestoneName;
   const targetDate = optionalDate(input.targetDate, 'targetDate');
   if (isFail(targetDate)) return targetDate;
@@ -313,7 +293,7 @@ export async function createMilestone(input: {
     sortOrder: (max ?? 0) + 1,
     createdAt: new Date(),
   });
-  revalidate(input.projectId);
+  refreshesData();
   return { ok: true, id };
 }
 
@@ -331,12 +311,12 @@ export async function updateMilestone(input: {
 
   const changes: { name?: string; description?: string | null; targetDate?: string | null } = {};
   if (input.name !== undefined) {
-    const value = name(input.name, MILESTONE_NAME_MAX);
+    const value = requiredText(input.name, 'name', MILESTONE_NAME_MAX);
     if (isFail(value)) return value;
     changes.name = value;
   }
   if (input.description !== undefined) {
-    const value = optionalText(input.description, EPIC_DESCRIPTION_MAX, 'description');
+    const value = looseText(input.description, EPIC_DESCRIPTION_MAX, 'description');
     if (isFail(value)) return value;
     changes.description = value;
   }
@@ -348,7 +328,7 @@ export async function updateMilestone(input: {
   if (Object.keys(changes).length === 0) return { ok: true, id: milestone.id };
 
   await db.update(milestones).set(changes).where(eq(milestones.id, milestone.id));
-  revalidate(input.projectId);
+  refreshesData();
   return { ok: true, id: milestone.id };
 }
 
@@ -362,7 +342,7 @@ export async function deleteMilestone(input: {
   const milestone = await loadMilestone(input.projectId, input.id);
   if (!milestone) return fail('Milestone not found.');
   await db.delete(milestones).where(eq(milestones.id, milestone.id));
-  revalidate(input.projectId);
+  refreshesData();
   return { ok: true };
 }
 
@@ -401,7 +381,7 @@ export async function reorderMilestones(input: {
       .where(and(eq(milestones.id, id), eq(milestones.epicId, epic.id))),
   );
   await db.batch([first, ...rest]);
-  revalidate(input.projectId);
+  refreshesData();
   return { ok: true };
 }
 
@@ -456,7 +436,7 @@ export async function postEpicUpdate(input: {
       },
     },
   ]);
-  revalidate(input.projectId);
+  refreshesData();
   return { ok: true, id };
 }
 
@@ -476,8 +456,7 @@ export async function deleteEpicUpdate(input: {
     .where(and(eq(epicUpdates.id, input.id), eq(epics.projectId, input.projectId)))
     .limit(1);
   if (!update) return fail('Update not found.');
-  const isAdmin = authz.role === 'owner' || authz.role === 'admin';
-  if (update.authorId !== authz.userId && !isAdmin) {
+  if (update.authorId !== authz.userId && !roleAllows(authz.role, 'admin')) {
     return fail('Only the author or a project admin can delete this update.');
   }
 
@@ -494,6 +473,6 @@ export async function deleteEpicUpdate(input: {
       .set({ health: latest.health })
       .where(and(eq(epics.id, update.epicId), eq(epics.projectId, input.projectId)));
   }
-  revalidate(input.projectId);
+  refreshesData();
   return { ok: true };
 }
