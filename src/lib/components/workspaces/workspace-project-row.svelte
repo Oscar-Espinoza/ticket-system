@@ -18,7 +18,7 @@
     DropdownMenuTrigger,
   } from '@/lib/components/ui/dropdown-menu';
   import { LabelChip } from '@/lib/components/ui-icons';
-  import type { WorkspaceTeamRow } from './workspace-projects.svelte';
+  import type { WorkspaceTeamRow } from './workspace-project-types';
 
   let {
     workspaceId,

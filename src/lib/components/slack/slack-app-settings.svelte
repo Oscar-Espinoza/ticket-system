@@ -4,28 +4,7 @@
   setup guide with the exact request URLs + an app manifest.
 -->
 <script module lang="ts">
-  export interface SlackWorkspace {
-    teamId: string;
-    teamName: string;
-    installedByName: string | null;
-    defaultProject: { id: string; name: string } | null;
-    canManage: boolean;
-    /** The viewer's own link to this workspace. */
-    link: { notify: boolean } | null;
-  }
-
-  export interface SlackAdminProject {
-    id: string;
-    name: string;
-    ticketKey: string;
-  }
-
-  export interface SlackAppUrls {
-    redirect: string;
-    commands: string;
-    interactivity: string;
-    events: string;
-  }
+  export type { SlackWorkspace } from './slack-types';
 </script>
 
 <script lang="ts">
@@ -39,6 +18,7 @@
   import SlackLinkRow from './slack-link-row.svelte';
   import SlackSetupGuide from './slack-setup-guide.svelte';
   import SlackWorkspaceRow from './slack-workspace-row.svelte';
+  import type { SlackWorkspace, SlackAdminProject, SlackAppUrls } from './slack-types';
 
   let {
     configured,

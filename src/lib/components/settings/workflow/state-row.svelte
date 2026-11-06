@@ -18,7 +18,7 @@
     DropdownMenuTrigger,
   } from '@/lib/components/ui/dropdown-menu';
   import type { WorkflowState } from '@/lib/issue-model';
-  import { issuesLabel } from './workflow-utils';
+  import { issuesLabel } from '../issues-label';
 
   let {
     projectId,

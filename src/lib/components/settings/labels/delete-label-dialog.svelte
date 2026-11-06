@@ -13,7 +13,7 @@
     AlertDialogTitle,
   } from '@/lib/components/ui/alert-dialog';
   import type { ProjectLabel } from '@/lib/project-data-types';
-  import { issuesLabel } from './label-utils';
+  import { issuesLabel } from '../issues-label';
 
   let {
     projectId,

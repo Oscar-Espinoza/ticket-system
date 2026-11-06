@@ -10,7 +10,7 @@
   import Trash2Icon from '@lucide/svelte/icons/trash-2';
   import { toast } from 'svelte-sonner';
 
-  import type { WorkspaceRole } from '@/lib/workspace-types';
+  import { workspaceRoleAllows, type WorkspaceRole } from '@/lib/workspace-types';
   import { deleteWorkspace, leaveWorkspace, renameWorkspace } from '@/lib/actions/workspaces';
   import { Button } from '@/lib/components/ui/button';
   import {
@@ -39,7 +39,7 @@
   let value = $state('');
   let error = $state<string | null>(null);
   let isPending = $state(false);
-  const isAdmin = $derived(role !== 'member');
+  const isAdmin = $derived(workspaceRoleAllows(role, 'admin'));
 
   function open(kind: DialogKind) {
     value = kind === 'rename' ? workspace.name : '';

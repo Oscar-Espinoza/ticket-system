@@ -13,7 +13,7 @@
   } from '@/lib/components/ui/select';
   import { createActionState, useResultToast } from './action-state.svelte';
   import Field from './field.svelte';
-  import type { ProjectGeneralFormProps } from './project-general-form.svelte';
+  import type { ProjectGeneralFormProps } from './project-general-types';
 
   const NO_PARENT = 'none';
 

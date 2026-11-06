@@ -21,7 +21,7 @@
     SelectValue,
   } from '@/lib/components/ui/select';
   import { Textarea } from '@/lib/components/ui/textarea';
-  import type { TemplateSourceProject, TemplateWorkspaceOption } from './template-dialog.svelte';
+  import type { TemplateSourceProject, TemplateWorkspaceOption } from './template-types';
   import { invalidateProjectTemplates } from './template-select.svelte.ts';
 
   const PRIVATE = 'private';

@@ -1,8 +1,8 @@
-<!-- One project row of the sidebar (ProjectItem in src/components/app-shell/sidebar-projects.tsx). -->
+<!-- One project row of the sidebar. -->
 <script module lang="ts">
   import { createSubscriber } from 'svelte/reactivity';
 
-  import type { SidebarProject } from './sidebar-projects.svelte';
+  import type { SidebarProject } from './sidebar-types';
 
   // Guards against bad data: a cycle or absurd depth just stops nesting.
   export const MAX_DEPTH = 4;

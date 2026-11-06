@@ -1,9 +1,9 @@
-<!-- C2 app shell chrome: sidebar + topbar + main (port of src/components/app-shell/shell-frame.tsx). -->
+<!-- App shell chrome: sidebar + topbar + main. -->
 <script module lang="ts">
   import type { Snippet } from 'svelte';
   import { createSubscriber, MediaQuery } from 'svelte/reactivity';
 
-  import type { SidebarProject } from './sidebar-projects.svelte';
+  import type { SidebarProject } from './sidebar-types';
 
   export type ShellProject = SidebarProject;
 

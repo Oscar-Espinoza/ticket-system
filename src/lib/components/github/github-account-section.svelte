@@ -11,7 +11,7 @@
   import { REQUIRED_SCOPES } from '@/lib/github/scopes';
   import { authClient } from '@/lib/svelte/auth-client';
   import GithubMark from './github-mark.svelte';
-  import type { GithubAccountProp } from './github-settings.svelte';
+  import type { GithubAccountProp } from './github-types';
 
   let { account, linkError }: { account: GithubAccountProp; linkError: string | null } = $props();
 

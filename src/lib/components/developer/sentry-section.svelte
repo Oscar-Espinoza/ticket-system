@@ -6,7 +6,7 @@
   import SectionHeading from '@/lib/components/settings/section-heading.svelte';
   import { Button } from '@/lib/components/ui/button';
   import CopyField from './copy-field.svelte';
-  import type { SentryIntegrationView } from './developer-settings.svelte';
+  import type { SentryIntegrationView } from './developer-types';
   import DisconnectButton from './disconnect-button.svelte';
   import SentryForm from './sentry-form.svelte';
   import SentryMark from './sentry-mark.svelte';

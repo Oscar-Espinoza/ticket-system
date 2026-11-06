@@ -3,7 +3,7 @@
   import ExternalLinkIcon from '@lucide/svelte/icons/external-link';
 
   import CopyField from '@/lib/components/integrations/copy-field.svelte';
-  import type { SlackAppUrls } from './slack-app-settings.svelte';
+  import type { SlackAppUrls } from './slack-types';
 
   let { urls, manifest, open = false }: { urls: SlackAppUrls; manifest: string; open?: boolean } = $props();
 

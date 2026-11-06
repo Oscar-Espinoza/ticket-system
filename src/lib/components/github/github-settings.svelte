@@ -3,39 +3,12 @@
   webhook, and PR automations. Controls hide for non-admins; the actions
   re-check the role server-side.
 -->
-<script module lang="ts">
-  export type GithubAccountProp =
-    | { status: 'none' }
-    | { status: 'invalid' }
-    | { status: 'error' }
-    | {
-        status: 'connected';
-        login: string;
-        avatarUrl: string;
-        scopes: string[];
-        hasRequiredScopes: boolean;
-      };
-
-  export interface GithubSettingsProps {
-    projectId: string;
-    canEdit: boolean;
-    account: GithubAccountProp;
-    linkError: string | null;
-    repo: string | null;
-    webhookRegistered: boolean;
-    connectedByName: string | null;
-    webhookUrl: string;
-    webhookUnreachable: boolean;
-    prOpenStateId: string | null;
-    prMergeStateId: string | null;
-  }
-</script>
-
 <script lang="ts">
   import { Separator } from '@/lib/components/ui/separator';
   import GithubAccountSection from './github-account-section.svelte';
   import GithubAutomationSection from './github-automation-section.svelte';
   import GithubRepositorySection from './github-repository-section.svelte';
+  import type { GithubSettingsProps } from './github-types';
 
   let props: GithubSettingsProps = $props();
 

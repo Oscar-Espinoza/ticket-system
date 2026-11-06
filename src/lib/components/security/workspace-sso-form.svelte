@@ -1,7 +1,4 @@
-<!--
-  Connect / edit the workspace identity provider (the non-exported SsoForm of
-  src/components/security/workspace-sso-settings.tsx).
--->
+<!-- Connect / edit the workspace identity provider. -->
 <script lang="ts">
   import { untrack } from 'svelte';
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
@@ -16,7 +13,7 @@
   import { Textarea } from '@/lib/components/ui/textarea';
   import { ToggleGroup, ToggleGroupItem } from '@/lib/components/ui/toggle-group';
   import SetupNotes from './setup-notes.svelte';
-  import type { Protocol, SsoProviderView, SsoUrls } from './workspace-sso-settings.svelte';
+  import type { Protocol, SsoProviderView, SsoUrls } from './sso-types';
 
   let {
     workspaceId,

@@ -1,17 +1,8 @@
-<!-- "Your projects" sidebar section (port of src/components/app-shell/sidebar-projects.tsx). -->
-<script module lang="ts">
-  export interface SidebarProject {
-    id: string;
-    name: string;
-    ticketKey: string;
-    /** Parent team (sub-teams, D4a); nested under it when the viewer has both. */
-    parentId?: string | null;
-  }
-</script>
-
+<!-- "Your projects" sidebar section. -->
 <script lang="ts">
   import SidebarProjectItem, { MAX_DEPTH } from './sidebar-project-item.svelte';
   import SidebarSection from './sidebar-section.svelte';
+  import type { SidebarProject } from './sidebar-types';
 
   let { projects }: { projects: SidebarProject[] } = $props();
 

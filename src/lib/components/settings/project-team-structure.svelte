@@ -1,7 +1,7 @@
 <script lang="ts">
   import ProjectParentForm from './project-parent-form.svelte';
   import ProjectVisibilityForm from './project-visibility-form.svelte';
-  import type { ProjectGeneralFormProps } from './project-general-form.svelte';
+  import type { ProjectGeneralFormProps } from './project-general-types';
 
   let props: ProjectGeneralFormProps = $props();
 </script>

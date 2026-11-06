@@ -12,7 +12,7 @@
     DropdownMenuTrigger,
   } from '@/lib/components/ui/dropdown-menu';
   import type { ProjectLabel } from '@/lib/project-data-types';
-  import { issuesLabel } from './label-utils';
+  import { issuesLabel } from '../issues-label';
 
   let {
     label,

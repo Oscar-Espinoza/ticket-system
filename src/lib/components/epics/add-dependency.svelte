@@ -21,7 +21,7 @@
   } from '@/lib/epic-model';
   import EpicIcon from './epic-icon.svelte';
   import EpicStatusIcon from './epic-status-icon.svelte';
-  import type { DependencyCandidate } from './epic-relations.svelte';
+  import type { DependencyCandidate } from './dependency-types';
 
   const KIND_ICON = {
     blocked_by: BanIcon,

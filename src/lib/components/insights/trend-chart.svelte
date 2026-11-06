@@ -14,7 +14,7 @@
 </script>
 
 <script lang="ts">
-  import type { WeekPoint } from '@/lib/insights';
+  import type { WeekPoint } from '@/lib/insights-model';
   import { formatWeek, niceMax, useIndexHover } from './chart-kit.svelte.ts';
   import ChartTooltip from './chart-tooltip.svelte';
   import SeriesKey from './series-key.svelte';

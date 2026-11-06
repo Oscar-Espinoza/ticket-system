@@ -1,6 +1,6 @@
 <!--
   Settings › Labels: search, create, inline edit and delete. Labels come from
-  useProjectData(); src/app/actions/labels.ts revalidates the project layout,
+  useProjectData(); src/lib/server/actions/labels.ts revalidates the project layout,
   so the list refreshes itself after every change.
 -->
 <script lang="ts">
@@ -16,7 +16,6 @@
   import DeleteLabelDialog from './delete-label-dialog.svelte';
   import LabelEditor from './label-editor.svelte';
   import LabelRow from './label-row.svelte';
-  import { issuesLabel } from './label-utils';
 
   let {
     projectId,

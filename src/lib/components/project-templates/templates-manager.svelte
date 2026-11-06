@@ -40,10 +40,8 @@
     DropdownMenuTrigger,
   } from '@/lib/components/ui/dropdown-menu';
   import DeleteTemplateDialog from './delete-template-dialog.svelte';
-  import TemplateDialog, {
-    type TemplateSourceProject,
-    type TemplateWorkspaceOption,
-  } from './template-dialog.svelte';
+  import TemplateDialog from './template-dialog.svelte';
+  import type { TemplateSourceProject, TemplateWorkspaceOption } from './template-types';
 
   let {
     templates,

@@ -10,9 +10,9 @@
     AUTOMATION_OFF,
     defaultPrMergeState,
     defaultPrOpenState,
-  } from '@/lib/github/automation';
+  } from '@/lib/vcs/automation-state';
   import GithubStateSelect, { DEFAULT_VALUE } from './github-state-select.svelte';
-  import type { GithubSettingsProps } from './github-settings.svelte';
+  import type { GithubSettingsProps } from './github-types';
 
   let { projectId, canEdit, prOpenStateId, prMergeStateId }: GithubSettingsProps = $props();
 

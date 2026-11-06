@@ -5,32 +5,7 @@
   re-check the role server-side.
 -->
 <script module lang="ts">
-  export interface VcsIntegrationView {
-    repo: string;
-    webUrl: string;
-    /** GitLab only; shown when not gitlab.com. */
-    baseUrl: string | null;
-    webhookRegistered: boolean;
-    connectedByName: string | null;
-  }
-
-  export interface SentryIntegrationView {
-    webhookUrl: string;
-    hasToken: boolean;
-    connectedByName: string | null;
-  }
-
-  export interface DeveloperSettingsProps {
-    projectId: string;
-    canEdit: boolean;
-    gitlab: VcsIntegrationView | null;
-    bitbucket: VcsIntegrationView | null;
-    sentry: SentryIntegrationView | null;
-    /** The URL a Sentry connection uses (shown before connecting: Sentry needs it first). */
-    sentryWebhookUrl: string;
-    webhookBase: string;
-    webhookUnreachable: boolean;
-  }
+  export type { SentryIntegrationView, VcsIntegrationView } from './developer-types';
 </script>
 
 <script lang="ts">
@@ -38,6 +13,7 @@
   import { Separator } from '@/lib/components/ui/separator';
   import SentrySection from './sentry-section.svelte';
   import VcsSection from './vcs-section.svelte';
+  import type { DeveloperSettingsProps } from './developer-types';
 
   let props: DeveloperSettingsProps = $props();
 </script>

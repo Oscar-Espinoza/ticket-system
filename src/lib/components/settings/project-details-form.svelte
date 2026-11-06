@@ -16,7 +16,7 @@
   import { ESTIMATE_SCALES, ESTIMATE_SCALE_LABEL, isEstimateScale } from '@/lib/estimates';
   import { createActionState, useResultToast } from './action-state.svelte';
   import Field from './field.svelte';
-  import type { ProjectGeneralFormProps } from './project-general-form.svelte';
+  import type { ProjectGeneralFormProps } from './project-general-types';
 
   let { projectId, name, description, estimateScale, canEdit }: ProjectGeneralFormProps = $props();
 

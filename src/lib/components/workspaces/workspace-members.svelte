@@ -3,15 +3,16 @@
   remove (admins remove members, the owner removes admins too), an invite
   dialog and the pending invitations (resend / copy link / revoke — admins
   manage member invitations, the owner all). The server re-checks every rule
-  in src/app/actions/workspaces.ts.
+  in src/lib/server/actions/workspaces.ts.
 -->
 <script lang="ts">
   import UserPlusIcon from '@lucide/svelte/icons/user-plus';
 
-  import type {
-    WorkspaceInvitationRow,
-    WorkspaceMemberRow,
-    WorkspaceRole,
+  import {
+    workspaceRoleAllows,
+    type WorkspaceInvitationRow,
+    type WorkspaceMemberRow,
+    type WorkspaceRole,
   } from '@/lib/workspace-types';
   import { Button } from '@/lib/components/ui/button';
   import WorkspaceInvitationRowView from './workspace-invitation-row.svelte';
@@ -46,7 +47,7 @@
     <h2 id="workspace-members" class="text-base font-medium">
       Members <span class="text-muted-foreground">· {members.length}</span>
     </h2>
-    {#if role !== 'member'}
+    {#if workspaceRoleAllows(role, 'admin')}
       <Button size="sm" variant="outline" class="ml-auto" onclick={() => (inviteOpen = true)}>
         <UserPlusIcon />
         Invite

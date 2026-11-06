@@ -1,4 +1,4 @@
-<!-- One workspace member: profile link, role select / chip, remove (MemberRow in workspace-members.tsx). -->
+<!-- One workspace member: profile link, role select / chip, remove. -->
 <script lang="ts">
   import EllipsisIcon from '@lucide/svelte/icons/ellipsis';
   import LoaderCircleIcon from '@lucide/svelte/icons/loader-circle';
@@ -20,6 +20,7 @@
   } from '@/lib/components/ui/dropdown-menu';
   import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/lib/components/ui/select';
   import { Avatar, LabelChip } from '@/lib/components/ui-icons';
+  import { canChangeMemberRole, canRemoveMember } from './workspace-role-rules';
 
   let {
     workspaceId,
@@ -39,12 +40,8 @@
   ];
 
   let isPending = $state(false);
-  const canChangeRole = $derived(viewerRole === 'owner' && !isSelf && member.role !== 'owner');
-  const canRemove = $derived(
-    !isSelf &&
-      member.role !== 'owner' &&
-      (viewerRole === 'owner' || (viewerRole === 'admin' && member.role === 'member')),
-  );
+  const canChangeRole = $derived(canChangeMemberRole(viewerRole, member.role, isSelf));
+  const canRemove = $derived(canRemoveMember(viewerRole, member.role, isSelf));
 
   async function changeRole(role: string) {
     isPending = true;

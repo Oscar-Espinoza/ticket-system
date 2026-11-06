@@ -1,6 +1,3 @@
-// Clipboard + "invitation sent" toasts shared by the workspace member rows and
-// the invite dialog (module helpers of workspace-members.tsx).
-
 import { toast } from 'svelte-sonner';
 
 export async function copyText(text: string, what: string) {
@@ -12,7 +9,7 @@ export async function copyText(text: string, what: string) {
   }
 }
 
-/** Toast after an invite / resend; offers the link when email is off. */
+/** Toast after an email invite / resend; offers the link when email is off. */
 export function announceSent(email: string, result: { emailed?: boolean; url?: string }) {
   if (result.emailed || !result.url) {
     toast.success(`Invitation sent to ${email}`);

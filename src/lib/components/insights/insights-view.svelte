@@ -7,7 +7,7 @@
   import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/lib/components/ui/select';
   import { EmptyState } from '@/lib/components/ui-icons';
   // Types only: @/lib/insights is server code (db).
-  import type { InsightRange, ProjectInsights } from '@/lib/insights';
+  import type { InsightRange, ProjectInsights } from '@/lib/insights-model';
   import { cn } from '@/lib/utils';
   import BarList from './bar-list.svelte';
   import { formatHours, formatWeek } from './chart-kit.svelte.ts';

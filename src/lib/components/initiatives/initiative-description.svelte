@@ -3,7 +3,7 @@
   import RichText from '@/lib/components/epics/rich-text.svelte';
   import RichTextEditor from '@/lib/components/epics/rich-text-editor.svelte';
   import { Button } from '@/lib/components/ui/button';
-  import { EPIC_DESCRIPTION_MAX } from '@/lib/epic-model';
+  import { INITIATIVE_DESCRIPTION_MAX } from '@/lib/initiative-model';
 
   let {
     description,
@@ -32,7 +32,7 @@
       onChange={(next) => (draft = next)}
       onSubmit={commit}
       onCancel={() => (editing = false)}
-      maxLength={EPIC_DESCRIPTION_MAX}
+      maxLength={INITIATIVE_DESCRIPTION_MAX}
     />
     <div class="flex items-center justify-end gap-2">
       <Button size="sm" variant="outline" onclick={() => (editing = false)}>Cancel</Button>

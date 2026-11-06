@@ -23,8 +23,8 @@
   import { Avatar } from '@/lib/components/ui-icons';
   import { formatDueDate } from '@/lib/dates';
   import type { IssueUser } from '@/lib/issue-model';
-  import { EPIC_DESCRIPTION_MAX } from '@/lib/epic-model';
   import {
+    INITIATIVE_DESCRIPTION_MAX,
     INITIATIVE_NAME_MAX,
     INITIATIVE_STATUS_LABEL,
     initiativesPath,
@@ -130,7 +130,7 @@
           value={description}
           onChange={(next) => (description = next)}
           placeholder="Why does this matter? Markdown supported."
-          maxLength={EPIC_DESCRIPTION_MAX}
+          maxLength={INITIATIVE_DESCRIPTION_MAX}
         />
       </div>
       <div role="group" aria-label="Properties" class="flex flex-wrap gap-1.5">

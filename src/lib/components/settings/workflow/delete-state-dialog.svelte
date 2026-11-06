@@ -21,7 +21,7 @@
     SelectValue,
   } from '@/lib/components/ui/select';
   import { STATE_TYPE_LABEL, type WorkflowState } from '@/lib/issue-model';
-  import { issuesLabel } from './workflow-utils';
+  import { issuesLabel } from '../issues-label';
 
   let {
     projectId,

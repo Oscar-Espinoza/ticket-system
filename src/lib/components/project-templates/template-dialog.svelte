@@ -2,19 +2,6 @@
   Create ("Save as template") / edit dialog for project templates. Creating
   snapshots the chosen project's setup on the server at save time.
 -->
-<script module lang="ts">
-  export interface TemplateSourceProject {
-    id: string;
-    name: string;
-    ticketKey: string;
-  }
-
-  export interface TemplateWorkspaceOption {
-    id: string;
-    name: string;
-  }
-</script>
-
 <script lang="ts">
   import type { ProjectTemplateRow } from '@/lib/actions/project-templates';
   import {
@@ -22,6 +9,7 @@
     DialogContent,
   } from '@/lib/components/ui/dialog';
   import TemplateForm from './template-form.svelte';
+  import type { TemplateSourceProject, TemplateWorkspaceOption } from './template-types';
 
   let {
     open = $bindable(false),

@@ -17,7 +17,7 @@
   import { Button } from '@/lib/components/ui/button';
   import { Label } from '@/lib/components/ui/label';
   import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/lib/components/ui/select';
-  import type { SlackAdminProject, SlackWorkspace } from './slack-app-settings.svelte';
+  import type { SlackAdminProject, SlackWorkspace } from './slack-types';
 
   const NONE = '__none';
   const NONE_LABEL = 'Nowhere (linked users only)';

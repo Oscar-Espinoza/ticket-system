@@ -1,4 +1,4 @@
-<!-- One pending email invitation (the non-exported PendingRow of src/components/invite-panel.tsx). -->
+<!-- One pending email invitation in the invite panel. -->
 <script lang="ts">
   import CopyIcon from '@lucide/svelte/icons/copy';
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
@@ -8,7 +8,7 @@
   import XIcon from '@lucide/svelte/icons/x';
   import { toast } from 'svelte-sonner';
 
-  // The wrappers refresh the page data after they resolve (React's revalidatePath).
+  // The wrappers refresh the page data after they resolve.
   import { resendInvitation, revokeInvitation } from '@/lib/actions/invite';
   import { Button } from '@/lib/components/ui/button';
   import {
@@ -22,8 +22,8 @@
   import { useProjectPermissions } from '@/lib/components/workspaces/permissions.svelte';
   import { PROJECT_ROLE_LABEL } from '@/lib/roles';
   import { relativeTime } from '@/lib/relative-time';
-  import type { PendingInvitation } from './invite-panel.svelte';
-  import { announceSent, copyText } from './invite-panel-utils';
+  import type { PendingInvitation } from './invite-panel-types';
+  import { announceSent, copyText } from './invite-toasts';
 
   let { projectId, invitation }: { projectId: string; invitation: PendingInvitation } = $props();
 

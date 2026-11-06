@@ -6,7 +6,7 @@
   import { Button } from '@/lib/components/ui/button';
   import { Label } from '@/lib/components/ui/label';
   import { Switch } from '@/lib/components/ui/switch';
-  import type { SlackWorkspace } from './slack-app-settings.svelte';
+  import type { SlackWorkspace } from './slack-types';
 
   let { workspace }: { workspace: SlackWorkspace } = $props();
 
