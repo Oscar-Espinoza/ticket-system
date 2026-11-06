@@ -1,15 +1,9 @@
 <!--
-  Slot — owned by D6. Customer requests linked to this issue: who asked, how
+  Customer requests linked to this issue: who asked, how
   important it is to them, and the revenue behind the issue. Requests aren't
   part of IssueRow, so they're fetched per issue; edits apply locally first
   and then resync from the server.
 -->
-<script module lang="ts">
-  function errorMessage(error: string) {
-    return error === 'Forbidden' ? "You don't have permission to do that in this project." : error;
-  }
-</script>
-
 <script lang="ts">
   import PlusIcon from '@lucide/svelte/icons/plus';
   import { toast } from 'svelte-sonner';
@@ -27,6 +21,7 @@
     type Importance,
     type IssueCustomerRequest,
   } from '@/lib/customer-model';
+  import { actionErrorText } from '@/lib/action-errors';
   import SectionHeader from '@/lib/components/issue-hierarchy/section-header.svelte';
   import PickerPopover from '@/lib/components/issue-pickers/picker-popover.svelte';
   import type { IssueMutations } from '@/lib/components/issues/use-issue-mutations.svelte';
@@ -98,7 +93,7 @@
         importance,
         body,
       });
-      if (!result.ok) toast.error(errorMessage(result.error));
+      if (!result.ok) toast.error(actionErrorText(result.error));
       else if (!customer.id) toast.success(`Created customer “${customer.name}”`);
     } catch {
       toast.error('Something went wrong — the request was not saved.');
@@ -130,7 +125,7 @@
         ...(patch.importance !== undefined ? { importance: patch.importance } : {}),
         ...(patch.customer ? { customerId: patch.customer.id } : {}),
       });
-      if (!result.ok) toast.error(errorMessage(result.error));
+      if (!result.ok) toast.error(actionErrorText(result.error));
     } catch {
       toast.error('Something went wrong — the change was not saved.');
     }
@@ -141,7 +136,7 @@
     requests = requests?.filter((r) => r.id !== request.id) ?? null;
     try {
       const result = await removeCustomerRequest({ projectId: issue.projectId, id: request.id });
-      if (!result.ok) toast.error(errorMessage(result.error));
+      if (!result.ok) toast.error(actionErrorText(result.error));
     } catch {
       toast.error('Something went wrong — the request was not removed.');
     }

@@ -1,8 +1,7 @@
 <!--
   Grouped issue list with drag-to-reorder / move between groups, collapsible
   (sub)group headers, j/k cursor, `s` status menu and Enter to open.
-  Port of src/components/issues/issue-list.tsx (same props). GroupIcon is
-  group-icon.svelte next to this file.
+  GroupIcon is group-icon.svelte next to this file.
 -->
 <script lang="ts">
   import { DragDropManager } from '@dnd-kit/dom';
@@ -22,6 +21,7 @@
   import type { IssuePatch, IssueRow as Issue } from '@/lib/issue-model';
   import { cn } from '@/lib/utils';
   import { useDisplayOptions } from './display-options.svelte';
+  import { ISSUE_ROW_ATTR, focusedIssueRowId } from './issue-dom';
   import DropList from './drop-list.svelte';
   import GroupIcon from './group-icon.svelte';
   import IssueRow from './issue-row.svelte';
@@ -108,7 +108,7 @@
 
   const flat = $derived(leaves.filter((s) => !isHidden(s)).flatMap((s) => s.group.issues));
 
-  /** Remember the row element (rowRefs in React: the last mounted one wins). */
+  /** Remember the row element (the last mounted one wins). */
   const registerRow =
     (id: string): Attachment<HTMLElement> =>
     (el) => {
@@ -132,14 +132,13 @@
   };
 
   const openStatusMenu = () => {
-    const focused = document.activeElement?.closest<HTMLElement>('[data-issue-row]');
-    const id = focused?.dataset.issueRow ?? cursorId;
+    const id = focusedIssueRowId() ?? cursorId;
     if (id && flat.some((issue) => issue.id === id)) statusMenuFor = id;
   };
 
   const openFocused = () => {
-    const focused = document.activeElement?.closest<HTMLElement>('[data-issue-row]');
-    const issue = flat.find((i) => i.id === focused?.dataset.issueRow);
+    const focusedId = focusedIssueRowId();
+    const issue = flat.find((i) => i.id === focusedId);
     if (issue && onSelect) onSelect(issue);
   };
 
@@ -165,7 +164,7 @@
         key: 'Enter',
         scope: 'Issues',
         description: 'Open focused issue',
-        when: (event) => event.target instanceof HTMLElement && event.target.hasAttribute('data-issue-row'),
+        when: (event) => event.target instanceof HTMLElement && event.target.hasAttribute(ISSUE_ROW_ATTR),
         handler: () => openFocused(),
       },
     ]);

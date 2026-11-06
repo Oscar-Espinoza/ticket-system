@@ -1,12 +1,10 @@
 // View registry: the switcher and the Display menu render one entry each, and
 // IssuesView renders the current one through issue-view-host.svelte.
 //
-// Port of src/components/issues/views.tsx. Same exports: IssueViewProps,
-// IssueViewDefinition, ISSUE_VIEWS, preloadViews. React's `component` field
-// becomes either `component` (rendered directly: the list) or `lazy` (the
-// next/dynamic views: loaded on demand with a skeleton while loading;
-// `ssr: true` views are awaited and server-rendered, `ssr: false` views
-// render only the skeleton on the server — see issue-view-host.svelte).
+// A view is either `component` (rendered directly: the list) or `lazy` (loaded
+// on demand with a skeleton while loading; `ssr: true` views are awaited and
+// server-rendered, `ssr: false` views render only the skeleton on the server —
+// see issue-view-host.svelte).
 //   import { ISSUE_VIEWS, type IssueViewProps } from '@/lib/components/issues/views';
 
 import type { Component } from 'svelte';
@@ -39,8 +37,8 @@ export type IssueViewModule = { default: Component<IssueViewProps> };
 
 export interface LazyIssueView {
   load: () => Promise<IssueViewModule>;
-  /** True = the server awaits the chunk and renders the view (next/dynamic
-   *  default); false = client only (the server and first paint show `loading`). */
+  /** True = the server awaits the chunk and renders the view; false = client
+   *  only (the server and first paint show `loading`). */
   ssr: boolean;
   /** Skeleton shown while the code loads. */
   loading: 'board' | 'rows' | 'card';
@@ -52,7 +50,7 @@ export interface IssueViewDefinition {
   icon: LucideIcon;
   /** Rendered directly (bundled with the page). */
   component?: Component<IssueViewProps>;
-  /** Code-split view (next/dynamic in React). */
+  /** Code-split view. */
   lazy?: LazyIssueView;
 }
 

@@ -1,5 +1,5 @@
 <!--
-  Owner: B3 / D10b. Issue header git menu — copy git branch name (⌘⇧.), create
+  Issue header git menu — copy git branch name (⌘⇧.), create
   the branch on the connected GitHub repository with the viewer's own token,
   and open the branch on whichever code host the project uses (GitHub, GitLab
   or Bitbucket).

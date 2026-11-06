@@ -2,7 +2,6 @@
   Cross-project issue list grouped by workflow state *type* (projects have
   different states, but the categories are shared). Closed groups start
   collapsed; "Hide completed" drops them entirely.
-  Port of src/components/navigation/issue-groups.tsx.
 -->
 <script module lang="ts">
   import { STATE_TYPE_LABEL, type StateType } from '@/lib/issue-model';

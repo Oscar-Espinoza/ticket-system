@@ -1,5 +1,5 @@
 <!--
-  Owner: B4. "Parent" property row: set / change / clear the parent issue and
+  "Parent" property row: set / change / clear the parent issue and
   jump to it. The server rejects self / descendant parents; the client just
   keeps those out of the picker, and any server error toasts via mutations.
 -->

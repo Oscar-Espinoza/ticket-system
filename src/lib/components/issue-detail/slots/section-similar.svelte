@@ -1,15 +1,17 @@
 <!--
-  Slot — owned by D9. "Similar issues": trigram + full-text neighbours of this
+  "Similar issues": trigram + full-text neighbours of this
   issue (already-related ones excluded server-side), each with "Mark as
   duplicate of…" (B4's relation action, which also moves this issue to the
   Duplicate state) and a per-viewer dismiss kept in localStorage.
 -->
 <script module lang="ts">
+  import { readStorage, writeStorage } from '@/lib/svelte/storage';
+
   const dismissKey = (issueId: string) => `similar-dismissed:${issueId}`;
 
   function readDismissed(issueId: string): string[] {
     try {
-      const raw = window.localStorage.getItem(dismissKey(issueId));
+      const raw = readStorage(dismissKey(issueId));
       const parsed: unknown = raw ? JSON.parse(raw) : [];
       return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === 'string') : [];
     } catch {
@@ -18,11 +20,8 @@
   }
 
   function writeDismissed(issueId: string, ids: string[]) {
-    try {
-      window.localStorage.setItem(dismissKey(issueId), JSON.stringify(ids.slice(-50)));
-    } catch {
-      // Private mode / quota: the dismissal lasts until reload.
-    }
+    // Private mode / quota: the dismissal lasts until reload.
+    writeStorage(dismissKey(issueId), JSON.stringify(ids.slice(-50)));
   }
 </script>
 
@@ -30,6 +29,7 @@
   import CopyIcon from '@lucide/svelte/icons/copy';
   import { toast } from 'svelte-sonner';
 
+  import { actionErrorText } from '@/lib/action-errors';
   import { addIssueRelation } from '@/lib/actions/relations';
   import { getSimilarIssues } from '@/lib/actions/similarity';
   import IssueRefRow from '@/lib/components/issue-hierarchy/issue-ref-row.svelte';
@@ -96,7 +96,7 @@
         kind: 'duplicate_of',
       });
       if (!result.ok) {
-        toast.error(result.error === 'Forbidden' ? "You don't have permission to do that in this project." : result.error);
+        toast.error(actionErrorText(result.error));
         return;
       }
       if (result.warning) toast.warning(result.warning);

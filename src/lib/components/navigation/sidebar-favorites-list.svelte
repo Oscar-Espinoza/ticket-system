@@ -1,7 +1,6 @@
 <!--
   Sidebar "Favorites" section. Removing unstars optimistically; the action
   refreshes the dashboard layout, which re-renders this list from the server.
-  Port of src/components/navigation/sidebar-favorites-list.tsx.
 -->
 <script lang="ts">
   import BoxIcon from '@lucide/svelte/icons/box';

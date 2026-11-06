@@ -1,18 +1,13 @@
 <!--
-  Owner: B4. Blocks / blocked by / related / duplicate. Relations aren't part
+  Blocks / blocked by / related / duplicate. Relations aren't part
   of IssueRow, so they're fetched per issue; adds/removes apply locally first
   and then resync from the server.
 -->
-<script module lang="ts">
-  function errorMessage(error: string) {
-    return error === 'Forbidden' ? "You don't have permission to do that in this project." : error;
-  }
-</script>
-
 <script lang="ts">
   import PlusIcon from '@lucide/svelte/icons/plus';
   import { toast } from 'svelte-sonner';
 
+  import { actionErrorText } from '@/lib/action-errors';
   import { addIssueRelation, getIssueRelations, removeIssueRelation } from '@/lib/actions/relations';
   import IssueRefRow from '@/lib/components/issue-hierarchy/issue-ref-row.svelte';
   import SectionHeader from '@/lib/components/issue-hierarchy/section-header.svelte';
@@ -68,7 +63,7 @@
         relatedTicketId: other.id,
         kind,
       });
-      if (!result.ok) toast.error(errorMessage(result.error));
+      if (!result.ok) toast.error(actionErrorText(result.error));
       else if (result.warning) toast.warning(result.warning);
       else if (kind === 'duplicate_of') toast.success(`Marked ${issue.key} as a duplicate of ${other.key}`);
     } catch {
@@ -81,7 +76,7 @@
     relations = relations?.filter((r) => r.id !== relation.id) ?? null;
     try {
       const result = await removeIssueRelation({ projectId: issue.projectId, relationId: relation.id });
-      if (!result.ok) toast.error(errorMessage(result.error));
+      if (!result.ok) toast.error(actionErrorText(result.error));
     } catch {
       toast.error('Something went wrong — the relation was not removed.');
     }

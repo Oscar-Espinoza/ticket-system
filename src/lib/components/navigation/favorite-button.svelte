@@ -1,7 +1,6 @@
 <!--
   Star toggle for anything favoritable. Pass `initial` when the server already
   knows the state; otherwise it's looked up once on mount.
-  Port of src/components/navigation/favorite-button.tsx.
 -->
 <script lang="ts">
   import StarIcon from '@lucide/svelte/icons/star';

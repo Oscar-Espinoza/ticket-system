@@ -1,5 +1,4 @@
 <!--
-  Port of src/components/issue-pickers/picker-popover.tsx.
 
   React's trigger was `children` rendered through `PopoverTrigger asChild`. In
   Svelte the trigger is a `children` snippet that receives the trigger props —

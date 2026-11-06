@@ -26,8 +26,8 @@
     markAllNotificationsRead,
     markNotificationsRead,
     snoozeNotifications,
-    type ActionResult,
   } from '@/lib/actions/notifications';
+  import type { ActionResult } from '@/lib/server/action-kit';
   import { registerHotkeys } from '@/lib/svelte/hotkeys.svelte';
   import { refreshAfterWrite } from '@/lib/svelte/refresh.svelte';
   import type { IssueRow } from '@/lib/issue-model';

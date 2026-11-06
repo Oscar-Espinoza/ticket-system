@@ -6,15 +6,13 @@
     value: Priority | null;
     onSelect: (priority: Priority) => void;
   }
-
-  // Menu order and number keys match Linear: 0 none, 1 urgent … 4 low.
-  const MENU_ORDER: Priority[] = ['none', 'urgent', 'high', 'medium', 'low'];
 </script>
 
 <script lang="ts">
   import { Command, CommandEmpty, CommandInput, CommandItem, CommandList, CommandShortcut } from '@/lib/components/ui/command';
   import { PriorityIcon } from '@/lib/components/ui-icons';
   import { PRIORITY_LABEL } from '@/lib/issue-model';
+  import { PRIORITY_MENU_ORDER as MENU_ORDER } from './option-builders';
   import { digitShortcut, keywordFilter } from './picker-utils';
 
   let { value, onSelect }: PriorityOptionsProps = $props();

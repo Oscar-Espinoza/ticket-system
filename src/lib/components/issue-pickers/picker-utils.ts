@@ -1,5 +1,5 @@
-// Plain helpers shared by the property pickers (port of the non-component
-// exports of src/components/issue-pickers/picker-popover.tsx and label-picker.tsx).
+// Plain helpers shared by the property pickers (the non-component
+// exports of picker-popover and label-picker).
 // Also re-exported from picker-popover.svelte's module script and from index.ts.
 
 /** cmdk filter over `keywords` only — item values are ids and must not match. */

@@ -15,6 +15,7 @@
     markTriageDuplicate,
     type TriageActionResult,
   } from '@/lib/actions/triage';
+  import { actionErrorText } from '@/lib/action-errors';
   import IssueDetailPane from '@/lib/components/issue-detail/issue-detail-pane.svelte';
   import { useIsDesktop } from '@/lib/components/issue-detail/use-is-desktop.svelte';
   import LabelChips from '@/lib/components/issues/label-chips.svelte';
@@ -23,6 +24,7 @@
   import { useProjectPermission } from '@/lib/components/project/project-data.svelte';
   import { Button } from '@/lib/components/ui/button';
   import { Avatar, EmptyState, PriorityIcon, StateIcon } from '@/lib/components/ui-icons';
+  import { afterFrame } from '@/lib/svelte/focus';
   import { registerHotkeys } from '@/lib/svelte/hotkeys.svelte';
   import type { IssueRow } from '@/lib/issue-model';
   import { cn } from '@/lib/utils';
@@ -67,9 +69,7 @@
   const index = $derived(selected ? list.indexOf(selected) : -1);
 
   const focusRow = (id: string) =>
-    requestAnimationFrame(() =>
-      document.querySelector<HTMLElement>(`[data-triage-row="${id}"]`)?.focus(),
-    );
+    afterFrame(() => document.querySelector<HTMLElement>(`[data-triage-row="${id}"]`)?.focus());
   function select(issue: IssueRow | undefined) {
     if (!issue) return;
     selectedId = issue.id;
@@ -87,7 +87,7 @@
         result = { ok: false, error: 'Something went wrong — nothing was changed.' };
       }
       if (!result.ok) {
-        toast.error(result.error === 'Forbidden' ? "You don't have permission to triage." : result.error);
+        toast.error(actionErrorText(result.error, "You don't have permission to triage."));
         return;
       }
       dialog = null;

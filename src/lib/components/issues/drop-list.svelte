@@ -1,4 +1,4 @@
-<!-- A group's rows; also a drop target so empty groups accept issues. (DropList in issue-list.tsx) -->
+<!-- A group's rows; also a drop target so empty groups accept issues. -->
 <script lang="ts">
   import { createDroppable } from '@dnd-kit/svelte';
   import type { Snippet } from 'svelte';

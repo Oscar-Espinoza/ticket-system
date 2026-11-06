@@ -1,5 +1,5 @@
 <!--
-  Owner: B10. Rendered inside IssueDetail's `…` menu, after the host's own
+  Rendered inside IssueDetail's `…` menu, after the host's own
   Copy link / Copy ID items and before Archive / Move to trash.
 -->
 <script lang="ts">
@@ -9,6 +9,7 @@
   import { goto } from '$app/navigation';
   import { toast } from 'svelte-sonner';
 
+  import { actionErrorText } from '@/lib/action-errors';
   import { createTemplate } from '@/lib/actions/templates';
   import { projectHref } from '@/lib/components/app-shell/routes';
   import type { IssueMutations } from '@/lib/components/issues/use-issue-mutations.svelte';
@@ -42,7 +43,7 @@
       },
     });
     if (!result.ok) {
-      toast.error(result.error === 'Forbidden' ? "You don't have permission to do that." : result.error);
+      toast.error(actionErrorText(result.error, "You don't have permission to do that."));
       return;
     }
     if (cached) setCachedTemplates(projectId, [...cached, result.template]);

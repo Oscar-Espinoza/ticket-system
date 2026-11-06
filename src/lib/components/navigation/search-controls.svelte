@@ -3,7 +3,6 @@
   results are server-rendered and shareable; typing replaces the URL after a
   short pause instead of on every key. `q` may carry filter syntax
   (label:bug assignee:me …) — see the "?" popover.
-  Port of src/components/navigation/search-controls.tsx.
 -->
 <script module lang="ts">
   const ALL = '__all';
@@ -27,6 +26,7 @@
   import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/lib/components/ui/select';
   import { Switch } from '@/lib/components/ui/switch';
   import SearchSyntaxHelp from '@/lib/components/views/search-syntax-help.svelte';
+  import { createDebouncer } from '@/lib/svelte/debounce';
   import SearchTermChips from '@/lib/components/views/search-term-chips.svelte';
 
   let {
@@ -44,14 +44,14 @@
   // useState(query): the box keeps what the user typed across URL updates.
   // svelte-ignore state_referenced_locally
   let text = $state(query);
-  let timer: ReturnType<typeof setTimeout> | undefined;
+  const debounce = createDebouncer();
   let inputRef = $state<HTMLInputElement | null>(null);
 
   // useTransition around router.replace: pending until the latest navigation lands.
   let running = 0;
   let pending = $state(false);
 
-  $effect(() => () => clearTimeout(timer));
+  $effect(() => debounce.cancel);
 
   const projectItems = $derived([
     { value: ALL, label: 'All projects' },
@@ -81,8 +81,7 @@
 
   function onType(value: string) {
     text = value;
-    clearTimeout(timer);
-    timer = setTimeout(() => void navigate({ q: value }), DEBOUNCE_MS);
+    debounce.schedule(() => void navigate({ q: value }), DEBOUNCE_MS);
   }
 </script>
 
@@ -91,7 +90,7 @@
     role="search"
     onsubmit={(event) => {
       event.preventDefault();
-      clearTimeout(timer);
+      debounce.cancel();
       void navigate({ q: text });
     }}
   >

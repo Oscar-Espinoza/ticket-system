@@ -1,5 +1,5 @@
 <!--
-  Owner: B1 (editor swap: D1, collaboration: D2). Click-to-edit description in
+  Click-to-edit description in
   the WYSIWYG editor. While open it's a shared Yjs document (key
   `issue:<id>`, relayed through /api/collab): teammates' text and carets show
   live, and the markdown is saved back through mutations.update 1.5 s after

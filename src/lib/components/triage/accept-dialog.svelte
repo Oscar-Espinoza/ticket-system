@@ -11,6 +11,7 @@
 
 <script lang="ts">
   import { Dialog, DialogContent } from '@/lib/components/ui/dialog';
+  import { afterFrame } from '@/lib/svelte/focus';
   import type { IssueRow } from '@/lib/issue-model';
   import AcceptForm from './accept-form.svelte';
 
@@ -38,7 +39,7 @@
   // bits-ui would focus the Status trigger, so hand focus to [autofocus] here.
   const focusSubmit = (event: Event) => {
     event.preventDefault();
-    requestAnimationFrame(() => {
+    afterFrame(() => {
       const target = content?.querySelector<HTMLElement>('[autofocus]') ?? content;
       target?.focus({ preventScroll: true });
     });

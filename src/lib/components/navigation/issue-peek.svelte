@@ -1,7 +1,6 @@
 <!--
   Read-only quick look at an issue (Space on a focused list row). Space / Esc
   close, Enter opens the full issue in the detail pane.
-  Port of src/components/navigation/issue-peek.tsx.
 -->
 <script lang="ts">
   import ArrowUpRightIcon from '@lucide/svelte/icons/arrow-up-right';

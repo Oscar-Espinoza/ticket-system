@@ -2,8 +2,7 @@
 // show. The project layout's provider persists per project in localStorage;
 // saved views nest their own, non-persisted provider (IssuesView initialDisplay).
 //
-// API (port of src/components/issues/display-options.tsx; constants, types and
-// normalizeDisplayOptions are unchanged):
+// API:
 //   setDisplayOptionsContext(() => ({ initial, persist }))   provider; call during
 //       component init. Without `initial` inside a project: persisted per project
 //       (localStorage, synced across tabs). With `initial` (saved views) or outside
@@ -23,6 +22,7 @@ import { createSubscriber } from 'svelte/reactivity';
 
 import { useOptionalProjectData } from '@/lib/components/project/project-data.svelte';
 import { isAppHydrated, markAppHydrated } from '@/lib/svelte/hydration';
+import { readStorage, writeStorage } from '@/lib/svelte/storage';
 import { isGroupBy, isOrderBy, type GroupBy, type OrderBy } from '@/lib/issue-grouping';
 
 export type { OrderBy };
@@ -147,12 +147,7 @@ const storeListeners = new Set<() => void>();
 const snapshots = new Map<string, { raw: string | null; value: DisplayOptions }>();
 
 function readStored(key: string): DisplayOptions {
-  let raw: string | null = null;
-  try {
-    raw = window.localStorage.getItem(key);
-  } catch {
-    // Private mode / blocked storage: defaults.
-  }
+  const raw = readStorage(key);
   const cached = snapshots.get(key);
   if (cached && cached.raw === raw) return cached.value;
   let value = DEFAULT_DISPLAY_OPTIONS;
@@ -166,21 +161,10 @@ function readStored(key: string): DisplayOptions {
 }
 
 function writeStored(key: string, value: DisplayOptions) {
-  try {
-    window.localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    // Quota / blocked: keep the in-memory snapshot so the change still applies.
-  }
-  snapshots.set(key, { raw: safeRaw(key), value });
+  // Quota / blocked: keep the in-memory snapshot so the change still applies.
+  writeStorage(key, JSON.stringify(value));
+  snapshots.set(key, { raw: readStorage(key), value });
   storeListeners.forEach((listener) => listener());
-}
-
-function safeRaw(key: string): string | null {
-  try {
-    return window.localStorage.getItem(key);
-  } catch {
-    return null;
-  }
 }
 
 function subscribeStore(listener: () => void) {

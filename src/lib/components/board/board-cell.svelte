@@ -1,4 +1,4 @@
-<!-- One column (or column × swimlane) drop area. (BoardCell in board.tsx) -->
+<!-- One column (or column × swimlane) drop area. -->
 <script lang="ts">
   import { createDroppable } from '@dnd-kit/svelte';
 

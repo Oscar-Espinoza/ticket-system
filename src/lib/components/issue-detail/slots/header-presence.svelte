@@ -1,5 +1,5 @@
 <!--
-  Owner: B12. Avatars of the other members viewing this issue right now
+  Avatars of the other members viewing this issue right now
   (presence heartbeat, see project/slots/live-updates). Renders nothing
   when you're alone.
 -->

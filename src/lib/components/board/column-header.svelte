@@ -1,4 +1,4 @@
-<!-- Column header: glyph, name, count, "+". (ColumnHeader in board.tsx) -->
+<!-- Column header: glyph, name, count, "+". -->
 <script lang="ts">
   import PlusIcon from '@lucide/svelte/icons/plus';
 

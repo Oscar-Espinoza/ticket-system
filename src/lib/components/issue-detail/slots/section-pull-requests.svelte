@@ -1,5 +1,5 @@
 <!--
-  Owner: B3 / D10b. Pull and merge requests linked to this issue (via the
+  Pull and merge requests linked to this issue (via the
   GitHub, GitLab and Bitbucket webhooks), with review decision and CI state.
   Quiet by design: renders nothing until loaded and nothing when there are none.
 -->

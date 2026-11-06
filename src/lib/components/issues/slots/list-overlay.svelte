@@ -1,11 +1,11 @@
 <!--
-  Owner: B6 (peek preview). Rendered once next to the issues view: Space on a
+  Rendered once next to the issues view: Space on a
   focused list row opens a read-only preview; Enter there opens the detail
   pane via `onOpen`. Guarded to `[data-issue-row]` focus so the board's own
   Space pick-up (dnd-kit, on board cards) is untouched.
-  Port of src/components/issues/slots/list-overlay.tsx (props: issues, onOpen).
 -->
 <script lang="ts">
+  import { issueRowIdAt } from '@/lib/components/issues/issue-dom';
   import IssuePeek from '@/lib/components/navigation/issue-peek.svelte';
   import { registerHotkeys } from '@/lib/svelte/hotkeys.svelte';
   import type { IssueRow } from '@/lib/issue-model';
@@ -14,7 +14,7 @@
 
   function focusedRowId(event: KeyboardEvent): string | null {
     const target = event.target instanceof Element ? event.target : null;
-    return target?.closest<HTMLElement>('[data-issue-row]')?.dataset.issueRow ?? null;
+    return issueRowIdAt(target);
   }
 
   let peekId = $state<string | null>(null);

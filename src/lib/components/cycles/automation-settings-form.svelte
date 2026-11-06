@@ -4,6 +4,7 @@
   import LoaderCircle from '@lucide/svelte/icons/loader-circle';
   import { toast } from 'svelte-sonner';
 
+  import { actionErrorText } from '@/lib/action-errors';
   import { updateAutomationSettings } from '@/lib/actions/planning-settings';
   import Field from '@/lib/components/settings/field.svelte';
   import { Button } from '@/lib/components/ui/button';
@@ -54,7 +55,7 @@
       const snapshot = { ...values };
       const result = await updateAutomationSettings({ projectId, ...snapshot });
       if (!result.ok) {
-        toast.error(result.error === 'Forbidden' ? 'Only admins can change these settings.' : result.error);
+        toast.error(actionErrorText(result.error, 'Only admins can change these settings.'));
         return;
       }
       saved = snapshot;

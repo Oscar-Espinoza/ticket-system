@@ -1,4 +1,4 @@
-<!-- Owner: B1. Subscribe / unsubscribe (bell) with the subscriber list. -->
+<!-- Subscribe / unsubscribe (bell) with the subscriber list. -->
 <script lang="ts">
   import BellIcon from '@lucide/svelte/icons/bell';
   import BellOffIcon from '@lucide/svelte/icons/bell-off';

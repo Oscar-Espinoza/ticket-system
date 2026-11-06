@@ -1,5 +1,5 @@
 <!--
-  Owner: B6. Rendered at the end of the issues toolbar (before "New issue"):
+  Rendered at the end of the issues toolbar (before "New issue"):
   "Save view" on the project issues page; "Update view" / "Save as new" on a
   saved view page (known through our SavedViewProvider, else IssuesView's
   view context or the `savedView` prop).

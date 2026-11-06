@@ -1,4 +1,4 @@
-<!-- Owner: B6. Star / unstar the issue from the detail header. -->
+<!-- Star / unstar the issue from the detail header. -->
 <script lang="ts">
   import FavoriteButton from '@/lib/components/navigation/favorite-button.svelte';
   import { isPendingIssue, type IssueMutations } from '@/lib/components/issues/use-issue-mutations.svelte';

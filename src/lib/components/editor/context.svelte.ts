@@ -14,8 +14,6 @@
 import { createContext } from 'svelte';
 import type { AnyExtension } from '@tiptap/core';
 
-import type { WorkflowState } from '@/lib/issue-model';
-
 import type { EditorIssue } from '@/lib/editor-issue';
 export type { EditorIssue };
 

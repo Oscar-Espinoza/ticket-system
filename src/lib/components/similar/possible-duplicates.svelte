@@ -1,7 +1,6 @@
 <!--
   "Possible duplicates" hint under the new-issue title: up to three similar
   issues, each opening in a new tab so the draft stays put.
-  Port of src/components/similar/possible-duplicates.tsx (props: projectId, title, enabled, class).
 -->
 <script lang="ts">
   import ExternalLinkIcon from '@lucide/svelte/icons/external-link';

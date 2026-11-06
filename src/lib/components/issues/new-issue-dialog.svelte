@@ -4,8 +4,6 @@
   mounted, so state survives). Text autosaves as a draft (issue_draft) and the
   draft is deleted once the issue exists. "Create more" keeps the dialog open
   for the next issue.
-  Port of src/components/issues/new-issue-dialog.tsx (props: open, onOpenChange,
-  defaults, onCreate, fallback).
 -->
 <script lang="ts">
   import { untrack } from 'svelte';
@@ -34,6 +32,7 @@
   import { Switch } from '@/lib/components/ui/switch';
   import { Textarea } from '@/lib/components/ui/textarea';
   import type { IssuePatch } from '@/lib/issue-model';
+  import { readStorage, writeStorage } from '@/lib/svelte/storage';
   import { defaultNewIssueState } from '@/lib/workflow';
   import type { IssueMutations } from './use-issue-mutations.svelte';
 
@@ -41,11 +40,7 @@
   const CREATE_MORE_KEY = 'new-issue-create-more';
 
   function readCreateMore() {
-    try {
-      return typeof window !== 'undefined' && window.localStorage.getItem(CREATE_MORE_KEY) === '1';
-    } catch {
-      return false;
-    }
+    return readStorage(CREATE_MORE_KEY) === '1';
   }
 
   let {
@@ -75,7 +70,7 @@
   let properties = $state.raw<IssuePatch>(untrack(() => defaults));
   let draftId = $state<string | null>(null);
   let createMore = $state(readCreateMore());
-  // A new `defaults` object resets the properties (React compared identities in render).
+  // A new `defaults` object resets the properties (compared by identity).
   let propsFor = untrack(() => defaults);
   $effect.pre(() => {
     const next = defaults;
@@ -164,11 +159,7 @@
 
   const toggleCreateMore = (next: boolean) => {
     createMore = next;
-    try {
-      window.localStorage.setItem(CREATE_MORE_KEY, next ? '1' : '0');
-    } catch {
-      // Private mode: the toggle just isn't remembered.
-    }
+    writeStorage(CREATE_MORE_KEY, next ? '1' : '0');
   };
 
   function submit(event?: Event) {

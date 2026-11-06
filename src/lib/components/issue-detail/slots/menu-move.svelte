@@ -1,5 +1,5 @@
 <!--
-  Owner: D4a. "Move to project" submenu in the issue … menu. Targets load when
+  "Move to project" submenu in the issue … menu. Targets load when
   the submenu first opens; picking one moves the issue (and its sub-issues) and
   navigates to its new permalink. The menu unmounts on select; the move and the
   navigation carry on.
@@ -21,7 +21,7 @@
       toProjectId: target.id,
     });
     if (!result.ok) {
-      toast.error(result.error === 'Forbidden' ? "You don't have permission to do that." : result.error, {
+      toast.error(actionErrorText(result.error, "You don't have permission to do that."), {
         id: pending,
       });
       return;
@@ -43,6 +43,7 @@
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
   import { goto } from '$app/navigation';
 
+  import { actionErrorText } from '@/lib/action-errors';
   import { listMoveTargets } from '@/lib/actions/move';
   import type { IssueMutations } from '@/lib/components/issues/use-issue-mutations.svelte';
   import { useProjectPermission } from '@/lib/components/project/project-data.svelte';

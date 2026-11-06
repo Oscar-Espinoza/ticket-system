@@ -1,4 +1,3 @@
-// Port of src/components/issue-detail/use-draft.ts.
 //
 // Local draft that resets whenever the saved value changes (including an
 // optimistic rollback), without an effect.

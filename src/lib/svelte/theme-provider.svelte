@@ -1,6 +1,5 @@
 <!--
-  Port of src/components/theme-provider.tsx (next-themes ThemeProvider with
-  attribute="class", defaultTheme="dark", enableSystem). Rendered once by the
+  Theme provider (class attribute, default dark, follows the system). Rendered once by the
   root layout around the app; read and change the theme with useTheme() from
   '@/lib/svelte/theme.svelte'. ModeWatcher injects the pre-hydration script
   that sets .dark / color-scheme before first paint.

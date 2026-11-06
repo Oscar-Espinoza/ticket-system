@@ -1,5 +1,5 @@
 <!--
-  Owner: B8 / D4b. "Epic" + "Milestone" property rows of IssueDetail. This
+  "Epic" + "Milestone" property rows of IssueDetail. This
   project's epics come from project data (non-archived); epics of sibling
   projects in the workspace (cross-project epics) load lazily from the server
   — on picker open, or when the issue already points at a non-local epic.

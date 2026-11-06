@@ -2,7 +2,6 @@
   Raw markdown mode: autosizing textarea with @mention autocomplete. Used for
   power users (the "Markdown" toggle) and for content the rich editor can't
   represent losslessly. Formatting comes from the shared toolbar via `format`.
-  Port of src/components/editor/raw-editor.tsx.
 
   Imperative handle (React `ref`): bind:this and call `focus()` / `format(kind)`.
 -->
@@ -32,7 +31,7 @@
 </script>
 
 <script lang="ts">
-  import { focusOnMount } from '@/lib/svelte/focus';
+  import { afterFrame, focusOnMount } from '@/lib/svelte/focus';
   import { formatMention } from '@/lib/mentions';
   import type { IssueUser } from '@/lib/issue-model';
   import { cn } from '@/lib/utils';
@@ -125,7 +124,7 @@
     // insertText keeps the browser's undo stack; fall back to a controlled update.
     const inserted = document.execCommand?.('insertText', false, edit.text);
     if (!inserted) onChange(value.slice(0, edit.start) + edit.text + value.slice(edit.end));
-    requestAnimationFrame(() => el.setSelectionRange(edit.selectStart, edit.selectEnd));
+    afterFrame(() => el.setSelectionRange(edit.selectStart, edit.selectEnd));
   }
 
   export function format(kind: MarkdownFormat) {

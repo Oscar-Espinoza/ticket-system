@@ -2,7 +2,6 @@
   Issue detail — rendered in the list's side pane ('pane') and on the
   permalink page ('page', B6). The header, properties panel and sections host
   slot components owned by Wave B agents; this host's layout is frozen.
-  Port of src/components/issue-detail/issue-detail.tsx.
 -->
 <script module lang="ts">
   // Menu hints for the shortcuts IssueShortcuts registers (B10).

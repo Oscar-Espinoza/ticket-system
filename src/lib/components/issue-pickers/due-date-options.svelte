@@ -1,22 +1,11 @@
 <script module lang="ts">
-  import { addDays, toDateString } from '@/lib/dates';
+  import { toDateString } from '@/lib/dates';
+  import { dueDateQuickOptions } from './option-builders';
 
   export interface DueDateOptionsProps {
     /** YYYY-MM-DD, or null. */
     value: string | null | undefined;
     onSelect: (dueDate: string | null) => void;
-  }
-
-  function quickOptions(today = new Date()) {
-    // End of week = the coming Friday (today when it's Friday).
-    const friday = addDays(today, (5 - today.getDay() + 7) % 7);
-    return [
-      { label: 'Today', date: today },
-      { label: 'Tomorrow', date: addDays(today, 1) },
-      { label: 'End of this week', date: friday },
-      { label: 'In one week', date: addDays(today, 7) },
-      { label: 'In two weeks', date: addDays(today, 14) },
-    ].map((option) => ({ ...option, value: toDateString(option.date) }));
   }
 </script>
 
@@ -31,9 +20,8 @@
   let { value, onSelect }: DueDateOptionsProps = $props();
 
   const selected = $derived(value ? fromDateString(value) : undefined);
-  // Computed when the list opens (React recomputed per render; the list only
-  // lives while the popover is open).
-  const options = quickOptions();
+  // Computed when the list opens; the list only lives while the popover is open.
+  const options = dueDateQuickOptions();
 </script>
 
 <div class="flex flex-col">

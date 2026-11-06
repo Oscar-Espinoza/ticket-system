@@ -1,5 +1,5 @@
 <!--
-  Slot — owned by D8. "Start date" property row (issue timeline view planning).
+  "Start date" property row (issue timeline view planning).
   StartDatePicker lives in ./start-date-picker.svelte.
 -->
 <script lang="ts">

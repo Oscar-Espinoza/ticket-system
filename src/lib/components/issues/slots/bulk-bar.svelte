@@ -34,7 +34,7 @@
   import { registerHotkeys } from '@/lib/svelte/hotkeys.svelte';
   import type { IssuePatch, IssueRow } from '@/lib/issue-model';
   import ConfirmTrashDialog from '../confirm-trash-dialog.svelte';
-  import { applyPatch, commonValue, copyIds } from '../issue-context-menu.svelte';
+  import { applyPatch, commonValue, copyIds } from '../bulk-actions';
   import { hasOpenLayer, isEditableTarget, useIssueSelection, useSelectedIds } from '../selection.svelte';
   import type { IssueMutations } from '../use-issue-mutations.svelte';
   import LabelToggles from './label-toggles.svelte';

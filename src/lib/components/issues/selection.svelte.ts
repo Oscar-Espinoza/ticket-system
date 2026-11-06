@@ -2,7 +2,7 @@
 // selection is a $state.raw Set, so toggling one issue only updates the
 // expressions that read it (useIsSelected derives a per-row boolean).
 //
-// API (port of src/components/issues/selection.tsx):
+// API:
 //   setIssueSelectionContext(() => issues)  provider (IssueSelectionProvider): creates the
 //       selection, prunes it to the listed (confirmed) issues, registers x / ⌘A / Esc.
 //       Call during component init, GETTER arg.
@@ -13,7 +13,7 @@
 //   useHasSelection(): { readonly current: boolean }
 //   handleSelectionClick(selection, event, id)  ⌘/Ctrl toggles, Shift extends (true = handled)
 //   preventShiftSelect(event)                  onmousedown on rows / checkboxes
-//   orderedIssueIds(from), isEditableTarget, hasOpenLayer, ISSUE_ITEM, VIEW_SCOPE
+//   orderedIssueIds(from), isEditableTarget, hasOpenLayer
 //   <SelectCheckbox checked onToggle label tabIndex class>  → select-checkbox.svelte
 // `selection.get()` / `selection.selected` are reactive too (read in markup / $derived).
 
@@ -21,30 +21,24 @@ import { createContext, untrack } from 'svelte';
 
 import { hasOpenLayer, isEditableTarget, registerHotkeys } from '@/lib/svelte/hotkeys.svelte';
 import type { IssueRow } from '@/lib/issue-model';
+import { ISSUE_ITEM, VIEW_SCOPE, issueIdOf } from './issue-dom';
 import { isPendingIssue } from './use-issue-mutations.svelte';
 
 export { hasOpenLayer, isEditableTarget };
 
-/** A selectable issue element (list / table row, board card). */
-export const ISSUE_ITEM = '[data-issue-row], [data-board-card]';
-/** The element wrapping a view's rows — ranges and "select all" stay inside it. */
-export const VIEW_SCOPE = '[data-issue-view]';
-
 const EMPTY: ReadonlySet<string> = new Set();
-
-const itemId = (el: HTMLElement) => el.dataset.issueRow ?? el.dataset.boardCard ?? null;
 
 /** Issue ids in visual (DOM) order inside the view containing `from`, de-duplicated. */
 export function orderedIssueIds(from: Element): string[] {
   const scope = from.closest(VIEW_SCOPE) ?? from;
-  const ids = [...scope.querySelectorAll<HTMLElement>(ISSUE_ITEM)].map(itemId);
+  const ids = [...scope.querySelectorAll<HTMLElement>(ISSUE_ITEM)].map(issueIdOf);
   return [...new Set(ids.filter((id): id is string => id !== null))];
 }
 
 /** The focused row / card inside an issues view, if any. */
 function focusedIssueItem(): string | null {
   const el = document.activeElement?.closest<HTMLElement>(ISSUE_ITEM);
-  return el?.closest(VIEW_SCOPE) ? itemId(el) : null;
+  return el?.closest(VIEW_SCOPE) ? issueIdOf(el) : null;
 }
 
 export interface IssueSelection {

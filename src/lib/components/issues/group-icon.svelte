@@ -1,6 +1,5 @@
 <!--
   Glyph for a group header: state icon, priority icon, avatar or color dot.
-  Port of GroupIcon from src/components/issues/issue-list.tsx (board headers use it too).
 -->
 <script lang="ts">
   import UserRoundIcon from '@lucide/svelte/icons/user-round';

@@ -1,7 +1,6 @@
 <!--
   NavList: j / k focus the next / previous NavIssueRow in a `[data-nav-list]`
   container; Enter then follows the focused link natively. Mount once per page.
-  Port of src/components/navigation/list-navigation.tsx (export NavList).
 -->
 <script module lang="ts">
   function move(step: 1 | -1) {

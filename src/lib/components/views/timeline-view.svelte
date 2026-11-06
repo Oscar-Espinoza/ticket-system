@@ -7,10 +7,8 @@
   A press without movement opens the issue; Esc cancels a drag. Keyboard on a
   focused bar: ←/→ move a day, Shift+←/→ change the due date, Enter opens.
 
-  Port of src/components/views/timeline-view.tsx (default export TimelineView,
-  IssueViewProps). Client only in React (next/dynamic ssr: false): "today",
-  the zoom (localStorage) and the scroll position — the registry should render
-  it only in the browser.
+  Client only: "today", the zoom (localStorage) and the scroll position — the
+  registry renders it only in the browser.
 -->
 <script lang="ts">
   import { untrack } from 'svelte';
@@ -26,6 +24,7 @@
   import type { IssuePatch, IssueRow } from '@/lib/issue-model';
   import { cn } from '@/lib/utils';
   import type { IssueViewProps } from '@/lib/components/issues/views';
+  import { readStorage, writeStorage } from '@/lib/svelte/storage';
   import TimelineRow, { type DragMode, type TimelineBar, type TimelinePointerEvent } from './timeline-row.svelte';
 
   let { groups, mutations, selectedId, onSelect }: IssueViewProps = $props();
@@ -46,11 +45,7 @@
   const weekdayLabel = new Intl.DateTimeFormat('en', { weekday: 'narrow' });
 
   function readZoom(): Zoom {
-    try {
-      return window.localStorage.getItem(ZOOM_KEY) === 'month' ? 'month' : 'week';
-    } catch {
-      return 'week';
-    }
+    return readStorage(ZOOM_KEY) === 'month' ? 'month' : 'week';
   }
 
   interface Span {
@@ -105,11 +100,8 @@
 
   function setZoom(next: Zoom) {
     zoom = next;
-    try {
-      window.localStorage.setItem(ZOOM_KEY, next);
-    } catch {
-      // Blocked storage: the zoom still applies for this visit.
-    }
+    // Blocked storage: the zoom still applies for this visit.
+    writeStorage(ZOOM_KEY, next);
   }
 
   const visible: IssueGroup[] = $derived(display.showEmptyGroups ? groups : groups.filter((g) => g.issues.length > 0));

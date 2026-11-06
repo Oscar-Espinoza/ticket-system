@@ -1,4 +1,4 @@
-<!-- IssuesViewBody (issues-view.tsx): everything below the filter / display providers. -->
+<!-- Everything below the filter / display providers. -->
 <script lang="ts">
   import LayersIcon from '@lucide/svelte/icons/layers-2';
   import ListTodoIcon from '@lucide/svelte/icons/list-todo';
@@ -12,6 +12,7 @@
   import DisplayMenu from '@/lib/components/views/display-menu.svelte';
   import IssuesViewContextProvider from '@/lib/components/views/issues-view-context-provider.svelte';
   import type { SubIssueCount } from '@/lib/components/views/view-context.svelte';
+  import { afterFrame } from '@/lib/svelte/focus';
   import { registerPaletteCommands } from '@/lib/svelte/palette-commands.svelte';
   import { useSearchParams } from '@/lib/svelte/search-params.svelte';
   import {
@@ -27,6 +28,7 @@
   import { isClosed } from '@/lib/workflow';
   import { isViewLayout, normalizeDisplayOptions, useDisplayOptions, type ViewLayout } from './display-options.svelte';
   import IssueContextMenu from './issue-context-menu.svelte';
+  import { focusIssueElement } from './issue-dom';
   import IssueFilters from './issue-filters.svelte';
   import { setSearchParams, useIssueFilters, useSetIssueFilters } from './issue-filters.svelte.ts';
   import IssueSelectionProvider from './issue-selection-provider.svelte';
@@ -170,11 +172,7 @@
   const closeIssue = () => {
     setSearchParams({ issue: null });
     const id = openerId ?? selected?.id;
-    requestAnimationFrame(() => {
-      document
-        .querySelector<HTMLElement>(`[data-issue-row="${id}"], [data-board-card="${id}"], [data-issue-chip="${id}"]`)
-        ?.focus();
-    });
+    afterFrame(() => focusIssueElement(id));
   };
 </script>
 

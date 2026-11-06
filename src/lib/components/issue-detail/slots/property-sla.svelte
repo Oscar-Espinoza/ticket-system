@@ -1,5 +1,5 @@
 <!--
-  Slot — owned by D5. "SLA" row (time left / overdue / met, hidden without a
+  "SLA" row (time left / overdue / met, hidden without a
   deadline or once canceled) and the "In status" row (time in the current
   state; hover for the per-state history).
 -->

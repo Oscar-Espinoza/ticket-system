@@ -1,7 +1,6 @@
 <!--
   Name / describe / share a new saved view built from the current filters and
   display options, then open it. Remount ({#key}) per open to reset the form.
-  Port of src/components/navigation/save-view-dialog.tsx.
 -->
 <script lang="ts">
   import { goto } from '$app/navigation';

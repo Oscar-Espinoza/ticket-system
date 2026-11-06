@@ -1,6 +1,6 @@
 <!--
-  IssuesViewRoot (issues-view.tsx): normalizes the saved view's filters once per
-  mount and nests the filter (and, for saved views, display) providers.
+  Normalizes the saved view's filters once per mount and nests the filter (and,
+  for saved views, display) providers.
 -->
 <script lang="ts">
   import { untrack } from 'svelte';
@@ -13,7 +13,7 @@
 
   let props: IssuesViewProps = $props();
 
-  // useState initializer: kept for the life of this mount.
+  // Kept for the life of this mount.
   const initialFilters = untrack(() =>
     props.initialFilters ? normalizeIssueFilters(props.initialFilters) : undefined,
   );

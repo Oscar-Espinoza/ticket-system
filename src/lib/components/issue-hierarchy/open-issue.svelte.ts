@@ -1,4 +1,3 @@
-// Port of src/components/issue-hierarchy/open-issue.ts.
 
 import { goto } from '$app/navigation';
 

@@ -1,9 +1,9 @@
-<!-- Check when every target issue has it, minus when some do. (CoverageMark in issue-context-menu.tsx) -->
+<!-- Check when every target issue has it, minus when some do. -->
 <script lang="ts">
   import CheckIcon from '@lucide/svelte/icons/check';
   import MinusIcon from '@lucide/svelte/icons/minus';
 
-  import type { Coverage } from './issue-context-menu.svelte';
+  import type { Coverage } from './bulk-actions';
 
   let { coverage }: { coverage: Coverage } = $props();
 </script>

@@ -1,5 +1,5 @@
 <!--
-  Owner: B7. "Cycle" property row in IssueDetail. Hidden while cycles are off
+  "Cycle" property row in IssueDetail. Hidden while cycles are off
   (unless the issue still points at a cycle); lists the current cycle, then
   upcoming ones, then recent past ones.
 -->

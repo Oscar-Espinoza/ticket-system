@@ -1,5 +1,5 @@
 <!--
-  Owner: B4. Sub-issues: the children in `mutations.issues` (optimistic, no
+  Sub-issues: the children in `mutations.issues` (optimistic, no
   fetch), progress, inline create (inherits cycle / epic / milestone), attach
   an existing issue, detach, and open a child.
 -->

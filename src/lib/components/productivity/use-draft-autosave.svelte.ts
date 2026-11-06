@@ -1,14 +1,12 @@
-// Svelte port of src/components/productivity/use-draft-autosave.ts.
-//
 //   const autosave = useDraftAutosave(projectId, enabled)   // during component init
 //   autosave.status                                         // reactive getter
 //   autosave.schedule(content) / flush() / cancel() / discard(id) / reset()
 //
-// `projectId` / `enabled` may be getters so the hook follows prop changes (the
-// React hook read the latest render's values). Pending saves are dropped when
-// the component is destroyed, like the React unmount cleanup.
+// `projectId` / `enabled` may be getters so the hook follows prop changes.
+// Pending saves are dropped when the component is destroyed.
 
 import { deleteDraft, saveDraft } from '@/lib/actions/drafts';
+import { createDebouncer } from '@/lib/svelte/debounce';
 import type { IssuePatch } from '@/lib/issue-model';
 
 export interface DraftContent {
@@ -48,13 +46,12 @@ export function useDraftAutosave(
   enabled: MaybeGetter<boolean>,
 ): DraftAutosave {
   let status = $state<DraftStatus>('idle');
-  let timer: ReturnType<typeof setTimeout> | null = null;
+  const debounce = createDebouncer();
   let pending: DraftContent | null = null;
   let lastSave: Promise<unknown> = Promise.resolve();
 
   const clear = () => {
-    if (timer) clearTimeout(timer);
-    timer = null;
+    debounce.cancel();
     pending = null;
   };
 
@@ -89,9 +86,8 @@ export function useDraftAutosave(
       if (!read(enabled)) return;
       clear();
       pending = content;
-      timer = setTimeout(() => {
+      debounce.schedule(() => {
         pending = null;
-        timer = null;
         save(content);
       }, DELAY_MS);
     },

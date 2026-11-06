@@ -1,9 +1,8 @@
 <!--
-  Slot — owned by B10. Per-issue keyboard shortcuts and palette commands for the
+  Per-issue keyboard shortcuts and palette commands for the
   focused row / card or the open issue, the fallback new-issue dialog, and the
   `?create=1` / `?draft=<id>` / `?template=<id>` entry points. Rendered by
   IssuesView and the issue permalink page.
-  Port of src/components/issues/slots/issue-shortcuts.tsx (props: issues, mutations, selectedIssue).
 -->
 <script lang="ts">
   import { untrack, type ComponentProps } from 'svelte';
@@ -11,13 +10,13 @@
 
   import { getDraft } from '@/lib/actions/drafts';
   import NewIssueDialog from '@/lib/components/issues/new-issue-dialog.svelte';
+  import { ISSUE_ITEM, focusedIssueId, focusedIssueRowId, issueIdOf } from '@/lib/components/issues/issue-dom';
   import type { IssueMutations } from '@/lib/components/issues/use-issue-mutations.svelte';
   import {
     copyIssueId,
     copyIssueLink,
     copyIssueMarkdown,
     duplicateInput,
-    focusedIssueId,
   } from '@/lib/components/productivity/issue-actions';
   import IssueCommandDialog from '@/lib/components/productivity/issue-command-dialog.svelte';
   import {
@@ -38,6 +37,7 @@
     AlertDialogHeader,
     AlertDialogTitle,
   } from '@/lib/components/ui/alert-dialog';
+  import { afterFrame, afterTask } from '@/lib/svelte/focus';
   import { OPEN_LAYER_SELECTOR, hasOpenLayer, registerHotkeys, type Hotkey } from '@/lib/svelte/hotkeys.svelte';
   import { registerPaletteCommands, type PaletteCommand } from '@/lib/svelte/palette-commands.svelte';
   import { setSearchParams, useSearchParams } from '@/lib/svelte/search-params.svelte';
@@ -67,7 +67,7 @@
 
   /** Palette `run`: let the palette close (and restore focus) before a dialog opens. */
   const runLater = (fn: () => void) => () => {
-    setTimeout(fn, 0);
+    afterTask(fn);
   };
 
   const data = useProjectData();
@@ -149,12 +149,12 @@
             // The list binds `s` for its focused / cursor row (inline menu); this
             // one covers board cards and the open issue.
             ...edit('s', 'status', 'Change status'),
-            when: (event) => has(event) && !document.activeElement?.closest('[data-issue-row]'),
+            when: (event) => has(event) && !focusedIssueRowId(),
             handler: () => {
               const issue = target();
               if (!issue) return;
               // If the list opened its own status menu for its cursor row, stand down.
-              requestAnimationFrame(() => {
+              afterFrame(() => {
                 if (!hasOpenLayer()) open('status', issue);
               });
             },
@@ -198,8 +198,8 @@
   $effect(() => {
     const onFocusIn = (event: FocusEvent) => {
       if (!(event.target instanceof Element)) return;
-      const row = event.target.closest<HTMLElement>('[data-issue-row], [data-board-card]');
-      if (row) stickyId = row.dataset.issueRow ?? row.dataset.boardCard ?? null;
+      const row = event.target.closest<HTMLElement>(ISSUE_ITEM);
+      if (row) stickyId = issueIdOf(row);
       else if (!event.target.closest(OPEN_LAYER_SELECTOR)) stickyId = null;
     };
     document.addEventListener('focusin', onFocusIn);
@@ -294,7 +294,7 @@
           section: 'Templates',
           keywords: ['create', 'template', template.name],
           run: () =>
-            setTimeout(() =>
+            afterTask(() =>
               requestNewIssue({
                 title: template.title,
                 description: template.description,
@@ -345,7 +345,7 @@
           .catch(() => toast.error('Could not open the draft.'));
       } else if (templateId) {
         const template = list?.find((t) => t.id === templateId);
-        setTimeout(() =>
+        afterTask(() =>
           requestNewIssue(
             template
               ? {
@@ -357,7 +357,7 @@
           ),
         );
       } else {
-        setTimeout(() => requestNewIssue());
+        afterTask(() => requestNewIssue());
       }
     });
   });

@@ -1,5 +1,5 @@
 <!--
-  Owner: B2. "Remind me" — a reminder is a `reminder` notification for the
+  "Remind me" — a reminder is a `reminder` notification for the
   viewer, hidden (snoozed) until the chosen time, when it surfaces in the inbox.
 -->
 <script lang="ts">

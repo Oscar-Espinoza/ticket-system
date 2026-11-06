@@ -3,7 +3,6 @@
   archive, trash). IssueRow from components/issues needs useProjectData(), so
   it can't render outside one project. The whole row is a link to the issue's
   permalink; `actions` sit outside the link so buttons stay valid HTML.
-  Port of src/components/navigation/nav-issue-row.tsx.
 -->
 <script module lang="ts">
   import type { Snippet } from 'svelte';

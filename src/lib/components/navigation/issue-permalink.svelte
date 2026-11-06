@@ -2,7 +2,6 @@
   Client half of the issue permalink page. The issue stays in the mutation
   scope even when archived / trashed, so archiving from the `…` menu leaves the
   page in place with IssueDetail's banner + Restore instead of blanking it.
-  Port of src/components/navigation/issue-permalink.tsx.
 -->
 <script lang="ts">
   import IssueDetail from '@/lib/components/issue-detail/issue-detail.svelte';

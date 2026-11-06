@@ -1,4 +1,4 @@
-<!-- Bulk label toggles: check = every selected issue has it, minus = some do. (LabelToggles in bulk-bar.tsx) -->
+<!-- Bulk label toggles: check = every selected issue has it, minus = some do. -->
 <script lang="ts">
   import MinusIcon from '@lucide/svelte/icons/minus';
 
@@ -13,7 +13,7 @@
     CommandList,
   } from '@/lib/components/ui/command';
   import type { IssueRow } from '@/lib/issue-model';
-  import { labelCoverage, toggleLabel } from '../issue-context-menu.svelte';
+  import { labelCoverage, toggleLabel } from '../bulk-actions';
   import type { IssueMutations } from '../use-issue-mutations.svelte';
 
   let { issues, mutations }: { issues: IssueRow[]; mutations: IssueMutations } = $props();

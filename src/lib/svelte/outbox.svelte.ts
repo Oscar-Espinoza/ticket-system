@@ -15,12 +15,8 @@
 // IndexedDB is unavailable (private mode, blocked, quota) the first failure
 // switches this tab to an in-memory queue.
 //
-// Svelte port of src/lib/sync/outbox.ts — same engine, same exports, same
-// IndexedDB store / channel / lock names (so a queue left by the Next app
-// replays here). A full copy rather than a wrapper because that module imports
-// React (useSyncExternalStore), React sonner and the server action directly.
 //   setSyncUser(userId), perform(call), flush(), peekOutbox(), isQueued(result)
-//   useOutboxItems() → { current: OutboxItem[] }   reactive (was a React hook)
+//   useOutboxItems() → { current: OutboxItem[] }   reactive
 //
 // Under Next, a successful server action carried the route's revalidated data
 // back with it. The generated runOutboxCall wrapper can't know that the queued
@@ -31,6 +27,7 @@ import { refreshAfterWrite } from '@/lib/svelte/refresh.svelte';
 import { createSubscriber } from 'svelte/reactivity';
 import { toast } from 'svelte-sonner';
 
+import { actionErrorText } from '@/lib/action-errors';
 import type { IssuePatch, IssueRow } from '@/lib/issue-model';
 import { runOutboxCall, type OutboxSuspended } from '@/lib/actions/sync';
 import type { OutboxActionName, OutboxArgs, OutboxResult } from '@/lib/sync/actions';
@@ -241,10 +238,6 @@ function isNetworkError(error: unknown) {
   return !navigator.onLine || error instanceof TypeError;
 }
 
-function friendlyError(error: string) {
-  return error === 'Forbidden' ? "you don't have permission to do that in this project" : error;
-}
-
 const isSuspended = (result: object): result is OutboxSuspended =>
   'suspended' in result && (result as OutboxSuspended).suspended === true;
 
@@ -381,7 +374,7 @@ async function drain() {
         synced += 1;
         broadcastProjectChanged(head.projectId);
       } else {
-        toast.error(`Couldn't sync ${head.label}: ${friendlyError(result.error)}`);
+        toast.error(`Couldn't sync ${head.label}: ${actionErrorText(result.error, "you don't have permission to do that in this project")}`);
       }
     }
   } finally {
@@ -390,7 +383,7 @@ async function drain() {
 }
 
 // ---------------------------------------------------------------------------
-// Reactive view (was the useOutboxItems hook)
+// Reactive view
 // ---------------------------------------------------------------------------
 
 const trackItems = createSubscriber((update) => subscribe(update));

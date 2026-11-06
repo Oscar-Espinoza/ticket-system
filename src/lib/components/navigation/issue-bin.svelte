@@ -2,7 +2,7 @@
   Archive and trash pages: a searchable list of archived / trashed issues with
   Restore, plus "Delete permanently" (admins) in the trash. Mutations go
   through useIssueMutations with an `include` scope, so a restored issue drops
-  out of this list optimistically. Port of src/components/navigation/issue-bin.tsx.
+  out of this list optimistically.
 -->
 <script module lang="ts">
   import type { IssueRow } from '@/lib/issue-model';
@@ -23,6 +23,7 @@
   import Undo2Icon from '@lucide/svelte/icons/undo-2';
   import { toast } from 'svelte-sonner';
 
+  import { actionErrorText } from '@/lib/action-errors';
   import { purgeIssue } from '@/lib/actions/tickets';
   import { useIssueMutations } from '@/lib/components/issues/use-issue-mutations.svelte';
   import { useProjectPermission } from '@/lib/components/project/project-data.svelte';
@@ -75,7 +76,7 @@
     try {
       const result = await purgeIssue({ projectId: issue.projectId, id: issue.id });
       if (result.ok) toast.success(`Deleted ${issue.key} permanently`);
-      else toast.error(result.error === 'Forbidden' ? 'Only admins can delete issues permanently.' : result.error);
+      else toast.error(actionErrorText(result.error, 'Only admins can delete issues permanently.'));
     } catch {
       toast.error('Something went wrong — the issue was not deleted.');
     } finally {

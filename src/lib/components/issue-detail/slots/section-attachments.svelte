@@ -1,9 +1,10 @@
 <!--
-  Owner: B4. Files and links. Uploads go to POST /api/attachments (multipart,
+  Files and links. Uploads go to POST /api/attachments (multipart,
   ≤ 4 MB); the whole section is a drop target. Files open through the
   membership-checked GET /api/attachments/[id].
 -->
 <script module lang="ts">
+  import { actionErrorText } from '@/lib/action-errors';
   import {
     MAX_ATTACHMENT_LABEL,
     type AttachmentView,
@@ -11,9 +12,6 @@
 
   type Row = AttachmentView & { pending?: boolean };
 
-  function errorMessage(error: string) {
-    return error === 'Forbidden' ? "You don't have permission to do that in this project." : error;
-  }
 
   async function uploadFile(projectId: string, ticketId: string, file: File) {
     const body = new FormData();
@@ -28,7 +26,7 @@
       | { ok: false; error: string }
       | null;
     if (!result) throw new Error(`Couldn't upload ${file.name}.`);
-    if (!result.ok) throw new Error(errorMessage(result.error));
+    if (!result.ok) throw new Error(actionErrorText(result.error));
     return { ...result.attachment, createdAt: new Date(result.attachment.createdAt) };
   }
 </script>
@@ -138,7 +136,7 @@
       // The action wrapper refreshes the page after it (React: router.refresh()).
       const result = await deleteAttachment({ projectId: issue.projectId, attachmentId: row.id });
       if (result.ok) return;
-      toast.error(errorMessage(result.error));
+      toast.error(actionErrorText(result.error));
     } catch {
       toast.error('Something went wrong — the attachment was not deleted.');
     }
@@ -154,7 +152,7 @@
       title,
     }).catch(() => ({ ok: false as const, error: 'Something went wrong — the link was not added.' }));
     if (!result.ok) {
-      toast.error(errorMessage(result.error));
+      toast.error(actionErrorText(result.error));
       return false;
     }
     // The action wrapper already refreshed the page (React: router.refresh()).

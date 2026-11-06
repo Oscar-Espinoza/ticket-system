@@ -1,7 +1,6 @@
 <!--
   Someone's local time, ticking once a minute, with the offset from the
   viewer's clock ("3h ahead"). Renders nothing for an unknown time zone.
-  Port of src/components/people/local-time.tsx.
 -->
 <script module lang="ts">
   function formatIn(timeZone: string, now: Date): string | null {

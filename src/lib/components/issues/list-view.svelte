@@ -1,4 +1,4 @@
-<!-- The "List" layout: hides empty groups unless asked, applies sub-grouping. (ListView in views.tsx) -->
+<!-- The "List" layout: hides empty groups unless asked, applies sub-grouping. -->
 <script lang="ts">
   import { useProjectData } from '@/lib/components/project/project-data.svelte';
   import { subGroupIssues } from '@/lib/issue-grouping';

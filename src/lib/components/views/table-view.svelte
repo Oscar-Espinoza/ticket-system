@@ -1,8 +1,6 @@
 <!--
   Spreadsheet layout: one row per issue, one column per visible property,
   inline editing through the shared pickers, sortable headers (= ordering).
-  Port of src/components/views/table-view.tsx (default export TableView,
-  IssueViewProps).
 -->
 <script lang="ts">
   import ArrowDownIcon from '@lucide/svelte/icons/arrow-down';
@@ -42,6 +40,7 @@
   import TableCellButton from './table-cell-button.svelte';
   import TableSubIssuesCell from './table-sub-issues-cell.svelte';
   import type { IssueViewProps } from '@/lib/components/issues/views';
+  import { focusIssueRow } from '@/lib/components/issues/issue-dom';
 
   let { issues, mutations, selectedId, onSelect }: IssueViewProps = $props();
 
@@ -132,7 +131,7 @@
       // Pickers hand focus back to the row, so j/k keep working.
       refocus: (event) => {
         event.preventDefault();
-        document.querySelector<HTMLElement>(`tr[data-issue-row="${issue.id}"]`)?.focus();
+        focusIssueRow(issue.id, 'tr');
       },
     };
   }

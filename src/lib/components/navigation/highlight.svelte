@@ -1,7 +1,6 @@
 <!--
   Renders text containing search highlight sentinels as text + <mark> nodes.
   Svelte escapes every segment, so issue content can never inject markup.
-  Port of src/components/navigation/highlight.tsx.
 -->
 <script module lang="ts">
   // Duplicated from lib/search.ts (server-only) — keep in sync.

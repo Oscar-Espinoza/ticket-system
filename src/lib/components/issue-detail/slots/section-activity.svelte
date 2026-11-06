@@ -1,4 +1,4 @@
-<!-- Owner: B1. Activity history + comments (src/lib/components/comments). -->
+<!-- Activity history + comments (src/lib/components/comments). -->
 <script lang="ts">
   import { IssueActivity } from '@/lib/components/comments';
   import RichEditorProvider from '@/lib/components/editor/rich-editor-provider.svelte';
