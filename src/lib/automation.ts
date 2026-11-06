@@ -1,8 +1,9 @@
-// Lazy project automations (no cron on the free tier). The project layout calls
-// runProjectAutomations inside `after()` on every project page load; an atomic
-// UPDATE … RETURNING on project.automation_run_at lets exactly one request per
-// project per day through. Steps are capped per run and isolated — leftovers
-// are picked up the next day, and nothing here ever throws.
+// Project automations (auto-archive, auto-close, trash purge, cycle upkeep).
+// The daily cron job and the project layout (inside `after()`) both call
+// runProjectAutomations; an atomic UPDATE … RETURNING on
+// project.automation_run_at lets exactly one caller per project per day
+// through. Steps are capped per run and isolated — leftovers are picked up the
+// next day, and nothing here ever throws.
 //
 // Every write goes through the issue service with the system actor, so the
 // activity log, notifications, Slack and webhooks see automations like edits.
@@ -15,8 +16,9 @@ import { ensureUpcomingCycles, completeEndedCycles } from '@/lib/cycles';
 import { emitIssueEvent } from '@/lib/events';
 import { SYSTEM_ACTOR, archive, bulkUpdate, purge, BULK_MAX } from '@/lib/issue-service';
 import { declineState } from '@/lib/triage';
+import { CLOSED_STATE_TYPES } from '@/lib/workflow';
+import { loadProjectStates } from '@/lib/workflow-server';
 
-export { AUTOMATION_MONTHS } from '@/lib/cycle-utils';
 export const TRASH_RETENTION_DAYS = 30;
 export const AUTO_CLOSED_EVENT = 'issue.auto_closed';
 
@@ -70,7 +72,7 @@ async function autoArchive(projectId: string, months: number) {
         eq(tickets.projectId, projectId),
         isNull(tickets.archivedAt),
         isNull(tickets.deletedAt),
-        inArray(workflowStates.type, ['completed', 'canceled']),
+        inArray(workflowStates.type, [...CLOSED_STATE_TYPES]),
         sql`coalesce(${tickets.completedAt}, ${tickets.canceledAt}, ${tickets.updatedAt}) < ${monthsAgo(months)}`,
       ),
     )
@@ -84,18 +86,7 @@ async function autoArchive(projectId: string, months: number) {
 }
 
 async function autoClose(projectId: string, months: number) {
-  const states = await db
-    .select({
-      id: workflowStates.id,
-      name: workflowStates.name,
-      type: workflowStates.type,
-      color: workflowStates.color,
-      position: workflowStates.position,
-      description: workflowStates.description,
-    })
-    .from(workflowStates)
-    .where(eq(workflowStates.projectId, projectId));
-  const target = declineState(states);
+  const target = declineState(await loadProjectStates(projectId));
   if (!target) return;
 
   const rows = await db

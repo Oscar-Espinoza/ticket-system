@@ -8,12 +8,12 @@
 // Queries may carry filter syntax (label:bug assignee:me …, parsed by
 // lib/issue-filtering); the terms become SQL inside the same membership scope.
 
-import { and, desc, eq, exists, gt, gte, inArray, isNotNull, isNull, lt, lte, or, sql, type SQL } from 'drizzle-orm';
+import { and, desc, eq, exists, gt, gte, inArray, isNotNull, isNull, lt, lte, notInArray, or, sql, type SQL } from 'drizzle-orm';
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 
 import { db } from '@/lib/db';
 import { comments, cycles, epics, issueLabels, labels, projects, tickets, users, workflowStates } from '@/db/schema';
-import { addDays, fromDateString, toDateString } from '@/lib/dates';
+import { toDateString, weekRange } from '@/lib/dates';
 import {
   SLA_RISK_MS,
   parseSearchQuery,
@@ -28,7 +28,9 @@ import {
 } from '@/lib/issue-filtering';
 import type { IssueRow } from '@/lib/issue-model';
 import { stripMentions } from '@/lib/mentions';
-import { memberOfIssueProject, queryIssues } from '@/lib/tickets';
+import { CLOSED_STATE_TYPES } from '@/lib/workflow';
+import { slaPastDue } from '@/lib/sla-server';
+import { issueDocument, memberOfIssueProject, parseIssueKey, queryIssues } from '@/lib/tickets';
 
 /** Highlight delimiters (Unicode private use area — never typed by users). */
 export const MARK_START = '';
@@ -53,8 +55,6 @@ export interface SearchResult {
   exactKey: boolean;
 }
 
-const KEY_PATTERN = /^\s*([A-Za-z0-9]+)-(\d{1,9})\s*$/;
-
 // ---------------------------------------------------------------------------
 // Query syntax → SQL. Every condition is a plain predicate or a correlated
 // EXISTS on `ticket` columns, so it composes with any query selecting from
@@ -75,7 +75,7 @@ function stateWhere(where: SQL): SQL {
   );
 }
 
-const openState = () => stateWhere(sql`${workflowStates.type} not in ('completed', 'canceled')`);
+const openState = () => stateWhere(notInArray(workflowStates.type, [...CLOSED_STATE_TYPES]));
 
 function userWhere(column: AnyPgColumn, value: string, userId: string): SQL {
   const v = lower(value);
@@ -89,20 +89,13 @@ function userWhere(column: AnyPgColumn, value: string, userId: string): SQL {
   );
 }
 
-/** Monday..Sunday (server calendar) of the week containing `today`, offset by `weeks`. */
-function weekRange(today: string, weeks: number): [string, string] {
-  const date = fromDateString(today);
-  const monday = addDays(date, -((date.getDay() + 6) % 7) + weeks * 7);
-  return [toDateString(monday), toDateString(addDays(monday, 6))];
-}
-
 function valueCondition(key: SearchTerm['key'], value: string, userId: string, now: Date): SQL {
   const v = lower(value);
   switch (key) {
     case 'is': {
       const is = searchIs(v);
       if (is === 'open') return openState();
-      if (is === 'closed') return stateWhere(sql`${workflowStates.type} in ('completed', 'canceled')`);
+      if (is === 'closed') return stateWhere(inArray(workflowStates.type, [...CLOSED_STATE_TYPES]));
       if (is === 'completed' || is === 'canceled') return stateWhere(eq(workflowStates.type, is));
       if (is === 'archived') return isNotNull(tickets.archivedAt);
       return FALSE;
@@ -199,7 +192,7 @@ function valueCondition(key: SearchTerm['key'], value: string, userId: string, n
       const sla = searchSla(v);
       switch (sla) {
         case 'breached':
-          return or(isNotNull(tickets.slaBreachedAt), and(lte(tickets.slaDueAt, now), openState()))!;
+          return or(isNotNull(tickets.slaBreachedAt), and(slaPastDue(now), openState()))!;
         case 'risk':
           return and(
             isNull(tickets.slaBreachedAt),
@@ -232,8 +225,6 @@ export function wantsArchived(terms: SearchTerm[]): boolean {
   return terms.some((t) => t.key === 'is' && !t.negate && t.values.some((v) => searchIs(v) === 'archived'));
 }
 
-// Must match the index expression in 0003_seed_workflow_states.sql exactly.
-const issueDocument = sql`to_tsvector('english', coalesce(${tickets.title}, '') || ' ' || coalesce(${tickets.description}, ''))`;
 const commentDocument = sql`to_tsvector('english', ${comments.body})`;
 
 function hasMark(text: string | null): text is string {
@@ -302,7 +293,7 @@ export async function searchIssues(
     .orderBy(desc(commentHits.rank))
     .limit(LIMIT);
 
-  const key = KEY_PATTERN.exec(q);
+  const key = parseIssueKey(q);
   const keyMatch = db
     .select({ id: tickets.id })
     .from(tickets)
@@ -310,8 +301,8 @@ export async function searchIssues(
     .where(
       key
         ? and(
-            sql`upper(${projects.ticketKey}) = ${key[1].toUpperCase()}`,
-            eq(tickets.ticketNumber, Number(key[2])),
+            sql`upper(${projects.ticketKey}) = ${key.prefix}`,
+            eq(tickets.ticketNumber, key.number),
             ...scope,
           )
         : sql`false`,

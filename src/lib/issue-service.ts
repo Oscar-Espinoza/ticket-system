@@ -36,7 +36,6 @@ import {
   ticketKeyAliases,
   tickets,
   users,
-  workflowStates,
 } from '@/db/schema';
 import {
   ISSUE_EVENT,
@@ -60,6 +59,8 @@ import {
   type WorkflowState,
 } from '@/lib/issue-model';
 import type { EpicSummary } from '@/lib/project-data-types';
+import { projectMemberOf } from '@/lib/project-access';
+import { slaDeadline } from '@/lib/sla-server';
 import { issueQueries, mergeIssueRows, queryIssues } from '@/lib/tickets';
 import {
   defaultNewIssueState,
@@ -67,6 +68,7 @@ import {
   sortStates,
   stateTransitionTimestamps,
 } from '@/lib/workflow';
+import { projectStatesQuery } from '@/lib/workflow-server';
 
 // ---------------------------------------------------------------------------
 // Contract
@@ -222,18 +224,8 @@ interface Context {
 
 const NOTHING = sql`false`;
 
-/** Deadline from a project's SLA policy ({ priority: hours }); null when none applies. */
-export function slaDeadline(
-  policy: Record<string, number> | null | undefined,
-  priority: string,
-  from: Date,
-): Date | null {
-  const hours = policy?.[priority];
-  return typeof hours === 'number' && hours > 0 ? new Date(from.getTime() + hours * 3_600_000) : null;
-}
-
 // ---------------------------------------------------------------------------
-// Cross-project epics (.planning/features/D4a-cross-project-epics.md)
+// Cross-project epics
 // ---------------------------------------------------------------------------
 
 /**
@@ -247,7 +239,6 @@ export function epicAvailableTo(projectId: string, userId: string | null): SQL {
   if (!userId) return own;
   const epicProject = alias(projects, 'epic_project');
   const issueProject = alias(projects, 'issue_project');
-  const epicMember = alias(projectMembers, 'epic_member');
   return or(
     own,
     and(
@@ -258,12 +249,7 @@ export function epicAvailableTo(projectId: string, userId: string | null): SQL {
           .innerJoin(issueProject, eq(issueProject.workspaceId, epicProject.workspaceId))
           .where(and(eq(epicProject.id, epics.projectId), eq(issueProject.id, projectId))),
       ),
-      exists(
-        db
-          .select({ one: sql`1` })
-          .from(epicMember)
-          .where(and(eq(epicMember.projectId, epics.projectId), eq(epicMember.userId, userId))),
-      ),
+      projectMemberOf(epics.projectId, userId),
     ),
   )!;
 }
@@ -290,16 +276,10 @@ export async function availableEpicsForProject(
   userId: string,
 ): Promise<AvailableEpic[]> {
   if (!projectId || !userId) return [];
-  const viewer = alias(projectMembers, 'viewer');
   const where = and(
     isNull(epics.archivedAt),
     epicAvailableTo(projectId, userId),
-    exists(
-      db
-        .select({ one: sql`1` })
-        .from(viewer)
-        .where(and(eq(viewer.projectId, projectId), eq(viewer.userId, userId))),
-    ),
+    projectMemberOf(sql`${projectId}`, userId),
   );
   const [epicRows, milestoneRows] = await db.batch([
     db
@@ -393,17 +373,7 @@ async function loadContext(
       .from(projects)
       .where(eq(projects.id, projectId))
       .limit(1),
-    db
-      .select({
-        id: workflowStates.id,
-        name: workflowStates.name,
-        type: workflowStates.type,
-        color: workflowStates.color,
-        position: workflowStates.position,
-        description: workflowStates.description,
-      })
-      .from(workflowStates)
-      .where(eq(workflowStates.projectId, projectId)),
+    projectStatesQuery(projectId),
     db
       .select({ id: labels.id, name: labels.name, color: labels.color })
       .from(labels)
@@ -1289,7 +1259,7 @@ export async function purge(actor: IssueActor, projectId: string, id: string): P
 }
 
 // ---------------------------------------------------------------------------
-// Move to another project (.planning/features/D4a-move-issues.md)
+// Move to another project
 // ---------------------------------------------------------------------------
 
 export const ISSUE_MOVED_EVENT = 'issue.moved';
@@ -1354,17 +1324,7 @@ export async function moveIssue(
         .from(projects)
         .where(eq(projects.id, toProjectId))
         .limit(1),
-      db
-        .select({
-          id: workflowStates.id,
-          name: workflowStates.name,
-          type: workflowStates.type,
-          color: workflowStates.color,
-          position: workflowStates.position,
-          description: workflowStates.description,
-        })
-        .from(workflowStates)
-        .where(eq(workflowStates.projectId, toProjectId)),
+      projectStatesQuery(toProjectId),
       db
         .select({ id: labels.id, name: labels.name, color: labels.color })
         .from(labels)

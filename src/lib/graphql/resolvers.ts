@@ -31,8 +31,8 @@ import {
   visibleIssue,
   type GraphQLContext,
 } from './context';
-import { resolveIssueKey } from './issue-key';
-import { ISSUE_PAGE_MAX, listProjectIssues, type IssueListFilter } from './issue-list';
+import { resolveIssueKey } from '@/lib/tickets';
+import { ISSUE_PAGE_MAX, listProjectIssues, type IssueListFilter } from '@/lib/issue-list';
 
 type Ctx = GraphQLContext;
 type ProjectRow = typeof projects.$inferSelect;

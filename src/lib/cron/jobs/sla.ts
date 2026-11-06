@@ -1,11 +1,11 @@
-// Daily cron job (D5): flag SLA breaches and notify. An open, active issue
+// Daily cron job: flag SLA breaches and notify. An open, active issue
 // whose `sla_due_at` has passed gets `sla_breached_at` — claimed with a
 // conditional update, so a retried run never flags or notifies twice. The
 // assignee and subscribers (still project members, type not switched off) get
 // an inbox row, then the external channels. Completed / canceled issues never
 // breach: their clock stopped.
 
-import { and, eq, inArray, isNotNull, isNull, lte, notInArray } from 'drizzle-orm';
+import { and, eq, inArray, isNull, notInArray } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import {
@@ -19,7 +19,9 @@ import {
 import { emitIssueEvent } from '@/lib/events';
 import { deliverToChannels } from '@/lib/notifications/channels';
 import { prefEnabled } from '@/lib/notifications/types';
+import { slaPastDue } from '@/lib/sla-server';
 import { getSubscriberIdsByTicket } from '@/lib/subscriptions';
+import { CLOSED_STATE_TYPES } from '@/lib/workflow';
 
 const BATCH = 500;
 /** Safety valve: at most this many batches per run (the next run continues). */
@@ -35,12 +37,11 @@ async function flagBatch(now: Date): Promise<number> {
     .innerJoin(workflowStates, eq(tickets.stateId, workflowStates.id))
     .where(
       and(
-        isNotNull(tickets.slaDueAt),
-        lte(tickets.slaDueAt, now),
+        slaPastDue(now),
         isNull(tickets.slaBreachedAt),
         isNull(tickets.archivedAt),
         isNull(tickets.deletedAt),
-        notInArray(workflowStates.type, ['completed', 'canceled']),
+        notInArray(workflowStates.type, [...CLOSED_STATE_TYPES]),
       ),
     )
     .limit(BATCH);

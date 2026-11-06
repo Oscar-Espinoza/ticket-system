@@ -1,5 +1,5 @@
 // Similar-issue engine (server-only) behind duplicate detection and triage
-// suggestions. Pure Postgres heuristics — no LLM (see .planning/PAID-FEATURES.md):
+// suggestions. Pure Postgres heuristics — no LLM:
 //
 // - candidates come from two GIN indexes: trigram `title % $title`
 //   (ticket_title_trgm_idx, pg_trgm's default 0.3 threshold) OR full-text match
@@ -12,12 +12,13 @@
 // Scoped in SQL to the project AND the viewer's membership; trashed issues never
 // come back.
 
-import { and, desc, eq, inArray, isNull, notInArray, sql, type SQL } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNotNull, isNull, notInArray, or, sql, type SQL } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import { tickets, workflowStates } from '@/db/schema';
 import type { IssueRow } from '@/lib/issue-model';
-import { memberOfIssueProject, queryIssues } from '@/lib/tickets';
+import { issueDocument, memberOfIssueProject, queryIssues } from '@/lib/tickets';
+import { CLOSED_STATE_TYPES } from '@/lib/workflow';
 
 export interface SimilarIssue {
   issue: IssueRow;
@@ -44,8 +45,6 @@ const MAX_DESCRIPTION = 1000;
 const DESCRIPTION_LEXEMES = 10;
 const CLOSED_DAMPING = 0.85;
 
-// Must match the index expression in 0003_seed_workflow_states.sql exactly.
-const issueDocument = sql`to_tsvector('english', coalesce(${tickets.title}, '') || ' ' || coalesce(${tickets.description}, ''))`;
 
 /** Distinct words for an OR full-text query ("login or safari or redirect"). */
 function orQuery(text: string): string {
@@ -91,7 +90,7 @@ export async function findSimilarIssues(
   const raw = descriptionOverlap
     ? sql`0.6 * ${trigram} + 0.3 * ${coverage} + 0.1 * ${descriptionOverlap}`
     : sql`(0.6 * ${trigram} + 0.3 * ${coverage}) / 0.9`;
-  const closed = sql`(${workflowStates.type} in ('completed', 'canceled') or ${tickets.archivedAt} is not null)`;
+  const closed = or(inArray(workflowStates.type, [...CLOSED_STATE_TYPES]), isNotNull(tickets.archivedAt))!;
   const score = sql<number>`(${raw}) * (case when ${closed} then ${sql.raw(String(CLOSED_DAMPING))} else 1 end)`;
 
   const match: SQL[] = [sql`${tickets.title} % ${title}`];

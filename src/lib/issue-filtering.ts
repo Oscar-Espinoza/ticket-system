@@ -1,9 +1,17 @@
 // Issue filters: one plain-JSON shape that round-trips through the URL
 // (`?state=…&assignee=…`) and saved views, plus the pure matcher every issue
-// view runs on the client. Client-safe; only type imports from issue-model so
-// issue-model can re-export this module without an import cycle.
+// view runs on the client. Client-safe.
 
-import type { IssueRow, Priority, StateType } from '@/lib/issue-model';
+import { toDateString, weekRange } from '@/lib/dates';
+import {
+  PRIORITY_ORDER,
+  STATE_TYPE_ORDER,
+  type IssueRow,
+  type Priority,
+  type StateType,
+} from '@/lib/issue-model';
+import { DAY_MS, HOUR_MS } from '@/lib/time';
+import { isClosed } from '@/lib/workflow';
 
 /** Assignee value for "No assignee". */
 export const UNASSIGNED = 'unassigned';
@@ -37,10 +45,6 @@ export const HIERARCHY_FILTER_LABEL: Record<HierarchyFilter, string> = {
   hasSubIssues: 'Has sub-issues',
   isSubIssue: 'Is a sub-issue',
 };
-
-// Local copies (not imports) of the enum values — see the header comment.
-const STATE_TYPES: StateType[] = ['triage', 'backlog', 'unstarted', 'started', 'completed', 'canceled'];
-const PRIORITIES: Priority[] = ['urgent', 'high', 'medium', 'low', 'none'];
 
 /**
  * Within a property the values are any-of; properties combine with AND.
@@ -120,8 +124,8 @@ const oneOf =
 // Enum-typed lists drop unknown values; id lists keep anything non-empty
 // (a deleted label simply matches nothing).
 const LIST_GUARD: Partial<Record<ListKey, (value: string) => boolean>> = {
-  stateTypes: oneOf(STATE_TYPES),
-  priorities: oneOf(PRIORITIES),
+  stateTypes: oneOf(STATE_TYPE_ORDER),
+  priorities: oneOf(PRIORITY_ORDER),
   due: oneOf(DUE_FILTERS),
   hierarchy: oneOf(HIERARCHY_FILTERS),
 };
@@ -230,43 +234,25 @@ export interface FilterContext {
   projects?: { id: string; name: string; ticketKey: string }[];
 }
 
-function localDateString(date: Date): string {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-}
-
-function shiftDays(date: string, days: number): string {
-  const [y, m, d] = date.split('-').map(Number);
-  return localDateString(new Date(y, m - 1, d + days));
-}
-
-/** Monday..Sunday bounds of the week containing `today`, offset by `weeks`. */
-function weekBounds(today: string, weeks: number): [string, string] {
-  const [y, m, d] = today.split('-').map(Number);
-  const mondayOffset = (new Date(y, m - 1, d).getDay() + 6) % 7;
-  const monday = shiftDays(today, -mondayOffset + weeks * 7);
-  return [monday, shiftDays(monday, 6)];
-}
-
 function matchesDue(issue: IssueRow, due: DueFilter, today: string): boolean {
   const date = issue.dueDate;
   if (due === 'none') return date === null;
   if (date === null) return false;
   switch (due) {
     case 'overdue':
-      return date < today && issue.state.type !== 'completed' && issue.state.type !== 'canceled';
+      return date < today && !isClosed(issue.state.type);
     case 'today':
       return date === today;
     case 'thisWeek':
     case 'nextWeek': {
-      const [start, end] = weekBounds(today, due === 'thisWeek' ? 0 : 1);
+      const [start, end] = weekRange(today, due === 'thisWeek' ? 0 : 1);
       return date >= start && date <= end;
     }
   }
 }
 
 function withinRange(date: Date, range: RelativeRange, now: number): boolean {
-  return new Date(date).getTime() >= now - RANGE_DAYS[range] * 86_400_000;
+  return new Date(date).getTime() >= now - RANGE_DAYS[range] * DAY_MS;
 }
 
 /** A predicate for one set of filters (resolve once, test many issues). */
@@ -291,7 +277,7 @@ export function issueMatcher(
     .filter((w) => !(w.length > 1 && w.startsWith('-')))
     .join(' ')
     .toLowerCase();
-  const today = context.today ?? localDateString(new Date());
+  const today = context.today ?? toDateString(new Date());
   const now = context.now ?? Date.now();
   const termTests = search.terms
     .map((term) => termPredicate(term, { ...context, viewerId: viewer, today, now }))
@@ -573,14 +559,14 @@ export function searchSla(value: string): SlaValue | null {
 }
 
 /** "At risk" = open with less than this left on the SLA clock. */
-export const SLA_RISK_MS = 24 * 3_600_000;
+export const SLA_RISK_MS = 24 * HOUR_MS;
 
 const UNIT_MS: Record<string, number> = {
-  h: 3_600_000,
-  d: 86_400_000,
-  w: 7 * 86_400_000,
-  m: 30 * 86_400_000,
-  y: 365 * 86_400_000,
+  h: HOUR_MS,
+  d: DAY_MS,
+  w: 7 * DAY_MS,
+  m: 30 * DAY_MS,
+  y: 365 * DAY_MS,
 };
 
 /**
@@ -644,8 +630,6 @@ export function cycleMatchesWord(cycle: SearchCycle, word: Exclude<CycleWord, 'n
   return ends <= now || cycle.completedAt !== null;
 }
 
-const isClosedType = (type: StateType) => type === 'completed' || type === 'canceled';
-
 /** Issue key prefix ("ENG-12" → "eng"). */
 const keyPrefix = (key: string) => key.slice(0, key.lastIndexOf('-')).toLowerCase();
 
@@ -658,8 +642,8 @@ function termPredicate(term: SearchTerm, ctx: Resolved): ((issue: IssueRow) => b
     switch (term.key) {
       case 'is': {
         const is = searchIs(v);
-        if (is === 'open') return (i) => !isClosedType(i.state.type);
-        if (is === 'closed') return (i) => isClosedType(i.state.type);
+        if (is === 'open') return (i) => !isClosed(i.state.type);
+        if (is === 'closed') return (i) => isClosed(i.state.type);
         if (is === 'completed' || is === 'canceled') return (i) => i.state.type === is;
         if (is === 'archived') return (i) => i.archivedAt !== null;
         return () => false;
@@ -726,7 +710,7 @@ function termPredicate(term: SearchTerm, ctx: Resolved): ((issue: IssueRow) => b
         const sla = searchSla(v);
         return (i) => {
           const due = i.slaDueAt ? new Date(i.slaDueAt).getTime() : null;
-          const open = !isClosedType(i.state.type);
+          const open = !isClosed(i.state.type);
           switch (sla) {
             case 'breached':
               return i.slaBreachedAt !== null || (due !== null && due <= ctx.now && open);

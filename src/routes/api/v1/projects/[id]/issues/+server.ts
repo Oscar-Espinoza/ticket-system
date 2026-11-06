@@ -1,6 +1,6 @@
 import { apiError, readJsonBody } from '@/lib/api-auth';
 import { createIssue, type CreateIssueInput } from '@/lib/issue-service';
-import { listProjectIssues } from '@/lib/graphql/issue-list';
+import { listProjectIssues } from '@/lib/issue-list';
 import { apiRoute, projectAccess, serializeIssue, serviceError } from '../../../_lib/api';
 import { allowOptions } from '../../../../_lib/options';
 
@@ -8,7 +8,7 @@ import { allowOptions } from '../../../../_lib/options';
  * GET /projects/:id/issues — newest number first, cursor = last number seen.
  * Filters: state (id | name | type), assignee (id | me | none), label (id | name),
  * updated_since (ISO date), include_archived (true). Trashed issues never list.
- * Same listing as GraphQL `issues` (src/lib/graphql/issue-list.ts).
+ * Same listing as GraphQL `issues` (src/lib/issue-list.ts).
  */
 export const GET = apiRoute<{ id: string }>(async (req, { userId }, { id }) => {
   const access = await projectAccess(userId, id, 'read');

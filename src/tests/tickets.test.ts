@@ -35,7 +35,7 @@ import {
 } from '@/lib/server/actions/tickets';
 import { getProjectIssues } from '@/lib/tickets';
 import { getProjectData } from '@/lib/project-data';
-import { UNASSIGNED, filterIssues } from '@/lib/issue-model';
+import { UNASSIGNED, filterIssues } from '@/lib/issue-filtering';
 import { getMemberProject } from '@/lib/project-access';
 import { workflowStateInserts } from '@/lib/workflow-server';
 

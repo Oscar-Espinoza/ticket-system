@@ -1,4 +1,4 @@
-// The one issue shape the list, board, detail and every Wave B surface consume.
+// The one issue shape the list, board, detail and every other issue surface consume.
 // Client-safe: no server imports here.
 
 // ---------------------------------------------------------------------------
@@ -79,9 +79,6 @@ export interface IssueUser {
   image: string | null;
 }
 
-/** @deprecated alias kept for older call sites — use IssueUser. */
-export type IssueAssignee = IssueUser;
-
 export interface IssueLabel {
   id: string;
   name: string;
@@ -160,47 +157,6 @@ export interface CreateIssueInput
   extends Omit<IssuePatch, 'title' | 'addLabelIds' | 'removeLabelIds'> {
   title: string;
 }
-
-export const ISSUE_PATCH_FIELDS: IssueField[] = [
-  'title',
-  'description',
-  'stateId',
-  'priority',
-  'estimate',
-  'startDate',
-  'dueDate',
-  'assigneeId',
-  'parentId',
-  'cycleId',
-  'epicId',
-  'milestoneId',
-  'sortOrder',
-  'labelIds',
-  'addLabelIds',
-  'removeLabelIds',
-];
-
-// ---------------------------------------------------------------------------
-// Filters — implemented in issue-filtering.ts (B5); re-exported here so older
-// imports keep working. The legacy names map onto the B5 ones.
-// ---------------------------------------------------------------------------
-
-export {
-  EMPTY_FILTERS,
-  ME,
-  NONE,
-  UNASSIGNED,
-  filterIssues,
-  filtersFromSearchParams,
-  filtersToSearchParams,
-  isFilterActive,
-  matchesFilters,
-  normalizeIssueFilters,
-  filtersFromSearchParams as parseIssueFilters,
-  filtersToSearchParams as serializeIssueFilters,
-  isFilterActive as hasActiveFilters,
-} from './issue-filtering';
-export type { IssueFilterInput, IssueFilters } from './issue-filtering';
 
 /** Session cookie remembering the last issues layout (list / board / …). */
 export const VIEW_COOKIE = 'issues-view';

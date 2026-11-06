@@ -31,7 +31,6 @@ import { db } from '@/lib/db';
 import { activities, cycles, projects, tickets, workflowStates } from '@/db/schema';
 import { bulkUpdate, BULK_MAX, type IssueActor } from '@/lib/issue-service';
 import {
-  DAY_MS,
   EMPTY_TOTALS,
   MAX_COOLDOWN_WEEKS,
   UPCOMING_CYCLES,
@@ -41,10 +40,11 @@ import {
   type BurndownPoint,
   type CycleTotals,
 } from '@/lib/cycle-utils';
+import { DAY_MS, WEEK_MS } from '@/lib/time';
+import { CLOSED_STATE_TYPES } from '@/lib/workflow';
 
 export type CycleRow = typeof cycles.$inferSelect;
 
-const WEEK_MS = 7 * DAY_MS;
 /** Cap on the cycle-change history read per project (newest kept). */
 const HISTORY_LIMIT = 5000;
 
@@ -315,7 +315,7 @@ export async function completeCycle(
         eq(tickets.cycleId, cycle.id),
         isNull(tickets.archivedAt),
         isNull(tickets.deletedAt),
-        notInArray(workflowStates.type, ['completed', 'canceled']),
+        notInArray(workflowStates.type, [...CLOSED_STATE_TYPES]),
       ),
     );
   let moved = 0;
