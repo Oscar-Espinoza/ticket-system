@@ -21,7 +21,6 @@ import {
   lte,
   max,
   ne,
-  notInArray,
   or,
   sql,
 } from 'drizzle-orm';
@@ -41,7 +40,7 @@ import {
   type CycleTotals,
 } from '@/lib/cycle-utils';
 import { DAY_MS, WEEK_MS } from '@/lib/time';
-import { CLOSED_STATE_TYPES } from '@/lib/workflow';
+import { openStateType } from '@/lib/workflow-server';
 
 export type CycleRow = typeof cycles.$inferSelect;
 
@@ -315,7 +314,7 @@ export async function completeCycle(
         eq(tickets.cycleId, cycle.id),
         isNull(tickets.archivedAt),
         isNull(tickets.deletedAt),
-        notInArray(workflowStates.type, [...CLOSED_STATE_TYPES]),
+        openStateType(),
       ),
     );
   let moved = 0;

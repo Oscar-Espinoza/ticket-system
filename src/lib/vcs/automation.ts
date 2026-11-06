@@ -14,7 +14,8 @@
 import { and, eq, inArray, isNull, or, sql, type SQL } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
-import { githubPullRequests, tickets, workflowStates } from '@/db/schema';
+import { githubPullRequests, tickets } from '@/db/schema';
+import { loadProjectStates } from '@/lib/workflow-server';
 import { PR_EVENT } from '@/lib/event-names';
 import { emitIssueEvent, type IssueEventInput } from '@/lib/events';
 import { SYSTEM_ACTOR, updateIssueFields } from '@/lib/issue-service';
@@ -70,17 +71,7 @@ export interface VcsPullRequest {
 export type PrTrigger = 'opened' | 'updated' | 'closed';
 
 async function loadStates(projectId: string): Promise<WorkflowState[]> {
-  return db
-    .select({
-      id: workflowStates.id,
-      name: workflowStates.name,
-      type: workflowStates.type,
-      color: workflowStates.color,
-      position: workflowStates.position,
-      description: workflowStates.description,
-    })
-    .from(workflowStates)
-    .where(eq(workflowStates.projectId, projectId));
+  return loadProjectStates(projectId);
 }
 
 /** Non-deleted issues of the project by number and/or stored branch name. */

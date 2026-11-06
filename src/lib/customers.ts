@@ -17,6 +17,7 @@ import {
   users,
   workflowStates,
 } from '@/db/schema';
+import { openStateType } from '@/lib/workflow-server';
 import type { IssueRow, StateType } from '@/lib/issue-model';
 import { memberOfIssueProject, queryIssues } from '@/lib/tickets';
 import {
@@ -76,7 +77,7 @@ function toCustomerRow(row: CustomerSelect): CustomerRow {
 
 
 /** Open = linked, not trashed / archived, and not completed / canceled. */
-const openIssueFilter = sql`${tickets.id} is not null and ${tickets.deletedAt} is null and ${tickets.archivedAt} is null and ${workflowStates.type} not in ('completed', 'canceled')`;
+const openIssueFilter = sql`${tickets.id} is not null and ${tickets.deletedAt} is null and ${tickets.archivedAt} is null and ${openStateType()}`;
 
 /** Every customer of the project with request / open-issue counts. [] for non-members. */
 export async function getProjectCustomers(

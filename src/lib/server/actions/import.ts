@@ -10,7 +10,8 @@ import { and, eq, or, sql } from 'drizzle-orm';
 import type { Octokit } from '@octokit/rest';
 
 import { db } from '@/lib/db';
-import { labels, projectMembers, projects, tickets, users, workflowStates } from '@/db/schema';
+import { labels, projectMembers, projects, tickets, users } from '@/db/schema';
+import { projectStatesQuery } from '@/lib/workflow-server';
 import { authorizeProjectAction } from '@/lib/action-auth';
 import type { Fail } from '@/lib/server/action-kit';
 import { getGitHubToken } from '@/lib/github-token';
@@ -173,17 +174,7 @@ export async function importIssues(input: {
       .from(projects)
       .where(eq(projects.id, projectId))
       .limit(1),
-    db
-      .select({
-        id: workflowStates.id,
-        name: workflowStates.name,
-        type: workflowStates.type,
-        color: workflowStates.color,
-        position: workflowStates.position,
-        description: workflowStates.description,
-      })
-      .from(workflowStates)
-      .where(eq(workflowStates.projectId, projectId)),
+    projectStatesQuery(projectId),
     db
       .select({ id: labels.id, name: labels.name })
       .from(labels)

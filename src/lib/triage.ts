@@ -8,18 +8,13 @@ import type {
   Priority,
   WorkflowState,
 } from '@/lib/issue-model';
-import { firstStateOfType, sortStates } from '@/lib/workflow';
+import { sortStates } from '@/lib/workflow';
 
 /** States an accepted issue may move to (open, non-triage). */
 export function acceptStates<T extends WorkflowState>(states: readonly T[]): T[] {
   return sortStates(states).filter(
     (s) => s.type === 'backlog' || s.type === 'unstarted' || s.type === 'started',
   );
-}
-
-/** Default accept target: first backlog state, else first unstarted one. */
-export function defaultAcceptState<T extends WorkflowState>(states: readonly T[]): T | undefined {
-  return firstStateOfType(states, 'backlog') ?? firstStateOfType(states, 'unstarted');
 }
 
 function canceledStates<T extends WorkflowState>(states: readonly T[]): T[] {

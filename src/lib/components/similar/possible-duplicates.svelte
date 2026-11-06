@@ -8,6 +8,7 @@
   import { StateIcon } from '@/lib/components/ui-icons';
   import { issuePath } from '@/lib/issue-links';
   import { cn } from '@/lib/utils';
+  import { isClosed } from '@/lib/workflow';
   import { usePossibleDuplicates } from './use-possible-duplicates.svelte';
 
   let {
@@ -52,7 +53,7 @@
             <span
               class={cn(
                 'min-w-0 flex-1 truncate',
-                (issue.state.type === 'completed' || issue.state.type === 'canceled') && 'text-muted-foreground',
+                isClosed(issue.state.type) && 'text-muted-foreground',
               )}
             >
               {issue.title}

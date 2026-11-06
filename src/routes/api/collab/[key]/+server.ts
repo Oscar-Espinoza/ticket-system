@@ -8,6 +8,7 @@
 // POST (guests follow along read-only). Unknown and foreign keys → 404.
 
 import type { RequestHandler } from './$types';
+import { abortableSleep, NO_STORE } from '../../_lib/http';
 import { allowOptions } from '../../_lib/options';
 import * as Y from 'yjs';
 import { Awareness, applyAwarenessUpdate, modifyAwarenessUpdate } from 'y-protocols/awareness';
@@ -54,7 +55,6 @@ export const config = { maxDuration: 30 };
 const POLL_MS = 600;
 const LONG_POLL_MS = 20_000;
 const CLIENT = /^[A-Za-z0-9_-]{8,64}$/;
-const NO_STORE = { 'Cache-Control': 'no-store' };
 
 const json = (body: unknown, status = 200) => Response.json(body, { status, headers: NO_STORE });
 
@@ -77,18 +77,6 @@ async function authorize({ params, locals }: AuthorizeEvent): Promise<Authorized
   const access = await resolveCollabAccess(key, user.id);
   if (!access) return { error: json({ error: 'Not found' }, 404) };
   return { key, access, user };
-}
-
-function sleep(ms: number, signal: AbortSignal) {
-  return new Promise<void>((resolve) => {
-    const timer = setTimeout(done, ms);
-    function done() {
-      clearTimeout(timer);
-      signal.removeEventListener('abort', done);
-      resolve();
-    }
-    signal.addEventListener('abort', done);
-  });
 }
 
 export const GET: RequestHandler = async (event) => {
@@ -137,7 +125,7 @@ export const GET: RequestHandler = async (event) => {
     Date.now() - started < LONG_POLL_MS &&
     !request.signal.aborted
   ) {
-    await sleep(POLL_MS, request.signal);
+    await abortableSleep(POLL_MS, request.signal);
     if (request.signal.aborted) break;
     result = await readRowsAfter(key, result.lastId, except);
   }

@@ -13,7 +13,7 @@ import { integrationWebhookUrl, sentryIntegrationId } from '@/lib/vcs/integratio
 import type {
   SentryIntegrationView,
   VcsIntegrationView,
-} from '@/lib/components/developer/developer-settings.svelte';
+} from '@/lib/components/developer/developer-types';
 import { loadViewerProject } from '../../project-load';
 import type { PageServerLoad } from './$types';
 

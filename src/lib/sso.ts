@@ -17,7 +17,7 @@
 //
 // Server-only. Imported by src/lib/auth.ts — never import auth.ts / session.ts.
 
-import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import { lookup, resolveTxt } from 'node:dns/promises';
 import { isPublicRoutableHost } from '@better-auth/core/utils/host';
 import { discoverOIDCConfig } from '@better-auth/sso';
@@ -38,6 +38,7 @@ import {
   workspaces,
 } from '@/db/schema';
 import { appUrl } from '@/lib/integrations/app-url';
+import { hmacHex, safeEqual } from '@/lib/server/secrets';
 import { recordWorkspaceEvent } from '@/lib/audit';
 import { workspaceRoleAllows } from '@/lib/workspace-types';
 
@@ -134,7 +135,7 @@ export const DOMAIN_TXT_LABEL = '_ticket-system';
 
 export function domainVerificationValue(workspaceId: string): string {
   const secret = process.env.BETTER_AUTH_SECRET ?? '';
-  const digest = createHmac('sha256', secret).update(`sso-domain:${workspaceId}`).digest('hex');
+  const digest = hmacHex(`sso-domain:${workspaceId}`, secret);
   return `ticket-system-verification=${digest.slice(0, 32)}`;
 }
 
@@ -683,9 +684,8 @@ async function verifyScimBearer(header: string | null | undefined): Promise<stri
     .limit(1);
   if (!row) return null;
   // Same digest as the plugin's storeSCIMToken: 'hashed' (SHA-256, base64url, no padding).
-  const digest = Buffer.from(createHash('sha256').update(base).digest('base64url'));
-  const stored = Buffer.from(row.scimToken);
-  return digest.length === stored.length && timingSafeEqual(digest, stored) ? providerId : null;
+  const digest = createHash('sha256').update(base).digest('base64url');
+  return safeEqual(digest, row.scimToken) ? providerId : null;
 }
 
 /**

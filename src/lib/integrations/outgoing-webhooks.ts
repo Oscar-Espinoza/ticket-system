@@ -35,7 +35,7 @@ import { issueSummary, loadEventContext } from '@/lib/integrations/event-context
 import { isWebhookEventType } from '@/lib/integrations/event-types';
 import { WEBHOOK_TIMEOUT_MS } from '@/lib/integrations/timeouts';
 import { guardedRequest, isDeliverableUrl } from '@/lib/integrations/url-guard';
-import { hmacHex } from '@/lib/server/crypto';
+import { hmacHex } from '@/lib/server/secrets';
 import { MINUTE_MS } from '@/lib/time';
 
 /** Wait before retry n (after the n-th failed attempt). */

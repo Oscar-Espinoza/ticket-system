@@ -18,7 +18,7 @@ import { db } from '@/lib/db';
 import { tickets, workflowStates } from '@/db/schema';
 import type { IssueRow } from '@/lib/issue-model';
 import { issueDocument, memberOfIssueProject, queryIssues } from '@/lib/tickets';
-import { CLOSED_STATE_TYPES } from '@/lib/workflow';
+import { closedStateType } from '@/lib/workflow-server';
 
 export interface SimilarIssue {
   issue: IssueRow;
@@ -90,7 +90,7 @@ export async function findSimilarIssues(
   const raw = descriptionOverlap
     ? sql`0.6 * ${trigram} + 0.3 * ${coverage} + 0.1 * ${descriptionOverlap}`
     : sql`(0.6 * ${trigram} + 0.3 * ${coverage}) / 0.9`;
-  const closed = or(inArray(workflowStates.type, [...CLOSED_STATE_TYPES]), isNotNull(tickets.archivedAt))!;
+  const closed = or(closedStateType(), isNotNull(tickets.archivedAt))!;
   const score = sql<number>`(${raw}) * (case when ${closed} then ${sql.raw(String(CLOSED_DAMPING))} else 1 end)`;
 
   const match: SQL[] = [sql`${tickets.title} % ${title}`];

@@ -4,10 +4,6 @@
   service-provider URLs are fixed per workspace, so they're shown before
   anything is saved (IdP setup needs them). The form is workspace-sso-form.svelte.
 -->
-<script module lang="ts">
-  export type { SsoProviderView } from './sso-types';
-</script>
-
 <script lang="ts">
   import { untrack } from 'svelte';
   import KeyRoundIcon from '@lucide/svelte/icons/key-round';

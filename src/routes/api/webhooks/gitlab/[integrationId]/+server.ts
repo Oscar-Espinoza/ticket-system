@@ -9,7 +9,7 @@ import { allowOptions } from '../../../_lib/options';
 import { after } from '@/lib/kit/request';
 import { syncGitlabHook, type GitlabHook } from '@/lib/vcs/gitlab-sync';
 import { getWebhookIntegration, type GitlabConfig } from '@/lib/vcs/integrations';
-import { safeEqual } from '@/lib/server/crypto';
+import { safeEqual } from '@/lib/server/secrets';
 import { readJsonBody, rejected } from '@/lib/vcs/webhook-request';
 
 const HANDLED = new Set(['Merge Request Hook', 'Push Hook', 'Pipeline Hook']);

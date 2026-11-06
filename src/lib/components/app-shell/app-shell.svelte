@@ -9,7 +9,7 @@
 
   import type { SidebarFavorite } from '@/lib/favorites';
   import type { ShellProject } from './shell-frame.svelte';
-  import type { SidebarWorkspace } from './slots/sidebar-workspaces.svelte';
+  import type { SidebarWorkspace } from './sidebar-types';
 
   export interface AppShellUser {
     id: string;

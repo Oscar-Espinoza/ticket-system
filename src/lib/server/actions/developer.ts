@@ -46,7 +46,8 @@ import {
   type ReviewDecision,
   type VcsProvider,
 } from '@/lib/vcs/providers';
-import { decryptToken, encryptToken, newSecret } from '@/lib/server/crypto';
+import { decryptToken, encryptToken } from '@/lib/server/crypto';
+import { newSecret } from '@/lib/server/secrets';
 
 const TOKEN_MAX = 500;
 

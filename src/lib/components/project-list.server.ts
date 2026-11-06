@@ -9,6 +9,7 @@
 import { and, eq, isNull, sql } from 'drizzle-orm';
 
 import { projects, projectMembers, tickets, workflowStates } from '@/db/schema';
+import { closedStateType, openStateType } from '@/lib/workflow-server';
 import { db } from '@/lib/db';
 import { cache } from '@/lib/kit/request';
 
@@ -34,8 +35,8 @@ export const getProjectsForUser = cache(async (userId: string) =>
       role: projectMembers.role,
       // Cast to int — PostgreSQL count() returns bigint, which Drizzle
       // types as string without the explicit cast.
-      openCount: sql<number>`cast(count(case when ${workflowStates.type} not in ('completed', 'canceled') then 1 end) as int)`,
-      resolvedCount: sql<number>`cast(count(case when ${workflowStates.type} in ('completed', 'canceled') then 1 end) as int)`,
+      openCount: sql<number>`cast(count(case when ${openStateType()} then 1 end) as int)`,
+      resolvedCount: sql<number>`cast(count(case when ${closedStateType()} then 1 end) as int)`,
     })
     .from(projectMembers)
     .innerJoin(projects, eq(projectMembers.projectId, projects.id))

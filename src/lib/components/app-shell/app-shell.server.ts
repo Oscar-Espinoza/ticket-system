@@ -7,8 +7,7 @@ import { getSidebarFavorites } from '@/lib/favorites';
 import { countUnreadNotifications } from '@/lib/notifications/inbox';
 import { getUserWorkspaces } from '@/lib/workspace-access';
 
-import type { ShellProject } from './shell-frame.svelte';
-import type { SidebarWorkspace } from './slots/sidebar-workspaces.svelte';
+import type { SidebarProject, SidebarWorkspace } from './sidebar-types';
 
 export async function loadAppShellData(userId: string) {
   // Memoized per request: the dashboard page reuses getProjectsForUser.
@@ -27,7 +26,7 @@ export async function loadAppShellData(userId: string) {
 
   return {
     projects: projects.map(
-      (p): ShellProject => ({ id: p.id, name: p.name, ticketKey: p.ticketKey, parentId: p.parentId }),
+      (p): SidebarProject => ({ id: p.id, name: p.name, ticketKey: p.ticketKey, parentId: p.parentId }),
     ),
     favorites,
     workspaces: workspaces.map((w): SidebarWorkspace => ({ id: w.id, slug: w.slug, name: w.name })),

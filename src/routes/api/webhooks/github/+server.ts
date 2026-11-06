@@ -12,7 +12,7 @@ import { allowOptions } from '../../_lib/options';
 import { after } from '@/lib/kit/request';
 import { db } from '@/lib/db';
 import { projects } from '@/db/schema';
-import { verifyHmac } from '@/lib/server/crypto';
+import { verifyHmac } from '@/lib/server/secrets';
 import {
   syncCheckRun,
   syncCheckSuite,

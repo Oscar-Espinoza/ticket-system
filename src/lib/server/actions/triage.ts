@@ -7,7 +7,8 @@
 import { asc, eq } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
-import { labels, projectMembers, users, workflowStates } from '@/db/schema';
+import { labels, projectMembers, users } from '@/db/schema';
+import { loadProjectStates } from '@/lib/workflow-server';
 import { authorizeProjectAction } from '@/lib/action-auth';
 import { emitIssueEvent } from '@/lib/events';
 import { updateIssueFields } from '@/lib/issue-service';
@@ -29,17 +30,7 @@ import {
 export type TriageActionResult = ActionResult<{ warning?: string }>;
 
 async function loadStates(projectId: string): Promise<WorkflowState[]> {
-  return db
-    .select({
-      id: workflowStates.id,
-      name: workflowStates.name,
-      type: workflowStates.type,
-      color: workflowStates.color,
-      position: workflowStates.position,
-      description: workflowStates.description,
-    })
-    .from(workflowStates)
-    .where(eq(workflowStates.projectId, projectId));
+  return loadProjectStates(projectId);
 }
 
 /** The issue, if it's in this project, active, and still in triage. */

@@ -2,7 +2,7 @@
 // X-Slack-Signature = "v0=" + hex(HMAC-SHA256(signing secret, "v0:{timestamp}:{raw body}")).
 // Old timestamps are rejected so a captured request can't be replayed.
 
-import { verifyHmac } from '@/lib/server/crypto';
+import { verifyHmac } from '@/lib/server/secrets';
 
 import { slackConfig } from './config';
 

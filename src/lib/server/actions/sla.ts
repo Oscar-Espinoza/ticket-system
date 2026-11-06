@@ -17,6 +17,8 @@ import {
   type StateRef,
   type TimeInState,
 } from '@/lib/sla';
+import { slaDeadlineSql } from '@/lib/sla-server';
+import { openStateType } from '@/lib/workflow-server';
 import { fail, refreshesData, type ActionResult } from '@/lib/server/action-kit';
 
 /** State changes read per issue (newest kept). */
@@ -79,7 +81,7 @@ export async function applySlaPolicyToOpenIssues(input: {
         .where(
           and(
             eq(workflowStates.projectId, projectId),
-            notInArray(workflowStates.type, ['completed', 'canceled']),
+            openStateType(),
           ),
         ),
     ),
@@ -89,7 +91,7 @@ export async function applySlaPolicyToOpenIssues(input: {
     (p): p is keyof SlaPolicy => p in policy,
   );
   const statements = withTarget.map((priority) => {
-    const due: SQL = sql`${tickets.createdAt} + make_interval(hours => ${policy[priority]}::int)`;
+    const due: SQL = slaDeadlineSql(tickets.createdAt, policy[priority]!);
     return db
       .update(tickets)
       .set({

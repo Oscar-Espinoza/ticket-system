@@ -5,25 +5,15 @@
 // Does NOT authorize — callers check membership first (the insights page does).
 // Deleted issues never count; archived ones count as history but not as "open".
 
-import { and, desc, eq, exists, gte, inArray, isNull, notInArray, sql, type SQL } from 'drizzle-orm';
+import { and, desc, eq, exists, gte, inArray, isNull, sql, type SQL } from 'drizzle-orm';
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 
 import { db } from '@/lib/db';
 import { issueLabels, labels, tickets, users, workflowStates } from '@/db/schema';
+import { openStateType } from '@/lib/workflow-server';
 import type { Priority, StateType } from '@/lib/issue-model';
 import type { Distribution, InsightRange, ProjectInsights, WeekPoint } from '@/lib/insights-model';
 import { DAY_MS } from '@/lib/time';
-
-export {
-  DEFAULT_INSIGHT_RANGE,
-  INSIGHT_RANGES,
-  parseInsightRange,
-  type BreakdownRow,
-  type Distribution,
-  type InsightRange,
-  type ProjectInsights,
-  type WeekPoint,
-} from '@/lib/insights-model';
 
 const HOUR = 3600;
 /** Upper bounds in hours; the last bucket is open-ended. */
@@ -97,7 +87,7 @@ export async function getProjectInsights(
     .where(
       and(
         eq(workflowStates.projectId, projectId),
-        notInArray(workflowStates.type, ['completed', 'canceled']),
+        openStateType(),
       ),
     );
   const open = and(base, isNull(tickets.archivedAt), inArray(tickets.stateId, openStateIds));

@@ -5,7 +5,7 @@ import type { RequestHandler } from './$types';
 import { allowOptions } from '../../_lib/options';
 
 import { runDailyJobs } from '@/lib/cron';
-import { safeEqual } from '@/lib/server/crypto';
+import { safeEqual } from '@/lib/server/secrets';
 
 // Read by adapter-vercel (ignored by adapter-node).
 export const config = { maxDuration: 60 };

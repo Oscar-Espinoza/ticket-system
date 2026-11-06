@@ -4,10 +4,6 @@
   integration by its client secret. Controls hide for non-admins; the actions
   re-check the role server-side.
 -->
-<script module lang="ts">
-  export type { SentryIntegrationView, VcsIntegrationView } from './developer-types';
-</script>
-
 <script lang="ts">
   import Callout from '@/lib/components/settings/callout.svelte';
   import { Separator } from '@/lib/components/ui/separator';

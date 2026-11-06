@@ -9,7 +9,8 @@ import { allowOptions } from '../../../_lib/options';
 import { after } from '@/lib/kit/request';
 import { syncBitbucketEvent } from '@/lib/vcs/bitbucket-sync';
 import { getWebhookIntegration, type BitbucketConfig } from '@/lib/vcs/integrations';
-import { decryptToken, verifyHmac } from '@/lib/server/crypto';
+import { decryptToken } from '@/lib/server/crypto';
+import { verifyHmac } from '@/lib/server/secrets';
 import { readJsonBody, rejected } from '@/lib/vcs/webhook-request';
 
 export const POST: RequestHandler = async ({ request, params }) => {

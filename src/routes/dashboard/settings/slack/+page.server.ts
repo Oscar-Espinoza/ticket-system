@@ -9,7 +9,7 @@ import { db } from '@/lib/db';
 import { rolesAllowing } from '@/lib/roles';
 import { requireUser } from '@/lib/session';
 import { slackConfig, slackManifest, slackUrls } from '@/lib/slack/config';
-import type { SlackWorkspace } from '@/lib/components/slack/slack-app-settings.svelte';
+import type { SlackWorkspace } from '@/lib/components/slack/slack-types';
 import type { PageServerLoad } from './$types';
 
 const STATUS_MESSAGES: Record<string, string> = {

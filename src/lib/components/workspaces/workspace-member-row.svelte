@@ -7,6 +7,8 @@
 
   import {
     WORKSPACE_ROLE_LABEL,
+    canChangeMemberRole,
+    canRemoveMember,
     type WorkspaceMemberRow,
     type WorkspaceRole,
   } from '@/lib/workspace-types';
@@ -20,7 +22,6 @@
   } from '@/lib/components/ui/dropdown-menu';
   import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/lib/components/ui/select';
   import { Avatar, LabelChip } from '@/lib/components/ui-icons';
-  import { canChangeMemberRole, canRemoveMember } from './workspace-role-rules';
 
   let {
     workspaceId,

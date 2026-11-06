@@ -6,11 +6,7 @@
   layout load. Port of src/components/app-shell/slots/sidebar-workspaces.tsx.
 -->
 <script module lang="ts">
-  export interface SidebarWorkspace {
-    id: string;
-    slug: string;
-    name: string;
-  }
+  import type { SidebarWorkspace } from '../sidebar-types';
 
   export interface SidebarWorkspacesProps {
     /** getUserWorkspaces(session user id), from the dashboard layout load. */

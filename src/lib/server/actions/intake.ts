@@ -6,7 +6,8 @@
 import { and, count, eq, gte } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
-import { customerRequests, projects, workflowStates } from '@/db/schema';
+import { customerRequests, projects } from '@/db/schema';
+import { loadProjectStates } from '@/lib/workflow-server';
 import { authorizeProjectAction } from '@/lib/action-auth';
 import { matchCustomerByEmail } from '@/lib/customers';
 import { createIssue, SYSTEM_ACTOR } from '@/lib/issue-service';
@@ -133,17 +134,7 @@ export async function submitIntakeRequest(
     };
   }
 
-  const states = await db
-    .select({
-      id: workflowStates.id,
-      name: workflowStates.name,
-      type: workflowStates.type,
-      color: workflowStates.color,
-      position: workflowStates.position,
-      description: workflowStates.description,
-    })
-    .from(workflowStates)
-    .where(eq(workflowStates.projectId, project.id));
+  const states = await loadProjectStates(project.id);
   const state =
     (project.triageEnabled ? firstStateOfType(states, 'triage') : undefined) ??
     defaultNewIssueState(states);

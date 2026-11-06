@@ -6,7 +6,7 @@
 
 import { createHmac, randomBytes } from 'node:crypto';
 
-import { appSecret, safeEqual } from '@/lib/server/crypto';
+import { appSecret, safeEqual } from '@/lib/server/secrets';
 
 export const MIN_FILL_MS = 3000;
 const MAX_AGE_MS = 24 * 60 * 60 * 1000;

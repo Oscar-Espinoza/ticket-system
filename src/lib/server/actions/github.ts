@@ -24,7 +24,7 @@ import {
 import { branchNameFor, branchPrefix, isValidBranchName } from '@/lib/github/branch';
 import { createRepoWebhook, deleteRepoWebhook, webhookUrl } from '@/lib/github/webhooks';
 import type { Fail } from '@/lib/server/action-kit';
-import { newSecret } from '@/lib/server/crypto';
+import { newSecret } from '@/lib/server/secrets';
 import { AUTOMATION_OFF } from '@/lib/vcs/automation-state';
 import { isUnreachableUrl, unreachableWebhookWarning } from '@/lib/vcs/hosts';
 import { branchUrl } from '@/lib/vcs/providers';

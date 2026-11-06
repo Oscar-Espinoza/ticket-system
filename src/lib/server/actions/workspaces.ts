@@ -44,9 +44,8 @@ import {
   workspaceInviteUrl,
   type WorkspaceInviteRole,
   type WorkspaceMembership,
-  type WorkspaceRole,
 } from '@/lib/workspace-access';
-import { workspaceRoleAllows } from '@/lib/workspace-types';
+import { inviteRolesFor, workspaceRoleAllows } from '@/lib/workspace-types';
 import { sendEmail } from '@/lib/email';
 import { isValidSlug, slugify } from '@/lib/workspace-slug';
 
@@ -303,9 +302,6 @@ export async function joinWorkspaceProject(input: {
 // ---------------------------------------------------------------------------
 // Members
 // ---------------------------------------------------------------------------
-
-const inviteRolesFor = (role: WorkspaceRole): readonly WorkspaceRole[] =>
-  role === 'owner' ? ['admin', 'member'] : role === 'admin' ? ['member'] : [];
 
 /**
  * Add someone by email. A person who already shares a project with you is

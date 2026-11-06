@@ -3,10 +3,6 @@
   land, uninstall), the viewer's own Slack link (DM toggle, unlink), and the
   setup guide with the exact request URLs + an app manifest.
 -->
-<script module lang="ts">
-  export type { SlackWorkspace } from './slack-types';
-</script>
-
 <script lang="ts">
   import type { Snippet } from 'svelte';
   import CircleAlertIcon from '@lucide/svelte/icons/circle-alert';

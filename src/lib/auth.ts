@@ -6,8 +6,8 @@
 //   - database: drizzleAdapter(authDb, ...). MUST use `authDb` (neon-serverless /
 //     WebSocket). neon-http throws "No transactions support" on user creation
 //     (better-auth#4747).
-//   - emailAndPassword.minPasswordLength: 8 — Better Auth defaults
-//     otherwise; no custom complexity rules.
+//   - emailAndPassword.minPasswordLength: MIN_PASSWORD_LENGTH (auth-rules.ts);
+//     no custom complexity rules.
 //   - plugins: [sveltekitCookies()] — lets server actions/handlers set cookies.
 //   - Session cookie cache on (5 minutes, see `session` below): a revoked
 //     session stays valid for that window; Better Auth falls back to the DB
@@ -30,6 +30,7 @@ import { jwt, twoFactor } from 'better-auth/plugins';
 import { oauthProvider } from '@better-auth/oauth-provider';
 import { scim } from '@better-auth/scim';
 import { sso } from '@better-auth/sso';
+import { MIN_PASSWORD_LENGTH } from '@/lib/auth-rules';
 import { authDb } from '@/lib/db';
 import { recordUserSecurityEvent } from '@/lib/audit';
 import {
@@ -86,7 +87,7 @@ export const auth = betterAuth({
   }),
   emailAndPassword: {
     enabled: true,
-    minPasswordLength: 8,
+    minPasswordLength: MIN_PASSWORD_LENGTH,
   },
   // Better Auth always requests read:user + user:email for GitHub; `scope`
   // below only restates them (least privilege at sign-in). Tokens are read

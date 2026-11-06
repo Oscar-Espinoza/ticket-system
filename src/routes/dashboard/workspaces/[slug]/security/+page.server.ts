@@ -15,7 +15,7 @@ import {
   isFreeMailDomain,
   workspaceSsoUrls,
 } from '@/lib/sso';
-import type { SsoProviderView } from '@/lib/components/security/workspace-sso-settings.svelte';
+import type { SsoProviderView } from '@/lib/components/security/sso-types';
 import { requireUser } from '@/lib/session';
 import type { PageServerLoad } from './$types';
 

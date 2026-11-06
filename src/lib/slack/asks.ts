@@ -7,7 +7,8 @@
 import { and, asc, eq, inArray } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
-import { customerRequests, projectMembers, projects, workflowStates } from '@/db/schema';
+import { customerRequests, projectMembers, projects } from '@/db/schema';
+import { loadProjectStates } from '@/lib/workflow-server';
 import { matchCustomerByEmail } from '@/lib/customers';
 import { createIssue, DESCRIPTION_MAX, SYSTEM_ACTOR, TITLE_MAX } from '@/lib/issue-service';
 import { isPriority, PRIORITY_LABEL, PRIORITY_ORDER, type Priority } from '@/lib/issue-model';
@@ -330,17 +331,7 @@ export async function submitAsk(input: {
         .from(projects)
         .where(eq(projects.id, values.projectId))
         .limit(1),
-      db
-        .select({
-          id: workflowStates.id,
-          name: workflowStates.name,
-          type: workflowStates.type,
-          color: workflowStates.color,
-          position: workflowStates.position,
-          description: workflowStates.description,
-        })
-        .from(workflowStates)
-        .where(eq(workflowStates.projectId, values.projectId)),
+      loadProjectStates(values.projectId),
       permalink(install, context),
       slackProfile(install, input.slackUserId),
     ]);

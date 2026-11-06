@@ -8,7 +8,7 @@
 // Queries may carry filter syntax (label:bug assignee:me …, parsed by
 // lib/issue-filtering); the terms become SQL inside the same membership scope.
 
-import { and, desc, eq, exists, gt, gte, inArray, isNotNull, isNull, lt, lte, notInArray, or, sql, type SQL } from 'drizzle-orm';
+import { and, desc, eq, exists, gt, gte, inArray, isNotNull, isNull, lt, lte, or, sql, type SQL } from 'drizzle-orm';
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 
 import { db } from '@/lib/db';
@@ -28,7 +28,7 @@ import {
 } from '@/lib/issue-filtering';
 import type { IssueRow } from '@/lib/issue-model';
 import { stripMentions } from '@/lib/mentions';
-import { CLOSED_STATE_TYPES } from '@/lib/workflow';
+import { closedStateType, openStateType } from '@/lib/workflow-server';
 import { slaPastDue } from '@/lib/sla-server';
 import { issueDocument, memberOfIssueProject, parseIssueKey, queryIssues } from '@/lib/tickets';
 
@@ -75,7 +75,7 @@ function stateWhere(where: SQL): SQL {
   );
 }
 
-const openState = () => stateWhere(notInArray(workflowStates.type, [...CLOSED_STATE_TYPES]));
+const openState = () => stateWhere(openStateType());
 
 function userWhere(column: AnyPgColumn, value: string, userId: string): SQL {
   const v = lower(value);
@@ -95,7 +95,7 @@ function valueCondition(key: SearchTerm['key'], value: string, userId: string, n
     case 'is': {
       const is = searchIs(v);
       if (is === 'open') return openState();
-      if (is === 'closed') return stateWhere(inArray(workflowStates.type, [...CLOSED_STATE_TYPES]));
+      if (is === 'closed') return stateWhere(closedStateType());
       if (is === 'completed' || is === 'canceled') return stateWhere(eq(workflowStates.type, is));
       if (is === 'archived') return isNotNull(tickets.archivedAt);
       return FALSE;

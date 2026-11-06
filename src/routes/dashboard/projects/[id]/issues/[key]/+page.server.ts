@@ -6,21 +6,16 @@ import { error, redirect } from '@sveltejs/kit';
 
 import { issuePath } from '@/lib/issue-links';
 import { requireUser } from '@/lib/session';
-import { getIssueByKey, getProjectIssues } from '@/lib/tickets';
+import { getIssueByKey, getProjectIssues, parseIssueKey } from '@/lib/tickets';
 import type { PageServerLoad } from './$types';
-
-const KEY_PATTERN = /^([A-Za-z0-9]+)-(\d{1,9})$/;
 
 /** "app-12" → 12. The prefix isn't checked: renamed project keys keep resolving. */
 function parseKeyNumber(raw: string): number | null {
-  let key: string;
   try {
-    key = decodeURIComponent(raw).trim();
+    return parseIssueKey(decodeURIComponent(raw))?.number ?? null;
   } catch {
     return null;
   }
-  const match = KEY_PATTERN.exec(key);
-  return match ? Number(match[2]) : null;
 }
 
 export const load: PageServerLoad = async ({ params, parent }) => {

@@ -17,6 +17,7 @@ import {
   workspaceMembers,
   workspaces,
 } from '@/db/schema';
+import { openStateType } from '@/lib/workflow-server';
 import { db } from '@/lib/db';
 import { rolesAllowing } from '@/lib/roles';
 import { requireUser } from '@/lib/session';
@@ -71,7 +72,7 @@ export const load: PageServerLoad = async ({ params }) => {
           eq(projects.workspaceId, workspaceId),
           isNull(tickets.archivedAt),
           isNull(tickets.deletedAt),
-          sql`${workflowStates.type} not in ('completed', 'canceled')`,
+          openStateType(),
         ),
       )
       .groupBy(tickets.projectId),

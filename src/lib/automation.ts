@@ -16,8 +16,7 @@ import { ensureUpcomingCycles, completeEndedCycles } from '@/lib/cycles';
 import { emitIssueEvent } from '@/lib/events';
 import { SYSTEM_ACTOR, archive, bulkUpdate, purge, BULK_MAX } from '@/lib/issue-service';
 import { declineState } from '@/lib/triage';
-import { CLOSED_STATE_TYPES } from '@/lib/workflow';
-import { loadProjectStates } from '@/lib/workflow-server';
+import { closedStateType, loadProjectStates } from '@/lib/workflow-server';
 
 export const TRASH_RETENTION_DAYS = 30;
 export const AUTO_CLOSED_EVENT = 'issue.auto_closed';
@@ -72,7 +71,7 @@ async function autoArchive(projectId: string, months: number) {
         eq(tickets.projectId, projectId),
         isNull(tickets.archivedAt),
         isNull(tickets.deletedAt),
-        inArray(workflowStates.type, [...CLOSED_STATE_TYPES]),
+        closedStateType(),
         sql`coalesce(${tickets.completedAt}, ${tickets.canceledAt}, ${tickets.updatedAt}) < ${monthsAgo(months)}`,
       ),
     )

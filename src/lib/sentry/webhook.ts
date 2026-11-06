@@ -15,11 +15,12 @@
 import { and, eq, isNull, sql } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
-import { attachments, projects, tickets, workflowStates } from '@/db/schema';
+import { attachments, projects, tickets } from '@/db/schema';
+import { loadProjectStates } from '@/lib/workflow-server';
 import { emitIssueEvent, ISSUE_EVENT } from '@/lib/events';
 import { createIssue, DESCRIPTION_MAX, SYSTEM_ACTOR, TITLE_MAX } from '@/lib/issue-service';
 import { defaultNewIssueState, firstStateOfType } from '@/lib/workflow';
-import { verifyHmac } from '@/lib/server/crypto';
+import { verifyHmac } from '@/lib/server/secrets';
 import type { StateType } from '@/lib/issue-model';
 import { guardedRequest } from '@/lib/integrations/url-guard';
 import { WEBHOOK_TIMEOUT_MS } from '@/lib/integrations/timeouts';
@@ -152,17 +153,7 @@ async function openTriageIssue(projectId: string, info: SentryIssueInfo) {
 
   const [[project], states] = await Promise.all([
     db.select({ triageEnabled: projects.triageEnabled }).from(projects).where(eq(projects.id, projectId)).limit(1),
-    db
-      .select({
-        id: workflowStates.id,
-        name: workflowStates.name,
-        type: workflowStates.type,
-        color: workflowStates.color,
-        position: workflowStates.position,
-        description: workflowStates.description,
-      })
-      .from(workflowStates)
-      .where(eq(workflowStates.projectId, projectId)),
+    loadProjectStates(projectId),
   ]);
   if (!project) return;
   const state =

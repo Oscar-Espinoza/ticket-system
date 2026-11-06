@@ -10,6 +10,7 @@
 
   import {
     WORKSPACE_ROLE_LABEL,
+    canManageRole,
     type WorkspaceInvitationRow,
     type WorkspaceRole,
   } from '@/lib/workspace-types';
@@ -25,7 +26,6 @@
   } from '@/lib/components/ui/dropdown-menu';
   import { LabelChip } from '@/lib/components/ui-icons';
   import { announceSent, copyText } from '@/lib/components/invite-toasts';
-  import { canManageRole } from './workspace-role-rules';
 
   let {
     workspaceId,

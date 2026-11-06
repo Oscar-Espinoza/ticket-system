@@ -5,10 +5,11 @@
 // member of.
 
 import { error } from '@sveltejs/kit';
-import { and, desc, eq, inArray, notInArray } from 'drizzle-orm';
+import { and, desc, eq, inArray } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
-import { activities, projects, tickets, userProfiles, users, workflowStates } from '@/db/schema';
+import { activities, projects, tickets, userProfiles, users } from '@/db/schema';
+import { openStateType } from '@/lib/workflow-server';
 import { getSharedProjects } from '@/lib/project-access';
 import { activeIssue, memberOfIssueProject, queryIssues } from '@/lib/tickets';
 import { activitySummary } from '@/lib/components/people/activity-summary';
@@ -80,7 +81,7 @@ export const load: PageServerLoad = async ({ params }) => {
         eq(tickets.assigneeId, userId),
         memberOfIssueProject(viewerId),
         activeIssue(),
-        notInArray(workflowStates.type, ['completed', 'canceled']),
+        openStateType(),
       ),
       { limit: 50, orderBy: [desc(tickets.updatedAt)] },
     ),

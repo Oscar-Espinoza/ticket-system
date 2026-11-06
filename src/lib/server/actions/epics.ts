@@ -27,6 +27,7 @@ import {
   EPIC_NAME_MAX,
   HEALTH_LABEL,
   UPDATE_BODY_MAX,
+  canDeleteUpdate,
   isEpicStatus,
   isHealth,
   type EpicStatus,
@@ -456,7 +457,7 @@ export async function deleteEpicUpdate(input: {
     .where(and(eq(epicUpdates.id, input.id), eq(epics.projectId, input.projectId)))
     .limit(1);
   if (!update) return fail('Update not found.');
-  if (update.authorId !== authz.userId && !roleAllows(authz.role, 'admin')) {
+  if (!canDeleteUpdate(roleAllows(authz.role, 'admin'), update.authorId, authz.userId)) {
     return fail('Only the author or a project admin can delete this update.');
   }
 

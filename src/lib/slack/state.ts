@@ -5,7 +5,7 @@
 
 import { createHmac, randomBytes } from 'node:crypto';
 
-import { appSecret, safeEqual } from '@/lib/server/crypto';
+import { appSecret, safeEqual } from '@/lib/server/secrets';
 
 export type SlackOAuthPurpose = 'install' | 'link';
 
