@@ -52,14 +52,14 @@
   import { ToggleGroup, ToggleGroupItem } from '@/lib/components/ui/toggle-group';
   import { Avatar, EmptyState } from '@/lib/components/ui-icons';
   import { formatDueDate } from '@/lib/dates';
-  import { EPIC_STATUS_LABEL, epicPath } from '@/lib/components/epics/epic-model';
+  import { EPIC_STATUS_LABEL, epicPath } from '@/lib/epic-model';
   import {
     INITIATIVE_STATUS_LABEL,
     initiativesPath,
     type InitiativeDetail as Detail,
     type InitiativeEpic,
     type InitiativeRow,
-  } from '@/lib/components/initiatives/initiative-model';
+  } from '@/lib/initiative-model';
   import AddEpicPicker from './add-epic-picker.svelte';
   import InitiativeDescription from './initiative-description.svelte';
   import InitiativeName from './initiative-name.svelte';

@@ -8,7 +8,7 @@ import { asc, desc, eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { oauthClients, oauthConsents } from '@/db/schema';
 import { appUrl } from '@/lib/integrations/app-url';
-import type { AuthorizedAppView, OAuthAppView } from '@/lib/components/oauth/oauth-model';
+import type { AuthorizedAppView, OAuthAppView } from '@/lib/oauth-model';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {

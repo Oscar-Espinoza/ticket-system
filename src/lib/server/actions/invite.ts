@@ -16,7 +16,7 @@ import { db } from '@/lib/db';
 import { invitations, projectMembers, projects, users } from '@/db/schema';
 import { authorizeProjectAction } from '@/lib/action-auth';
 import { sendEmail } from '@/lib/email';
-import { assignableRoles, isAssignableRole, PROJECT_ROLE_LABEL } from '@/lib/components/workspaces/role-rules';
+import { assignableRoles, isAssignableRole, PROJECT_ROLE_LABEL } from '@/lib/roles';
 
 export type GenerateInviteState = {
   errors?: {

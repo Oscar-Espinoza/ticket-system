@@ -8,7 +8,7 @@ import { PRIORITY_ORDER, type IssueRow, type StateType } from '@/lib/issue-model
 import type { BreakdownRow, WeekPoint } from '@/lib/insights';
 import type { CycleSummary, EpicSummary, ProjectData } from '@/lib/project-data-types';
 import { isClosed } from '@/lib/workflow';
-import type { DashboardDataset, Widget } from './widget-model';
+import type { DashboardDataset, Widget } from '@/lib/widget-model';
 
 const DAY_MS = 86_400_000;
 

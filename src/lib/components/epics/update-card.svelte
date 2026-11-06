@@ -2,7 +2,7 @@
   import EllipsisIcon from '@lucide/svelte/icons/ellipsis';
   import Trash2Icon from '@lucide/svelte/icons/trash-2';
 
-  import { relativeTime } from '@/lib/components/issues/issue-properties';
+  import { relativeTime } from '@/lib/relative-time';
   import { Button } from '@/lib/components/ui/button';
   import {
     DropdownMenu,
@@ -11,7 +11,7 @@
     DropdownMenuTrigger,
   } from '@/lib/components/ui/dropdown-menu';
   import { Avatar } from '@/lib/components/ui-icons';
-  import type { EpicUpdateRow } from '@/lib/components/epics/epic-model';
+  import type { EpicUpdateRow } from '@/lib/epic-model';
   import HealthChip from './health-chip.svelte';
   import RichText from './rich-text.svelte';
 

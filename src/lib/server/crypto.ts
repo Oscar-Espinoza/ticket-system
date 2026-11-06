@@ -1,6 +1,6 @@
-// Integration secrets. Access tokens are encrypted at rest with Better Auth's
-// symmetricEncrypt (keyed by BETTER_AUTH_SECRET, like OAuth tokens); webhook
-// secrets are compared timing-safely. Server-only.
+// Server-side secret handling for every integration: access tokens encrypted at
+// rest with Better Auth's symmetricEncrypt (keyed by BETTER_AUTH_SECRET, like
+// OAuth tokens), random secrets, timing-safe comparison and HMAC signatures.
 
 import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { symmetricDecrypt, symmetricEncrypt } from 'better-auth/crypto';

@@ -12,7 +12,7 @@
   import { issuePath } from '@/lib/issue-links';
   import { Avatar, EmptyState, LabelChip, PriorityIcon, StateIcon } from '@/lib/components/ui-icons';
   import { Button } from '@/lib/components/ui/button';
-  import { PROJECT_ROLE_LABEL } from '@/lib/components/workspaces/role-rules';
+  import { PROJECT_ROLE_LABEL } from '@/lib/roles';
   import LocalTime from '@/lib/components/people/local-time.svelte';
   import type { PageProps } from './$types';
 

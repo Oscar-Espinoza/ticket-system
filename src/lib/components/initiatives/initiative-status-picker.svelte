@@ -1,6 +1,6 @@
 <script lang="ts">
   import { PickerPopover, type PickerPopoverProps } from '@/lib/components/issue-pickers';
-  import type { InitiativeStatus } from '@/lib/components/initiatives/initiative-model';
+  import type { InitiativeStatus } from '@/lib/initiative-model';
   import InitiativeStatusOptions from './initiative-status-options.svelte';
 
   let {

@@ -15,7 +15,7 @@ import {
   EPIC_LABELS_MAX,
   EPIC_LABEL_NAME_MAX,
   type EpicLabelRow,
-} from '@/lib/components/epics/epic-model';
+} from '@/lib/epic-model';
 
 export type EpicLabelActionResult =
   | { ok: true; label?: EpicLabelRow }

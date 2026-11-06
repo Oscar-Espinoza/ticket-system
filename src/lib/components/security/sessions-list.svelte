@@ -25,7 +25,7 @@
   import { toast } from 'svelte-sonner';
 
   import { revokeOtherSessions, revokeSession } from '@/lib/actions/security';
-  import { relativeTime } from '@/lib/components/issues/issue-properties';
+  import { relativeTime } from '@/lib/relative-time';
   import { Button } from '@/lib/components/ui/button';
   import { LabelChip } from '@/lib/components/ui-icons';
   import { describeUserAgent, isMobileUserAgent } from '@/lib/components/security/user-agent';

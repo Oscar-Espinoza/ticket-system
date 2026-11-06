@@ -9,7 +9,7 @@
     CommandItem,
     CommandList,
   } from '@/lib/components/ui/command';
-  import type { CandidateEpic } from '@/lib/components/initiatives/initiative-model';
+  import type { CandidateEpic } from '@/lib/initiative-model';
 
   let {
     candidates,

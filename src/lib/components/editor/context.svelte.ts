@@ -16,13 +16,8 @@ import type { AnyExtension } from '@tiptap/core';
 
 import type { WorkflowState } from '@/lib/issue-model';
 
-export interface EditorIssue {
-  id: string;
-  /** "APP-12" */
-  key: string;
-  title: string;
-  state?: Pick<WorkflowState, 'name' | 'type' | 'color'>;
-}
+import type { EditorIssue } from '@/lib/editor-issue';
+export type { EditorIssue };
 
 export interface RichEditorContextValue {
   /** Project that owns pasted images (→ /api/uploads) and scopes `#` suggestions. */

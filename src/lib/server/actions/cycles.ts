@@ -10,7 +10,7 @@ import { cycles, projects } from '@/db/schema';
 import { authorizeProjectAction } from '@/lib/action-auth';
 import { isDateString } from '@/lib/dates';
 import { completeCycle, findOverlappingCycle, getCycle, insertCycles } from '@/lib/cycles';
-import { DAY_MS, cycleName, fromDateInput } from '@/lib/components/cycles/cycle-utils';
+import { DAY_MS, cycleName, fromDateInput } from '@/lib/cycle-utils';
 
 export type CycleField = 'name' | 'description' | 'startDate' | 'endDate';
 

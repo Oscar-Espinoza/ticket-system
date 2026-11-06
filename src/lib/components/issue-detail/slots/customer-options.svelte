@@ -5,7 +5,7 @@
 <script lang="ts">
   import UserPlusIcon from '@lucide/svelte/icons/user-plus';
 
-  import { formatRevenue, type CustomerOption } from '@/lib/components/customers/customer-model';
+  import { formatRevenue, type CustomerOption } from '@/lib/customer-model';
   import CustomerLogo from '@/lib/components/customers/customer-logo.svelte';
   import { keywordFilter } from '@/lib/components/issue-pickers/picker-utils';
   import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/lib/components/ui/command';

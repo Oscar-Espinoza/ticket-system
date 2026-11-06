@@ -45,7 +45,7 @@
 <script lang="ts">
   import { getPullRequests } from '@/lib/actions/developer';
   import VcsMark from '@/lib/components/developer/vcs-mark.svelte';
-  import { relativeTime } from '@/lib/components/issues/issue-properties';
+  import { relativeTime } from '@/lib/relative-time';
   import type { IssueMutations } from '@/lib/components/issues/use-issue-mutations.svelte';
   import type { IssueRow } from '@/lib/issue-model';
   import { cn } from '@/lib/utils';

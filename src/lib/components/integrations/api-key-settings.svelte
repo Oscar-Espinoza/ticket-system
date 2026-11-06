@@ -4,7 +4,7 @@
   import { toast } from 'svelte-sonner';
 
   import { revokeApiKey, type ApiKeyView } from '@/lib/actions/api-keys';
-  import { relativeTime } from '@/lib/components/issues/issue-properties';
+  import { relativeTime } from '@/lib/relative-time';
   import {
     AlertDialog,
     AlertDialogAction,

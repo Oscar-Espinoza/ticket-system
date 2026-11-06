@@ -6,7 +6,7 @@
   page so lists stay fresh without local syncing.
 -->
 <script module lang="ts">
-  import type { AssignableRole } from '@/lib/components/workspaces/role-rules';
+  import type { AssignableRole } from '@/lib/roles';
 
   export interface PendingInvitation {
     id: string;
@@ -35,7 +35,7 @@
   import { Label } from '@/lib/components/ui/label';
   import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/lib/components/ui/select';
   import { useProjectPermissions } from '@/lib/components/workspaces/permissions.svelte';
-  import { PROJECT_ROLE_DESCRIPTION, PROJECT_ROLE_LABEL } from '@/lib/components/workspaces/role-rules';
+  import { PROJECT_ROLE_DESCRIPTION, PROJECT_ROLE_LABEL } from '@/lib/roles';
   import PendingRow from './invite-panel-pending-row.svelte';
   import { announceSent, copyText } from './invite-panel-utils';
 

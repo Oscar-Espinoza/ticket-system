@@ -16,7 +16,7 @@
     type CustomerOption,
     type Importance,
     type IssueCustomerRequest,
-  } from '@/lib/components/customers/customer-model';
+  } from '@/lib/customer-model';
   import CustomerLogo from '@/lib/components/customers/customer-logo.svelte';
   import ImportanceIcon from '@/lib/components/customers/importance-icon.svelte';
   import RequestSourceIcon from '@/lib/components/customers/request-source-icon.svelte';

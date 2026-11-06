@@ -28,7 +28,7 @@ import {
   type CustomerRequestView,
   type CustomerRow,
   type IssueCustomerRequest,
-} from '@/lib/components/customers/customer-model';
+} from '@/lib/customer-model';
 
 const ownerUsers = alias(users, 'customer_owner');
 

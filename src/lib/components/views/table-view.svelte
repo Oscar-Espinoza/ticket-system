@@ -17,7 +17,8 @@
     StatePicker,
   } from '@/lib/components/issue-pickers';
   import { useDisplayOptions, type DisplayProperty } from '@/lib/components/issues/display-options.svelte';
-  import { DueDateChip, EstimateChip, LabelChips, relativeTime } from '@/lib/components/issues/issue-properties';
+  import { DueDateChip, EstimateChip, LabelChips } from '@/lib/components/issues/issue-properties';
+  import { relativeTime } from '@/lib/relative-time';
   import SelectCheckbox from '@/lib/components/issues/select-checkbox.svelte';
   import {
     handleSelectionClick,

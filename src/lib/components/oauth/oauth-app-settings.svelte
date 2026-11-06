@@ -42,7 +42,7 @@
     DropdownMenuTrigger,
   } from '@/lib/components/ui/dropdown-menu';
   import { EmptyState } from '@/lib/components/ui-icons';
-  import type { OAuthAppView } from '@/lib/components/oauth/oauth-model';
+  import type { OAuthAppView } from '@/lib/oauth-model';
   import AppIcon from './app-icon.svelte';
   import OAuthAppRegisterDialog from './oauth-app-register-dialog.svelte';
 

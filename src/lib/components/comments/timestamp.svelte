@@ -5,7 +5,7 @@
 
 <script lang="ts">
   import { Tooltip, TooltipContent, TooltipTrigger } from '@/lib/components/ui/tooltip';
-  import { relativeTime } from './relative-time';
+  import { relativeTime } from '@/lib/relative-time';
 
   let { date }: { date: Date } = $props();
 

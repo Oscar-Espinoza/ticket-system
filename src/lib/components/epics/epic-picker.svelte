@@ -19,7 +19,7 @@
     CommandItem,
     CommandList,
   } from '@/lib/components/ui/command';
-  import type { ProjectRef } from '@/lib/components/epics/epic-model';
+  import type { ProjectRef } from '@/lib/epic-model';
   import EpicIcon from './epic-icon.svelte';
 
   let {

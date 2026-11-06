@@ -9,7 +9,7 @@
   import { toast } from 'svelte-sonner';
 
   import { saveDocumentContent } from '@/lib/actions/documents';
-  import type { DocumentDetail } from '@/lib/components/documents/document-model';
+  import type { DocumentDetail } from '@/lib/document-model';
   import type { UseCollab } from '@/lib/components/collab/use-collab.svelte';
   import { useCollabEditor } from '@/lib/components/collab/use-collab-editor.svelte';
   import { Markdown, MarkdownEditor } from '@/lib/components/editor';

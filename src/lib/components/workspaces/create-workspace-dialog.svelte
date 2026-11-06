@@ -8,7 +8,7 @@
   import LoaderCircleIcon from '@lucide/svelte/icons/loader-circle';
   import { toast } from 'svelte-sonner';
 
-  import { slugify } from '@/lib/components/workspaces/slug';
+  import { slugify } from '@/lib/workspace-slug';
   import { createWorkspace } from '@/lib/actions/workspaces';
   import { Button } from '@/lib/components/ui/button';
   import {

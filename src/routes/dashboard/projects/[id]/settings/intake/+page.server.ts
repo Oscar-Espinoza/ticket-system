@@ -5,7 +5,7 @@ import { error, redirect } from '@sveltejs/kit';
 import { and, desc, eq } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
-import { customerPath } from '@/lib/components/customers/customer-model';
+import { customerPath } from '@/lib/customer-model';
 import { customerRequests, customers, projects, tickets, workflowStates } from '@/db/schema';
 import { db } from '@/lib/db';
 import { appUrl } from '@/lib/integrations/app-url';

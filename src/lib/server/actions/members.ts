@@ -14,12 +14,7 @@ import { db } from '@/lib/db';
 import { projectMembers, projects, users } from '@/db/schema';
 import { authorizeProjectAction } from '@/lib/action-auth';
 import { emitIssueEvent, prepareIssueEvents, publishIssueEvents } from '@/lib/events';
-import type { ProjectRole } from '@/lib/roles';
-import {
-  PROJECT_ROLE_LABEL,
-  canManageMember,
-  canSetRole,
-} from '@/lib/components/workspaces/role-rules';
+import { PROJECT_ROLE_LABEL, canManageMember, canSetRole, type ProjectRole } from '@/lib/roles';
 
 export type RemoveMemberState = {
   errors?: {

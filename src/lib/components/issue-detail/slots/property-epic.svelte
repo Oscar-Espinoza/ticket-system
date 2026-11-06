@@ -7,7 +7,7 @@
   applyIssuePatch both do it.
 -->
 <script module lang="ts">
-  import type { ForeignEpicOption } from '@/lib/components/epics/epic-model';
+  import type { ForeignEpicOption } from '@/lib/epic-model';
 
   function groupByProject(epics: ForeignEpicOption[]) {
     const groups = new Map<string, { project: ForeignEpicOption['project']; epics: ForeignEpicOption[] }>();
@@ -23,7 +23,7 @@
 <script lang="ts">
   import BoxesIcon from '@lucide/svelte/icons/boxes';
 
-  import { epicPath } from '@/lib/components/epics/epic-model';
+  import { epicPath } from '@/lib/epic-model';
   import EpicIcon from '@/lib/components/epics/epic-icon.svelte';
   import EpicPicker from '@/lib/components/epics/epic-picker.svelte';
   import MilestoneGlyph from '@/lib/components/epics/milestone-glyph.svelte';

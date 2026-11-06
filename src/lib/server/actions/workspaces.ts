@@ -37,7 +37,7 @@ import {
 } from '@/lib/workspace-access';
 import { getUsableTemplateConfig, projectSeed } from '@/lib/project-templates';
 import { sendEmail } from '@/lib/email';
-import { isValidSlug, slugify } from '@/lib/components/workspaces/slug';
+import { isValidSlug, slugify } from '@/lib/workspace-slug';
 
 export type WorkspaceField =
   | 'name'

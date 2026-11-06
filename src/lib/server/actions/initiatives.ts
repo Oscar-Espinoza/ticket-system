@@ -16,12 +16,12 @@ import {
   requireWorkspaceMember,
   type WorkspaceMembership,
 } from '@/lib/workspace-access';
-import { EPIC_DESCRIPTION_MAX } from '@/lib/components/epics/epic-model';
+import { EPIC_DESCRIPTION_MAX } from '@/lib/epic-model';
 import {
   INITIATIVE_NAME_MAX,
   isInitiativeStatus,
   type InitiativeStatus,
-} from '@/lib/components/initiatives/initiative-model';
+} from '@/lib/initiative-model';
 
 export type InitiativeActionResult =
   | { ok: true; id?: string }

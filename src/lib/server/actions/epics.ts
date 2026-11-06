@@ -23,7 +23,7 @@ import {
   type EpicStatus,
   type ForeignEpicOption,
   type Health,
-} from '@/lib/components/epics/epic-model';
+} from '@/lib/epic-model';
 
 export type EpicActionResult =
   | { ok: true; id?: string }

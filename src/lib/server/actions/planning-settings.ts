@@ -10,7 +10,7 @@ import { db } from '@/lib/db';
 import { projects } from '@/db/schema';
 import { authorizeProjectAction } from '@/lib/action-auth';
 import { ensureUpcomingCycles, getProjectCycles, rescheduleUpcomingCycles } from '@/lib/cycles';
-import { AUTOMATION_MONTHS, MAX_COOLDOWN_WEEKS } from '@/lib/components/cycles/cycle-utils';
+import { AUTOMATION_MONTHS, MAX_COOLDOWN_WEEKS } from '@/lib/cycle-utils';
 
 export type SettingsActionResult = { ok: true } | { ok: false; error: string };
 

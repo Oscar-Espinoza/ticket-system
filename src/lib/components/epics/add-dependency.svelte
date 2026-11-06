@@ -18,7 +18,7 @@
     EPIC_RELATION_KINDS,
     EPIC_RELATION_LABEL,
     type EpicRelationKind,
-  } from '@/lib/components/epics/epic-model';
+  } from '@/lib/epic-model';
   import EpicIcon from './epic-icon.svelte';
   import EpicStatusIcon from './epic-status-icon.svelte';
   import type { DependencyCandidate } from './epic-relations.svelte';

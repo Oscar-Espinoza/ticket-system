@@ -27,7 +27,7 @@ import {
   type CustomerStatus,
   type Importance,
   type IssueCustomerRequest,
-} from '@/lib/components/customers/customer-model';
+} from '@/lib/customer-model';
 
 type Fail = { ok: false; error: string; field?: string };
 export type CustomerActionResult<T = object> = ({ ok: true } & T) | Fail;

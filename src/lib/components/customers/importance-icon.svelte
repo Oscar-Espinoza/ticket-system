@@ -1,7 +1,7 @@
 <!-- Four bars, filled up to the level — reads like the priority glyph. -->
 <script lang="ts">
   import { cn } from '@/lib/utils';
-  import { IMPORTANCE_LABEL, type Importance } from '@/lib/components/customers/customer-model';
+  import { IMPORTANCE_LABEL, type Importance } from '@/lib/customer-model';
 
   let { importance, class: className }: { importance: Importance | null; class?: string } = $props();
 

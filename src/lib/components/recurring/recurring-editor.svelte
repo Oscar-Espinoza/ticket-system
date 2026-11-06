@@ -26,7 +26,7 @@
   import { Textarea } from '@/lib/components/ui/textarea';
   import { ToggleGroup, ToggleGroupItem } from '@/lib/components/ui/toggle-group';
   import type { IssuePatch } from '@/lib/issue-model';
-  import { toDateInput, WEEKDAYS } from '@/lib/components/cycles/cycle-utils';
+  import { toDateInput, WEEKDAYS } from '@/lib/cycle-utils';
   import {
     DUE_IN_DAYS_MAX,
     FREQUENCIES,
@@ -39,7 +39,7 @@
     type Frequency,
     type RecurringIssue,
     type RecurringSchedule,
-  } from '@/lib/components/recurring/schedule';
+  } from '@/lib/recurring-schedule';
   import { defaultsToPatch } from './recurring-defaults';
 
   const PREVIEW_RUNS = 5;

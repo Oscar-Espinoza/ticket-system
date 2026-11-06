@@ -9,7 +9,7 @@
     WORKSPACE_ROLE_LABEL,
     type WorkspaceMemberRow,
     type WorkspaceRole,
-  } from '@/lib/components/workspaces/workspace-types';
+  } from '@/lib/workspace-types';
   import { removeWorkspaceMember, updateWorkspaceMemberRole } from '@/lib/actions/workspaces';
   import { Button } from '@/lib/components/ui/button';
   import {

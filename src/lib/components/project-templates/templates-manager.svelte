@@ -30,7 +30,7 @@
   import PlusIcon from '@lucide/svelte/icons/plus';
   import Trash2Icon from '@lucide/svelte/icons/trash-2';
 
-  import { relativeTime } from '@/lib/components/issues/issue-properties';
+  import { relativeTime } from '@/lib/relative-time';
   import { EmptyState, LabelChip } from '@/lib/components/ui-icons';
   import { Button } from '@/lib/components/ui/button';
   import {

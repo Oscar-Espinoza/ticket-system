@@ -19,7 +19,7 @@ import { attachments, projects, tickets, workflowStates } from '@/db/schema';
 import { emitIssueEvent } from '@/lib/events';
 import { createIssue, DESCRIPTION_MAX, SYSTEM_ACTOR, TITLE_MAX } from '@/lib/issue-service';
 import { defaultNewIssueState, firstStateOfType } from '@/lib/workflow';
-import { hmacHex, safeEqual } from '@/lib/vcs/secrets';
+import { hmacHex, safeEqual } from '@/lib/server/crypto';
 import type { StateType } from '@/lib/issue-model';
 import { guardedRequest } from '@/lib/integrations/url-guard';
 

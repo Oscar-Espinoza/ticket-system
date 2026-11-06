@@ -9,7 +9,7 @@
   import { deleteEpicUpdate } from '@/lib/actions/epics';
   import { EmptyState } from '@/lib/components/ui-icons';
   import type { ProjectMember } from '@/lib/project-data-types';
-  import type { EpicUpdateRow, Health } from '@/lib/components/epics/epic-model';
+  import type { EpicUpdateRow, Health } from '@/lib/epic-model';
   import { Optimistic } from './optimistic.svelte';
   import UpdateCard from './update-card.svelte';
   import UpdateComposer from './update-composer.svelte';

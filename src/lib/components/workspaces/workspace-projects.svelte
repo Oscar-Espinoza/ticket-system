@@ -6,7 +6,7 @@
   Sub-teams are listed under their parent (D4a).
 -->
 <script module lang="ts">
-  import type { WorkspaceProjectRow } from '@/lib/components/workspaces/workspace-types';
+  import type { WorkspaceProjectRow } from '@/lib/workspace-types';
 
   /** The page's rows plus the team-structure columns (optional until it passes them). */
   export type WorkspaceTeamRow = WorkspaceProjectRow & {
@@ -19,7 +19,7 @@
   import FolderPlusIcon from '@lucide/svelte/icons/folder-plus';
   import PlusIcon from '@lucide/svelte/icons/plus';
 
-  import type { EligibleProject, WorkspaceRole } from '@/lib/components/workspaces/workspace-types';
+  import type { EligibleProject, WorkspaceRole } from '@/lib/workspace-types';
   import { Button } from '@/lib/components/ui/button';
   import { EmptyState } from '@/lib/components/ui-icons';
   import { roleAllows } from '@/lib/roles';

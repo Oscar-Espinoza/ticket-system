@@ -12,7 +12,7 @@
   import { DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/lib/components/ui/dialog';
   import { Input } from '@/lib/components/ui/input';
   import { Textarea } from '@/lib/components/ui/textarea';
-  import { DAY_MS, cycleName, lastDay, toDateInput } from '@/lib/components/cycles/cycle-utils';
+  import { DAY_MS, cycleName, lastDay, toDateInput } from '@/lib/cycle-utils';
   import type { EditableCycle } from './cycle-form-dialog.svelte';
 
   let {

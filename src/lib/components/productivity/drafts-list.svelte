@@ -17,7 +17,7 @@
 
   import { deleteDraft, discardAllDrafts } from '@/lib/actions/drafts';
   import { projectHref } from '@/lib/components/app-shell/routes';
-  import { relativeTime } from '@/lib/components/issues/issue-properties';
+  import { relativeTime } from '@/lib/relative-time';
   import {
     AlertDialog,
     AlertDialogAction,

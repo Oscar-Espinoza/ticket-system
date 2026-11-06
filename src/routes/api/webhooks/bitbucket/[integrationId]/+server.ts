@@ -10,7 +10,7 @@ import { after } from '@/lib/kit/request';
 import { verifySignature } from '@/lib/github/webhooks';
 import { syncBitbucketEvent } from '@/lib/vcs/bitbucket-sync';
 import { getWebhookIntegration, type BitbucketConfig } from '@/lib/vcs/integrations';
-import { decryptToken } from '@/lib/vcs/secrets';
+import { decryptToken } from '@/lib/server/crypto';
 import { readJsonBody, rejected } from '@/lib/vcs/webhook-request';
 
 export const POST: RequestHandler = async ({ request, params }) => {

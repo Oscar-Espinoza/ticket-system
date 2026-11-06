@@ -12,7 +12,7 @@ import { db } from '@/lib/db';
 import { epicRelations, epics } from '@/db/schema';
 import { authorizeProjectAction } from '@/lib/action-auth';
 import { emitIssueEvent } from '@/lib/events';
-import { isEpicRelationKind, type EpicRelationKind } from '@/lib/components/epics/epic-model';
+import { isEpicRelationKind, type EpicRelationKind } from '@/lib/epic-model';
 
 export type EpicRelationActionResult =
   | { ok: true; id?: string }

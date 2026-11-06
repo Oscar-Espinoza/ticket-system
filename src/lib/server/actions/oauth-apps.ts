@@ -22,7 +22,7 @@ import {
   OAUTH_APP_SCOPES,
   REDIRECT_URIS_MAX,
   type OAuthAppView,
-} from '@/lib/components/oauth/oauth-model';
+} from '@/lib/oauth-model';
 
 type Field = 'name' | 'redirectUris' | 'logoUrl' | 'homepageUrl';
 type Result<T = object> = ({ ok: true } & T) | { ok: false; error: string; field?: Field };

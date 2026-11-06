@@ -6,7 +6,7 @@
   (React export: EpicDependencies.)
 -->
 <script module lang="ts">
-  import type { EpicStatus } from '@/lib/components/epics/epic-model';
+  import type { EpicStatus } from '@/lib/epic-model';
 
   export interface DependencyCandidate {
     id: string;
@@ -32,7 +32,7 @@
     isScheduleConflict,
     type EpicRelationKind,
     type EpicRelationRow,
-  } from '@/lib/components/epics/epic-model';
+  } from '@/lib/epic-model';
   import AddDependency from './add-dependency.svelte';
   import EpicIcon from './epic-icon.svelte';
   import EpicStatusIcon from './epic-status-icon.svelte';

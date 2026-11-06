@@ -6,7 +6,7 @@ import type { RequestHandler } from './$types';
 import { allowOptions } from '../../_lib/options';
 
 import { getAttachmentFile } from '@/lib/attachments';
-import { isInlineSafe } from '@/lib/components/issue-hierarchy/attachment-utils';
+import { isInlineSafe } from '@/lib/attachment-utils';
 
 // Active-content types are served as opaque bytes even though they download.
 const ACTIVE_CONTENT = /^(text\/html|application\/xhtml\+xml|image\/svg\+xml|text\/xml|application\/xml|text\/javascript|application\/javascript)$/;

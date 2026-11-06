@@ -13,7 +13,7 @@ import {
   type DocumentBacklink,
   type DocumentDetail,
   type DocumentSummary,
-} from '@/lib/components/documents/document-model';
+} from '@/lib/document-model';
 
 const updater = alias(users, 'doc_updater');
 const creator = alias(users, 'doc_creator');

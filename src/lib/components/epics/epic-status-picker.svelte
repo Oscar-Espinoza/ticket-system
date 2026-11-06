@@ -1,7 +1,7 @@
 <!-- Keyboard-first epic status picker on the shared PickerPopover (trigger = children snippet). -->
 <script lang="ts">
   import { PickerPopover, type PickerPopoverProps } from '@/lib/components/issue-pickers';
-  import type { EpicStatus } from '@/lib/components/epics/epic-model';
+  import type { EpicStatus } from '@/lib/epic-model';
   import EpicStatusOptions from './epic-status-options.svelte';
 
   let {

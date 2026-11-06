@@ -7,7 +7,7 @@
   import {
     MAX_ATTACHMENT_LABEL,
     type AttachmentView,
-  } from '@/lib/components/issue-hierarchy/attachment-utils';
+  } from '@/lib/attachment-utils';
 
   type Row = AttachmentView & { pending?: boolean };
 
@@ -51,9 +51,9 @@
     attachmentPath,
     formatBytes,
     isPreviewableImage,
-  } from '@/lib/components/issue-hierarchy/attachment-utils';
+  } from '@/lib/attachment-utils';
   import SectionHeader from '@/lib/components/issue-hierarchy/section-header.svelte';
-  import { relativeTime } from '@/lib/components/issues/issue-properties';
+  import { relativeTime } from '@/lib/relative-time';
   import type { IssueMutations } from '@/lib/components/issues/use-issue-mutations.svelte';
   import { useProjectData, useProjectPermission } from '@/lib/components/project/project-data.svelte';
   import { Button } from '@/lib/components/ui/button';

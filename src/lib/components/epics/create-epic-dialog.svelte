@@ -27,7 +27,7 @@
     EPIC_STATUS_LABEL,
     epicPath,
     type EpicStatus,
-  } from '@/lib/components/epics/epic-model';
+  } from '@/lib/epic-model';
   import Chip from './chip-button.svelte';
   import ColorSwatches from './color-swatches.svelte';
   import DatePicker from './date-picker.svelte';

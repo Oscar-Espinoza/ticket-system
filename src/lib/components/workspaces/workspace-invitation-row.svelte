@@ -12,9 +12,9 @@
     WORKSPACE_ROLE_LABEL,
     type WorkspaceInvitationRow,
     type WorkspaceRole,
-  } from '@/lib/components/workspaces/workspace-types';
+  } from '@/lib/workspace-types';
   import { resendWorkspaceInvitation, revokeWorkspaceInvitation } from '@/lib/actions/workspaces';
-  import { relativeTime } from '@/lib/components/issues/issue-properties';
+  import { relativeTime } from '@/lib/relative-time';
   import { Button } from '@/lib/components/ui/button';
   import {
     DropdownMenu,

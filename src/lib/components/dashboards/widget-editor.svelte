@@ -4,7 +4,7 @@
 -->
 <script lang="ts">
   import { Dialog, DialogContent } from '@/lib/components/ui/dialog';
-  import type { DashboardDataset, Widget } from '@/lib/components/dashboards/widget-model';
+  import type { DashboardDataset, Widget } from '@/lib/widget-model';
   import WidgetEditorForm from './widget-editor-form.svelte';
 
   let {

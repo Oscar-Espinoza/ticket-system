@@ -14,7 +14,7 @@ import { browser } from '$app/env';
 import { createSubscriber } from 'svelte/reactivity';
 
 import { listAvailableEpics } from '@/lib/actions/epics';
-import type { ForeignEpicOption } from '@/lib/components/epics/epic-model';
+import type { ForeignEpicOption } from '@/lib/epic-model';
 
 const STALE_MS = 60_000;
 

@@ -23,7 +23,7 @@
     splitDomains,
     type CustomerRow,
     type CustomerStatus,
-  } from '@/lib/components/customers/customer-model';
+  } from '@/lib/customer-model';
   import { STATUS_DOT_CLASS } from './customer-glyphs';
 
   type Field = 'name' | 'domains' | 'tier' | 'revenue' | 'size' | 'ownerId';

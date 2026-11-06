@@ -21,7 +21,7 @@
     formatSize,
     type CustomerRequestView,
     type CustomerRow,
-  } from '@/lib/components/customers/customer-model';
+  } from '@/lib/customer-model';
   import { updateCustomer, type CustomerInput } from '@/lib/actions/customers';
   import MemberPicker from '@/lib/components/epics/member-picker.svelte';
   import IssueRefRow from '@/lib/components/issue-hierarchy/issue-ref-row.svelte';

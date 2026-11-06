@@ -20,8 +20,7 @@ import {
 } from '@/db/schema';
 import type { ApiCredential, ApiScope } from '@/lib/api-auth';
 import type { IssueRow } from '@/lib/issue-model';
-import type { ProjectRole } from '@/lib/roles';
-import { roleAllows, type AccessLevel } from '@/lib/roles';
+import { roleAllows, type AccessLevel, type ProjectRole } from '@/lib/roles';
 import { queryIssues } from '@/lib/tickets';
 import { createLoader, groupBy } from './loader';
 

@@ -20,7 +20,7 @@ import {
   getProjectCycles,
   loadCycleHistory,
 } from '@/lib/cycles';
-import { cycleCapacity, cycleName, cycleStatus, percent } from '@/lib/components/cycles/cycle-utils';
+import { cycleCapacity, cycleName, cycleStatus, percent } from '@/lib/cycle-utils';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, cookies }) => {

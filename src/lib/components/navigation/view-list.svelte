@@ -38,7 +38,7 @@
   import DeleteViewDialog from './delete-view-dialog.svelte';
   import EditViewDialog from './edit-view-dialog.svelte';
   import FavoriteButton from './favorite-button.svelte';
-  import { relativeTime } from '@/lib/components/issues/issue-properties';
+  import { relativeTime } from '@/lib/relative-time';
 
   let {
     views,

@@ -1,7 +1,4 @@
-// Copy of `relativeTime` from src/components/issues/issue-properties.tsx
-// (lane L3a's file; its Svelte port's location for this non-component export
-// is not fixed yet). Identical output; used by Timestamp and the documents UI.
-// Coordinator: dedupe once L3a's issue-properties port exports it.
+// Short relative timestamps ("3h ago", "in 2d", "just now") shared by every list and feed.
 
 const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
   ['year', 31_536_000],

@@ -22,7 +22,7 @@
     DropdownMenuSubTrigger,
     DropdownMenuTrigger,
   } from '@/lib/components/ui/dropdown-menu';
-  import { WIDGET_SIZES, sizeOf, type Widget } from '@/lib/components/dashboards/widget-model';
+  import { WIDGET_SIZES, sizeOf, type Widget } from '@/lib/widget-model';
 
   let {
     widget,

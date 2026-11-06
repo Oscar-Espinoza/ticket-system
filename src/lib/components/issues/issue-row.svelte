@@ -7,7 +7,6 @@
 <script module lang="ts">
   import type { IssuePatch, IssueRow as Issue } from '@/lib/issue-model';
 
-  export { relativeTime } from './issue-properties';
 
   export interface IssueRowProps {
     issue: Issue;
@@ -40,7 +39,7 @@
   import { useDisplayOptions } from './display-options.svelte';
   import DueDateChip from './due-date-chip.svelte';
   import EstimateChip from './estimate-chip.svelte';
-  import { relativeTime } from './issue-properties';
+  import { relativeTime } from '@/lib/relative-time';
   import LabelChips from './label-chips.svelte';
   import RowButton from './row-button.svelte';
   import SelectCheckbox from './select-checkbox.svelte';

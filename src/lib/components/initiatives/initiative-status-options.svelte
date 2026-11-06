@@ -12,7 +12,7 @@
     INITIATIVE_STATUSES,
     INITIATIVE_STATUS_LABEL,
     type InitiativeStatus,
-  } from '@/lib/components/initiatives/initiative-model';
+  } from '@/lib/initiative-model';
   import InitiativeStatusIcon from './initiative-status-icon.svelte';
 
   let {

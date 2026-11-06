@@ -1,7 +1,7 @@
 // Initiative shapes and constants (client-safe; shared by reads, actions and UI).
 
 import type { IssueUser } from '@/lib/issue-model';
-import type { EpicRow, MilestoneRow, Progress } from '@/lib/components/epics/epic-model';
+import type { EpicRow, MilestoneRow, Progress } from '@/lib/epic-model';
 
 export const INITIATIVE_STATUSES = ['planned', 'active', 'completed'] as const;
 export type InitiativeStatus = (typeof INITIATIVE_STATUSES)[number];

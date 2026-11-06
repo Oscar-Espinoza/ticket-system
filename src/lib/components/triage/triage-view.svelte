@@ -18,7 +18,7 @@
   import IssueDetailPane from '@/lib/components/issue-detail/issue-detail-pane.svelte';
   import { useIsDesktop } from '@/lib/components/issue-detail/use-is-desktop.svelte';
   import LabelChips from '@/lib/components/issues/label-chips.svelte';
-  import { relativeTime } from '@/lib/components/issues/issue-properties';
+  import { relativeTime } from '@/lib/relative-time';
   import { useIssueMutations } from '@/lib/components/issues/use-issue-mutations.svelte';
   import { useProjectPermission } from '@/lib/components/project/project-data.svelte';
   import { Button } from '@/lib/components/ui/button';

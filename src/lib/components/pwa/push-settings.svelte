@@ -105,7 +105,7 @@
 
   import { sendTestPush, updateDeliverySettings } from '@/lib/actions/settings-notifications';
   import SwitchRow from '@/lib/components/inbox/switch-row.svelte';
-  import { relativeTime } from '@/lib/components/issues/issue-properties';
+  import { relativeTime } from '@/lib/relative-time';
   import { Button } from '@/lib/components/ui/button';
   import { refreshAfterWrite } from '@/lib/svelte/refresh.svelte';
 

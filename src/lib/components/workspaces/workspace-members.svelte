@@ -12,7 +12,7 @@
     WorkspaceInvitationRow,
     WorkspaceMemberRow,
     WorkspaceRole,
-  } from '@/lib/components/workspaces/workspace-types';
+  } from '@/lib/workspace-types';
   import { Button } from '@/lib/components/ui/button';
   import WorkspaceInvitationRowView from './workspace-invitation-row.svelte';
   import WorkspaceInviteDialog from './workspace-invite-dialog.svelte';

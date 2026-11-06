@@ -19,7 +19,7 @@
   } from '@/lib/components/ui/dropdown-menu';
   import { ToggleGroup, ToggleGroupItem } from '@/lib/components/ui/toggle-group';
   import { EmptyState } from '@/lib/components/ui-icons';
-  import { relativeTime } from '@/lib/components/issues/issue-properties';
+  import { relativeTime } from '@/lib/relative-time';
   import {
     archiveNotifications,
     archiveReadNotifications,

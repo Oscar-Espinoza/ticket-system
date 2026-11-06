@@ -23,7 +23,7 @@ import {
   normalizeContentType,
   parseLinkUrl,
   type AttachmentView,
-} from '@/lib/components/issue-hierarchy/attachment-utils';
+} from '@/lib/attachment-utils';
 
 export type AttachmentResult =
   | { ok: true; attachment: AttachmentView }

@@ -9,8 +9,7 @@
 // fields off it in markup, $derived or $effect — destructuring takes a snapshot.
 
 import { useProjectData } from '@/lib/components/project/project-data.svelte';
-import { roleAllows, type ProjectRole } from '@/lib/roles';
-import { assignableRoles, canManageMember, type AssignableRole } from '@/lib/components/workspaces/role-rules';
+import { assignableRoles, canManageMember, roleAllows, type AssignableRole, type ProjectRole } from '@/lib/roles';
 
 export interface ProjectPermissions {
   role: ProjectRole;

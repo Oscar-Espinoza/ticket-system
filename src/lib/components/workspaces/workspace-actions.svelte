@@ -10,7 +10,7 @@
   import Trash2Icon from '@lucide/svelte/icons/trash-2';
   import { toast } from 'svelte-sonner';
 
-  import type { WorkspaceRole } from '@/lib/components/workspaces/workspace-types';
+  import type { WorkspaceRole } from '@/lib/workspace-types';
   import { deleteWorkspace, leaveWorkspace, renameWorkspace } from '@/lib/actions/workspaces';
   import { Button } from '@/lib/components/ui/button';
   import {

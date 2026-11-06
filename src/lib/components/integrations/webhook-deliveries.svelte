@@ -12,7 +12,7 @@
     type WebhookDeliveryView,
     type WebhookView,
   } from '@/lib/actions/integrations';
-  import { relativeTime } from '@/lib/components/issues/issue-properties';
+  import { relativeTime } from '@/lib/relative-time';
   import { Button } from '@/lib/components/ui/button';
   import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/lib/components/ui/dialog';
   import { EmptyState, Skeleton } from '@/lib/components/ui-icons';

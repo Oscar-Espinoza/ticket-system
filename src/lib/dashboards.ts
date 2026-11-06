@@ -13,7 +13,7 @@ import {
   normalizeWidgets,
   type DashboardDataset,
   type DashboardRecord,
-} from '@/lib/components/dashboards/widget-model';
+} from '@/lib/widget-model';
 import { getProjectData } from '@/lib/project-data';
 import type { ProjectData } from '@/lib/project-data-types';
 import { memberOfIssueProject, queryIssues } from '@/lib/tickets';

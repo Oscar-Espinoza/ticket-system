@@ -22,7 +22,7 @@
     type DashboardDataset,
     type Widget,
     type WidgetConfig,
-  } from '@/lib/components/dashboards/widget-model';
+  } from '@/lib/widget-model';
   import WidgetChoice from './widget-choice.svelte';
   import WidgetField from './widget-field.svelte';
   import WidgetProjectFilters from './widget-project-filters.svelte';

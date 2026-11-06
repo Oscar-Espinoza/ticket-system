@@ -6,7 +6,7 @@ import { and, desc, eq, ilike, isNull, or } from 'drizzle-orm';
 import { projects, tickets, workflowStates } from '@/db/schema';
 import { authorizeProjectAction } from '@/lib/action-auth';
 import { db } from '@/lib/db';
-import type { EditorIssue } from '@/lib/components/editor/editor-issue';
+import type { EditorIssue } from '@/lib/editor-issue';
 
 const LIMIT = 8;
 

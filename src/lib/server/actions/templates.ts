@@ -12,7 +12,7 @@ import {
   TEMPLATE_FIELDS,
   sanitizeIssueDefaults,
   type IssueDefaults,
-} from '@/lib/components/productivity/issue-defaults';
+} from '@/lib/issue-defaults';
 
 export interface IssueTemplate {
   id: string;

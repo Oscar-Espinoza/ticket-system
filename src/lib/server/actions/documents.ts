@@ -15,7 +15,7 @@ import {
   documentsPath,
   isTemplateId,
   type DocumentTemplateId,
-} from '@/lib/components/documents/document-model';
+} from '@/lib/document-model';
 import { authorizeProjectAction } from '@/lib/action-auth';
 import { docCollabKey } from '@/lib/collab/codec';
 import { deleteCollabQueries } from '@/lib/collab/store';

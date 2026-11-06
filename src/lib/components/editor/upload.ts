@@ -7,7 +7,7 @@ import {
   MAX_ATTACHMENT_LABEL,
   attachmentPath,
   isPreviewableImage,
-} from '@/lib/components/issue-hierarchy/attachment-utils';
+} from '@/lib/attachment-utils';
 
 export type UploadTarget = { projectId: string; ticketId?: string };
 

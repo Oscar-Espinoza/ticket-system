@@ -14,8 +14,8 @@ import {
   toRecurringIssue,
   type RecurringRow,
 } from '@/lib/recurring';
-import { sanitizeIssueDefaults, TEMPLATE_FIELDS } from '@/lib/components/productivity/issue-defaults';
-import { utcDay } from '@/lib/components/cycles/cycle-utils';
+import { sanitizeIssueDefaults, TEMPLATE_FIELDS } from '@/lib/issue-defaults';
+import { utcDay } from '@/lib/cycle-utils';
 import {
   DUE_IN_DAYS_MAX,
   normalizeSchedule,
@@ -23,7 +23,7 @@ import {
   type RecurringDefaults,
   type RecurringIssue,
   type RecurringSchedule,
-} from '@/lib/components/recurring/schedule';
+} from '@/lib/recurring-schedule';
 
 type Field = 'title' | 'description' | 'schedule' | 'dueInDays';
 type Fail = { ok: false; error: string; field?: Field };

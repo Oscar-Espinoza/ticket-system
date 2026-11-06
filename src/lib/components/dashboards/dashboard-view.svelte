@@ -60,7 +60,7 @@
     type DashboardRecord,
     type Widget,
     type WidgetType,
-  } from '@/lib/components/dashboards/widget-model';
+  } from '@/lib/widget-model';
   import DashboardDetailsDialog from './dashboard-details-dialog.svelte';
   import WidgetBody from './widget-body.svelte';
   import WidgetEditor from './widget-editor.svelte';

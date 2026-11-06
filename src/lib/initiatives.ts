@@ -20,12 +20,12 @@ import {
 } from '@/db/schema';
 import { epicProgressQuery, selectEpics, toEpicRow, viewerIsMember } from '@/lib/epics';
 import { roleAllows } from '@/lib/roles';
-import { EMPTY_PROGRESS, addProgress, type Progress } from '@/lib/components/epics/epic-model';
+import { EMPTY_PROGRESS, addProgress, type Progress } from '@/lib/epic-model';
 import {
   toInitiativeStatus,
   type InitiativeDetail,
   type InitiativeRow,
-} from '@/lib/components/initiatives/initiative-model';
+} from '@/lib/initiative-model';
 
 const ownerUsers = alias(users, 'owner');
 

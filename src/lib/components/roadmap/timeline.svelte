@@ -12,7 +12,7 @@
   red when the blocked item starts on or before its blocker's target date.
 -->
 <script module lang="ts">
-  import type { EpicStatus, Progress } from '@/lib/components/epics/epic-model';
+  import type { EpicStatus, Progress } from '@/lib/epic-model';
 
   export type Zoom = 'weeks' | 'months' | 'quarters';
   export const ZOOMS: { id: Zoom; label: string }[] = [
@@ -51,7 +51,7 @@
   import EpicIcon from '@/lib/components/epics/epic-icon.svelte';
   import EpicStatusIcon from '@/lib/components/epics/epic-status-icon.svelte';
   import MilestoneGlyph from '@/lib/components/epics/milestone-glyph.svelte';
-  import { isClosedEpic, progressPercent } from '@/lib/components/epics/epic-model';
+  import { isClosedEpic, progressPercent } from '@/lib/epic-model';
   import { addDays, formatDueDate, fromDateString, toDateString } from '@/lib/dates';
   import { cn } from '@/lib/utils';
 

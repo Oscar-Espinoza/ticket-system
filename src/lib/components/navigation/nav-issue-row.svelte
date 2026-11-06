@@ -30,7 +30,7 @@
   import { issuePath } from '@/lib/issue-links';
   import { PRIORITY_LABEL } from '@/lib/issue-model';
   import { cn } from '@/lib/utils';
-  import { relativeTime } from '@/lib/components/issues/issue-properties';
+  import { relativeTime } from '@/lib/relative-time';
 
   let { issue, title, below, project, time, actions }: NavIssueRowProps = $props();
 

@@ -8,8 +8,8 @@
   import Field from '@/lib/components/settings/field.svelte';
   import { Button } from '@/lib/components/ui/button';
   import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/lib/components/ui/select';
-  import { relativeTime } from '@/lib/components/issues/issue-properties';
-  import { AUTOMATION_MONTHS } from '@/lib/components/cycles/cycle-utils';
+  import { relativeTime } from '@/lib/relative-time';
+  import { AUTOMATION_MONTHS } from '@/lib/cycle-utils';
 
   const OFF = 'off';
 

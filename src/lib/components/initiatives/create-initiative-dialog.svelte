@@ -23,13 +23,13 @@
   import { Avatar } from '@/lib/components/ui-icons';
   import { formatDueDate } from '@/lib/dates';
   import type { IssueUser } from '@/lib/issue-model';
-  import { EPIC_DESCRIPTION_MAX } from '@/lib/components/epics/epic-model';
+  import { EPIC_DESCRIPTION_MAX } from '@/lib/epic-model';
   import {
     INITIATIVE_NAME_MAX,
     INITIATIVE_STATUS_LABEL,
     initiativesPath,
     type InitiativeStatus,
-  } from '@/lib/components/initiatives/initiative-model';
+  } from '@/lib/initiative-model';
   import InitiativeStatusIcon from './initiative-status-icon.svelte';
   import InitiativeStatusPicker from './initiative-status-picker.svelte';
 

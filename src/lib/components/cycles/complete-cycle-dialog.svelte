@@ -16,7 +16,7 @@
   } from '@/lib/components/ui/dialog';
   import { Label } from '@/lib/components/ui/label';
   import { RadioGroup, RadioGroupItem } from '@/lib/components/ui/radio-group';
-  import { cycleName } from '@/lib/components/cycles/cycle-utils';
+  import { cycleName } from '@/lib/cycle-utils';
   import type { EditableCycle } from './cycle-form-dialog.svelte';
 
   let {

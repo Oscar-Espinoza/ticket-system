@@ -20,8 +20,8 @@
   } from '@/lib/components/ui/dropdown-menu';
   import { LabelChip } from '@/lib/components/ui-icons';
   import { useProjectPermissions } from '@/lib/components/workspaces/permissions.svelte';
-  import { PROJECT_ROLE_LABEL } from '@/lib/components/workspaces/role-rules';
-  import { relativeTime } from '@/lib/components/issues/issue-properties';
+  import { PROJECT_ROLE_LABEL } from '@/lib/roles';
+  import { relativeTime } from '@/lib/relative-time';
   import type { PendingInvitation } from './invite-panel.svelte';
   import { announceSent, copyText } from './invite-panel-utils';
 

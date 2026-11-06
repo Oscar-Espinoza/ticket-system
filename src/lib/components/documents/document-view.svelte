@@ -24,15 +24,15 @@
   import {
     TITLE_MAX,
     documentsPath,
-    downloadMarkdown,
     type DocumentBacklink,
     type DocumentDetail,
-  } from '@/lib/components/documents/document-model';
-  import { epicPath } from '@/lib/components/epics/epic-model';
+  } from '@/lib/document-model';
+  import { downloadMarkdown } from './download-markdown';
+  import { epicPath } from '@/lib/epic-model';
   import CollabAvatars from '@/lib/components/collab/collab-avatars.svelte';
   import CollabStatusBadge from '@/lib/components/collab/collab-status-badge.svelte';
   import { collabColor, useCollab, useCollabPeers } from '@/lib/components/collab/use-collab.svelte';
-  import { relativeTime } from '@/lib/components/comments/relative-time';
+  import { relativeTime } from '@/lib/relative-time';
   import { serializeMarkdown } from '@/lib/components/editor/rich-editor.svelte';
   import EpicIcon from '@/lib/components/epics/epic-icon.svelte';
   import EpicPicker from '@/lib/components/epics/epic-picker.svelte';

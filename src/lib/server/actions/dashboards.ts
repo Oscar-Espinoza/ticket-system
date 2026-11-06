@@ -13,7 +13,7 @@ import {
   normalizeWidgets,
   starterWidgets,
   type Widget,
-} from '@/lib/components/dashboards/widget-model';
+} from '@/lib/widget-model';
 import { authorizeProjectAction } from '@/lib/action-auth';
 import { getDashboardForViewer } from '@/lib/dashboards';
 import { getSession } from '@/lib/session';

@@ -55,7 +55,7 @@ import {
   type MilestoneRow,
   type Progress,
   type ProjectRef,
-} from '@/lib/components/epics/epic-model';
+} from '@/lib/epic-model';
 
 const leadUsers = alias(users, 'lead');
 const authorUsers = alias(users, 'author');

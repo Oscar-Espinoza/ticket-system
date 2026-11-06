@@ -5,7 +5,9 @@
 // `endsAt` 00:00Z of the day AFTER the last one (exclusive), so consecutive
 // cycles share an edge and every viewer sees the same calendar days.
 
-export const DAY_MS = 86_400_000;
+import { DAY_MS } from '@/lib/time';
+
+export { DAY_MS };
 
 export const WEEKDAYS = [
   'Sunday',

@@ -2,7 +2,7 @@
 <script lang="ts">
   import PencilIcon from '@lucide/svelte/icons/pencil';
 
-  import { CUSTOMER_NOTES_MAX } from '@/lib/components/customers/customer-model';
+  import { CUSTOMER_NOTES_MAX } from '@/lib/customer-model';
   import Markdown from '@/lib/components/editor/markdown.svelte';
   import MarkdownEditor from '@/lib/components/editor/markdown-editor.svelte';
   import { Button } from '@/lib/components/ui/button';

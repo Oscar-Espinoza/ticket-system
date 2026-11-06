@@ -17,7 +17,7 @@
     updateWebhook,
     type WebhookView,
   } from '@/lib/actions/integrations';
-  import { relativeTime } from '@/lib/components/issues/issue-properties';
+  import { relativeTime } from '@/lib/relative-time';
   import {
     AlertDialog,
     AlertDialogAction,

@@ -31,8 +31,8 @@ import { cache } from '@/lib/kit/request';
 import { db } from '@/lib/db';
 import type { ProjectRole } from '@/lib/roles';
 import { projectMembers, projects } from '@/db/schema';
-import { and, asc, eq } from 'drizzle-orm';
-import { alias } from 'drizzle-orm/pg-core';
+import { and, asc, eq, exists, sql, type SQL } from 'drizzle-orm';
+import { alias, type AnyPgColumn } from 'drizzle-orm/pg-core';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -207,3 +207,18 @@ export const getSharedProjects = cache(async (viewerId: string, userId: string) 
     .where(eq(projectMembers.userId, userId))
     .orderBy(asc(projects.name));
 });
+
+/**
+ * SQL condition: `userId` is a member of the project in `projectColumn`. The
+ * tenant filter for every project-scoped read that lists rows (correlated
+ * EXISTS, so it composes into any WHERE).
+ */
+export function projectMemberOf(projectColumn: AnyPgColumn | SQL, userId: string): SQL {
+  const viewer = alias(projectMembers, 'member_viewer');
+  return exists(
+    db
+      .select({ one: sql`1` })
+      .from(viewer)
+      .where(and(eq(viewer.projectId, projectColumn), eq(viewer.userId, userId))),
+  );
+}

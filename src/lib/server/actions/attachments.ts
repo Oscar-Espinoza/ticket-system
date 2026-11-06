@@ -10,7 +10,7 @@ import {
   removeAttachment,
   type AttachmentResult,
 } from '@/lib/attachments';
-import type { AttachmentView } from '@/lib/components/issue-hierarchy/attachment-utils';
+import type { AttachmentView } from '@/lib/attachment-utils';
 
 export type GetAttachmentsResult =
   | { ok: true; attachments: AttachmentView[] }

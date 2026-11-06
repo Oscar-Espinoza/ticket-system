@@ -51,7 +51,7 @@ import {
   type ReviewDecision,
   type VcsProvider,
 } from '@/lib/vcs/providers';
-import { decryptToken, encryptToken, newSecret } from '@/lib/vcs/secrets';
+import { decryptToken, encryptToken, newSecret } from '@/lib/server/crypto';
 
 type Fail = { ok: false; error: string };
 

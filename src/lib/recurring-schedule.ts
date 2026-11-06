@@ -2,7 +2,7 @@
 // human summary. Days are UTC calendar days, like cycles: an occurrence's
 // `nextRunAt` is 00:00Z of its day and the daily cron creates it that day.
 
-import { DAY_MS, WEEKDAYS, formatWeekday, fromDateInput, utcDay } from '@/lib/components/cycles/cycle-utils';
+import { DAY_MS, WEEKDAYS, formatWeekday, fromDateInput, utcDay } from '@/lib/cycle-utils';
 import { isDateString } from '@/lib/dates';
 
 export const FREQUENCIES = ['daily', 'weekly', 'monthly'] as const;

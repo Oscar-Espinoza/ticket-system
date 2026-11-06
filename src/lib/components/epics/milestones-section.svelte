@@ -15,7 +15,7 @@
   } from '@/lib/actions/epics';
   import { Button } from '@/lib/components/ui/button';
   import { Input } from '@/lib/components/ui/input';
-  import { EMPTY_PROGRESS, type MilestoneRow } from '@/lib/components/epics/epic-model';
+  import { EMPTY_PROGRESS, type MilestoneRow } from '@/lib/epic-model';
   import MilestoneGlyph from './milestone-glyph.svelte';
   import MilestoneItem from './milestone-item.svelte';
   import { Optimistic } from './optimistic.svelte';

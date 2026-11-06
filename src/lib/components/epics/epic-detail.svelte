@@ -6,7 +6,7 @@
   the Issues tab; only this project's issues are editable in place.
 -->
 <script module lang="ts">
-  import type { DocumentSummary } from '@/lib/components/documents/document-model';
+  import type { DocumentSummary } from '@/lib/document-model';
   import type { IssueRow } from '@/lib/issue-model';
   import type {
     EpicLabelRow,
@@ -16,7 +16,7 @@
     InitiativeOption,
     MilestoneRow,
     ProjectRef,
-  } from '@/lib/components/epics/epic-model';
+  } from '@/lib/epic-model';
 
   export interface EpicDetailProps {
     epic: EpicRow;
@@ -73,7 +73,7 @@
   import { Avatar } from '@/lib/components/ui-icons';
   import { formatDueDate } from '@/lib/dates';
   import { setSearchParams, useSearchParams } from '@/lib/svelte/search-params.svelte';
-  import { DEFAULT_EPIC_COLOR, EPIC_STATUS_LABEL } from '@/lib/components/epics/epic-model';
+  import { DEFAULT_EPIC_COLOR, EPIC_STATUS_LABEL } from '@/lib/epic-model';
   import ColorSwatches from './color-swatches.svelte';
   import DatePicker from './date-picker.svelte';
   import EpicDescription from './epic-description.svelte';
