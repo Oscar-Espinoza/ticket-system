@@ -21,6 +21,7 @@ export const toInitiativeStatus = (value: string): InitiativeStatus =>
   isInitiativeStatus(value) ? value : 'planned';
 
 export const INITIATIVE_NAME_MAX = 80;
+export const INITIATIVE_DESCRIPTION_MAX = 20_000;
 
 export interface InitiativeRow {
   id: string;

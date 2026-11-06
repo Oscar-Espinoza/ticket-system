@@ -18,7 +18,8 @@ import {
   users,
   workspaceMembers,
 } from '@/db/schema';
-import { epicProgressQuery, selectEpics, toEpicRow, viewerIsMember } from '@/lib/epics';
+import { epicProgressQuery, selectEpics, toEpicRow } from '@/lib/epics';
+import { projectMemberOf } from '@/lib/project-access';
 import { roleAllows } from '@/lib/roles';
 import { EMPTY_PROGRESS, addProgress, type Progress } from '@/lib/epic-model';
 import {
@@ -79,7 +80,7 @@ function toInitiativeRow(
 
 /** Visible, non-archived epics linked to `initiativeWhere`'s initiatives. */
 function visibleEpics(userId: string) {
-  return and(isNull(epics.archivedAt), viewerIsMember(epics.projectId, userId))!;
+  return and(isNull(epics.archivedAt), projectMemberOf(epics.projectId, userId))!;
 }
 
 /** The workspace's initiatives with rolled-up progress; [] for non-members. */
@@ -106,7 +107,7 @@ export const getWorkspaceInitiatives = cache(
         .from(epics)
         .where(and(inArray(epics.initiativeId, workspaceInitiativeIds), visibleEpics(userId))),
       epicProgressQuery(
-        and(inArray(tickets.epicId, linkedEpicIds), viewerIsMember(tickets.projectId, userId)),
+        and(inArray(tickets.epicId, linkedEpicIds), projectMemberOf(tickets.projectId, userId)),
       ),
     ]);
 
@@ -150,7 +151,7 @@ export const getInitiativeDetail = cache(
         ),
         selectEpics(linked),
         epicProgressQuery(
-          and(inArray(tickets.epicId, linkedEpicIds), viewerIsMember(tickets.projectId, userId)),
+          and(inArray(tickets.epicId, linkedEpicIds), projectMemberOf(tickets.projectId, userId)),
         ),
         db
           .select({

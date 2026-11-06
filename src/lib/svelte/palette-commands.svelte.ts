@@ -1,28 +1,60 @@
 // Extension point for context-specific palette commands (built-ins are passed as props).
-//
-// Svelte face of src/lib/palette-commands.ts. That module is React-free, so the
-// registry itself is shared (re-exported, one list for the whole tab); this file
-// adds the reactive view the command palette renders.
 //   registerPaletteCommands(list) → cleanup   call from $effect and return the cleanup
-//   getPaletteCommands() / subscribePaletteCommands(fn)   raw snapshot + listener
-//   paletteCommands.current                   reactive list (replaces
-//                                             useSyncExternalStore(subscribe…, get…))
+//   paletteCommands.current                   reactive list the command palette renders
 //
 //   $effect(() => registerPaletteCommands([{ id: 'new-cycle', label: 'New cycle', run }]));
 
 import { createSubscriber } from 'svelte/reactivity';
 
-import { getPaletteCommands, subscribePaletteCommands } from '@/lib/palette-commands';
+export interface PaletteCommand {
+  /** Unique — re-registering the same id replaces it (idempotent HMR). */
+  id: string;
+  label: string;
+  /** Group heading in the palette (default "General"). */
+  section?: string;
+  /** Extra cmdk filter terms (not shown in the UI). */
+  keywords?: string[];
+  run: () => void;
+}
 
-export { getPaletteCommands, registerPaletteCommands, subscribePaletteCommands } from '@/lib/palette-commands';
-export type { PaletteCommand } from '@/lib/palette-commands';
+// One list for the whole tab.
+let commands: PaletteCommand[] = [];
+let snapshot: PaletteCommand[] = [];
+// Plain Set: subscribers are notified through createSubscriber, not by reactivity.
+// eslint-disable-next-line svelte/prefer-svelte-reactivity
+const listeners = new Set<() => void>();
 
-const trackCommands = createSubscriber((update) => subscribePaletteCommands(update));
+function publish() {
+  snapshot = [...commands];
+  listeners.forEach((listener) => listener());
+}
+
+/** Register commands; returns an idempotent cleanup. */
+export function registerPaletteCommands(next: PaletteCommand[]): () => void {
+  // eslint-disable-next-line svelte/prefer-svelte-reactivity
+  const ids = new Set(next.map((command) => command.id));
+  commands = [...commands.filter((command) => !ids.has(command.id)), ...next];
+  publish();
+  let cleaned = false;
+  return () => {
+    if (cleaned) return;
+    cleaned = true;
+    commands = commands.filter((command) => !ids.has(command.id));
+    publish();
+  };
+}
+
+const trackCommands = createSubscriber((update) => {
+  listeners.add(update);
+  return () => {
+    listeners.delete(update);
+  };
+});
 
 /** Reactive view of the extension commands: read `.current` in markup, $derived or $effect. */
 export const paletteCommands = {
   get current() {
     trackCommands();
-    return getPaletteCommands();
+    return snapshot;
   },
 };

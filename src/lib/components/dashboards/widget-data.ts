@@ -5,12 +5,11 @@
 import { filterIssues, parseSearchQuery, searchIs, type FilterContext } from '@/lib/issue-filtering';
 import { sortIssues } from '@/lib/issue-grouping';
 import { PRIORITY_ORDER, type IssueRow, type StateType } from '@/lib/issue-model';
-import type { BreakdownRow, WeekPoint } from '@/lib/insights';
+import type { BreakdownRow, WeekPoint } from '@/lib/insights-model';
 import type { CycleSummary, EpicSummary, ProjectData } from '@/lib/project-data-types';
+import { DAY_MS } from '@/lib/time';
 import { isClosed } from '@/lib/workflow';
 import type { DashboardDataset, Widget } from '@/lib/widget-model';
-
-const DAY_MS = 86_400_000;
 
 /** The projects a widget covers (its own, else the whole dashboard scope). */
 export function widgetProjects(widget: Widget, dataset: DashboardDataset): ProjectData[] {

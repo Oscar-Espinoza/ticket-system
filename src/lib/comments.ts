@@ -119,6 +119,15 @@ async function projectMemberIds(projectId: string, ids: string[]): Promise<strin
 // Timeline read
 // ---------------------------------------------------------------------------
 
+/** `loadIssueTimeline` for an untrusted `ticketId`; a missing id is "not found". */
+export async function readIssueTimeline(
+  projectId: string,
+  ticketId: unknown,
+): Promise<CommentResult<{ timeline: IssueTimeline }>> {
+  if (typeof ticketId !== 'string' || !ticketId) return { ok: false, error: 'Issue not found.' };
+  return { ok: true, timeline: await loadIssueTimeline(projectId, ticketId) };
+}
+
 export async function loadIssueTimeline(projectId: string, ticketId: string): Promise<IssueTimeline> {
   const onTicket = and(eq(comments.ticketId, ticketId), eq(tickets.projectId, projectId));
   const [activityRows, commentRows, reactionRows] = await db.batch([

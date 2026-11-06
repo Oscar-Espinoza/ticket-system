@@ -37,6 +37,9 @@ export const TITLE_MAX = 200;
 export const CONTENT_MAX = 200_000;
 export const ICON_MAX = 16;
 
+/** Shape of a document id (also what the collab key parser accepts). */
+export const DOCUMENT_ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
+
 export const documentsPath = (projectId: string) => `/dashboard/projects/${projectId}/docs`;
 export const documentPath = (projectId: string, documentId: string) => `${documentsPath(projectId)}/${documentId}`;
 

@@ -11,7 +11,7 @@ import * as Y from 'yjs';
 
 import { collabDocs, collabUpdates } from '@/db/schema';
 import { db } from '@/lib/db';
-import { awarenessKey, fromBase64, toBase64, type CollabRow } from './codec';
+import { awarenessKey, collabKey, fromBase64, toBase64, type CollabKind, type CollabRow } from './codec';
 
 const AWARENESS_TTL_MS = 60_000;
 /** Awareness rows included in a full sync (someone idle longer has expired anyway). */
@@ -177,8 +177,9 @@ export async function maybeCompact(key: string): Promise<void> {
   ]);
 }
 
-/** Drops every trace of a key (document deleted). */
-export function deleteCollabQueries(key: string) {
+/** Drops every trace of an entity's collaborative state (batch these with the entity's own delete). */
+export function deleteCollabState(kind: CollabKind, id: string) {
+  const key = collabKey(kind, id);
   return [
     db.delete(collabDocs).where(eq(collabDocs.key, key)),
     db.delete(collabUpdates).where(or(eq(collabUpdates.key, key), eq(collabUpdates.key, awarenessKey(key)))),

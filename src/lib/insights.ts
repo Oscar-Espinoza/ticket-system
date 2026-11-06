@@ -11,53 +11,19 @@ import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 import { db } from '@/lib/db';
 import { issueLabels, labels, tickets, users, workflowStates } from '@/db/schema';
 import type { Priority, StateType } from '@/lib/issue-model';
+import type { Distribution, InsightRange, ProjectInsights, WeekPoint } from '@/lib/insights-model';
+import { DAY_MS } from '@/lib/time';
 
-export const INSIGHT_RANGES = [4, 12, 26, 52] as const;
-export type InsightRange = (typeof INSIGHT_RANGES)[number];
-export const DEFAULT_INSIGHT_RANGE: InsightRange = 12;
-
-export function parseInsightRange(value: unknown): InsightRange {
-  const weeks = typeof value === 'string' ? Number.parseInt(value, 10) : NaN;
-  return (INSIGHT_RANGES as readonly number[]).includes(weeks)
-    ? (weeks as InsightRange)
-    : DEFAULT_INSIGHT_RANGE;
-}
-
-export interface WeekPoint {
-  /** Monday, YYYY-MM-DD (UTC). */
-  week: string;
-  created: number;
-  completed: number;
-}
-
-export interface BreakdownRow {
-  id: string;
-  label: string;
-  count: number;
-  color?: string | null;
-  image?: string | null;
-  stateType?: StateType;
-  priority?: Priority;
-}
-
-export interface Distribution {
-  /** Issues measured. */
-  count: number;
-  /** Median, in hours; null without data. */
-  medianHours: number | null;
-  buckets: { label: string; count: number }[];
-}
-
-export interface ProjectInsights {
-  weeks: WeekPoint[];
-  totals: { open: number; created: number; completed: number };
-  byState: BreakdownRow[];
-  byPriority: BreakdownRow[];
-  byAssignee: BreakdownRow[];
-  byLabel: BreakdownRow[];
-  cycleTime: Distribution;
-  leadTime: Distribution;
-}
+export {
+  DEFAULT_INSIGHT_RANGE,
+  INSIGHT_RANGES,
+  parseInsightRange,
+  type BreakdownRow,
+  type Distribution,
+  type InsightRange,
+  type ProjectInsights,
+  type WeekPoint,
+} from '@/lib/insights-model';
 
 const HOUR = 3600;
 /** Upper bounds in hours; the last bucket is open-ended. */
@@ -196,7 +162,7 @@ export async function getProjectInsights(
   const createdBy = new Map(created.map((r) => [r.week, Number(r.count)]));
   const completedBy = new Map(completed.map((r) => [r.week, Number(r.count)]));
   const weeks: WeekPoint[] = Array.from({ length: opts.weeks }, (_, i) => {
-    const week = new Date(start.getTime() + i * 7 * 86_400_000).toISOString().slice(0, 10);
+    const week = new Date(start.getTime() + i * 7 * DAY_MS).toISOString().slice(0, 10);
     return { week, created: createdBy.get(week) ?? 0, completed: completedBy.get(week) ?? 0 };
   });
 

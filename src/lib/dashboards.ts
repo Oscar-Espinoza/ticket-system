@@ -4,7 +4,7 @@
 // - the dataset only covers projects the viewer is a member of.
 
 import { cache } from '@/lib/kit/request';
-import { and, desc, eq, exists, inArray, isNotNull, isNull, or, sql, type SQL } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNotNull, isNull, or, sql, type SQL } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
 import { db } from '@/lib/db';
@@ -15,6 +15,7 @@ import {
   type DashboardRecord,
 } from '@/lib/widget-model';
 import { getProjectData } from '@/lib/project-data';
+import { projectMemberOf } from '@/lib/project-access';
 import type { ProjectData } from '@/lib/project-data-types';
 import { memberOfIssueProject, queryIssues } from '@/lib/tickets';
 
@@ -37,13 +38,7 @@ export interface DashboardSummary {
 
 /** SQL: the viewer may see this dashboard row. */
 export function dashboardVisibleTo(userId: string): SQL {
-  const member = alias(projectMembers, 'dashboard_member');
-  const isMember = exists(
-    db
-      .select({ one: sql`1` })
-      .from(member)
-      .where(and(eq(member.projectId, dashboards.projectId), eq(member.userId, userId))),
-  );
+  const isMember = projectMemberOf(dashboards.projectId, userId);
   return or(
     and(eq(dashboards.ownerId, userId), or(isNull(dashboards.projectId), isMember)),
     and(eq(dashboards.shared, true), isNotNull(dashboards.projectId), isMember),

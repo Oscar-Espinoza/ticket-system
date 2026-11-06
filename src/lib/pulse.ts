@@ -9,6 +9,7 @@ import { and, desc, eq, gte, inArray, isNull, lt, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { epicUpdates, epics, projectMembers, projects, tickets, users } from '@/db/schema';
 import { stripMentions } from '@/lib/mentions';
+import { DAY_MS, WEEK_MS } from '@/lib/time';
 
 export type PulseHealth = 'on_track' | 'at_risk' | 'off_track';
 
@@ -172,8 +173,8 @@ export async function getPulseFeed(userId: string, days = 30, now = new Date()):
     .from(projectMembers)
     .where(eq(projectMembers.userId, userId));
   const ids = memberships.map((m) => m.projectId);
-  const from = new Date(now.getTime() - days * 86_400_000);
-  const weekFrom = new Date(now.getTime() - 7 * 86_400_000);
+  const from = new Date(now.getTime() - days * DAY_MS);
+  const weekFrom = new Date(now.getTime() - WEEK_MS);
   const [feed, week] = await Promise.all([
     getPulse(ids, from, now, { updateLimit: 100 }),
     getPulse(ids, weekFrom, now, { updateLimit: 0 }),
