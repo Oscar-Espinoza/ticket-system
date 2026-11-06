@@ -1,18 +1,8 @@
 // Small issue actions shared by the shortcuts, the palette and the `…` menu.
 
-import { toast } from 'svelte-sonner';
-
+import { copyToClipboard } from '@/lib/components/clipboard';
 import { issueUrl } from '@/lib/issue-links';
 import type { CreateIssueInput, IssueRow } from '@/lib/issue-model';
-
-export async function copyToClipboard(text: string, what: string) {
-  try {
-    await navigator.clipboard.writeText(text);
-    toast.success(`Copied ${what}`);
-  } catch {
-    toast.error('Could not copy to the clipboard.');
-  }
-}
 
 export const copyIssueId = (issue: IssueRow) => copyToClipboard(issue.key, issue.key);
 

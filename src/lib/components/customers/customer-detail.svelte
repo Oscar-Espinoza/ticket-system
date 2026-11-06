@@ -13,6 +13,7 @@
   import UserRoundIcon from '@lucide/svelte/icons/user-round';
   import { toast } from 'svelte-sonner';
 
+  import { copyToClipboard } from '@/lib/components/clipboard';
   import {
     CUSTOMER_STATUSES,
     CUSTOMER_STATUS_LABEL,
@@ -37,8 +38,7 @@
   } from '@/lib/components/ui/dropdown-menu';
   import { Avatar } from '@/lib/components/ui-icons';
   import type { IssueRow } from '@/lib/issue-model';
-  import { copyToClipboard } from '@/lib/components/productivity/issue-actions';
-  import { cn } from '@/lib/utils';
+    import { cn } from '@/lib/utils';
   import { isClosed } from '@/lib/workflow';
   import CustomerDialog from './customer-dialog.svelte';
   import { STATUS_DOT_CLASS } from './customer-glyphs';

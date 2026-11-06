@@ -1,7 +1,8 @@
 // Actions that apply to one issue or to a whole selection, shared by the
 // context menu, the bulk bar and the label toggles.
 
-import { copyIssueId, copyIssueLink, copyToClipboard } from '@/lib/components/productivity/issue-actions';
+import { copyToClipboard } from '@/lib/components/clipboard';
+import { copyIssueId, copyIssueLink } from '@/lib/components/productivity/issue-actions';
 import { issueUrl } from '@/lib/issue-links';
 import type { IssuePatch, IssueRow } from '@/lib/issue-model';
 import type { IssueMutations } from './use-issue-mutations.svelte';

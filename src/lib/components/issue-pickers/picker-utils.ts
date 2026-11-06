@@ -18,14 +18,4 @@ export function digitShortcut(search: string, pick: (digit: number) => boolean) 
   };
 }
 
-// New labels get a random swatch from Linear-ish defaults.
-export const LABEL_COLORS = [
-  '#5e6ad2',
-  '#26b5ce',
-  '#4cb782',
-  '#f2c94c',
-  '#f2994a',
-  '#eb5757',
-  '#bb87fc',
-  '#95a2b3',
-];
+export { LABEL_COLORS } from '@/lib/label-model';

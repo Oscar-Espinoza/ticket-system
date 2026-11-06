@@ -18,7 +18,7 @@
     DropdownMenuTrigger,
   } from '@/lib/components/ui/dropdown-menu';
   import type { WorkflowState } from '@/lib/issue-model';
-  import { issuesLabel } from '../issues-label';
+  import { pluralize } from '@/lib/format';
 
   let {
     projectId,
@@ -67,7 +67,7 @@
     {/if}
   </button>
   <span class="shrink-0 text-xs text-muted-foreground tabular-nums">
-    {issuesLabel(count)}
+    {pluralize(count, 'issue')}
   </span>
   {#if canEdit}
     <div class="flex shrink-0 items-center gap-0.5">

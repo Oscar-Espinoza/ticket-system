@@ -160,3 +160,8 @@ export interface CreateIssueInput
 
 /** Session cookie remembering the last issues layout (list / board / …). */
 export const VIEW_COOKIE = 'issues-view';
+
+/** The issues layout remembered in the session cookie, for a load's `defaultView`. */
+export function readDefaultView(cookies: { get(name: string): string | undefined }) {
+  return cookies.get(VIEW_COOKIE);
+}

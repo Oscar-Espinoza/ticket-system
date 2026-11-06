@@ -181,7 +181,7 @@
             <p class="mt-0.5 truncate text-xs text-muted-foreground">
               {hook.events.length === 0
                 ? 'All events'
-                : `${pluralize(hook.events.length, 'event')}`}{' · '}<button
+                : pluralize(hook.events.length, 'event')}{' · '}<button
                 type="button"
                 class="hover:text-foreground hover:underline"
                 onclick={() => (viewing = hook)}

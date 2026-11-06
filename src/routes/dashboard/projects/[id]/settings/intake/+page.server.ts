@@ -3,6 +3,7 @@
 
 import { error } from '@sveltejs/kit';
 import { customerPath } from '@/lib/customer-model';
+import { DATE_TIME_MEDIUM_FORMAT } from '@/lib/format';
 import { appUrl } from '@/lib/integrations/app-url';
 import { issuePath } from '@/lib/issue-links';
 import { getIntakeRequests, getIntakeSettings } from '@/lib/project-settings-read';
@@ -12,7 +13,6 @@ import type { PageServerLoad } from './$types';
 
 const REQUESTS_SHOWN = 50;
 const EXCERPT = 180;
-const dateFormat = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' });
 
 export const load: PageServerLoad = async ({ params }) => {
   const { id } = params;
@@ -52,7 +52,7 @@ export const load: PageServerLoad = async ({ params }) => {
         linked,
         hadTicket: !!request.linkedTicketId,
         createdAtIso: request.createdAt.toISOString(),
-        createdAtLabel: dateFormat.format(request.createdAt),
+        createdAtLabel: DATE_TIME_MEDIUM_FORMAT.format(request.createdAt),
         customer:
           request.customerId && request.customerName
             ? { href: customerPath(id, request.customerId), name: request.customerName }

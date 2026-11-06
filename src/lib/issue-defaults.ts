@@ -19,6 +19,7 @@ import {
 import { isDateString } from '@/lib/dates';
 import { isValidEstimate } from '@/lib/estimates';
 import { isPriority, type IssuePatch } from '@/lib/issue-model';
+import { LABELS_MAX } from '@/lib/issue-service';
 
 export const DEFAULT_FIELDS = [
   'stateId',
@@ -40,7 +41,6 @@ export type IssueDefaults = Pick<IssuePatch, DefaultField>;
 export const TEMPLATE_FIELDS = ['stateId', 'priority', 'assigneeId', 'labelIds', 'estimate'] as const;
 
 const NOTHING = sql`false`;
-const LABELS_MAX = 50;
 
 const idOrNull = (value: unknown): value is string | null =>
   value === null || (typeof value === 'string' && value.length > 0 && value.length <= 100);

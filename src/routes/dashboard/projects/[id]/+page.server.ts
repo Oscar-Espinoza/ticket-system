@@ -1,7 +1,7 @@
 // Project issues page. The project layout already authorized the viewer;
 // getProjectIssues is membership-gated in SQL too.
 
-import { readDefaultView } from '@/lib/issue-view-read';
+import { readDefaultView } from '@/lib/issue-model';
 import { requireUser } from '@/lib/session';
 import { getProjectIssues } from '@/lib/tickets';
 import type { PageServerLoad } from './$types';

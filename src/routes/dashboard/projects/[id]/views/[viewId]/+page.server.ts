@@ -4,7 +4,7 @@
 import { error } from '@sveltejs/kit';
 
 import { getFavoritedIds } from '@/lib/favorites';
-import { readDefaultView } from '@/lib/issue-view-read';
+import { readDefaultView } from '@/lib/issue-model';
 import { getProjectIssues } from '@/lib/tickets';
 import { getViewForUser } from '@/lib/views';
 import { requireUser } from '@/lib/session';

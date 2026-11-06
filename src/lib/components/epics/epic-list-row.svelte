@@ -6,6 +6,7 @@
   import TagIcon from '@lucide/svelte/icons/tag';
   import { toast } from 'svelte-sonner';
 
+  import { copyToClipboard } from '@/lib/components/clipboard';
   import { archiveEpic, unarchiveEpic } from '@/lib/actions/epics';
   import {
     ContextMenu,
@@ -32,8 +33,7 @@
   import EpicProgress from './epic-progress.svelte';
   import EpicStatusIcon from './epic-status-icon.svelte';
   import HealthChip from './health-chip.svelte';
-  import { copyToClipboard } from '@/lib/components/productivity/issue-actions';
-
+  
   let {
     epic,
     labels,

@@ -8,7 +8,7 @@ import { requireUser } from '@/lib/session';
 import { roleAllows } from '@/lib/roles';
 import { getCycleIssues } from '@/lib/issue-lists-read';
 import { isClosed } from '@/lib/workflow';
-import { readDefaultView } from '@/lib/issue-view-read';
+import { readDefaultView } from '@/lib/issue-model';
 import {
   cycleBurndown,
   cycleTotals,

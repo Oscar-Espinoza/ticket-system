@@ -51,6 +51,7 @@
   import UserRoundIcon from '@lucide/svelte/icons/user-round';
   import { toast } from 'svelte-sonner';
 
+  import { copyToClipboard } from '@/lib/components/clipboard';
   import { setEpicLabels } from '@/lib/actions/epic-labels';
   import { archiveEpic, unarchiveEpic, updateEpic, type EpicInput } from '@/lib/actions/epics';
   import { setEpicInitiative } from '@/lib/actions/initiatives';
@@ -95,8 +96,7 @@
   import { mergePatch, Optimistic } from './optimistic.svelte';
   import ProgressBlock from './progress-block.svelte';
   import UpdateCard from './update-card.svelte';
-  import { copyToClipboard } from '@/lib/components/productivity/issue-actions';
-
+  
   const TABS = ['overview', 'updates', 'issues'] as const;
   type Tab = (typeof TABS)[number];
 

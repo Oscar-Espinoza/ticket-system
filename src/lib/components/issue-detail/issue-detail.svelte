@@ -11,6 +11,7 @@
 </script>
 
 <script lang="ts">
+  import { copyToClipboard } from '@/lib/components/clipboard';
   import { DATE_TIME_MEDIUM_FORMAT } from '@/lib/format';
   import ArchiveIcon from '@lucide/svelte/icons/archive';
   import ArchiveRestoreIcon from '@lucide/svelte/icons/archive-restore';
@@ -26,8 +27,7 @@
   import XIcon from '@lucide/svelte/icons/x';
   import type { Snippet } from 'svelte';
 
-  import { copyToClipboard } from '@/lib/components/productivity/issue-actions';
-  import {
+    import {
     AssigneePicker,
     DueDatePicker,
     EstimatePicker,

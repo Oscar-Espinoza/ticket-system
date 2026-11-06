@@ -13,7 +13,7 @@
     AlertDialogTitle,
   } from '@/lib/components/ui/alert-dialog';
   import type { ProjectLabel } from '@/lib/project-data-types';
-  import { issuesLabel } from '../issues-label';
+  import { pluralize } from '@/lib/format';
 
   let {
     projectId,
@@ -57,7 +57,7 @@
       <AlertDialogTitle>Delete “{label?.name}”?</AlertDialogTitle>
       <AlertDialogDescription>
         {count > 0
-          ? `It will be removed from ${issuesLabel(count)}. This can’t be undone.`
+          ? `It will be removed from ${pluralize(count, 'issue')}. This can’t be undone.`
           : 'No issues use this label. This can’t be undone.'}
       </AlertDialogDescription>
     </AlertDialogHeader>

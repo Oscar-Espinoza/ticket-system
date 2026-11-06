@@ -22,6 +22,7 @@ import {
 import { isEstimateScale, type EstimateScale } from '@/lib/estimates';
 import { isPriority, isStateType, type Priority, type StateType } from '@/lib/issue-model';
 import { normalizeSlaPolicy } from '@/lib/sla';
+import { clippedText } from '@/lib/text';
 import { workflowStateInserts } from '@/lib/workflow-server';
 
 export interface TemplateState {
@@ -97,9 +98,6 @@ const DEFAULT_SETTINGS: TemplateSettings = {
 const str = (value: unknown, max: number): string | null =>
   typeof value === 'string' && value.trim() && value.trim().length <= max ? value.trim() : null;
 
-const optStr = (value: unknown, max: number): string | null =>
-  typeof value === 'string' ? value.trim().slice(0, max) || null : null;
-
 const int = (value: unknown, min: number, max: number): number | null =>
   Number.isInteger(value) && (value as number) >= min && (value as number) <= max
     ? (value as number)
@@ -125,7 +123,7 @@ function normalizeTemplateConfig(raw: unknown): ProjectTemplateConfig {
       type: s.type,
       color,
       position: typeof s.position === 'number' && Number.isFinite(s.position) ? s.position : states.length,
-      description: optStr(s.description, 500),
+      description: clippedText(s.description, 500),
     });
   }
 
@@ -137,7 +135,7 @@ function normalizeTemplateConfig(raw: unknown): ProjectTemplateConfig {
     const color = str(l.color, 32);
     if (!name || !color || seenLabels.has(name.toLowerCase())) continue;
     seenLabels.add(name.toLowerCase());
-    labelList.push({ name, color, description: optStr(l.description, 500) });
+    labelList.push({ name, color, description: clippedText(l.description, 500) });
   }
 
   const s = (input.settings ?? {}) as Record<string, unknown>;
@@ -177,7 +175,7 @@ function normalizeTemplateConfig(raw: unknown): ProjectTemplateConfig {
     templates.push({
       name,
       title: typeof t.title === 'string' ? t.title.slice(0, 200) : '',
-      description: optStr(t.description, 10_000),
+      description: clippedText(t.description, 10_000),
       data,
     });
   }

@@ -9,6 +9,7 @@ import { db } from '@/lib/db';
 import { isUniqueViolation } from '@/lib/db-errors';
 import { labels } from '@/db/schema';
 import type { IssueLabel } from '@/lib/issue-model';
+import { LABEL_COLORS } from '@/lib/label-model';
 
 export type LabelFields = { name?: string; color?: string; description?: string | null };
 export type LabelWrite = { ok: true; label: IssueLabel } | { ok: false; reason: 'duplicate' | 'not-found' };
@@ -49,7 +50,10 @@ export async function createLabel(
   return { ok: true, label };
 }
 
-/** Applies `changes` (a renamed label must have passed `labelNameTaken`; 23505 covers the race). */
+/**
+ * Applies `changes`. Callers check a rename with `labelNameTaken` first, before
+ * validating the other fields, so the duplicate-name error wins (23505 covers the race).
+ */
 export async function updateLabel(
   projectId: string,
   id: string,
@@ -78,9 +82,6 @@ export async function deleteLabel(projectId: string, id: string): Promise<boolea
   return deleted.length > 0;
 }
 
-/** Colors handed to labels created without one, in turn. */
-const DEFAULT_COLORS = ['#5e6ad2', '#26b5ce', '#4cb782', '#f2c94c', '#f2994a', '#eb5757', '#bb87fc', '#95a2b3'];
-
 /**
  * Label ids by lowercase name for every wanted label: the project's existing
  * ones (`existing`) are reused, the missing ones are created in one insert (a
@@ -108,7 +109,7 @@ export async function ensureLabels(
         id: crypto.randomUUID(),
         projectId,
         name: label.name,
-        color: label.color ?? DEFAULT_COLORS[(ids.size + i) % DEFAULT_COLORS.length],
+        color: label.color ?? LABEL_COLORS[(ids.size + i) % LABEL_COLORS.length],
         createdAt: now,
       })),
     )

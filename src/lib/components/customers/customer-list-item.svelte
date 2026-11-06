@@ -4,6 +4,7 @@
   import PencilIcon from '@lucide/svelte/icons/pencil';
   import Trash2Icon from '@lucide/svelte/icons/trash-2';
 
+  import { copyToClipboard } from '@/lib/components/clipboard';
   import {
     customerPath,
     formatRevenue,
@@ -18,8 +19,7 @@
     ContextMenuTrigger,
   } from '@/lib/components/ui/context-menu';
   import { Avatar } from '@/lib/components/ui-icons';
-  import { copyToClipboard } from '@/lib/components/productivity/issue-actions';
-  import { cn } from '@/lib/utils';
+    import { cn } from '@/lib/utils';
   import CustomerLogo from './customer-logo.svelte';
   import CustomerStatusChip from './customer-status-chip.svelte';
 

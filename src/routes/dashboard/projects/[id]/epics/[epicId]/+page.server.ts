@@ -10,7 +10,7 @@ import { error } from '@sveltejs/kit';
 import { documentsForEpic } from '@/lib/documents';
 import { getEpicDetail } from '@/lib/epics';
 import { getInitiativeOptions } from '@/lib/initiatives';
-import { readDefaultView } from '@/lib/issue-view-read';
+import { readDefaultView } from '@/lib/issue-model';
 import { requireUser } from '@/lib/session';
 import { getWorkspaceMembership } from '@/lib/workspace-access';
 import type { PageServerLoad } from './$types';
