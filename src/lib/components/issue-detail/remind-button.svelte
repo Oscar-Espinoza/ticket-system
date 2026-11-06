@@ -1,4 +1,4 @@
-<!-- The "Remind me" button + popover of HeaderRemind (React's local RemindButton). -->
+<!-- The "Remind me" button + popover of HeaderRemind. -->
 <script lang="ts">
   import AlarmClockIcon from '@lucide/svelte/icons/alarm-clock';
   import XIcon from '@lucide/svelte/icons/x';

@@ -90,6 +90,7 @@
   );
 
   const update = (patch: Partial<DisplayOptions>) => displayOptions.set({ ...display, ...patch });
+  // `views` is a prop, so the layout may be absent from it.
   const caps = $derived(views.find((v) => v.id === layout)?.caps ?? UNKNOWN_VIEW_CAPABILITIES);
   const grouped = $derived(caps.grouped);
   const ordered = $derived(caps.ordered);

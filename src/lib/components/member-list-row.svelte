@@ -41,7 +41,7 @@
   } = $props();
 
   const perms = useProjectPermissions();
-  // useTransition: one pending flag for every action of this row.
+  // In-flight counter: one pending flag for every action of this row.
   let running = $state(0);
   const isPending = $derived(running > 0);
   let dialog = $state<'remove' | 'transfer' | null>(null);

@@ -53,7 +53,7 @@
   let editing = $state(false);
   let removing = $state(false);
   let enforced = $state(untrack(() => initialEnforced));
-  // useTransition: one pending flag for both actions.
+  // In-flight counter: one pending flag for both actions.
   let running = $state(0);
   const pending = $derived(running > 0);
 

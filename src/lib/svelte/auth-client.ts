@@ -8,8 +8,8 @@
 // app renders auth-dependent UI from the layout's `locals.user` instead.
 //
 // No baseURL: Better Auth then calls the page's own origin (`/api/auth`), which
-// is where src/hooks.server.ts answers. The React client pointed at
-// PUBLIC_APP_URL, which during the migration is the Next app's origin.
+// is where src/hooks.server.ts answers. It must not point at
+// PUBLIC_APP_URL, which may be another origin.
 
 import { createAuthClient } from 'better-auth/svelte';
 import { twoFactorClient } from 'better-auth/client/plugins';

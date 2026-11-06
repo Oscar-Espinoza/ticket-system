@@ -1,6 +1,7 @@
 <!-- One calendar day: drop target + up to MAX_CHIPS chips, the rest behind "+N more".
      Renders inside the DragDropProvider. -->
 <script lang="ts">
+  import { pluralize } from '@/lib/format';
   import { createDroppable } from '@dnd-kit/svelte';
 
   import { Popover, PopoverContent, PopoverTrigger } from '@/lib/components/ui/popover';
@@ -42,7 +43,7 @@
 <div
   {@attach droppable.attach}
   role="gridcell"
-  aria-label={`${label}, ${issues.length} issue${issues.length === 1 ? '' : 's'}`}
+  aria-label={`${label}, ${pluralize(issues.length, 'issue')}`}
   class={cn(
     'flex min-h-28 min-w-0 flex-col gap-1 border-r border-b border-border p-1 transition-colors',
     !inMonth && 'bg-muted/30',

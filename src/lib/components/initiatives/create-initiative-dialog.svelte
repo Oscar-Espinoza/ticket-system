@@ -102,7 +102,7 @@
       <DialogTitle>New initiative</DialogTitle>
       <DialogDescription>A goal that groups epics across this workspace’s projects.</DialogDescription>
     </DialogHeader>
-    <!-- ⌘Enter submits, as in React -->
+    <!-- ⌘Enter submits -->
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <form
       onsubmit={(event) => void submit(event)}

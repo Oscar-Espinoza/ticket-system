@@ -57,7 +57,7 @@
   };
 </script>
 
-<!-- focusable row: Alt+↑/↓, Enter, as in React -->
+<!-- focusable row: Alt+↑/↓, Enter -->
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
 <div
@@ -88,7 +88,7 @@
   <MilestoneGlyph {done} {color} />
   <div class="min-w-0 flex-1">
     {#if editing}
-      <!-- React autoFocus: always focus on mount (Svelte's `autofocus` only does when
+      <!-- Always focus on mount (Svelte's `autofocus` only does when
            nothing else has focus, and the row keeps it after Enter). -->
       <Input
         {@attach (node: HTMLElement) => node.focus()}

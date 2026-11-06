@@ -91,7 +91,7 @@
     };
   }
 
-  // useSyncExternalStore(subscribeMode, readMode) → a shared subscriber.
+  // A shared subscriber on the mode.
   const trackMode = createSubscriber((update) => subscribeMode(update));
 
   /** A typed link: bare hosts get https://; only web, mail and in-app links pass. */
@@ -313,7 +313,7 @@
     afterFrame(() => (next === 'rich' ? rich?.focus() : raw?.focus()));
   }
 
-  // React's onBlur on the container is the bubbling focusout.
+  // onBlur on the container is the bubbling focusout.
   function onContainerFocusOut(e: FocusEvent & { currentTarget: HTMLDivElement }) {
     if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
     // The window lost focus (file picker, app switch): still editing.

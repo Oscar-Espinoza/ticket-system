@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils';
 
 export const MENTION_PROTOCOL = 'user:';
 
-// mdast-util-to-hast's `data` fields (React got them through its module augmentation).
+// mdast-util-to-hast's `data` fields.
 type HastData = { hName?: string; hProperties?: Record<string, unknown> };
 
 function walk(node: Parent, visit: (parent: Parent, index: number) => number | void) {

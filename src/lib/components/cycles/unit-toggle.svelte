@@ -11,7 +11,7 @@
   } = $props();
 </script>
 
-<!-- Strictly controlled like React: re-clicking the pressed item ("" from bits) is ignored. -->
+<!-- Strictly controlled: re-clicking the pressed item ("" from bits) is ignored. -->
 <ToggleGroup
   type="single"
   size="sm"

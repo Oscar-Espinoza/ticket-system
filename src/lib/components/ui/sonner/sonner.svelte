@@ -12,7 +12,7 @@
 </script>
 
 <!--
-  React read next-themes' `theme` (default "system"); mode-watcher's resolved
+  The theme defaults to "system"; mode-watcher's resolved
   mode is the same light/dark result, and is undefined during SSR.
 -->
 <Sonner

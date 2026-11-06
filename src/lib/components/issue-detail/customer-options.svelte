@@ -1,5 +1,5 @@
 <!--
-  Searchable customer list of SectionCustomers (React's local CustomerOptions);
+  Searchable customer list of SectionCustomers;
   `onCreate` adds a "Create customer" item for new names.
 -->
 <script lang="ts">

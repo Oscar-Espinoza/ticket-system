@@ -64,7 +64,7 @@
   const canWrite = useProjectPermission('write');
   const isAdmin = useProjectPermission('admin');
 
-  // useOptimistic: the server value plus the patch of every save still in flight. Each
+  // Optimistic: the server value plus the patch of every save still in flight. Each
   // patch is dropped when its own save settles: on success the refreshed props already
   // carry it (the action wrapper refreshes before resolving); on failure only that patch
   // rolls back, and other pending saves keep theirs.

@@ -102,7 +102,7 @@
           oninput={(event: Event & { currentTarget: HTMLInputElement }) => {
             ticketKey = event.currentTarget.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 6);
             errors = {};
-            // Controlled like React's: write the result back even when the
+            // Controlled: write the result back even when the
             // state didn't change (a rejected keystroke leaves ticketKey as is).
             event.currentTarget.value = ticketKey;
           }}

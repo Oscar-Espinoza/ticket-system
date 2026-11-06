@@ -33,7 +33,7 @@
   const project = useProjectData();
   const labels = $derived(project.labels);
 
-  // useTransition(router.replace): `pending` stays true until the last navigation has loaded.
+  // In-flight counter: `pending` stays true until the last navigation has loaded.
   let inflight = $state(0);
   const pending = $derived(inflight > 0);
 

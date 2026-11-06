@@ -3,14 +3,18 @@
 // back. Row-shaped elements (list row, table `tr`, timeline row) carry
 // `data-issue-row`, board cards `data-board-card`, calendar chips
 // `data-issue-chip`. The markup that emits these attributes spreads
-// `issueAttr(NAME, id)`; everything that queries them goes through here.
+// `rowAttr` / `boardCardAttr` / `chipAttr`; everything that queries them goes through here.
 
 export const ISSUE_ROW_ATTR = 'data-issue-row';
-export const BOARD_CARD_ATTR = 'data-board-card';
-export const ISSUE_CHIP_ATTR = 'data-issue-chip';
+const BOARD_CARD_ATTR = 'data-board-card';
+const ISSUE_CHIP_ATTR = 'data-issue-chip';
 
-/** Spread onto an element to mark it as showing issue `id`. */
-export const issueAttr = (name: string, id: string) => ({ [name]: id });
+/** Spread onto a list / table / timeline row to mark it as showing issue `id`. */
+export const rowAttr = (id: string) => ({ [ISSUE_ROW_ATTR]: id });
+/** Spread onto a board card to mark it as showing issue `id`. */
+export const boardCardAttr = (id: string) => ({ [BOARD_CARD_ATTR]: id });
+/** Spread onto a calendar chip to mark it as showing issue `id`. */
+export const chipAttr = (id: string) => ({ [ISSUE_CHIP_ATTR]: id });
 
 /** List rows, table rows and timeline rows. */
 export const ISSUE_ROW = '[data-issue-row]';

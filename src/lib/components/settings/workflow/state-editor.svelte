@@ -71,7 +71,7 @@
   >
     <div class="flex flex-1 items-center gap-2">
       <ColorPicker value={color} onChange={(next) => (color = next)} label="State color" />
-      <!-- React autoFocus focuses on mount; Svelte's autofocus only does so when nothing has focus. -->
+      <!-- Svelte's autofocus only works when nothing has focus; focus on mount instead. -->
       <Input
         {@attach focusOnMount}
         bind:value={name}

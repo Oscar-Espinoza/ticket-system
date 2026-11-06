@@ -14,7 +14,7 @@
     PriorityPicker,
     StatePicker,
   } from '@/lib/components/issue-pickers';
-  import { ISSUE_ROW_ATTR, issueAttr } from '@/lib/components/issues/issue-dom';
+  import { rowAttr } from '@/lib/components/issues/issue-dom';
   import { useDisplayOptions, type DisplayProperty } from '@/lib/components/issues/display-options.svelte';
   import { DueDateChip, EstimateChip, LabelChips } from '@/lib/components/issues/issue-properties';
   import { relativeTime } from '@/lib/relative-time';
@@ -29,7 +29,7 @@
   import { useProjectData, useProjectPermission } from '@/lib/components/project/project-data.svelte';
   import { Avatar, EmptyState, PriorityIcon, StateIcon } from '@/lib/components/ui-icons';
   import SlaChip from '@/lib/components/sla/sla-chip.svelte';
-  import StartDatePicker from '@/lib/components/issue-detail/slots/start-date-picker.svelte';
+  import StartDatePicker from '@/lib/components/issue-detail/start-date-picker.svelte';
   import { registerHotkeys } from '@/lib/svelte/hotkeys.svelte';
   import type { OrderBy } from '@/lib/issue-grouping';
   import { PRIORITY_LABEL, type IssuePatch, type IssueRow } from '@/lib/issue-model';
@@ -405,7 +405,7 @@
           <tr
             {@attach trackRow(issue.id)}
             tabindex="0"
-            {...issueAttr(ISSUE_ROW_ATTR, issue.id)}
+            {...rowAttr(issue.id)}
             aria-current={active ? 'true' : undefined}
             aria-selected={selection.enabled ? checked : undefined}
             aria-label={`${issue.key} ${issue.title}, ${issue.state.name}`}

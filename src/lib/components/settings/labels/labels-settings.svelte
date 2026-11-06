@@ -1,9 +1,10 @@
 <!--
   Settings › Labels: search, create, inline edit and delete. Labels come from
-  useProjectData(); src/lib/server/actions/labels.ts revalidates the project layout,
+  useProjectData(); the label actions' wrappers refresh the page data (refreshesData),
   so the list refreshes itself after every change.
 -->
 <script lang="ts">
+  import { pluralize } from '@/lib/format';
   import PlusIcon from '@lucide/svelte/icons/plus';
   import SearchIcon from '@lucide/svelte/icons/search';
   import TagIcon from '@lucide/svelte/icons/tag';
@@ -119,7 +120,7 @@
 
   {#if labels.length > 0}
     <p class="px-1 text-xs text-muted-foreground">
-      {labels.length} label{labels.length === 1 ? '' : 's'}
+      {pluralize(labels.length, 'label')}
     </p>
   {/if}
 

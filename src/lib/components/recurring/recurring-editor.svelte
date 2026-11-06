@@ -185,7 +185,7 @@
             </SelectContent>
           </Select>
           <span class="text-muted-foreground">every</span>
-          <!-- One-way value + oninput keeps the raw string, like React (bind:value would coerce). -->
+          <!-- One-way value + oninput keeps the raw string (bind:value would coerce). -->
           <Input
             type="number"
             inputmode="numeric"

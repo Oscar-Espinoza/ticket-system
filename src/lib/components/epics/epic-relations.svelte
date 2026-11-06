@@ -3,7 +3,7 @@
   "Related" groups, a two-step picker (kind → epic) to add one, and remove
   buttons. Conflicts (the blocked epic starts before its blocker's target
   date) are flagged inline, like the roadmap does.
-  (React export: EpicDependencies.)
+ 
 -->
 <script lang="ts">
   import PlusIcon from '@lucide/svelte/icons/plus';

@@ -82,8 +82,7 @@ export function subscribeIssueCreator(listener: () => void): () => void {
 const trackIssueCreator = createSubscriber((update) => subscribeIssueCreator(update));
 
 /**
- * Reactive `hasIssueCreator()` — replaces
- * `useSyncExternalStore(subscribeIssueCreator, hasIssueCreator, () => false)`.
+ * Reactive `hasIssueCreator()`; false on the server.
  * False on the server (no hosts are ever registered there).
  */
 export const issueCreator = {

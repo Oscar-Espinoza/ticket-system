@@ -60,8 +60,7 @@ function renderCaret(user: Record<string, unknown>): HTMLElement {
   return caret;
 }
 
-// useSyncExternalStore(provider.subscribe, provider.getSnapshot) → one
-// subscriber per provider.
+// One subscriber per provider.
 const snapshotTrackers = new WeakMap<CollabProvider, () => void>();
 function trackSnapshot(provider: CollabProvider) {
   let track = snapshotTrackers.get(provider);
@@ -82,11 +81,11 @@ export interface UseCollab {
 /**
  * `key` null → nothing is created (single-user mode). The provider is only
  * created in the browser (the server renders the IDLE snapshot, which is
- * what React's useSyncExternalStore server snapshot showed).
+ * what the server snapshot shows).
  */
 export function useCollab(key: MaybeGetter<string | null>, user: MaybeGetter<CollabUser>): UseCollab {
   // Field-wise, so a new user object with the same values changes nothing
-  // (React's useMemo deps were the fields).
+  //.
   const id = $derived(read(user).id);
   const name = $derived(read(user).name);
   const color = $derived(read(user).color);

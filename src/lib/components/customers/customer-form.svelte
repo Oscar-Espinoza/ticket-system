@@ -133,7 +133,7 @@
     Requests from these email domains are linked to the customer automatically.
   </DialogDescription>
 </DialogHeader>
-<!-- ⌘Enter submits from any field (the keydown bubbles up from the inputs), as in React. -->
+<!-- ⌘Enter submits from any field (the keydown bubbles up from the inputs). -->
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <form
   onsubmit={submit}

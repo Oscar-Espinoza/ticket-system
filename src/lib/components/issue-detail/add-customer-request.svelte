@@ -1,5 +1,5 @@
 <!--
-  Two steps in one popover (React's local AddRequest of SectionCustomers):
+  Two steps in one popover:
   the customer, then importance + an optional note.
 -->
 <script lang="ts">

@@ -62,7 +62,7 @@
   let { projects, sidebarFooter, topbarRight, inboxBadge, favorites, workspaces, children }: ShellFrameProps =
     $props();
 
-  // useSyncExternalStore server snapshots (false / false) during SSR and
+  // Server values (false / false) during SSR and
   // hydration; the browser values from then on.
   let hydrated = $state(isAppHydrated());
   const narrowQuery = new MediaQuery(NARROW_QUERY, false);

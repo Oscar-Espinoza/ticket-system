@@ -1,6 +1,5 @@
 <!--
-  The collaborative (Yjs) description editor of DescriptionEditor (React's
-  local CollaborativeDescription). Shared document key `issue:<id>`, relayed
+  The collaborative (Yjs) description editor of DescriptionEditor. Shared document key `issue:<id>`, relayed
   through /api/collab; saves as you type via `onSave` and flushes on unmount.
 -->
 <script lang="ts">

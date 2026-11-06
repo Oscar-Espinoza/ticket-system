@@ -32,6 +32,7 @@
   import EpicProgress from './epic-progress.svelte';
   import EpicStatusIcon from './epic-status-icon.svelte';
   import HealthChip from './health-chip.svelte';
+  import { copyToClipboard } from '@/lib/components/productivity/issue-actions';
 
   let {
     epic,
@@ -58,14 +59,7 @@
     else toast.success(archived ? 'Epic restored' : 'Epic archived');
   };
 
-  const copyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(new URL(href, window.location.origin).toString());
-      toast.success('Copied epic link');
-    } catch {
-      toast.error('Could not copy to the clipboard.');
-    }
-  };
+  const copyLink = () => copyToClipboard(new URL(href, window.location.origin).toString(), 'epic link');
 </script>
 
 <ContextMenu>

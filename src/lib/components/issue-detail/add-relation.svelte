@@ -1,4 +1,4 @@
-<!-- Two steps in one popover (React's local AddRelation): relation type, then the other issue. -->
+<!-- Two steps in one popover: relation type, then the other issue. -->
 <script lang="ts">
   import ChevronLeftIcon from '@lucide/svelte/icons/chevron-left';
 

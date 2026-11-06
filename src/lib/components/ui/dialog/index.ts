@@ -1,5 +1,5 @@
 /**
- * Dialog (React: src/components/ui/dialog.tsx, Radix Dialog → bits-ui Dialog).
+ * Dialog (Radix Dialog → bits-ui Dialog).
  *
  * Caller translation:
  * - `<Dialog open={o} onOpenChange={setO}>` works unchanged (the wrapper forwards `open`
@@ -7,11 +7,11 @@
  * - `asChild` on DialogTrigger/DialogClose → `{#snippet child({ props })}<Button {...props}>…</Button>{/snippet}`.
  * - DialogTrigger / DialogClose (and the built-in X / footer Close) default `type="button"`
  *   like Radix; the `child` snippet's `props` carry it, so a nested `<Button>` won't submit.
- * - DialogContent always renders inside DialogPortal + DialogOverlay (as in React);
+ * - DialogContent always renders inside DialogPortal + DialogOverlay;
  *   `portalProps` forwards `to` / `disabled` to the portal. `showCloseButton` (default true).
  * - Event props: `onOpenAutoFocus` / `onCloseAutoFocus` unchanged (call `e.preventDefault()`),
  *   `onEscapeKeyDown` → `onEscapeKeydown`, `onPointerDownOutside` / `onInteractOutside` →
- *   `onInteractOutside`. React `onKeyDown` on DialogContent → `onkeydown`.
+ *   `onInteractOutside`. `onKeyDown` on DialogContent → `onkeydown`.
  * - DialogTitle renders bits' heading element (`role="heading" aria-level="2"`; `level` prop).
  */
 import Dialog from "./dialog.svelte"

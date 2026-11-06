@@ -1,5 +1,5 @@
 /**
- * ContextMenu (React: src/components/ui/context-menu.tsx, Radix → bits-ui ContextMenu).
+ * ContextMenu (Radix → bits-ui ContextMenu).
  *
  * Caller translation:
  * - `<ContextMenuTrigger asChild><div …/></ContextMenuTrigger>` →
@@ -7,12 +7,12 @@
  *   (ContextMenuTrigger still adds `select-none` via `class`; with `child`, the merged
  *   `class` is in `props`). `onContextMenuCapture` / `onPointerDownCapture` →
  *   `oncontextmenucapture` / `onpointerdowncapture`.
- * - ContextMenu: `onOpenChange` as in React (bits also allows `bind:open`).
+ * - ContextMenu: `onOpenChange` works (bits also allows `bind:open`).
  * - `ContextMenuItem onSelect={(e) => …}` unchanged (`e.preventDefault()` keeps it open);
  *   `variant`, `inset`, `disabled`; `asChild` → `child` snippet.
  * - ContextMenuCheckboxItem: `checked: boolean | "indeterminate"` + `onCheckedChange`
  *   (or `bind:checked`); `onSelect` with `e.preventDefault()` keeps the menu open, as in Radix.
- * - ContextMenuContent: Portal built in (as in React); bits defaults `side="right"`,
+ * - ContextMenuContent: Portal built in; bits defaults `side="right"`,
  *   `sideOffset={2}`, `align="start"` match Radix; `loop={false}` (Radix default).
  * - ContextMenuSubContent renders in place (no portal). ContextMenuLabel is a plain div.
  * - CSS vars: `--radix-context-menu-*` → `--bits-context-menu-*`.

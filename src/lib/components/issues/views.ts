@@ -18,6 +18,7 @@ import SheetIcon from '@lucide/svelte/icons/sheet';
 import type { IssueGroup } from '@/lib/issue-grouping';
 import type { IssuePatch, IssueRow } from '@/lib/issue-model';
 import type { ViewLayout } from './display-options.svelte';
+import { COLUMN_WIDTH_CLASS } from '@/lib/components/board/board-layout';
 import ListView from './list-view.svelte';
 import type { ViewCapabilities } from './view-capabilities';
 import type { IssueMutations } from './use-issue-mutations.svelte';
@@ -43,6 +44,8 @@ export interface LazyIssueView {
   ssr: boolean;
   /** Skeleton shown while the code loads. */
   loading: 'board' | 'rows' | 'card';
+  /** Width class of one skeleton column (`loading: 'board'`). */
+  skeletonColumnClass?: string;
 }
 
 export interface IssueViewDefinition {
@@ -50,6 +53,8 @@ export interface IssueViewDefinition {
   label: string;
   icon: LucideIcon;
   caps: ViewCapabilities;
+  /** Whether the "No matching issues" state replaces the view when filters hide everything. */
+  showsFilteredEmpty: boolean;
   /** Rendered directly (bundled with the page). */
   component?: Component<IssueViewProps>;
   /** Code-split view. */
@@ -74,6 +79,7 @@ export const ISSUE_VIEWS: IssueViewDefinition[] = [
     label: 'List',
     icon: ListIcon,
     caps: { grouped: true, subGrouping: true, swimlanes: false, ordered: true, displayProperties: true },
+    showsFilteredEmpty: true,
     component: ListView,
   },
   {
@@ -81,13 +87,15 @@ export const ISSUE_VIEWS: IssueViewDefinition[] = [
     label: 'Board',
     icon: KanbanIcon,
     caps: { grouped: true, subGrouping: true, swimlanes: true, ordered: true, displayProperties: true },
-    lazy: { load: loadBoard, ssr: true, loading: 'board' },
+    showsFilteredEmpty: true,
+    lazy: { load: loadBoard, ssr: true, loading: 'board', skeletonColumnClass: COLUMN_WIDTH_CLASS },
   },
   {
     id: 'table',
     label: 'Table',
     icon: SheetIcon,
     caps: { grouped: false, subGrouping: false, swimlanes: false, ordered: true, displayProperties: true },
+    showsFilteredEmpty: true,
     lazy: { load: loadTable, ssr: true, loading: 'rows' },
   },
   // Client only: "today" and the visible month depend on the viewer's timezone.
@@ -96,6 +104,7 @@ export const ISSUE_VIEWS: IssueViewDefinition[] = [
     label: 'Calendar',
     icon: CalendarDaysIcon,
     caps: { grouped: false, subGrouping: false, swimlanes: false, ordered: false, displayProperties: false },
+    showsFilteredEmpty: false,
     lazy: { load: loadCalendar, ssr: false, loading: 'card' },
   },
   // Client only too: "today", the zoom (localStorage) and scroll position.
@@ -104,6 +113,7 @@ export const ISSUE_VIEWS: IssueViewDefinition[] = [
     label: 'Timeline',
     icon: GanttChartIcon,
     caps: { grouped: true, subGrouping: false, swimlanes: false, ordered: true, displayProperties: false },
+    showsFilteredEmpty: true,
     lazy: { load: loadTimeline, ssr: false, loading: 'card' },
   },
 ];

@@ -1,5 +1,5 @@
 /*
- * Port of src/components/ui/sheet.tsx (Radix Dialog → bits-ui Dialog, same side variants).
+ * Radix Dialog → bits-ui Dialog, same side variants.
  *
  * Caller translation:
  * - `<Sheet open onOpenChange={(open) => !open && onClose()}>` keeps working; `bind:open` also

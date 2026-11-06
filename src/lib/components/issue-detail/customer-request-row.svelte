@@ -1,4 +1,4 @@
-<!-- One linked customer request of SectionCustomers (React's local RequestRow). -->
+<!-- One linked customer request of SectionCustomers. -->
 <script module lang="ts">
   const EXCERPT = 240;
   const isTemp = (id: string) => id.startsWith('temp-');

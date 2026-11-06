@@ -81,7 +81,7 @@
         <span class="hidden w-28 shrink-0 truncate text-right text-xs text-muted-foreground md:block">
           {view.isOwner ? 'You' : (view.ownerName ?? 'Former member')}
         </span>
-        <!-- React's suppressHydrationWarning: hydration keeps the server text. -->
+        <!-- Hydration keeps the server text. -->
         <time
           datetime={new Date(view.updatedAt).toISOString()}
           title={`Updated ${new Date(view.updatedAt).toLocaleString()}`}

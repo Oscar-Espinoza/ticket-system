@@ -1,3 +1,4 @@
+import { pluralize } from '@/lib/format';
 // Shared tail of every importer: chunked import with progress → result summary.
 // Chunks run sequentially so issue numbers follow file order.
 //
@@ -62,7 +63,7 @@ export function useImportRunner(projectId: string | (() => string)) {
       summary = result;
     }
     if (result.error) toast.error(result.error);
-    else toast.success(`Imported ${result.created} issue${result.created === 1 ? '' : 's'}.`);
+    else toast.success(`Imported ${pluralize(result.created, 'issue')}.`);
   }
 
   return {

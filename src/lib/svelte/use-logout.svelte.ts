@@ -16,7 +16,7 @@ export function useLogout() {
     if (loading) return;
     loading = true;
     await authClient.signOut();
-    // router.push('/login') + router.refresh()
+    // Leave for /login with fresh data.
     await goto('/login', { refreshAll: true });
   }
 

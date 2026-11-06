@@ -3,3 +3,5 @@ export const COLUMN_WIDTH = 272;
 /** `COLUMN_WIDTH` as the literal class Tailwind needs to see. */
 export const COLUMN_WIDTH_CLASS = 'w-[272px]';
 export const COLUMN_GAP = 12;
+/** Width of the drag overlay card: a column minus its horizontal padding. */
+export const DRAG_CARD_WIDTH = COLUMN_WIDTH - 12;

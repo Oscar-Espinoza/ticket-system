@@ -109,7 +109,7 @@
               slugEdited = true;
               slug = event.currentTarget.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
               errors = {};
-              // Controlled like React's: write the result back even when the
+              // Controlled: write the result back even when the
               // state didn't change (a rejected keystroke leaves slug as is).
               event.currentTarget.value = slug;
             }}

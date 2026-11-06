@@ -1,7 +1,7 @@
 // Client-side URL state (filters, open pane, view tabs) without a server round trip.
 //
-// The React app wrote these with native history.replaceState: synchronous, no
-// navigation, router data untouched, and Next kept useSearchParams() in sync.
+// These are written with native history.replaceState: synchronous, no
+// navigation, router data untouched.
 // Here the write goes through SvelteKit's `replaceState` (shallow routing,
 // caller 'replaceState'), which — unlike `goto(…, { shallow: true })` — fires
 // no beforeNavigate/onNavigate/afterNavigate, never sets `navigating`, and
@@ -13,7 +13,7 @@
 // already loading can even put back to its old value. So this module keeps the
 // URL it wrote in its own $state and treats that as the truth while the
 // address bar shows it. Two setSearchParams() calls in one tick build on each
-// other, as they did with the synchronous React write.
+// other, as with a synchronous write.
 //
 //   setSearchParams({ issue: 'APP-12', tab: null })   null/'' deletes a param
 //   const searchParams = useSearchParams();            reactive, same methods as
@@ -69,7 +69,7 @@ export function setSearchParams(changes: Record<string, string | null>) {
     else params.delete(key);
   }
   const query = params.toString();
-  // As the React code: the hash is dropped, an empty query leaves the bare path.
+  // The hash is dropped, an empty query leaves the bare path.
   const url = new URL(query ? `?${query}` : base.pathname, base.href);
   written = url;
   if (writing) return; // the running writeHistory() loop picks up the new value
@@ -77,7 +77,7 @@ export function setSearchParams(changes: Record<string, string | null>) {
   void writeHistory();
 }
 
-/** Read-only, always-current URLSearchParams view (next/navigation useSearchParams()). */
+/** Read-only, always-current URLSearchParams view . */
 export class LiveSearchParams {
   get #params(): ReadonlyURLSearchParams {
     return currentUrl().searchParams;

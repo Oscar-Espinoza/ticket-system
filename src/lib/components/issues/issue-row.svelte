@@ -21,7 +21,7 @@
 <script lang="ts">
   import UserRoundIcon from '@lucide/svelte/icons/user-round';
 
-  import { ISSUE_ROW_ATTR, issueAttr } from '@/lib/components/issues/issue-dom';
+  import { rowAttr } from '@/lib/components/issues/issue-dom';
   import { AssigneePicker, PriorityPicker, StatePicker } from '@/lib/components/issue-pickers';
   import { useProjectData, useProjectPermission } from '@/lib/components/project/project-data.svelte';
   import SlaChip from '@/lib/components/sla/sla-chip.svelte';
@@ -86,7 +86,7 @@
   bind:this={ref}
   {...rest}
   tabindex={0}
-  {...issueAttr(ISSUE_ROW_ATTR, issue.id)}
+  {...rowAttr(issue.id)}
   data-active={active}
   aria-label={`${issue.key} ${issue.title}, ${issue.state.name}`}
   aria-current={active ? 'true' : undefined}

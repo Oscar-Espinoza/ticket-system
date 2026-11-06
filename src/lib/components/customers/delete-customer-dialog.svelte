@@ -50,7 +50,7 @@
   }
 </script>
 
-<!-- Strictly controlled, as in React: open exactly while `customer` is set. -->
+<!-- Strictly controlled: open exactly while `customer` is set. -->
 <AlertDialog bind:open={() => customer !== null, (next) => onOpenChange(next)}>
   <AlertDialogContent size="sm">
     <AlertDialogHeader>

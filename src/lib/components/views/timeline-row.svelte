@@ -20,7 +20,7 @@
     useIsSelected,
     useIssueSelection,
   } from '@/lib/components/issues/selection.svelte';
-  import { ISSUE_ROW_ATTR, issueAttr } from '@/lib/components/issues/issue-dom';
+  import { rowAttr } from '@/lib/components/issues/issue-dom';
   import { isPendingIssue } from '@/lib/components/issues/use-issue-mutations.svelte';
   import { StateIcon } from '@/lib/components/ui-icons';
   import type { IssueRow } from '@/lib/issue-model';
@@ -65,7 +65,7 @@
   <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_static_element_interactions -->
   <div
     tabindex="0"
-    {...issueAttr(ISSUE_ROW_ATTR, issue.id)}
+    {...rowAttr(issue.id)}
     aria-label={`${issue.key} ${issue.title}, ${issue.state.name}`}
     aria-current={active ? 'true' : undefined}
     aria-selected={selection.enabled ? selected.current : undefined}

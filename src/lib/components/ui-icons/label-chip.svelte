@@ -1,4 +1,4 @@
-<!-- Domain chip (replaces shadcn Badge); every color maps to a token. -->
+<!-- Domain chip every color maps to a token. -->
 <script module lang="ts">
   import type { Snippet } from 'svelte';
   import type { HTMLAttributes } from 'svelte/elements';

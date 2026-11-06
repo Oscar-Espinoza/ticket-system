@@ -8,13 +8,10 @@
   const COPY_LINK_KEY = { mod: true, shift: true, key: ',' };
   const COPY_ID_KEY = { mod: true, key: '.' };
 
-  const dateFormat = new Intl.DateTimeFormat('en', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  });
 </script>
 
 <script lang="ts">
+  import { DATE_TIME_MEDIUM_FORMAT } from '@/lib/format';
   import ArchiveIcon from '@lucide/svelte/icons/archive';
   import ArchiveRestoreIcon from '@lucide/svelte/icons/archive-restore';
   import CalendarDaysIcon from '@lucide/svelte/icons/calendar-days';
@@ -60,26 +57,26 @@
   import { cn } from '@/lib/utils';
   import PropertyRow from './property-row.svelte';
   import { useDraft } from './use-draft.svelte';
-  import DescriptionEditor from './slots/description-editor.svelte';
-  import HeaderFavorite from './slots/header-favorite.svelte';
-  import HeaderGithub from './slots/header-github.svelte';
-  import HeaderPresence from './slots/header-presence.svelte';
-  import HeaderRemind from './slots/header-remind.svelte';
-  import HeaderSubscribe from './slots/header-subscribe.svelte';
-  import MenuExtraItems from './slots/menu-extra-items.svelte';
-  import MenuMove from './slots/menu-move.svelte';
-  import PropertyCycle from './slots/property-cycle.svelte';
-  import PropertyEpic from './slots/property-epic.svelte';
-  import PropertyParent from './slots/property-parent.svelte';
-  import PropertySla from './slots/property-sla.svelte';
-  import PropertyStartDate from './slots/property-start-date.svelte';
-  import SectionActivity from './slots/section-activity.svelte';
-  import SectionAttachments from './slots/section-attachments.svelte';
-  import SectionCustomers from './slots/section-customers.svelte';
-  import SectionPullRequests from './slots/section-pull-requests.svelte';
-  import SectionRelations from './slots/section-relations.svelte';
-  import SectionSimilar from './slots/section-similar.svelte';
-  import SectionSubIssues from './slots/section-sub-issues.svelte';
+  import DescriptionEditor from './description-editor.svelte';
+  import HeaderFavorite from './header-favorite.svelte';
+  import HeaderGithub from './header-github.svelte';
+  import HeaderPresence from './header-presence.svelte';
+  import HeaderRemind from './header-remind.svelte';
+  import HeaderSubscribe from './header-subscribe.svelte';
+  import MenuExtraItems from './menu-extra-items.svelte';
+  import MenuMove from './menu-move.svelte';
+  import PropertyCycle from './property-cycle.svelte';
+  import PropertyEpic from './property-epic.svelte';
+  import PropertyParent from './property-parent.svelte';
+  import PropertySla from './property-sla.svelte';
+  import PropertyStartDate from './property-start-date.svelte';
+  import SectionActivity from './section-activity.svelte';
+  import SectionAttachments from './section-attachments.svelte';
+  import SectionCustomers from './section-customers.svelte';
+  import SectionPullRequests from './section-pull-requests.svelte';
+  import SectionRelations from './section-relations.svelte';
+  import SectionSimilar from './section-similar.svelte';
+  import SectionSubIssues from './section-sub-issues.svelte';
 
   let {
     issue,
@@ -110,7 +107,7 @@
     if (next !== issue.title) update({ title: next });
   }
 
-  /** Ghost property button classes (React PropertyButton). */
+  /** Ghost property button classes. */
   const propertyButton = (extra?: string) => cn('-ml-2 max-w-full gap-2 font-normal', extra);
 </script>
 
@@ -377,12 +374,12 @@
     </PropertyRow>
     <PropertyRow label="Created">
       <span class="text-xs">
-        {dateFormat.format(new Date(issue.createdAt))}
+        {DATE_TIME_MEDIUM_FORMAT.format(new Date(issue.createdAt))}
       </span>
     </PropertyRow>
     <PropertyRow label="Updated">
       <span class="text-xs">
-        {dateFormat.format(new Date(issue.updatedAt))}
+        {DATE_TIME_MEDIUM_FORMAT.format(new Date(issue.updatedAt))}
       </span>
     </PropertyRow>
   </div>

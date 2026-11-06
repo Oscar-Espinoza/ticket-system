@@ -95,6 +95,7 @@
 </script>
 
 <script lang="ts">
+  import { pluralize } from '@/lib/format';
   import BellOffIcon from '@lucide/svelte/icons/bell-off';
   import BellRingIcon from '@lucide/svelte/icons/bell-ring';
   import LaptopIcon from '@lucide/svelte/icons/laptop';
@@ -216,7 +217,7 @@
       else if (result.sent === 0) toast.error('No device accepted the notification. Try enabling it again.');
       else
         toast.success(
-          `Test notification sent to ${result.sent} of ${result.devices} device${result.devices === 1 ? '' : 's'}`,
+          `Test notification sent to ${result.sent} of ${pluralize(result.devices, 'device')}`,
         );
     } finally {
       testing = false;
@@ -293,7 +294,7 @@
                   <span class="ml-2 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">This device</span>
                 {/if}
               </span>
-              <!-- React's suppressHydrationWarning: hydration keeps the server text. -->
+              <!-- Hydration keeps the server text. -->
               <span class="shrink-0 text-xs text-muted-foreground">
                 Added {relativeTime(new Date(d.createdAt))}
               </span>

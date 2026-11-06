@@ -1,4 +1,4 @@
-<!-- "Add link" form of SectionAttachments (React's local LinkForm). -->
+<!-- "Add link" form of SectionAttachments. -->
 <script lang="ts">
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
 

@@ -35,10 +35,10 @@
   import type { IssuesViewProps } from './issues-view.svelte';
   import IssueViewHost from './issue-view-host.svelte';
   import NewIssueDialog from './new-issue-dialog.svelte';
-  import BulkBar from './slots/bulk-bar.svelte';
-  import IssueShortcuts from './slots/issue-shortcuts.svelte';
-  import ListOverlay from './slots/list-overlay.svelte';
-  import ToolbarExtra from './slots/toolbar-extra.svelte';
+  import BulkBar from './bulk-bar.svelte';
+  import IssueShortcuts from './issue-shortcuts.svelte';
+  import ListOverlay from './list-overlay.svelte';
+  import ToolbarExtra from './toolbar-extra.svelte';
   import { isPendingIssue, useIssueMutations } from './use-issue-mutations.svelte';
   import ViewSwitcher from './view-switcher.svelte';
   import { ISSUE_VIEWS, preloadViews } from './views';
@@ -197,7 +197,7 @@
         action={canWrite.current ? newIssueAction : undefined}
       />
     {/if}
-  {:else if listed.length === 0 && filtered && layout !== 'calendar'}
+  {:else if listed.length === 0 && filtered && view.showsFilteredEmpty}
     <EmptyState title="No matching issues" description="No issues match the current filters.">
       {#snippet icon()}<SearchXIcon />{/snippet}
       {#snippet action()}

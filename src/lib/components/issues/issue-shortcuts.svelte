@@ -322,7 +322,7 @@
     if (writer && templateId && !draft && list === undefined) return;
 
     untrack(() => {
-      // Strip the entry params in place (React: router.replace(pathname + rest, { scroll: false })).
+      // Strip the entry params in place.
       setSearchParams({ [DRAFT_PARAM]: null, [TEMPLATE_PARAM]: null, [CREATE_PARAM]: null });
       if (!writer) return;
 

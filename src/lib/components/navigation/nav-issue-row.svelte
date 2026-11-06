@@ -66,7 +66,7 @@
       {#if issue.assignee}
         <Avatar name={issue.assignee.name} src={issue.assignee.image} size={20} class="shrink-0" />
       {/if}
-      <!-- React's suppressHydrationWarning: hydration keeps the server text. -->
+      <!-- Hydration keeps the server text. -->
       <time
         datetime={new Date(stamp.date).toISOString()}
         title={`${stamp.label} ${new Date(stamp.date).toLocaleString()}`}

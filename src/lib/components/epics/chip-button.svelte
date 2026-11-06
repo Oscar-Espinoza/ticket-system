@@ -1,4 +1,4 @@
-<!-- Outline property chip of the create dialogs Spread a picker trigger's `props` onto it. -->
+<!-- Outline property chip of the create dialogs. Spread a picker trigger's `props` onto it. -->
 <script lang="ts">
   import { Button, type ButtonProps } from '@/lib/components/ui/button';
 

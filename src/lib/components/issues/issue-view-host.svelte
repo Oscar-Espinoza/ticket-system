@@ -33,7 +33,6 @@
   import { browser } from '$app/env';
   import TriangleAlertIcon from '@lucide/svelte/icons/triangle-alert';
 
-  import { COLUMN_WIDTH_CLASS } from '@/lib/components/board/board-layout';
   import { Button } from '@/lib/components/ui/button';
   import { EmptyState, Skeleton } from '@/lib/components/ui-icons';
 
@@ -50,7 +49,7 @@
   {#if view.lazy?.loading === 'board'}
     <div class="flex gap-3">
       {#each { length: 5 }, i (i)}
-        <Skeleton variant="card" class={`h-64 ${COLUMN_WIDTH_CLASS} shrink-0`} />
+        <Skeleton variant="card" class={`h-64 ${view.lazy.skeletonColumnClass} shrink-0`} />
       {/each}
     </div>
   {:else if view.lazy?.loading === 'rows'}

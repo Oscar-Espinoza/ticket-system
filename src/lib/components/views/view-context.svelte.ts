@@ -6,7 +6,7 @@
 //   <IssuesViewContextProvider value={…}>                    same, as a component
 //   useSubIssueCount(issueId | () => issueId): { readonly current: SubIssueCount | null }
 //   useSavedView(): { readonly current: SavedViewInfo | null }
-// Outside a provider both read the empty defaults (as React's default context).
+// Outside a provider both read the empty defaults.
 
 import { createContext } from 'svelte';
 

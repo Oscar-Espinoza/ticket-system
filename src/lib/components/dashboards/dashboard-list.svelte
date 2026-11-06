@@ -3,6 +3,7 @@
   projects. (`NewDashboardButton` is new-dashboard-button.svelte.)
 -->
 <script lang="ts">
+  import { pluralize } from '@/lib/format';
   import CopyIcon from '@lucide/svelte/icons/copy';
   import LayoutDashboardIcon from '@lucide/svelte/icons/layout-dashboard';
   import MoreHorizontalIcon from '@lucide/svelte/icons/ellipsis';
@@ -38,7 +39,7 @@
   let { dashboards }: { dashboards: DashboardSummary[] } = $props();
 
   let deleting = $state<DashboardSummary | null>(null);
-  // useTransition: true while a duplicate / delete round trip is running.
+  // In-flight counter: true while a duplicate / delete round trip is running.
   let inflight = $state(0);
   const pending = $derived(inflight > 0);
 
@@ -105,7 +106,7 @@
                 </span>
               {/if}
               <span class="hidden w-16 shrink-0 text-right text-xs text-muted-foreground tabular-nums md:block">
-                {dashboard.widgetCount} widget{dashboard.widgetCount === 1 ? '' : 's'}
+                {pluralize(dashboard.widgetCount, 'widget')}
               </span>
               <span class="hidden w-28 shrink-0 truncate text-right text-xs text-muted-foreground md:block">
                 {dashboard.isOwner ? 'You' : (dashboard.ownerName ?? 'Former member')}

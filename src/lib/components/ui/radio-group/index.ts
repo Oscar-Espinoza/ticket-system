@@ -1,5 +1,5 @@
 /*
- * Port of src/components/ui/radio-group.tsx (Radix RadioGroup → bits-ui RadioGroup).
+ * Radix RadioGroup → bits-ui RadioGroup.
  *
  * Caller translation:
  * - `<RadioGroup value={v} onValueChange={fn} disabled class="gap-3" aria-label="…">` keeps

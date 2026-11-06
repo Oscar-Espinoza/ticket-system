@@ -1,11 +1,11 @@
-// Svelte stand-in for React's `useActionState(action, initial)` as the settings
+// Form state + pending flag for an action, as the settings
 // forms use it: the generated `(prev, formData)` wrappers in `@/lib/actions/*`
 // return the next state, `pending` is true while one runs.
 //
 //   const form = createActionState(updateProjectDetails, {});
 //   <form onsubmit={form.onsubmit}> … form.state.errors?.name … form.pending
 //
-// Call during component init. Unlike React 19's `<form action>`, the form is
+// Call during component init. Unlike a native `<form action>`, the form is
 // not reset after the action finishes (typed values survive a validation error;
 // on success the refreshed props re-seed the inputs).
 

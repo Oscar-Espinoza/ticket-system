@@ -56,7 +56,7 @@
 
   // A minute-resolution clock: null on the server and during the first
   // hydration (the time depends on the viewer's clock), then polled every 15 s
-  // like the React useSyncExternalStore subscription. A component mounted by a
+  // like a store subscription. A component mounted by a
   // client-side navigation reads the clock on its first render.
   let minute = $state<number | null>(isAppHydrated() ? minuteSnapshot() : null);
 

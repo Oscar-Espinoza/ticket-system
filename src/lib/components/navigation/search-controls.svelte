@@ -47,7 +47,7 @@
   const debounce = createDebouncer();
   let inputRef = $state<HTMLInputElement | null>(null);
 
-  // useTransition around router.replace: pending until the latest navigation lands.
+  // In-flight counter: pending until the latest navigation lands.
   let running = 0;
   let pending = $state(false);
 
@@ -71,7 +71,7 @@
     running += 1;
     pending = true;
     try {
-      // router.replace: no new history entry; keep focus (typing) and scroll.
+      // Replace the history entry (no new one); keep focus (typing) and scroll.
       await goto(search ? `${pathname}?${search}` : pathname, { replace: true, reset: false });
     } finally {
       running -= 1;

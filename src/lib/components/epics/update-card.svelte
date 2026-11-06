@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { DATE_TIME_MEDIUM_FORMAT } from '@/lib/format';
   import EllipsisIcon from '@lucide/svelte/icons/ellipsis';
   import Trash2Icon from '@lucide/svelte/icons/trash-2';
 
@@ -15,7 +16,6 @@
   import HealthChip from './health-chip.svelte';
   import RichText from './rich-text.svelte';
 
-  const absolute = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' });
 
   let {
     update,
@@ -41,7 +41,7 @@
     <span class="truncate">{update.author?.name ?? 'Someone'}</span>
     <time
       datetime={createdAt.toISOString()}
-      title={absolute.format(createdAt)}
+      title={DATE_TIME_MEDIUM_FORMAT.format(createdAt)}
       class="text-xs text-muted-foreground"
     >
       {relativeTime(createdAt)}

@@ -108,8 +108,7 @@
     }
   }
 
-  // Re-registered when the issue or the create option changes (React deps
-  // [issue.id, offersCreate]); handlers always run the latest copy/create.
+  // Re-registered when the issue or the create option changes; handlers always run the latest copy/create.
   $effect(() => {
     void issue.id;
     const withCreate = offersCreate;

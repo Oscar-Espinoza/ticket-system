@@ -1,7 +1,7 @@
 <!--
   Epic page: header (editable name), tabs Overview · Updates · Issues (`?tab=`).
   Overview = description, latest update, milestones + a property sidebar.
-  Property edits are optimistic (useOptimistic) and settle on the refreshed props.
+  Property edits are optimistic  and settle on the refreshed props.
   Issues from sibling projects (cross-project epics) get a project switcher on
   the Issues tab; only this project's issues are editable in place.
 -->
@@ -95,6 +95,7 @@
   import { mergePatch, Optimistic } from './optimistic.svelte';
   import ProgressBlock from './progress-block.svelte';
   import UpdateCard from './update-card.svelte';
+  import { copyToClipboard } from '@/lib/components/productivity/issue-actions';
 
   const TABS = ['overview', 'updates', 'issues'] as const;
   type Tab = (typeof TABS)[number];
@@ -173,7 +174,7 @@
     });
 
   const toggleArchive = () => {
-    // The render-time value, as the React closure saw it.
+    // The render-time value.
     const archived = epic.archivedAt;
     const id = epic.id;
     void optimistic.transition(async () => {
@@ -185,14 +186,7 @@
     });
   };
 
-  const copyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.href.split('?')[0]);
-      toast.success('Copied epic link');
-    } catch {
-      toast.error('Could not copy to the clipboard.');
-    }
-  };
+  const copyLink = () => copyToClipboard(window.location.href.split('?')[0], 'epic link');
 
   const lead = $derived(epic.lead);
   const initiative = $derived(initiatives?.find((i) => i.id === epic.initiativeId) ?? null);

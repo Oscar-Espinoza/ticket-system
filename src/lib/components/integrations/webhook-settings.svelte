@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { pluralize } from '@/lib/format';
   import EllipsisIcon from '@lucide/svelte/icons/ellipsis';
   import HistoryIcon from '@lucide/svelte/icons/history';
   import KeyRoundIcon from '@lucide/svelte/icons/key-round';
@@ -180,7 +181,7 @@
             <p class="mt-0.5 truncate text-xs text-muted-foreground">
               {hook.events.length === 0
                 ? 'All events'
-                : `${hook.events.length} event${hook.events.length === 1 ? '' : 's'}`}{' · '}<button
+                : `${pluralize(hook.events.length, 'event')}`}{' · '}<button
                 type="button"
                 class="hover:text-foreground hover:underline"
                 onclick={() => (viewing = hook)}

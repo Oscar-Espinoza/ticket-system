@@ -138,7 +138,7 @@ export function useProjectPresence(
   projectId: MaybeGetter<string>,
   ticketId: MaybeGetter<string | null> = null,
 ): { readonly current: PresenceUser[] } {
-  // Bumped by the channel's listeners (useSyncExternalStore's subscribe).
+  // Bumped by the channel's listeners (the subscriber).
   let version = $state(0);
 
   $effect(() => {

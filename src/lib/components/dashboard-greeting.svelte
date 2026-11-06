@@ -1,7 +1,7 @@
 <!--
   The time-of-day greeting must reflect the *viewer's* local time, not
   the server's (the server clock is UTC on Vercel). SSR and hydration render
-  the neutral "Welcome back" (React's server snapshot = null); the client then
+  the neutral "Welcome back"; the client then
   computes the local hour.
 -->
 <script module lang="ts">

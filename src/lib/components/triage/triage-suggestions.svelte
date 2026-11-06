@@ -67,7 +67,7 @@
 
   // Per-issue cache so j/k through the queue doesn't refetch.
   let cache = $state.raw<ReadonlyMap<string, Suggestions>>(new Map());
-  // Primitive deps, like React's [projectId, id, loaded]: optimistic edits make a
+  // Primitive deps, (projectId, id, loaded): optimistic edits make a
   // new issue object but must not restart the fetch.
   const projectId = $derived(issue.projectId);
   const id = $derived(issue.id);

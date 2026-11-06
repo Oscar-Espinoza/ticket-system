@@ -126,14 +126,14 @@
         toast.error(result.reason instanceof Error ? result.reason.message : 'Upload failed.');
       }
     });
-    // React: router.refresh() — the upload goes through /api, not an action wrapper.
+    // The upload goes through /api, not an action wrapper.
     if (results.some((r) => r.status === 'fulfilled')) void refreshAfterWrite();
   }
 
   async function remove(row: Row) {
     rows = rows?.filter((r) => r.id !== row.id) ?? null;
     try {
-      // The action wrapper refreshes the page after it (React: router.refresh()).
+      // The action wrapper refreshes the page after it.
       const result = await deleteAttachment({ projectId: issue.projectId, attachmentId: row.id });
       if (result.ok) return;
       toast.error(actionErrorText(result.error));
@@ -155,7 +155,7 @@
       toast.error(actionErrorText(result.error));
       return false;
     }
-    // The action wrapper already refreshed the page (React: router.refresh()).
+    // The action wrapper already refreshed the page.
     rows = [result.attachment, ...(rows ?? [])];
     linkOpen = false;
     return true;

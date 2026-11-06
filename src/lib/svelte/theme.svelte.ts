@@ -2,8 +2,8 @@
 //
 // Setup: the root layout renders <ThemeProvider> (src/lib/svelte/theme-provider.svelte),
 // i.e. <ModeWatcher>: `class` attribute (.dark on <html>), default 'dark',
-// system preference followed, storage key 'theme' (raw-string format kept from
-// next-themes, so saved choices carry over).
+// system preference followed, storage key 'theme' (raw-string format kept,
+// so saved choices carry over).
 //
 // Use:
 //   const theme = useTheme();

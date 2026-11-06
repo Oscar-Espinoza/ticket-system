@@ -63,7 +63,7 @@
 
 <section class="flex flex-col gap-6">
   <div class="flex items-start gap-3">
-    <!-- Strictly controlled, as in React: the switch follows `url`, not the click. -->
+    <!-- Strictly controlled: the switch follows `url`, not the click. -->
     <Switch
       id="intake-enabled"
       bind:checked={() => !!url, (on) =>

@@ -18,7 +18,7 @@
 //   collabEditor.state   'pending' | 'ready' | 'lossy' (reactive)
 //   collabEditor.onChange  pass to MarkdownEditor's onChange
 // `markdown`, `truth` (and the first `hasPeers`) are read once, when the hook
-// starts, like React's initial ref; callbacks and `hasPeers` are read fresh.
+// starts, like an initial ref; callbacks and `hasPeers` are read fresh.
 
 import { untrack } from 'svelte';
 import type { Editor, JSONContent } from '@tiptap/core';
@@ -95,14 +95,14 @@ export function useCollabEditor(options: () => UseCollabEditorOptions): {
   // or undoing back to it isn't a change worth saving. Remote steps reset it.
   let baseline: string | null = null;
   let initFor: Editor | null = null;
-  // The latest options, untracked (React's refs, refreshed every render).
+  // The latest options, untracked (refreshed every render).
   const current = () => untrack(options);
   const initial = untrack(() => {
     const { markdown, truth } = options();
     return { markdown, truth };
   });
 
-  // Only these are tracked by the effects below (React's dependency lists).
+  // Only these are tracked by the effects below.
   const editor = $derived(options().editor);
   const provider = $derived(options().provider);
   const synced = $derived(options().snapshot.synced);
@@ -115,7 +115,7 @@ export function useCollabEditor(options: () => UseCollabEditorOptions): {
     const ed = editor;
     const prov = provider;
     if (!ed || !prov || !synced || initFor === ed) return;
-    // Read so a change re-runs this check, as in React's deps (the guard above
+    // Read so a change re-runs this check, like a dependency (the guard above
     // keeps it to once per editor).
     void empty;
     void canWrite;

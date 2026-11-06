@@ -1,13 +1,13 @@
 /**
- * InputGroup (React: src/components/ui/input-group.tsx).
+ * InputGroup.
  *
  * Caller translation:
  * - Same parts and props: InputGroupAddon `align` ("inline-start" | "inline-end" |
  *   "block-start" | "block-end"), InputGroupButton `size` ("xs" | "sm" | "icon-xs" |
  *   "icon-sm", default "xs"), `variant` (default "ghost"), `type` (default "button").
  * - InputGroupInput / InputGroupTextarea: `bind:value` (or `value` + `oninput`), `bind:ref`.
- * - Clicking an addon (outside a button) focuses the group's input, as in React; passing
- *   your own `onclick` replaces that behaviour (React spread order).
+ * - Clicking an addon (outside a button) focuses the group's input; passing
+ *   your own `onclick` replaces that behaviour.
  * - `className` → `class`; `onClick` → `onclick`.
  */
 import InputGroup from "./input-group.svelte"

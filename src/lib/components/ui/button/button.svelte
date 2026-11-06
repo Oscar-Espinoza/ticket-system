@@ -50,7 +50,7 @@
     },
   })}
 {:else if href !== undefined}
-  <!-- React: <Button asChild><Link href /></Button> — the Slot rendered the anchor with the button classes. -->
+  <!-- With `href`, render the anchor with the button classes. -->
   <a
     bind:this={ref}
     data-slot="button"

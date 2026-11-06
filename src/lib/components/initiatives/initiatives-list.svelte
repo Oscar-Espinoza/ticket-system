@@ -136,7 +136,6 @@
   {:else}
     <div role="list" aria-label="Initiatives" class="flex flex-col border-t border-border">
       {#each shown as initiative (initiative.id)}
-        <!-- same markup as React -->
         <!-- svelte-ignore a11y_no_interactive_element_to_noninteractive_role -->
         <a
           href={initiativesPath(workspace.slug, initiative.id)}

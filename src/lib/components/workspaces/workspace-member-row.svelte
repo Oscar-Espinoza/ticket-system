@@ -87,7 +87,7 @@
     </span>
   </a>
   {#if canChangeRole}
-    <!-- Strictly controlled: shows the server role until the refresh lands, as in React. -->
+    <!-- Strictly controlled: shows the server role until the refresh lands. -->
     <Select items={ROLE_ITEMS} bind:value={() => member.role, (v) => changeRole(v)} disabled={isPending}>
       <SelectTrigger size="sm" class="w-28" aria-label="Role of {member.name}">
         <SelectValue />

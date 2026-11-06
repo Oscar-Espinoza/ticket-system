@@ -1,5 +1,5 @@
 /**
- * Checkbox (React: src/components/ui/checkbox.tsx, Radix Checkbox → bits-ui Checkbox).
+ * Checkbox (Radix Checkbox → bits-ui Checkbox).
  *
  * Caller translation: same `checked` / `onCheckedChange` contract as Radix —
  * `checked: boolean | "indeterminate"`, `onCheckedChange(checked)`. `bind:checked` also

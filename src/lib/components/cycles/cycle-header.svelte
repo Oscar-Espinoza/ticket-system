@@ -84,7 +84,7 @@
 
   <CycleFormDialog {projectId} bind:open={editing} {cycle} />
   {#if canWrite && !cycle.completedAt}
-    <!-- React keyed this on `completing` so the rollover choice resets per open. -->
+    <!-- Keyed on `completing` so the rollover choice resets per open. -->
     {#key completing}
       <CompleteCycleDialog
         {projectId}

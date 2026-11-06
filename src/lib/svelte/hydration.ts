@@ -1,6 +1,6 @@
 // Whether the app's first hydration is over (client only; false during SSR).
 //
-// useSyncExternalStore used the server snapshot only while hydrating; a
+// A store uses the server value only while hydrating; a
 // component mounted later (client-side navigation) read the browser value on
 // its first render. Components that must render the server value during
 // hydration start from `isAppHydrated()` and call `markAppHydrated()` from an

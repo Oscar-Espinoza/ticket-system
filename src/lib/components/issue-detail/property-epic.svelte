@@ -33,7 +33,7 @@
   import { useProjectData, useProjectPermission } from '@/lib/components/project/project-data.svelte';
   import { Button } from '@/lib/components/ui/button';
   import type { IssueRow } from '@/lib/issue-model';
-  import PropertyRow from '../property-row.svelte';
+  import PropertyRow from './property-row.svelte';
 
   let { issue, mutations }: { issue: IssueRow; mutations: IssueMutations } = $props();
 

@@ -1,5 +1,5 @@
 /**
- * AlertDialog (React: src/components/ui/alert-dialog.tsx, Radix → bits-ui AlertDialog).
+ * AlertDialog (Radix → bits-ui AlertDialog).
  *
  * Caller translation:
  * - `<AlertDialog open={o} onOpenChange={setO}>` works unchanged; `bind:open` also works;

@@ -120,7 +120,7 @@
         A larger piece of work made of many {data.project.ticketKey} issues.
       </DialogDescription>
     </DialogHeader>
-    <!-- ⌘Enter submits, as in React -->
+    <!-- ⌘Enter submits -->
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <form
       onsubmit={(event) => void submit(event)}

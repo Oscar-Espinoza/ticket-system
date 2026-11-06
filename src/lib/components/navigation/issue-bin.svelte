@@ -51,7 +51,7 @@
     () => serverIssues,
     () => ({ include: INCLUDE[mode] }),
   );
-  // useOptimistic: purged ids hide their rows until the purge (and the refresh
+  // Optimistic: purged ids hide their rows until the purge (and the refresh
   // that drops them from `serverIssues`) settles.
   let purged = $state<string[]>([]);
   let query = $state('');

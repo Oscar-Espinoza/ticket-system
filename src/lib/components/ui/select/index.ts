@@ -1,5 +1,5 @@
 /*
- * Port of src/components/ui/select.tsx (Radix Select → bits-ui Select).
+ * Radix Select → bits-ui Select.
  *
  * Caller translation:
  * - `<Select value={v} onValueChange={fn} disabled={x}>` keeps working (single-value by default,
@@ -13,7 +13,7 @@
  *   that item has mounted (the list has been opened). So without `items` the closed trigger shows
  *   the raw value (e.g. "admin" instead of "Admin") on first render and after every reload, until
  *   the list is opened. `items` also enables typeahead on the closed trigger, as Radix had.
- * - Rich selected content (React showed the item's full ItemText, e.g. Avatar + name or
+ * - Rich selected content (Radix showed the item's full ItemText, e.g. Avatar + name or
  *   StateIcon + name): render it with SelectValue's snippet —
  *   `<SelectValue placeholder="Anyone">{#snippet children({ selection })}…{/snippet}</SelectValue>`
  *   where `selection.selected` is `{ value, label } | undefined` (single). Without children it

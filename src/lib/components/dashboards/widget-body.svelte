@@ -3,6 +3,7 @@
   (BarList, TrendChart); lists reuse NavIssueRow (cross-project safe).
 -->
 <script lang="ts">
+  import { pluralize } from '@/lib/format';
   import { epicPath } from '@/lib/epic-model';
   import EpicIcon from '@/lib/components/epics/epic-icon.svelte';
   import ProgressRing from '@/lib/components/epics/progress-ring.svelte';
@@ -148,7 +149,7 @@
       {#each rows as row (row.id)}
         <li
           class="grid grid-cols-[minmax(0,9rem)_1fr_5.5rem] items-center gap-3 text-sm"
-          title={`${row.count} issue${row.count === 1 ? '' : 's'} · median ${formatDays(row.medianDays)} · longest ${formatDays(row.maxDays)}`}
+          title={`${pluralize(row.count, 'issue')} · median ${formatDays(row.medianDays)} · longest ${formatDays(row.maxDays)}`}
         >
           <span class="flex min-w-0 items-center gap-2">
             {#if row.stateType}

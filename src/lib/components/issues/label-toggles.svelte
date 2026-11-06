@@ -13,8 +13,8 @@
     CommandList,
   } from '@/lib/components/ui/command';
   import type { IssueRow } from '@/lib/issue-model';
-  import { labelCoverage, toggleLabel } from '../bulk-actions';
-  import type { IssueMutations } from '../use-issue-mutations.svelte';
+  import { labelCoverage, toggleLabel } from './bulk-actions';
+  import type { IssueMutations } from './use-issue-mutations.svelte';
 
   let { issues, mutations }: { issues: IssueRow[]; mutations: IssueMutations } = $props();
 

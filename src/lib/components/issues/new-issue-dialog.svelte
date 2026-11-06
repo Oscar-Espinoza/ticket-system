@@ -215,7 +215,7 @@
 </script>
 
 <Dialog {open} onOpenChange={(next: boolean) => (next ? onOpenChange(true) : close())}>
-  <!-- React's autoFocus put focus in the title before Radix's focus scope ran
+  <!-- Focus goes to the title before Radix's focus scope runs
        (so it stayed there); bits-ui would otherwise focus the first tabbable
        (the Template button once templates load). -->
   <DialogContent

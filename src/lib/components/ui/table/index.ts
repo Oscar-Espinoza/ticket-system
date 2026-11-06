@@ -1,9 +1,6 @@
 /*
- * Port of src/components/ui/table.tsx (plain table elements).
- *
- * Caller translation: same part names and classes; `className` → `class`, `colSpan` → `colspan`,
- * `ref` → `bind:ref` (on Table the ref is the <table>, inside the scroll container as in React).
- * Row selection styling still uses `data-state="selected"` on TableRow.
+ * Plain table elements. On Table the `ref` is the <table>, inside the scroll container.
+ * Row selection styling uses `data-state="selected"` on TableRow.
  */
 import Root from './table.svelte';
 import Header from './table-header.svelte';

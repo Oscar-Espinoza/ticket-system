@@ -67,7 +67,7 @@
     }
   }
 
-  // ---- Shareable link (useActionState around generateInviteLink) ----------
+  // ---- Shareable link (state around generateInviteLink) ----------
   let linkState = $state<GenerateInviteState>({});
   let linkPending = $state(false);
   // Prefer the just-generated URL over the (possibly stale) server prop.

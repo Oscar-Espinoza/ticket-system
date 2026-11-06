@@ -1,7 +1,6 @@
-// Barrel for the editor, same export names.
-// React → Svelte: `<Markdown>{text}</Markdown>` → `<Markdown source={text} />`;
-// MarkdownEditor `actions` is a snippet; refs → bind:this + exported functions
-// (MarkdownEditor: focus(), getEditor()).
+// Barrel for the editor.
+// `<Markdown source={text} />`; MarkdownEditor `actions` is a snippet; its handle is
+// bind:this + exported functions (MarkdownEditor: focus(), getEditor()).
 
 export { default as MarkdownEditor } from './markdown-editor.svelte';
 export type { MarkdownEditorHandle, MarkdownEditorProps } from './markdown-editor.svelte';

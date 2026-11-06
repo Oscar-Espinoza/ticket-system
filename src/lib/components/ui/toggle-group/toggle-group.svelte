@@ -32,7 +32,7 @@
   }: Props = $props();
 
   /*
-   * React never passed `orientation` to Radix, so Radix's roving focus answered both arrow
+   * Radix was never given `orientation`, so its roving focus answered both arrow
    * axes. bits only answers the axis of its `orientation`, so the other axis is re-sent to the
    * focused item as the matching bits key (bits then moves focus, loops and updates the tab stop).
    */

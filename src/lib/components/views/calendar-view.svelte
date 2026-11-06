@@ -40,7 +40,7 @@
     return Array.from({ length: weeks * 7 }, (_, i) => addDays(start, i));
   }
 
-  // Only the pointer sensor, as in React. dnd-kit#2112: build the manager
+  // Only the pointer sensor. dnd-kit#2112: build the manager
   // ourselves so items registered before the provider's effect use these
   // sensors, and still pass `sensors` (undefined would reset to the defaults).
   const sensors = [PointerSensor];
@@ -48,7 +48,7 @@
   onDestroy(() => manager.destroy());
 
   let month = $state(monthStart(new Date()));
-  // React recomputed "today" on every render; re-derive whenever the view updates.
+  // "Today" is re-derived whenever the view updates.
   const today = $derived.by(() => {
     void issues;
     void month;

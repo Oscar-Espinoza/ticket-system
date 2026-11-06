@@ -3,7 +3,7 @@
   power users (the "Markdown" toggle) and for content the rich editor can't
   represent losslessly. Formatting comes from the shared toolbar via `format`.
 
-  Imperative handle (React `ref`): bind:this and call `focus()` / `format(kind)`.
+  Imperative handle (bind:this and call `focus()` / `format(kind)`.
 -->
 <script module lang="ts">
   import type { MarkdownFormat } from '@/lib/components/editor/text-edits';
@@ -151,7 +151,7 @@
     mention = { ...found, active: 0, left, top };
   }
 
-  // React's synthetic onSelect fires whenever the textarea's selection changes
+  // The synthetic select fires whenever the textarea's selection changes
   // (caret moves by keys or mouse, not just the native `select` event), and
   // only when it actually changed. Same here: keyup / mouseup / focus /
   // selectionchange, deduplicated on the selection range.

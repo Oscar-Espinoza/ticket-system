@@ -1,5 +1,6 @@
 <!-- Delivery log of one webhook. Mounted while open. -->
 <script lang="ts">
+  import { pluralize } from '@/lib/format';
   import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
   import HistoryIcon from '@lucide/svelte/icons/history';
   import LoaderCircleIcon from '@lucide/svelte/icons/loader-circle';
@@ -46,7 +47,7 @@
     return { label: d.attempt > 1 ? `Gave up after ${d.attempt} attempts` : 'Failed', tone: 'failed' };
   }
 
-  // Loaded on open (a read action called from an effect, as React did on mount).
+  // Loaded on open (a read action called from an effect).
   const hookId = $derived(hook.id);
   $effect(() => {
     let live = true;
@@ -163,7 +164,7 @@
                   <p class="text-xs text-destructive">{d.error}</p>
                 {/if}
                 <p class="text-xs text-muted-foreground">
-                  {d.attempt} attempt{d.attempt === 1 ? '' : 's'}{d.deliveredAt
+                  {pluralize(d.attempt, 'attempt')}{d.deliveredAt
                     ? ` · delivered ${new Date(d.deliveredAt).toLocaleString()}`
                     : ''}
                 </p>

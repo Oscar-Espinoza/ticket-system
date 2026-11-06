@@ -1,5 +1,5 @@
 /**
- * DropdownMenu (React: src/components/ui/dropdown-menu.tsx, Radix → bits-ui DropdownMenu).
+ * DropdownMenu (Radix → bits-ui DropdownMenu).
  *
  * Caller translation:
  * - `<DropdownMenuTrigger asChild><Button …/></DropdownMenuTrigger>` →
@@ -7,14 +7,14 @@
  * - DropdownMenuTrigger defaults `type="button"` like Radix (also in the `child` snippet props).
  * - `<DropdownMenuItem asChild><Link href>…</Link></DropdownMenuItem>` →
  *   `<DropdownMenuItem>{#snippet child({ props })}<a {...props} href>…</a>{/snippet}</DropdownMenuItem>`.
- * - `open` / `onOpenChange` on DropdownMenu and DropdownMenuSub work as in React (also
+ * - `open` / `onOpenChange` on DropdownMenu and DropdownMenuSub work (also
  *   `bind:open`, `defaultOpen`).
  * - `DropdownMenuItem onSelect={(e) => …}` unchanged: `e.preventDefault()` keeps the menu open.
- *   Props `variant` ("default" | "destructive"), `inset`, `disabled`, `textValue` as in React.
+ *   Props `variant` ("default" | "destructive"), `inset`, `disabled`, `textValue`.
  * - DropdownMenuCheckboxItem: `checked: boolean | "indeterminate"` + `onCheckedChange` (or
  *   `bind:checked`); closes on select like Radix (bits `closeOnSelect` default true kept).
  * - DropdownMenuRadioGroup: `value` + `onValueChange` (or `bind:value`); RadioItem `value`.
- * - DropdownMenuContent: Portal is built in (as in React). Defaults `align="start"`,
+ * - DropdownMenuContent: Portal is built in. Defaults `align="start"`,
  *   `sideOffset={4}`, `loop={false}` (Radix default; bits defaults to true). `side`,
  *   `alignOffset`, `collisionPadding`, `avoidCollisions` pass through; `portalProps` → Portal.
  *   `onCloseAutoFocus` unchanged; `onEscapeKeyDown` → `onEscapeKeydown`;

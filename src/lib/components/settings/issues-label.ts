@@ -1,1 +1,2 @@
-export const issuesLabel = (count: number) => `${count} issue${count === 1 ? '' : 's'}`;
+import { pluralize } from '@/lib/format';
+export const issuesLabel = (count: number) => `${pluralize(count, 'issue')}`;

@@ -1,15 +1,15 @@
 /*
- * Port of src/components/ui/tooltip.tsx (Radix Tooltip → bits-ui Tooltip).
+ * Radix Tooltip → bits-ui Tooltip.
  *
  * Caller translation:
  * - A <TooltipProvider> ancestor is REQUIRED (bits throws without one). The root layout renders
- *   one; nested `<TooltipProvider delayDuration={300}>` overrides work as in React.
- *   TooltipProvider defaults: delayDuration 0 (React wrapper), skipDelayDuration 300.
+ *   one; nested `<TooltipProvider delayDuration={300}>` overrides work.
+ *   TooltipProvider defaults: delayDuration 0, skipDelayDuration 300.
  * - `<TooltipTrigger asChild><Button …/></TooltipTrigger>` →
  *   `<TooltipTrigger>{#snippet child({ props })}<Button {...props} …/>{/snippet}</TooltipTrigger>`.
  *   Spread `props` on the element you render (it carries the handlers and aria attributes).
  * - TooltipContent: same props (`side` default "top", `sideOffset` default 0, `align`, `class`).
- *   It is always portaled to <body> like React; pass `portalProps={{ disabled: true }}` to render
+ *   It is always portaled to <body>; pass `portalProps={{ disabled: true }}` to render
  *   in place. `onEscapeKeyDown` → `onEscapeKeydown`, `onPointerDownOutside` → `onInteractOutside`.
  * - Tooltip root: `open` + `onOpenChange` or `bind:open`; `defaultOpen`, `delayDuration`,
  *   `disableHoverableContent` as in Radix.

@@ -69,8 +69,7 @@
   const archived = $derived(documents.filter((d) => d.archivedAt));
   const shown = $derived(filter === 'active' ? active : archived);
 
-  // The action wrappers refresh the page (the actions revalidate), which is
-  // what React's explicit router.refresh() did.
+  // The action wrappers refresh the page (refreshesData), so no refresh here.
   async function run(action: Promise<{ ok: true } | { ok: false; error: string }>, success: string) {
     const result = await action;
     if (!result.ok) toast.error(result.error);
@@ -204,7 +203,7 @@
     </ul>
   {/if}
 
-  <!-- The delete action's wrapper refreshes the list (React: onDeleted → router.refresh()). -->
+  <!-- The delete action's wrapper refreshes the list. -->
   <DeleteDocumentDialog
     document={deleting}
     onOpenChange={(open) => {

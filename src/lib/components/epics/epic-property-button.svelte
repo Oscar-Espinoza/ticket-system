@@ -1,4 +1,4 @@
-<!-- Ghost "property" trigger of the epic / initiative sidebars Spread a picker trigger's `props` onto it. -->
+<!-- Ghost "property" trigger of the epic / initiative sidebars. Spread a picker trigger's `props` onto it. -->
 <script lang="ts">
   import { Button, type ButtonProps } from '@/lib/components/ui/button';
   import { cn } from '@/lib/utils';

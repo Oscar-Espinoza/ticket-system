@@ -3,6 +3,7 @@
   background); a refresh — or any fresh server load — re-seeds it.
 -->
 <script lang="ts">
+  import { pluralize } from '@/lib/format';
   import { goto } from '$app/navigation';
   import Archive from '@lucide/svelte/icons/archive';
   import CheckCheck from '@lucide/svelte/icons/check-check';
@@ -164,7 +165,7 @@
         toast.error(result?.error ?? 'Something went wrong');
         void refreshAfterWrite();
       } else {
-        toast(`Archived ${result.count} read notification${result.count === 1 ? '' : 's'}`);
+        toast(`Archived ${pluralize(result.count, 'read notification')}`);
       }
     })();
   }

@@ -1,4 +1,4 @@
-<!-- Quick options + calendar for StartDatePicker (React's local StartDateOptions). -->
+<!-- Quick options + calendar for StartDatePicker. -->
 <script module lang="ts">
   import { addDays, toDateString } from '@/lib/dates';
 

@@ -1,7 +1,7 @@
 <!--
   The issue list's
   side pane (desktop) / right sheet (below lg). `useIsDesktop` is re-exported
-  from the module script (React exported it from the same file).
+  from the module script.
 -->
 <script module lang="ts">
   export { useIsDesktop } from './use-is-desktop.svelte';

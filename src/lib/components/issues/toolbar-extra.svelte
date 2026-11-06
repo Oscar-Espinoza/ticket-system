@@ -36,7 +36,7 @@
     issues: IssueRow[];
     savedView?: { id: string; name: string } | null;
   } = $props();
-  // `issues` is part of the slot contract (React ignored it too).
+  // `issues` is part of the slot contract.
 
   const data = useOptionalProjectData();
   const openViewRef = useSavedView();
@@ -83,7 +83,7 @@
         return;
       }
       toast.success(`Updated “${view.name}”`);
-      // updateView's wrapper refreshes the page (React: router.refresh()).
+      // updateView's wrapper refreshes the page.
     } finally {
       saving = false;
     }

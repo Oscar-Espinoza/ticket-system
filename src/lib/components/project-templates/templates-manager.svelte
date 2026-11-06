@@ -10,11 +10,10 @@
 
   function summaryParts(t: ProjectTemplateRow): string[] {
     const s = t.summary;
-    const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
     return [
-      plural(s.states, 'state'),
-      plural(s.labels, 'label'),
-      s.issueTemplates > 0 && plural(s.issueTemplates, 'issue template'),
+      pluralize(s.states, 'state'),
+      pluralize(s.labels, 'label'),
+      s.issueTemplates > 0 && pluralize(s.issueTemplates, 'issue template'),
       s.estimateScale !== 'none' && `${ESTIMATE_SCALE_LABEL[s.estimateScale]} estimates`,
       s.cyclesEnabled && 'Cycles',
       s.triageEnabled && 'Triage',
@@ -24,6 +23,7 @@
 </script>
 
 <script lang="ts">
+  import { pluralize } from '@/lib/format';
   import EllipsisIcon from '@lucide/svelte/icons/ellipsis';
   import LayoutTemplateIcon from '@lucide/svelte/icons/layout-template';
   import PencilIcon from '@lucide/svelte/icons/pencil';
@@ -147,7 +147,7 @@
   {/if}
 
   <!-- The create/update/delete wrappers refresh the page data themselves, so
-       React's router.refresh() after saving / deleting is not repeated. -->
+       The action wrappers refresh the page after saving / deleting. -->
   <TemplateDialog
     open={dialog !== null}
     onOpenChange={(open) => {

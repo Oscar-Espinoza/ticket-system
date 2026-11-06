@@ -236,7 +236,7 @@ export function filterProperties(data: Pick<ProjectData, 'project' | 'states' | 
 /**
  * The project's filter properties, kept in sync with the project data. Call
  * during component init (reads the ProjectData context; throws outside one, as
- * React's useProjectData did). Read `.current`.
+ * . Read `.current`.
  */
 export function useFilterProperties(): { readonly current: FilterProperty[] } {
   const data = useProjectData();

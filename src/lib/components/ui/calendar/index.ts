@@ -1,5 +1,5 @@
 /**
- * Calendar (React: src/components/ui/calendar.tsx — react-day-picker → bits-ui Calendar).
+ * Calendar (react-day-picker → bits-ui Calendar).
  *
  * Callers keep the react-day-picker contract and keep passing / receiving JS `Date`s
  * (local midnight; conversion to @internationalized/date happens inside):

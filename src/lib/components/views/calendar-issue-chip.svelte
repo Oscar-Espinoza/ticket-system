@@ -11,7 +11,7 @@
     overlay = false,
   }: {
     issue: IssueRow;
-    /** React passed `onSelect`; only its presence mattered here (cursor). */
+    /** Only its presence matters here (cursor). */
     selectable?: boolean;
     overlay?: boolean;
   } = $props();

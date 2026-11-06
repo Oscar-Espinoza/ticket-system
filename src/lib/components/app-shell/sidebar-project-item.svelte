@@ -66,7 +66,7 @@
 
   let { project, childrenOf, depth = 0 }: SidebarProjectItemProps = $props();
 
-  // useSyncExternalStore's server snapshot is null, so SSR and hydration agree
+  // The server value is null, so SSR and hydration agree
   // on the default; a row mounted after hydration reads storage right away.
   let hydrated = $state(isAppHydrated());
   $effect(() => {

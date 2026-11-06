@@ -4,7 +4,7 @@
   The ticket key auto-uppercases and strips non-A-Z characters on every keystroke,
   capped at 6 chars. Validation (2-char minimum, uniqueness) happens on submit.
   The form posts to the createProject server action through its generated
-  (prevState, formData) wrapper — useActionState's state + pending, by hand.
+  (prevState, formData) wrapper — form state + pending, by hand.
   Project templates an optional Template select, loaded when the dialog opens.
 -->
 <script lang="ts">
@@ -63,7 +63,7 @@
   const templateFieldId = `${uid}-template`;
   const templates = useProjectTemplates(() => open);
 
-  // useActionState(action, {}): state + isPending.
+  // Form state + pending flag.
   let formState = $state<CreateProjectState>({});
   let isPending = $state(false);
   let nameInput = $state<HTMLInputElement | null>(null);
@@ -84,7 +84,7 @@
         toast.success('Project created');
       }
       formState = result;
-      // React resets a <form action> after the action: the uncontrolled name
+      // Reset the form after the action: the uncontrolled name
       // field is cleared (the controlled ticket key / template keep their state).
       if (nameInput) nameInput.value = '';
     } finally {
@@ -148,7 +148,7 @@
               .replace(/[^A-Z]/g, '')
               .slice(0, 6);
             ticketKey = transformed;
-            // Controlled like React's: write the result back even when the
+            // Controlled: write the result back even when the
             // state didn't change (a rejected keystroke leaves ticketKey as is).
             event.currentTarget.value = transformed;
           }}

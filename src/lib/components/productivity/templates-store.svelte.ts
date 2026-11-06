@@ -60,7 +60,7 @@ export function useTemplates(
   projectId: MaybeGetter<string>,
   enabled: MaybeGetter<boolean> = true,
 ): { readonly current: IssueTemplate[] | undefined } {
-  // Server snapshot is undefined (the React hook's getServerSnapshot).
+  // Server snapshot is undefined.
   $effect(() => {
     track();
     const id = read(projectId);

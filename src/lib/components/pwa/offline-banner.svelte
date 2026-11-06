@@ -8,7 +8,7 @@
 
   import { isAppHydrated, markAppHydrated } from '@/lib/svelte/hydration';
 
-  // useSyncExternalStore's server snapshot (online) during SSR and hydration,
+  // The server value (online) during SSR and hydration,
   // navigator.onLine from then on.
   let hydrated = $state(isAppHydrated());
   $effect(() => {

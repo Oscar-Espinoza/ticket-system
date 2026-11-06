@@ -18,7 +18,7 @@
 
   let { token }: { token: string } = $props();
 
-  // useActionState(joinProject, {})
+  // Form state of joinProject
   let actionState = $state<JoinProjectState>({});
   let isPending = $state(false);
 

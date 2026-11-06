@@ -3,7 +3,7 @@
 <script lang="ts">
   import { createDraggable } from '@dnd-kit/svelte';
 
-  import { ISSUE_CHIP_ATTR, issueAttr } from '@/lib/components/issues/issue-dom';
+  import { chipAttr } from '@/lib/components/issues/issue-dom';
   import { isPendingIssue } from '@/lib/components/issues/use-issue-mutations.svelte';
   import { useProjectPermission } from '@/lib/components/project/project-data.svelte';
   import type { IssueRow } from '@/lib/issue-model';
@@ -29,7 +29,7 @@
 <div
   {@attach draggable.attach}
   tabindex="0"
-  {...issueAttr(ISSUE_CHIP_ATTR, issue.id)}
+  {...chipAttr(issue.id)}
   aria-label={`${issue.key} ${issue.title}, ${issue.state.name}`}
   onclick={onSelect ? () => onSelect(issue) : undefined}
   onkeydown={(event) => {

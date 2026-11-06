@@ -5,7 +5,7 @@
 -->
 <script lang="ts">
   import IssueDetail from '@/lib/components/issue-detail/issue-detail.svelte';
-  import IssueShortcuts from '@/lib/components/issues/slots/issue-shortcuts.svelte';
+  import IssueShortcuts from '@/lib/components/issues/issue-shortcuts.svelte';
   import { isActiveIssue, useIssueMutations } from '@/lib/components/issues/use-issue-mutations.svelte';
   import type { IssueRow } from '@/lib/issue-model';
 

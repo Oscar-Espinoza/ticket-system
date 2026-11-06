@@ -55,7 +55,7 @@
     onPropertyChange(next);
   }
 
-  // Controlled like the React Popover: the parent owns `open`.
+  // Controlled: the parent owns `open`.
   function setOpen(next: boolean) {
     if (!next) search = '';
     onOpenChange(next);

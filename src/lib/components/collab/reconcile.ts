@@ -1,5 +1,4 @@
-// The pure reconcile decision of the collaborative editor, (a test
-// imports it; plain module, no runes, no Svelte).
+// The pure reconcile decision of the collaborative editor. Plain module (no runes, no Svelte) so a test can import it.
 
 import type { CollabProjection } from '@/lib/collab/codec';
 

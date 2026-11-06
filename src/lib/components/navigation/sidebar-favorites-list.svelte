@@ -32,7 +32,7 @@
 
   let { items }: { items: SidebarFavorite[] } = $props();
 
-  // useOptimistic: ids removed while their toggle is in flight. Once the action
+  // Optimistic: ids removed while their toggle is in flight. Once the action
   // settles (and has refreshed `items`), the override is dropped.
   let removing = $state<string[]>([]);
   const shown = $derived(items.filter((item) => !removing.includes(item.id)));

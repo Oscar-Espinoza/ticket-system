@@ -27,7 +27,7 @@
       return;
     }
     const extra = [
-      result.moved > 1 && `with ${result.moved - 1} sub-issue${result.moved === 2 ? '' : 's'}`,
+      result.moved > 1 && `with ${pluralize(result.moved - 1, 'sub-issue')}`,
       result.droppedLabels.length > 0 && `dropped labels: ${result.droppedLabels.join(', ')}`,
     ].filter(Boolean);
     toast.success(`Moved ${result.fromKey} → ${result.key}`, {
@@ -39,6 +39,7 @@
 </script>
 
 <script lang="ts">
+  import { pluralize } from '@/lib/format';
   import ArrowRightLeftIcon from '@lucide/svelte/icons/arrow-right-left';
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
   import { goto } from '$app/navigation';

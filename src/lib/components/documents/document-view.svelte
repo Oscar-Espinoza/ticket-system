@@ -4,8 +4,8 @@
   D2-collaborative-editing.md) whose markdown snapshot is saved to
   `document.content` 1.5 s after local typing stops. "Mentioned in" lists the
   issues whose description links here. Guests and archived docs are read-only.
-  Mount it inside {#key document.id} (React keyed it
-  by id: switching docs must never reuse the previous doc's editor).
+  Mount it inside {#key document.id}: switching docs must never reuse the
+  previous doc's editor.
 -->
 <script lang="ts">
   import { untrack } from 'svelte';
@@ -69,7 +69,7 @@
   let editorRef: Editor | null = null;
   // Captured once (the page is keyed by doc id): deleteDocument's wrapper refreshes the
   // route before onDeleted runs, and the 404 refresh tears this component down, so
-  // `doc` is gone by then. React's closure still held it.
+  // `doc` is gone by then.
   const listPath = documentsPath(untrack(() => doc.projectId));
 
   async function patch(input: Parameters<typeof updateDocument>[0], rollback: () => void) {
@@ -106,7 +106,7 @@
     downloadMarkdown(title, editor && !editor.isDestroyed ? serializeMarkdown(editor) : doc.content);
   }
 
-  // The action wrappers refresh the page (React: router.refresh()).
+  // The action wrappers refresh the page.
   async function setArchived(archived: boolean) {
     const result = archived ? await archiveDocument({ id: doc.id }) : await unarchiveDocument({ id: doc.id });
     if (!result.ok) toast.error(result.error);

@@ -1,8 +1,8 @@
 // useCreateDocument:
 //   const doc = useCreateDocument(projectId | () => projectId, epicId? | () => epicId)
 //   doc.create(template); doc.pending (reactive)
-// createDocument's wrapper refreshes the page (the action revalidates); then
-// we navigate to the new document, as React's router.push did.
+// createDocument's wrapper refreshes the page (refreshesData); then
+// we navigate to the new document.
 
 import { goto } from '$app/navigation';
 import { toast } from 'svelte-sonner';

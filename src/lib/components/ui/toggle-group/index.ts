@@ -1,5 +1,5 @@
 /*
- * Port of src/components/ui/toggle-group.tsx (Radix ToggleGroup → bits-ui ToggleGroup).
+ * Radix ToggleGroup → bits-ui ToggleGroup.
  *
  * Caller translation:
  * - Same props: `type="single" | "multiple"` (required), `variant`, `size`, `spacing` (default 2),
@@ -13,10 +13,10 @@
  *   the internal state when `x` changes.
  * - Variant/size/spacing flow to items through Svelte context
  *   (`setToggleGroupContext` / `getToggleGroupContext` in ./toggle-group-context.svelte), same
- *   precedence as React: group value wins over the item's own prop.
+ *   precedence: group value wins over the item's own prop.
  * - Item `asChild` → `{#snippet child({ props, pressed })}…{/snippet}`.
  * - Keyboard: both arrow axes move focus between items whatever `orientation` is, as with Radix
- *   (React never passed `orientation` to Radix). A caller `onkeydown` on the group still runs first.
+ *   (Radix was never given `orientation`). A caller `onkeydown` on the group still runs first.
  * - Styling: items get `data-state="on|off"` (matches `data-[state=on]:` in toggleVariants).
  */
 import Root from './toggle-group.svelte';

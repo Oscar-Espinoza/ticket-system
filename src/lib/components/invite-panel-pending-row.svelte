@@ -28,7 +28,7 @@
   let { projectId, invitation }: { projectId: string; invitation: PendingInvitation } = $props();
 
   const perms = useProjectPermissions();
-  // useTransition: one pending flag for resend and revoke.
+  // In-flight counter: one pending flag for resend and revoke.
   let running = $state(0);
   const isPending = $derived(running > 0);
 

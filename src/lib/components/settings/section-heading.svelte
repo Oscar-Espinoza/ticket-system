@@ -8,7 +8,7 @@
     icon,
   }: {
     title: string;
-    /** Plain text, or a snippet for rich content (React: ReactNode). */
+    /** Plain text, or a snippet for rich content. */
     description: string | Snippet;
     /** Leading glyph next to the title (developer settings). */
     icon?: Snippet;

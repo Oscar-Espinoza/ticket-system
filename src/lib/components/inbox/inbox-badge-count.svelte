@@ -15,7 +15,7 @@
 
   let { initial }: { initial: number } = $props();
 
-  // Re-seeded whenever the server count changes (React's seed/setSeed pattern).
+  // Re-seeded whenever the server count changes.
   let count = $derived(initial);
   let fetchedAt = 0;
 

@@ -11,6 +11,7 @@
   registry renders it only in the browser.
 -->
 <script lang="ts">
+  import { MONTH_SHORT_FORMAT, pluralize } from '@/lib/format';
   import { untrack } from 'svelte';
   import CalendarRangeIcon from '@lucide/svelte/icons/calendar-range';
 
@@ -41,7 +42,6 @@
 
   const STUB_DAYS = 2; // no due date: a 3-day dashed stub
 
-  const monthLabel = new Intl.DateTimeFormat('en', { month: 'short' });
   const weekdayLabel = new Intl.DateTimeFormat('en', { weekday: 'narrow' });
 
   function readZoom(): Zoom {
@@ -139,7 +139,7 @@
         key: toDateString(m),
         left: dayIndex(origin, toDateString(m)) * px,
         width: days * px,
-        label: `${monthLabel.format(m)}${showYear ? ` ${m.getFullYear()}` : ''}`,
+        label: `${MONTH_SHORT_FORMAT.format(m)}${showYear ? ` ${m.getFullYear()}` : ''}`,
       });
     }
     return list;
@@ -329,7 +329,7 @@
             class="sticky left-0 z-30 flex shrink-0 items-end border-r border-border bg-background px-3 pb-1.5 text-xs text-muted-foreground"
             style:width="{NAME_COLUMN}px"
           >
-            {issues.length} issue{issues.length === 1 ? '' : 's'}
+            {pluralize(issues.length, 'issue')}
           </div>
           <div class="relative" style:width="{width}px" style:height="44px">
             {#each months as month (month.key)}

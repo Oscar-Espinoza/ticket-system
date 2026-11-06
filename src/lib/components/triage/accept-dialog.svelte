@@ -35,7 +35,7 @@
   };
 
   let content = $state<HTMLElement | null>(null);
-  // React's autoFocus on the Accept button wins over Radix's "first tabbable";
+  // Focus lands on the Accept button, not Radix's "first tabbable";
   // bits-ui would focus the Status trigger, so hand focus to [autofocus] here.
   const focusSubmit = (event: Event) => {
     event.preventDefault();

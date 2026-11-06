@@ -40,7 +40,7 @@
 
 <CommandDialog {open} {onOpenChange} title="Command palette" description="Search projects and actions.">
   <!-- radix-nova's CommandDialog does NOT wrap children in <Command>
-       (unlike classic shadcn) — the root must be provided here -->
+       — the root must be provided here -->
   <Command>
     <CommandInput placeholder="Search or jump to…" />
     <CommandEmpty>No results.</CommandEmpty>

@@ -42,7 +42,7 @@
   const pending = $derived(inFlight > 0);
   const runner = useImportRunner(() => projectId);
 
-  /** `useTransition` stand-in: in-flight counter (like isPending, stays true until every overlapping call finishes) around an awaited server call. */
+  /** In-flight counter (stays true until every overlapping call finishes) around an awaited server call. */
   async function transition(fn: () => Promise<void>) {
     inFlight += 1;
     try {

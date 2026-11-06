@@ -18,10 +18,9 @@
 //   setSyncUser(userId), perform(call), flush(), peekOutbox(), isQueued(result)
 //   useOutboxItems() → { current: OutboxItem[] }   reactive
 //
-// Under Next, a successful server action carried the route's revalidated data
-// back with it. The generated runOutboxCall wrapper can't know that the queued
-// actions revalidate (they do it through runOutboxAction), so `send` refreshes
-// the page data itself after every successful call, replays included.
+// The generated runOutboxCall wrapper can't know that the queued actions
+// refresh data (refreshesData, via runOutboxAction), so `send` refreshes the
+// page data itself after every successful call, replays included.
 
 import { refreshAfterWrite } from '@/lib/svelte/refresh.svelte';
 import { createSubscriber } from 'svelte/reactivity';
@@ -249,8 +248,7 @@ function withClientId<N extends OutboxActionName>(call: OutboxCall<N>): OutboxCa
   return { ...call, args: { ...args, clientId: crypto.randomUUID() } as OutboxArgs<N> };
 }
 
-// Next applied the action's refreshesData() to the open route; do the same.
-//
+// Apply the action's refreshesData() to the open route.
 async function send<N extends OutboxActionName>(
   call: Pick<OutboxCall<N>, 'userId' | 'action' | 'args'>,
 ): Promise<OutboxResult<N> | OutboxSuspended> {

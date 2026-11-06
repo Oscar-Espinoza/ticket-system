@@ -1,6 +1,6 @@
 // UI gating from the viewer's project role (the server re-checks everything).
 //
-// Same exports:
+// Exports:
 //   projectPermissions(role): ProjectPermissions   pure snapshot for a role
 //   useProjectPermissions(): ProjectPermissions    call during component init, below a
 //                                                  ProjectDataProvider
@@ -42,7 +42,7 @@ export function projectPermissions(role: ProjectRole): ProjectPermissions {
 
 export function useProjectPermissions(): ProjectPermissions {
   const data = useProjectData();
-  // Memoized per role, like the React useMemo.
+  // Memoized per role.
   const current = $derived(projectPermissions(data.project.role));
   return {
     get role() {

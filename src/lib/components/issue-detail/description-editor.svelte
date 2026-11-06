@@ -15,7 +15,7 @@
   import { isPendingIssue, type IssueMutations } from '@/lib/components/issues/use-issue-mutations.svelte';
   import type { IssueRow } from '@/lib/issue-model';
   import { newMentionIds } from '@/lib/mentions';
-  import { useDraft } from '../use-draft.svelte';
+  import { useDraft } from './use-draft.svelte';
   import CollaborativeDescription from './collaborative-description.svelte';
 
   let {
@@ -40,8 +40,7 @@
     editing = value;
   };
 
-  // `previous` is the saved description before the update (React's render-time
-  // `saved`; here the optimistic update is visible right after the call).
+  // `previous` is the saved description before the update (the optimistic update is visible right after the call).
   function announce(previous: string, value: string) {
     if (newMentionIds(previous, value).length > 0) {
       announceDescriptionMentions({

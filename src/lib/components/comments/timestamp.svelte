@@ -1,9 +1,7 @@
 <!-- Relative time with the absolute date in a tooltip. Needs a TooltipProvider above. -->
-<script module lang="ts">
-  const absolute = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' });
-</script>
 
 <script lang="ts">
+  import { DATE_TIME_MEDIUM_FORMAT } from '@/lib/format';
   import { Tooltip, TooltipContent, TooltipTrigger } from '@/lib/components/ui/tooltip';
   import { relativeTime } from '@/lib/relative-time';
 
@@ -21,5 +19,5 @@
       </time>
     {/snippet}
   </TooltipTrigger>
-  <TooltipContent>{absolute.format(value)}</TooltipContent>
+  <TooltipContent>{DATE_TIME_MEDIUM_FORMAT.format(value)}</TooltipContent>
 </Tooltip>

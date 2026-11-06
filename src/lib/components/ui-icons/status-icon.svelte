@@ -52,7 +52,7 @@
   }: StatusIconProps = $props();
 
   const pie = $derived((Math.min(100, Math.max(0, percent)) / 100) * PIE_CIRCUMFERENCE);
-  // React: style={color ? { color, ...style } : style} — the caller's style wins.
+  // The caller's style wins over `color`.
   const mergedStyle = $derived(color ? `color: ${color};${style ? ` ${style}` : ''}` : style);
 </script>
 

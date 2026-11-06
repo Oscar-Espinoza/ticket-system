@@ -12,7 +12,7 @@
 
   let { userId }: { userId: string } = $props();
 
-  // useSyncExternalStore(…, () => navigator.onLine, () => true).
+  // navigator.onLine in the browser, true on the server.
   const online = $derived(onlineState.current ?? true);
   const outbox = useOutboxItems();
   const pending = $derived(outbox.current.filter((item) => item.userId === userId));

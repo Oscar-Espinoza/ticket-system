@@ -35,7 +35,7 @@
     onSaved: () => void;
   } = $props();
 
-  // useState initial values: read once from the provider, like React.
+  // useState initial values: read once from the provider.
   const initial = untrack(() => provider);
   let protocol = $state<Protocol>(initial?.protocol ?? 'saml');
   let domain = $state(initial?.domain ?? '');
@@ -88,8 +88,7 @@
           }),
     };
     // Read before the await: the wrapper refreshes page data before resolving,
-    // so `provider` would already be the newly saved one (React's closure kept
-    // the render-time value).
+    // so `provider` would already be the newly saved one (keep the render-time value).
     const wasConfigured = !!provider;
     pending = true;
     try {

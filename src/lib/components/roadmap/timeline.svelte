@@ -45,6 +45,7 @@
 </script>
 
 <script lang="ts">
+  import { MONTH_SHORT_FORMAT } from '@/lib/format';
   import { untrack } from 'svelte';
   import { goto } from '$app/navigation';
 
@@ -58,7 +59,7 @@
 
   const PX_PER_DAY: Record<Zoom, number> = { weeks: 28, months: 8, quarters: 3 };
 
-  const NAME_COLUMN = 240;
+  const ROADMAP_NAME_COLUMN = 240;
   const ROW_HEIGHT = 36;
   const STUB_DAYS = 13; // one-sided dates render as a two-week stub
   const MARKER_KINDS = ['ok', 'conflict'] as const;
@@ -108,7 +109,6 @@
     return null;
   }
 
-  const monthLabel = new Intl.DateTimeFormat('en', { month: 'short' });
 
   /** Curved when the target is comfortably to the right, else an elbow through the row gap. */
   function connectorPath(x1: number, y1: number, x2: number, y2: number) {
@@ -181,7 +181,7 @@
         key: toDateString(m),
         left: left * px,
         width: days * px,
-        label: `${monthLabel.format(m)}${showYear ? ` ${m.getFullYear()}` : ''}`,
+        label: `${MONTH_SHORT_FORMAT.format(m)}${showYear ? ` ${m.getFullYear()}` : ''}`,
       });
     }
     return list;
@@ -251,7 +251,7 @@
     const el = scrollEl;
     if (!el) return;
     untrack(() => {
-      el.scrollLeft = Math.max(0, todayIndex * px - (el.clientWidth - NAME_COLUMN) / 3);
+      el.scrollLeft = Math.max(0, todayIndex * px - (el.clientWidth - ROADMAP_NAME_COLUMN) / 3);
     });
   });
 
@@ -385,12 +385,12 @@
   bind:this={scrollEl}
   class={cn('relative overflow-x-auto rounded-md border border-border', className)}
 >
-  <div class="relative" style="width: {NAME_COLUMN + width}px">
+  <div class="relative" style="width: {ROADMAP_NAME_COLUMN + width}px">
     <!-- Header -->
     <div class="sticky top-0 z-20 flex border-b border-border bg-background">
       <div
         class="sticky left-0 z-30 shrink-0 border-r border-border bg-background px-3 py-1.5 text-xs text-muted-foreground"
-        style="width: {NAME_COLUMN}px"
+        style="width: {ROADMAP_NAME_COLUMN}px"
       >
         Epic
       </div>
@@ -428,7 +428,7 @@
       <div
         aria-hidden="true"
         class="pointer-events-none absolute inset-y-0"
-        style="left: {NAME_COLUMN}px; width: {width}px"
+        style="left: {ROADMAP_NAME_COLUMN}px; width: {width}px"
       >
         {#each months as month (month.key)}
           <div class="absolute inset-y-0 border-l border-border/60" style="left: {month.left}px"></div>
@@ -443,7 +443,7 @@
         <svg
           aria-hidden="true"
           class="pointer-events-none absolute top-0 overflow-visible"
-          style="left: {NAME_COLUMN}px; width: {width}px; height: {dated.length * ROW_HEIGHT}px"
+          style="left: {ROADMAP_NAME_COLUMN}px; width: {width}px; height: {dated.length * ROW_HEIGHT}px"
         >
           <defs>
             {#each MARKER_KINDS as kind (kind)}
@@ -499,7 +499,7 @@
           <a
             href={item.href}
             class="sticky left-0 z-10 flex shrink-0 items-center gap-2 border-r border-border bg-background px-3 text-sm outline-none hover:bg-accent focus-visible:bg-accent"
-            style="width: {NAME_COLUMN}px"
+            style="width: {ROADMAP_NAME_COLUMN}px"
           >
             <EpicIcon color={item.color} />
             <span class="min-w-0 flex-1 truncate">{item.name}</span>

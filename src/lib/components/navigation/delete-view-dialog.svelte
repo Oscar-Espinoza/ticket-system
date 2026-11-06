@@ -31,7 +31,7 @@
         return;
       }
       toast.success(`Deleted “${target.name}”`);
-      // The action wrapper already refreshed the page data (router.refresh()).
+      // The action wrapper already refreshed the page data.
       onClose();
     } finally {
       pending = false;

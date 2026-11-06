@@ -7,7 +7,7 @@
 //                                 or null during SSR / the first hydration.
 // Call during component init (it creates an $effect). A component mounted after
 // the app hydrated (client navigation) reads the clock on its first render, as
-// React's useSyncExternalStore did.
+// a store subscription would.
 
 import { createSubscriber } from 'svelte/reactivity';
 

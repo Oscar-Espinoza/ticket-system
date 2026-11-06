@@ -18,7 +18,7 @@
   function push(next: string) {
     const q = next.trim();
     const pathname = page.url.pathname;
-    // router.replace(…, { scroll: false }): same entry, scroll and focus kept.
+    // Same history entry, scroll and focus kept.
     void goto(q ? `${pathname}?q=${encodeURIComponent(q)}` : pathname, { replace: true, reset: false });
   }
 </script>
