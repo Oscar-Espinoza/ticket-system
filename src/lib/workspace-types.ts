@@ -1,8 +1,16 @@
-// Client-safe shapes the workspace page hands to its client components.
+// Workspace roles and the client-safe shapes the workspace page hands to its
+// components. The role rule here is the one the server enforces.
 
 import type { ProjectRole } from '@/lib/roles';
 
 export type WorkspaceRole = 'owner' | 'admin' | 'member';
+
+const WORKSPACE_ROLE_RANK: Record<WorkspaceRole, number> = { owner: 2, admin: 1, member: 0 };
+
+/** Whether `role` is at least `min` (owner > admin > member). */
+export function workspaceRoleAllows(role: WorkspaceRole, min: WorkspaceRole): boolean {
+  return (WORKSPACE_ROLE_RANK[role] ?? -1) >= WORKSPACE_ROLE_RANK[min];
+}
 
 export const WORKSPACE_ROLE_LABEL: Record<WorkspaceRole, string> = {
   owner: 'Owner',

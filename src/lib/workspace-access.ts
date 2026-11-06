@@ -10,7 +10,9 @@ import { and, asc, eq, gt, isNull } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { workspaceInvitations, workspaceMembers, workspaces } from '@/db/schema';
 
-export type WorkspaceRole = 'owner' | 'admin' | 'member';
+import { workspaceRoleAllows, type WorkspaceRole } from '@/lib/workspace-types';
+
+export type { WorkspaceRole };
 
 export type WorkspaceMembership = {
   workspaceId: string;
@@ -66,7 +68,7 @@ export async function requireWorkspaceAdmin(
   userId: string,
 ): Promise<WorkspaceMembership> {
   const membership = await requireWorkspaceMember(slugOrId, userId);
-  if (membership.role === 'member') {
+  if (!workspaceRoleAllows(membership.role, 'admin')) {
     throw new WorkspaceAccessError('Not a workspace admin');
   }
   return membership;
