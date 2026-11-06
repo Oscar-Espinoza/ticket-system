@@ -14,7 +14,7 @@ import { getChangeToken } from '@/lib/sync/change-token';
 export const config = { maxDuration: 60 };
 
 const CHECK_MS = 1_500;
-const HEARTBEAT_MS = 15_000;
+const PING_MS = 15_000;
 const STREAM_MS = 50_000;
 
 export const GET: RequestHandler = async ({ request, params, locals }) => {
@@ -69,7 +69,7 @@ export const GET: RequestHandler = async ({ request, params, locals }) => {
           last = token;
           lastSent = Date.now();
           event('token', { token });
-        } else if (Date.now() - lastSent >= HEARTBEAT_MS) {
+        } else if (Date.now() - lastSent >= PING_MS) {
           lastSent = Date.now();
           send(': ping\n\n');
         }

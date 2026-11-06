@@ -15,9 +15,11 @@
 import { and, desc, eq, inArray, isNotNull, isNull, notInArray, or, sql, type SQL } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
-import { tickets, workflowStates } from '@/db/schema';
+import { issueRelations, tickets, workflowStates } from '@/db/schema';
 import type { IssueRow } from '@/lib/issue-model';
-import { issueDocument, memberOfIssueProject, queryIssues } from '@/lib/tickets';
+import { stripMentions } from '@/lib/mentions';
+import { fail, type ActionResult } from '@/lib/server/action-kit';
+import { getTicketById, issueDocument, memberOfIssueProject, queryIssues } from '@/lib/tickets';
 import { closedStateType } from '@/lib/workflow-server';
 
 export interface SimilarIssue {
@@ -139,4 +141,39 @@ export async function findSimilarIssues(
       },
     ];
   });
+}
+
+export type SimilarResult = ActionResult<{ similar: SimilarIssue[] }>;
+
+/**
+ * Issues similar to an existing one (untrusted `ticketId`), minus the ones
+ * already tied to it: relations in either direction, its parent and its sub-issues.
+ */
+export async function readSimilarIssues(
+  userId: string,
+  projectId: string,
+  ticketId: unknown,
+): Promise<SimilarResult> {
+  if (typeof ticketId !== 'string' || !ticketId) return fail('Issue not found.');
+  const issue = await getTicketById(projectId, ticketId);
+  if (!issue || issue.deletedAt) return fail('Issue not found.');
+
+  const [relations, children] = await db.batch([
+    db
+      .select({ a: issueRelations.ticketId, b: issueRelations.relatedTicketId })
+      .from(issueRelations)
+      .where(or(eq(issueRelations.ticketId, issue.id), eq(issueRelations.relatedTicketId, issue.id))),
+    db.select({ id: tickets.id }).from(tickets).where(eq(tickets.parentId, issue.id)),
+  ]);
+  const exclude = new Set<string>([issue.id, ...children.map((c) => c.id)]);
+  if (issue.parentId) exclude.add(issue.parentId);
+  for (const r of relations) exclude.add(r.a).add(r.b);
+
+  const similar = await findSimilarIssues(userId, projectId, {
+    title: issue.title,
+    description: issue.description ? stripMentions(issue.description) : null,
+    excludeIds: [...exclude],
+    limit: 5,
+  });
+  return { ok: true, similar };
 }

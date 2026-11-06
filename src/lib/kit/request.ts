@@ -1,10 +1,6 @@
 // Request-scoped helpers for server code (src/lib, src/lib/server/actions),
 // built on SvelteKit's getRequestEvent(): headers(), after(), cache(),
 // redirect().
-//
-// revalidatePath() does nothing at runtime: it marks actions whose client
-// wrapper should refresh the page afterwards (scripts/gen-remote-actions.mjs
-// looks for it).
 
 import { redirect as kitRedirect } from '@sveltejs/kit';
 import { waitUntil as vercelWaitUntil } from '@vercel/functions';
@@ -33,9 +29,6 @@ export function after(task: Promise<unknown> | (() => unknown)): void {
     // not inside a Vercel request (adapter-node, cron, boot)
   }
 }
-
-/** No-op at runtime; see the header comment. */
-export function revalidatePath(_path?: string, _type?: 'page' | 'layout'): void {}
 
 export function redirect(location: string): never {
   kitRedirect(303, location);

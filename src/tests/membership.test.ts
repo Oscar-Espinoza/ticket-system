@@ -14,7 +14,6 @@
 //
 // Mocking strategy:
 //   - next/headers → returns empty Headers
-//   - next/cache revalidatePath → no-op
 //   - @/lib/auth getSession → returns SESSION_USER_ID (a real user in beforeAll)
 //   - next/navigation redirect → throws Error(`NEXT_REDIRECT:${url}`) so joinProject
 //     stays testable without a running Next.js server
@@ -28,7 +27,6 @@ const SESSION_USER_ID = `test-mem-session-user-${Date.now()}`;
 vi.mock('@/lib/kit/request', async (orig) => ({
   ...(await orig<typeof import('@/lib/kit/request')>()),
   headers: async () => new Headers(),
-  revalidatePath: vi.fn(),
   redirect: vi.fn((url: string) => {
     throw new Error(`NEXT_REDIRECT:${url}`);
   }),

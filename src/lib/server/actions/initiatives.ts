@@ -1,5 +1,5 @@
 // Initiative mutations. Initiatives belong to a workspace, so these authorize
-// with requireWorkspaceMember (delete: workspace admin or the initiative's
+// with authorizeWorkspaceAction (delete: workspace admin or the initiative's
 // owner). Linking an epic also needs write access to the epic's project, and
 // the project must sit in the initiative's workspace.
 

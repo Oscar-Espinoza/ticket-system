@@ -6,6 +6,7 @@
   import { createLabel, updateLabel, type LabelActionResult } from '@/lib/actions/labels';
   import { Button } from '@/lib/components/ui/button';
   import { Input } from '@/lib/components/ui/input';
+  import { LABEL_DESCRIPTION_MAX, LABEL_NAME_MAX } from '@/lib/label-model';
   import type { ProjectLabel } from '@/lib/project-data-types';
   import ColorPicker, { PRESET_COLORS } from '../workflow/color-picker.svelte';
 
@@ -73,7 +74,7 @@
           if (error) error = null;
         }}
         placeholder="Label name"
-        maxlength={40}
+        maxlength={LABEL_NAME_MAX}
         aria-label="Label name"
         aria-invalid={error?.field === 'name' ? true : undefined}
         class="h-7 w-40"
@@ -81,7 +82,7 @@
       <Input
         bind:value={description}
         placeholder="Description (optional)"
-        maxlength={200}
+        maxlength={LABEL_DESCRIPTION_MAX}
         aria-label="Description"
         class="h-7 min-w-0 flex-1"
       />

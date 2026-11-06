@@ -223,6 +223,6 @@ async function dispatch(events: StoredIssueEvent[]) {
     createdAt: candidate.event.createdAt,
   }));
 
-  await createNotifications(rows);
+  await createNotifications(rows, { beforeDelivery: subscribing });
   await subscribing;
 }

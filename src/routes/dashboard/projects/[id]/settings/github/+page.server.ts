@@ -9,7 +9,7 @@ import { projects, users } from '@/db/schema';
 import { db } from '@/lib/db';
 import { getGithubAccount, githubMessage, type GithubAccountStatus } from '@/lib/github/client';
 import { webhookUrl } from '@/lib/github/webhooks';
-import { isUnreachableUrl } from '@/lib/vcs/hosts';
+import { isUnreachableUrl } from '@/lib/vcs/webhook-url';
 import { roleAllows } from '@/lib/roles';
 import { loadViewerProject } from '../../project-load';
 import type { PageServerLoad } from './$types';

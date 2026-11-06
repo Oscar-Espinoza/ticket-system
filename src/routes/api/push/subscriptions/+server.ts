@@ -5,6 +5,7 @@
 import { and, eq } from 'drizzle-orm';
 
 import type { RequestHandler } from './$types';
+import { fail } from '../../_lib/http';
 import { allowOptions } from '../../_lib/options';
 
 import { db } from '@/lib/db';
@@ -14,10 +15,6 @@ import { pushSubscriptions } from '@/db/schema';
 const MAX_ENDPOINT = 1024;
 const MAX_KEY = 256;
 const BASE64URL = /^[A-Za-z0-9_-]+=*$/;
-
-function fail(error: string, status: number) {
-  return Response.json({ ok: false, error }, { status });
-}
 
 function validEndpoint(value: unknown): value is string {
   if (typeof value !== 'string' || value.length > MAX_ENDPOINT) return false;

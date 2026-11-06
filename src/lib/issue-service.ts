@@ -10,7 +10,7 @@
 // │ Every function then scopes writes by (issue id, project id) and checks  │
 // │ that every referenced id (state, label, assignee, parent, cycle, epic,  │
 // │ milestone) belongs to `projectId`, so ids can't reach across projects.  │
-// │ Nothing here calls revalidatePath — callers revalidate what they show.  │
+// │ Nothing here refreshes page data — callers do (refreshesData()).        │
 // └─────────────────────────────────────────────────────────────────────────┘
 //
 // `actor.userId` null = system / integration: creatorId and activity actorId
@@ -68,6 +68,7 @@ import {
   sortStates,
   stateTransitionTimestamps,
 } from '@/lib/workflow';
+import { isUuid } from '@/lib/ids';
 import { projectStatesQuery } from '@/lib/workflow-server';
 
 // ---------------------------------------------------------------------------
@@ -685,11 +686,6 @@ export interface CreateIssueOptions {
   id?: string;
 }
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-export const isIssueUuid = (value: unknown): value is string =>
-  typeof value === 'string' && UUID_RE.test(value);
-
 /** The issue an earlier attempt with the same client id created, or why it can't be reused. */
 async function existingCreate(
   actor: IssueActor,
@@ -758,7 +754,7 @@ export async function createIssue(
   if (patch.addLabelIds || patch.removeLabelIds) {
     return fail('Use labelIds when creating an issue.', 'labelIds');
   }
-  if (opts?.id !== undefined && !isIssueUuid(opts.id)) return fail('Invalid issue id.');
+  if (opts?.id !== undefined && !isUuid(opts.id)) return fail('Invalid issue id.');
   const requestedId = opts?.id?.toLowerCase();
   if (requestedId) {
     const replay = await existingCreate(actor, projectId, requestedId);

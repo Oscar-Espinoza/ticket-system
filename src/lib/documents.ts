@@ -7,11 +7,11 @@ import { alias, type AnyPgColumn } from 'drizzle-orm/pg-core';
 
 import { documents, epics, projectMembers, projects, tickets, users, workflowStates } from '@/db/schema';
 import { db } from '@/lib/db';
+import { isEntityId } from '@/lib/ids';
 import { roleAllows, type ProjectRole } from '@/lib/roles';
 import { projectMemberOf } from '@/lib/project-access';
 import { activeIssue, memberOfIssueProject } from '@/lib/tickets';
 import {
-  DOCUMENT_ID_RE,
   excerptOf,
   type DocumentBacklink,
   type DocumentDetail,
@@ -92,7 +92,7 @@ export async function getProjectDocuments(projectId: string, userId: string, q?:
 }
 
 export async function getDocument(projectId: string, documentId: string, userId: string): Promise<DocumentDetail | null> {
-  if (!projectId || !userId || !DOCUMENT_ID_RE.test(documentId)) return null;
+  if (!projectId || !userId || !isEntityId(documentId)) return null;
   const [row] = await selectSummaries({ content: documents.content })
     .where(
       and(
@@ -116,7 +116,7 @@ export async function getDocumentBacklinks(
   documentId: string,
   userId: string,
 ): Promise<DocumentBacklink[]> {
-  if (!projectId || !userId || !DOCUMENT_ID_RE.test(documentId)) return [];
+  if (!projectId || !userId || !isEntityId(documentId)) return [];
   const needle = likePattern(`/projects/${projectId}/docs/${documentId}`);
   const rows = await db
     .select({

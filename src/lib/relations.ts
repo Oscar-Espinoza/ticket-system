@@ -12,9 +12,10 @@ import { issueRelations, projects, tickets } from '@/db/schema';
 import { prepareIssueEvents, publishIssueEvents } from '@/lib/events';
 import { updateIssueFields } from '@/lib/issue-service';
 import type { IssueRow } from '@/lib/issue-model';
+import { fail, type ActionResult } from '@/lib/server/action-kit';
 import { queryIssues } from '@/lib/tickets';
 import { duplicateState } from '@/lib/triage';
-import { loadProjectStates } from '@/lib/workflow-server';
+import { projectStatesQuery } from '@/lib/workflow-server';
 
 export type RelationKind = 'blocks' | 'blocked_by' | 'related' | 'duplicate_of' | 'duplicated_by';
 /** What the "add relation" menu offers; "duplicated by" is only ever an inverse view. */
@@ -125,6 +126,14 @@ function relationWrites(
   return { events, touch };
 }
 
+export type GetRelationsResult = ActionResult<{ relations: IssueRelationView[] }>;
+
+/** `listIssueRelations` for an untrusted `ticketId`; a missing id is "not found". */
+export async function readIssueRelations(projectId: string, ticketId: unknown): Promise<GetRelationsResult> {
+  if (typeof ticketId !== 'string' || !ticketId) return fail('Issue not found.');
+  return { ok: true, relations: await listIssueRelations(projectId, ticketId) };
+}
+
 /** Every relation of the issue; relations to trashed issues are hidden. */
 export async function listIssueRelations(
   projectId: string,
@@ -222,7 +231,7 @@ export async function createIssueRelation(
   publishIssueEvents(events.stored);
 
   if (kind === 'duplicate_of') {
-    const state = duplicateState(await loadProjectStates(projectId))?.id ?? null;
+    const state = duplicateState(await projectStatesQuery(projectId))?.id ?? null;
     if (state) {
       const moved = await updateIssueFields({ userId: actorId }, projectId, self.id, { stateId: state });
       if (!moved.ok) return { ok: true, warning: `Linked, but couldn't move ${self.key}: ${moved.error}` };

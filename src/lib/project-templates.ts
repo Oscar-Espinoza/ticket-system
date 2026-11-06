@@ -1,11 +1,11 @@
-// Project templates (.planning/features/D4a-project-templates.md): snapshot a
+// Project templates: snapshot a
 // project's setup into `project_template.config` and seed new projects from it.
 // Server-only (imports db). No authorization here — callers check access.
 //
 // Snapshots store names, never ids: issue-template defaults reference states
 // and labels by name and are re-mapped to the new project's rows on create.
 
-import { and, asc, eq, inArray, or } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, or } from 'drizzle-orm';
 import type { BatchItem } from 'drizzle-orm/batch';
 
 import { db } from '@/lib/db';
@@ -14,8 +14,10 @@ import {
   labels,
   projects,
   projectTemplates,
+  users,
   workflowStates,
   workspaceMembers,
+  workspaces,
 } from '@/db/schema';
 import { isEstimateScale, type EstimateScale } from '@/lib/estimates';
 import { isPriority, isStateType, type Priority, type StateType } from '@/lib/issue-model';
@@ -331,6 +333,46 @@ export function usableTemplateFilter(userId: string) {
         .where(eq(workspaceMembers.userId, userId)),
     ),
   )!;
+}
+
+export interface ProjectTemplateRow {
+  id: string;
+  name: string;
+  description: string | null;
+  workspaceId: string | null;
+  workspaceName: string | null;
+  ownerName: string | null;
+  /** The viewer owns it (may edit / delete). */
+  isOwner: boolean;
+  updatedAt: string;
+  summary: ReturnType<typeof templateSummary>;
+}
+
+/** The templates `userId` may use, newest first; `id` narrows to one. */
+export async function readProjectTemplates(userId: string, id?: string): Promise<ProjectTemplateRow[]> {
+  const rows = await db
+    .select({
+      id: projectTemplates.id,
+      name: projectTemplates.name,
+      description: projectTemplates.description,
+      workspaceId: projectTemplates.workspaceId,
+      workspaceName: workspaces.name,
+      ownerId: projectTemplates.ownerId,
+      ownerName: users.name,
+      config: projectTemplates.config,
+      updatedAt: projectTemplates.updatedAt,
+    })
+    .from(projectTemplates)
+    .leftJoin(workspaces, eq(projectTemplates.workspaceId, workspaces.id))
+    .leftJoin(users, eq(projectTemplates.ownerId, users.id))
+    .where(and(usableTemplateFilter(userId), id ? eq(projectTemplates.id, id) : undefined))
+    .orderBy(desc(projectTemplates.updatedAt), asc(projectTemplates.name));
+  return rows.map(({ config, ownerId, updatedAt, ...row }) => ({
+    ...row,
+    isOwner: ownerId === userId,
+    updatedAt: updatedAt.toISOString(),
+    summary: templateSummary(normalizeTemplateConfig(config)),
+  }));
 }
 
 /** The template's normalized config when `userId` may use it; null otherwise. */

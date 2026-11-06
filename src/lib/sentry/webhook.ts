@@ -16,7 +16,7 @@ import { and, eq, isNull, sql } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import { attachments, projects, tickets } from '@/db/schema';
-import { loadProjectStates } from '@/lib/workflow-server';
+import { projectStatesQuery } from '@/lib/workflow-server';
 import { emitIssueEvent, ISSUE_EVENT } from '@/lib/events';
 import { createIssue, DESCRIPTION_MAX, SYSTEM_ACTOR, TITLE_MAX } from '@/lib/issue-service';
 import { defaultNewIssueState, firstStateOfType } from '@/lib/workflow';
@@ -153,7 +153,7 @@ async function openTriageIssue(projectId: string, info: SentryIssueInfo) {
 
   const [[project], states] = await Promise.all([
     db.select({ triageEnabled: projects.triageEnabled }).from(projects).where(eq(projects.id, projectId)).limit(1),
-    loadProjectStates(projectId),
+    projectStatesQuery(projectId),
   ]);
   if (!project) return;
   const state =

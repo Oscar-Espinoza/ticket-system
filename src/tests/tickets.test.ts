@@ -8,7 +8,6 @@ const session = vi.hoisted(() => ({ userId: '' }));
 vi.mock('@/lib/kit/request', async (orig) => ({
   ...(await orig<typeof import('@/lib/kit/request')>()),
   headers: async () => new Headers(),
-  revalidatePath: vi.fn(),
 }));
 
 

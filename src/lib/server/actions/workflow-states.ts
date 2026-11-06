@@ -13,7 +13,7 @@ import type { BatchItem } from 'drizzle-orm/batch';
 
 import { db } from '@/lib/db';
 import { projects, tickets, workflowStates } from '@/db/schema';
-import { loadProjectStates } from '@/lib/workflow-server';
+import { projectStatesQuery } from '@/lib/workflow-server';
 import { authorizeProjectAction } from '@/lib/action-auth';
 import { isUniqueViolation } from '@/lib/db-errors';
 import { emitIssueEvent, prepareIssueEvents, publishIssueEvents } from '@/lib/events';
@@ -73,7 +73,7 @@ export async function createWorkflowState(input: {
   const description = descriptionOrNull(input.description, DESCRIPTION_MAX);
   if (isFail(description)) return description;
 
-  const states = await loadProjectStates(input.projectId);
+  const states = await projectStatesQuery(input.projectId);
   const sameType = states.filter((s) => s.type === input.type);
   // Linear has a single triage inbox; B7's triage view assumes one.
   if (input.type === 'triage' && sameType.length > 0) {
@@ -121,7 +121,7 @@ export async function updateWorkflowState(input: {
   const authz = await authorizeProjectAction(input?.projectId, 'admin');
   if (!authz.ok) return authz;
 
-  const [current] = (await loadProjectStates(input.projectId)).filter((s) => s.id === input.id);
+  const [current] = (await projectStatesQuery(input.projectId)).filter((s) => s.id === input.id);
   if (!current) return fail('State not found.');
 
   const changes: { name?: string; color?: string; description?: string | null } = {};
@@ -182,7 +182,7 @@ export async function moveWorkflowState(input: {
     return fail('Invalid direction.');
   }
 
-  const states = await loadProjectStates(input.projectId);
+  const states = await projectStatesQuery(input.projectId);
   const state = states.find((s) => s.id === input.id);
   if (!state) return fail('State not found.');
 
@@ -239,7 +239,7 @@ export async function deleteWorkflowState(input: {
   if (!authz.ok) return authz;
 
   const [states, [project]] = await Promise.all([
-    loadProjectStates(input.projectId),
+    projectStatesQuery(input.projectId),
     db
       .select({ triageEnabled: projects.triageEnabled })
       .from(projects)

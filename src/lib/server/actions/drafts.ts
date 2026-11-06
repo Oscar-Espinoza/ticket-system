@@ -13,7 +13,8 @@ import {
   refreshesData,
   type ActionResult,
 } from '@/lib/server/action-kit';
-import { sessionUserId } from '@/lib/server/workspace-authz';
+import { isUuid } from '@/lib/ids';
+import { sessionUserId } from '@/lib/session';
 import { DESCRIPTION_MAX, TITLE_MAX } from '@/lib/issue-service';
 import {
   sanitizeIssueDefaults,
@@ -28,7 +29,6 @@ export interface DraftSnapshot {
   data: IssueDefaults;
 }
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const text = (value: unknown, max: number) =>
   typeof value === 'string' ? value.slice(0, max) : '';
@@ -46,7 +46,7 @@ export async function saveDraft(input: {
 }): Promise<ActionResult> {
   const authz = await authorizeProjectAction(input?.projectId, 'write');
   if (!authz.ok) return authz;
-  if (typeof input.id !== 'string' || !UUID_RE.test(input.id)) {
+  if (!isUuid(input.id)) {
     return fail('Invalid draft.');
   }
 

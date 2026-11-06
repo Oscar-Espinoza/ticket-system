@@ -7,10 +7,10 @@ import { and, count, eq, gte } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import { customerRequests, projects } from '@/db/schema';
-import { loadProjectStates } from '@/lib/workflow-server';
+import { projectStatesQuery } from '@/lib/workflow-server';
 import { authorizeProjectAction } from '@/lib/action-auth';
 import { matchCustomerByEmail } from '@/lib/customers';
-import { createIssue, SYSTEM_ACTOR } from '@/lib/issue-service';
+import { createIssue, SYSTEM_ACTOR, TITLE_MAX } from '@/lib/issue-service';
 import { stripMentions } from '@/lib/mentions';
 import { defaultNewIssueState, firstStateOfType } from '@/lib/workflow';
 import { appUrl } from '@/lib/integrations/app-url';
@@ -21,7 +21,6 @@ const RATE_WINDOW_MS = 10 * 60 * 1000;
 const RATE_MAX = 20;
 const NAME_MAX = 100;
 const EMAIL_MAX = 200;
-const TITLE_MAX = 200;
 const DESCRIPTION_MAX = 8000;
 
 const intakeUrl = (token: string) => `${appUrl()}/request/${token}`;
@@ -134,7 +133,7 @@ export async function submitIntakeRequest(
     };
   }
 
-  const states = await loadProjectStates(project.id);
+  const states = await projectStatesQuery(project.id);
   const state =
     (project.triageEnabled ? firstStateOfType(states, 'triage') : undefined) ??
     defaultNewIssueState(states);

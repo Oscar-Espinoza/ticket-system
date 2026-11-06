@@ -4,16 +4,15 @@
 // to its owner unless shared with a workspace the owner belongs to, whose
 // members may then use (not edit) it. Only the owner edits or deletes.
 
-import { and, asc, desc, eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
-import { projectTemplates, users, workspaces } from '@/db/schema';
+import { projectTemplates } from '@/db/schema';
 import { authorizeProjectAction } from '@/lib/action-auth';
 import {
-  normalizeTemplateConfig,
+  readProjectTemplates,
   snapshotProject,
-  templateSummary,
-  usableTemplateFilter,
+  type ProjectTemplateRow,
 } from '@/lib/project-templates';
 import {
   fail,
@@ -27,18 +26,7 @@ import {
 import { getSession } from '@/lib/session';
 import { getWorkspaceMembership } from '@/lib/workspace-access';
 
-export interface ProjectTemplateRow {
-  id: string;
-  name: string;
-  description: string | null;
-  workspaceId: string | null;
-  workspaceName: string | null;
-  ownerName: string | null;
-  /** The viewer owns it (may edit / delete). */
-  isOwner: boolean;
-  updatedAt: string;
-  summary: ReturnType<typeof templateSummary>;
-}
+export type { ProjectTemplateRow };
 
 type Field = 'name' | 'description' | 'workspaceId' | 'projectId';
 export type ProjectTemplateResult = ActionResult<{ template?: ProjectTemplateRow }, Field>;
@@ -71,39 +59,13 @@ async function resolveWorkspace(
   return { ok: true, id: workspaceId };
 }
 
-async function loadRows(userId: string, id?: string): Promise<ProjectTemplateRow[]> {
-  const rows = await db
-    .select({
-      id: projectTemplates.id,
-      name: projectTemplates.name,
-      description: projectTemplates.description,
-      workspaceId: projectTemplates.workspaceId,
-      workspaceName: workspaces.name,
-      ownerId: projectTemplates.ownerId,
-      ownerName: users.name,
-      config: projectTemplates.config,
-      updatedAt: projectTemplates.updatedAt,
-    })
-    .from(projectTemplates)
-    .leftJoin(workspaces, eq(projectTemplates.workspaceId, workspaces.id))
-    .leftJoin(users, eq(projectTemplates.ownerId, users.id))
-    .where(and(usableTemplateFilter(userId), id ? eq(projectTemplates.id, id) : undefined))
-    .orderBy(desc(projectTemplates.updatedAt), asc(projectTemplates.name));
-  return rows.map(({ config, ownerId, updatedAt, ...row }) => ({
-    ...row,
-    isOwner: ownerId === userId,
-    updatedAt: updatedAt.toISOString(),
-    summary: templateSummary(normalizeTemplateConfig(config)),
-  }));
-}
-
 /** Templates the viewer can use (own + shared with their workspaces). */
 export async function listProjectTemplates(): Promise<
   ActionResult<{ templates: ProjectTemplateRow[] }>
 > {
   const session = await getSession();
   if (!session?.user) return NOT_AUTHENTICATED;
-  return { ok: true, templates: await loadRows(session.user.id) };
+  return { ok: true, templates: await readProjectTemplates(session.user.id) };
 }
 
 export async function createProjectTemplate(input: {
@@ -139,7 +101,7 @@ export async function createProjectTemplate(input: {
     updatedAt: now,
   });
   refreshesData();
-  const [template] = await loadRows(auth.userId, id);
+  const [template] = await readProjectTemplates(auth.userId, id);
   return { ok: true, template };
 }
 
@@ -169,7 +131,7 @@ export async function updateProjectTemplate(input: {
     .returning({ id: projectTemplates.id });
   if (updated.length === 0) return NOT_FOUND;
   refreshesData();
-  const [template] = await loadRows(session.user.id, input.id);
+  const [template] = await readProjectTemplates(session.user.id, input.id);
   return { ok: true, template };
 }
 

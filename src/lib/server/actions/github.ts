@@ -5,7 +5,6 @@
 // read/write by project id. GitHub calls use the ACTING user's own token
 // (getGitHubToken via userOctokit) — the token never leaves the server.
 
-import { revalidatePath } from '@/lib/kit/request';
 import { and, eq, isNull } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
@@ -23,15 +22,11 @@ import {
 } from '@/lib/github/client';
 import { branchNameFor, branchPrefix, isValidBranchName } from '@/lib/github/branch';
 import { createRepoWebhook, deleteRepoWebhook, webhookUrl } from '@/lib/github/webhooks';
-import type { Fail } from '@/lib/server/action-kit';
+import { fail, refreshesData, type Fail } from '@/lib/server/action-kit';
 import { newSecret } from '@/lib/server/secrets';
 import { AUTOMATION_OFF } from '@/lib/vcs/automation-state';
-import { isUnreachableUrl, unreachableWebhookWarning } from '@/lib/vcs/hosts';
+import { isUnreachableUrl, unreachableWebhookWarning } from '@/lib/vcs/webhook-url';
 import { branchUrl } from '@/lib/vcs/providers';
-
-function revalidateProject(projectId: string) {
-  revalidatePath(`/dashboard/projects/${projectId}`, 'layout');
-}
 
 async function loadProjectGithub(projectId: string) {
   const [project] = await db
@@ -81,8 +76,8 @@ export async function saveBranchName(input: {
 }): Promise<{ ok: true; branch: string } | Fail> {
   const authz = await authorizeProjectAction(input.projectId, 'write');
   if (!authz.ok) return authz;
-  if (!isValidBranchName(input.name)) return { ok: false, error: 'Invalid branch name.' };
-  if (typeof input.ticketId !== 'string' || !input.ticketId) return { ok: false, error: 'Issue not found.' };
+  if (!isValidBranchName(input.name)) return fail('Invalid branch name.');
+  if (typeof input.ticketId !== 'string' || !input.ticketId) return fail('Issue not found.');
 
   const [saved] = await db
     .update(tickets)
@@ -96,11 +91,11 @@ export async function saveBranchName(input: {
     )
     .returning({ branch: tickets.githubBranch });
   if (saved) {
-    revalidateProject(input.projectId);
+    refreshesData();
     return { ok: true, branch: input.name };
   }
   const issue = await getTicketById(input.projectId, input.ticketId);
-  if (!issue) return { ok: false, error: 'Issue not found.' };
+  if (!issue) return fail('Issue not found.');
   return { ok: true, branch: issue.githubBranch ?? input.name };
 }
 
@@ -120,12 +115,12 @@ export async function createBranch(input: {
     getTicketById(input.projectId, input.ticketId),
     userOctokit(authz.userId),
   ]);
-  if (!issue || issue.deletedAt) return { ok: false, error: 'Issue not found.' };
+  if (!issue || issue.deletedAt) return fail('Issue not found.');
   const target = project?.repo ? splitRepo(project.repo) : null;
   if (!project?.repo || !target) {
-    return { ok: false, error: 'Connect a repository in Settings → GitHub first.' };
+    return fail('Connect a repository in Settings → GitHub first.');
   }
-  if (!octokit) return { ok: false, error: 'Connect your GitHub account in Settings → GitHub first.' };
+  if (!octokit) return fail('Connect your GitHub account in Settings → GitHub first.');
 
   try {
     let branch = issue.githubBranch;
@@ -147,7 +142,7 @@ export async function createBranch(input: {
       sha = ref.object.sha;
     } catch (err) {
       if (githubStatus(err) === 409 || githubStatus(err) === 404) {
-        return { ok: false, error: `${project.repo} has no commits on ${repo.default_branch} yet.` };
+        return fail(`${project.repo} has no commits on ${repo.default_branch} yet.`);
       }
       throw err;
     }
@@ -187,7 +182,7 @@ export async function createBranch(input: {
         },
       });
     }
-    revalidateProject(input.projectId);
+    refreshesData();
     return {
       ok: true,
       branch,
@@ -196,7 +191,7 @@ export async function createBranch(input: {
     };
   } catch (err) {
     console.error('[github] createBranch failed', githubMessage(err));
-    return { ok: false, error: describeGithubError(err, project.repo) };
+    return fail(describeGithubError(err, project.repo));
   }
 }
 
@@ -214,7 +209,7 @@ export async function listGithubRepos(
   const authz = await authorizeProjectAction(projectId, 'admin');
   if (!authz.ok) return authz;
   const octokit = await userOctokit(authz.userId);
-  if (!octokit) return { ok: false, error: 'Connect your GitHub account first.' };
+  if (!octokit) return fail('Connect your GitHub account first.');
   try {
     const { data } = await octokit.rest.repos.listForAuthenticatedUser({
       per_page: 100,
@@ -233,7 +228,7 @@ export async function listGithubRepos(
         })),
     };
   } catch (err) {
-    return { ok: false, error: describeGithubError(err) };
+    return fail(describeGithubError(err));
   }
 }
 
@@ -292,21 +287,21 @@ export async function connectRepository(input: {
   if (!authz.ok) return authz;
   const repoName = typeof input.repo === 'string' ? input.repo.trim() : '';
   const target = splitRepo(repoName);
-  if (!target) return { ok: false, error: 'Use the owner/name form, e.g. acme/web.' };
+  if (!target) return fail('Use the owner/name form, e.g. acme/web.');
 
   const [project, octokit] = await Promise.all([
     loadProjectGithub(input.projectId),
     userOctokit(authz.userId),
   ]);
-  if (!project) return { ok: false, error: 'Project not found.' };
-  if (!octokit) return { ok: false, error: 'Connect your GitHub account first.' };
+  if (!project) return fail('Project not found.');
+  if (!octokit) return fail('Connect your GitHub account first.');
 
   let fullName: string;
   try {
     const { data } = await octokit.rest.repos.get(target);
     fullName = data.full_name; // canonical casing
   } catch (err) {
-    return { ok: false, error: describeGithubError(err, repoName) };
+    return fail(describeGithubError(err, repoName));
   }
 
   // Switching repos: drop the old hook first (best effort, with this user's token).
@@ -327,7 +322,7 @@ export async function connectRepository(input: {
   const sameRepoHook =
     project.repo?.toLowerCase() === fullName.toLowerCase() ? project.webhookId : null;
   const webhook = await registerFor(input.projectId, fullName, sameRepoHook, octokit);
-  revalidateProject(input.projectId);
+  refreshesData();
   return { ok: true, repo: fullName, ...webhook };
 }
 
@@ -338,10 +333,10 @@ export async function registerWebhook(projectId: string): Promise<ConnectResult>
     loadProjectGithub(projectId),
     userOctokit(authz.userId),
   ]);
-  if (!project?.repo) return { ok: false, error: 'Connect a repository first.' };
-  if (!octokit) return { ok: false, error: 'Connect your GitHub account first.' };
+  if (!project?.repo) return fail('Connect a repository first.');
+  if (!octokit) return fail('Connect your GitHub account first.');
   const webhook = await registerFor(projectId, project.repo, project.webhookId, octokit);
-  revalidateProject(projectId);
+  refreshesData();
   return { ok: true, repo: project.repo, ...webhook };
 }
 
@@ -373,7 +368,7 @@ export async function disconnectRepository(
       updatedAt: new Date(),
     })
     .where(eq(projects.id, projectId));
-  revalidateProject(projectId);
+  refreshesData();
   return { ok: true, warning };
 }
 
@@ -388,7 +383,7 @@ export async function updateGithubAutomation(input: {
 
   const settings = [input.prOpenStateId, input.prMergeStateId];
   if (!settings.every((value) => value === null || typeof value === 'string')) {
-    return { ok: false, error: 'Invalid state.' };
+    return fail('Invalid state.');
   }
   for (const id of settings) {
     if (id === null || id === AUTOMATION_OFF) continue;
@@ -397,7 +392,7 @@ export async function updateGithubAutomation(input: {
       .from(workflowStates)
       .where(and(eq(workflowStates.id, id), eq(workflowStates.projectId, input.projectId)))
       .limit(1);
-    if (!state) return { ok: false, error: 'That state no longer exists.' };
+    if (!state) return fail('That state no longer exists.');
   }
 
   await db
@@ -408,7 +403,7 @@ export async function updateGithubAutomation(input: {
       updatedAt: new Date(),
     })
     .where(eq(projects.id, input.projectId));
-  revalidatePath(`/dashboard/projects/${input.projectId}/settings/github`);
+  refreshesData();
   return { ok: true };
 }
 

@@ -15,7 +15,7 @@ import { and, eq, inArray, isNull, or, sql, type SQL } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import { githubPullRequests, tickets } from '@/db/schema';
-import { loadProjectStates } from '@/lib/workflow-server';
+import { projectStatesQuery } from '@/lib/workflow-server';
 import { PR_EVENT } from '@/lib/event-names';
 import { emitIssueEvent, type IssueEventInput } from '@/lib/events';
 import { SYSTEM_ACTOR, updateIssueFields } from '@/lib/issue-service';
@@ -69,10 +69,6 @@ export interface VcsPullRequest {
  * - `closed`: closed or merged by this delivery — merged moves to the "merged" state.
  */
 export type PrTrigger = 'opened' | 'updated' | 'closed';
-
-async function loadStates(projectId: string): Promise<WorkflowState[]> {
-  return loadProjectStates(projectId);
-}
 
 /** Non-deleted issues of the project by number and/or stored branch name. */
 async function findIssues(projectId: string, numbers: number[], branch?: string | null): Promise<IssueRow[]> {
@@ -211,7 +207,7 @@ export async function syncPullRequest(project: VcsProject, pr: VcsPullRequest, t
   if (events.length) await emitIssueEvent(events);
 
   if (!autoIssues.length) return;
-  const states = await loadStates(project.id);
+  const states = await projectStatesQuery(project.id);
   if (pr.state === 'merged') {
     // Only on the merge itself: a later edit of a merged PR must not re-close
     // an issue someone reopened by hand.
@@ -259,7 +255,7 @@ export async function syncClosingCommits(
 
   const [issues, states] = await Promise.all([
     findIssues(project.id, [...closedBy.keys()]),
-    loadStates(project.id),
+    projectStatesQuery(project.id),
   ]);
   const target = resolveAutomationState(project.prMergeStateId, states, defaultPrMergeState);
   if (!target) return;

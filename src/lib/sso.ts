@@ -38,7 +38,7 @@ import {
   workspaces,
 } from '@/db/schema';
 import { appUrl } from '@/lib/integrations/app-url';
-import { hmacHex, safeEqual } from '@/lib/server/secrets';
+import { appSecret, hmacHex, safeEqual } from '@/lib/server/secrets';
 import { recordWorkspaceEvent } from '@/lib/audit';
 import { workspaceRoleAllows } from '@/lib/workspace-types';
 
@@ -134,8 +134,7 @@ export const domainMatches = (domain: string, providerDomain: string) =>
 export const DOMAIN_TXT_LABEL = '_ticket-system';
 
 export function domainVerificationValue(workspaceId: string): string {
-  const secret = process.env.BETTER_AUTH_SECRET ?? '';
-  const digest = hmacHex(`sso-domain:${workspaceId}`, secret);
+  const digest = hmacHex(`sso-domain:${workspaceId}`, appSecret(''));
   return `ticket-system-verification=${digest.slice(0, 32)}`;
 }
 

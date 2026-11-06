@@ -7,6 +7,7 @@ import { db } from '@/lib/db';
 import { projectMembers, projects } from '@/db/schema';
 import { authorizeProjectAction } from '@/lib/action-auth';
 import { moveIssue } from '@/lib/issue-service';
+import { rolesAllowing } from '@/lib/roles';
 import { fail, refreshesData, type ActionResult } from '@/lib/server/action-kit';
 
 export interface MoveTarget {
@@ -36,7 +37,7 @@ export async function listMoveTargets(projectId: string): Promise<MoveTargetsRes
     .where(
       and(
         eq(projectMembers.userId, auth.userId),
-        inArray(projectMembers.role, ['owner', 'admin', 'member']),
+        inArray(projectMembers.role, rolesAllowing('write')),
         ne(projects.id, projectId),
       ),
     )

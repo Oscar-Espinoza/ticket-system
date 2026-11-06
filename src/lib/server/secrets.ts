@@ -21,6 +21,11 @@ export function hmacHex(body: string, secret: string): string {
   return createHmac('sha256', secret).update(body, 'utf8').digest('hex');
 }
 
+/** HMAC-SHA256 of `body` as unpadded base64url, for values carried in URLs and cookies. */
+export function hmacBase64url(body: string, secret: string): string {
+  return createHmac('sha256', secret).update(body, 'utf8').digest('base64url');
+}
+
 /** Timing-safe check of a `<prefix><hex HMAC-SHA256 of payload>` signature header. */
 export function verifyHmac(
   given: string | null | undefined,
@@ -37,4 +42,11 @@ export function verifyHmac(
  */
 export function appSecret(devFallback: string): string {
   return process.env.BETTER_AUTH_SECRET || devFallback;
+}
+
+/** The same key for values that must never be signed with a public fallback; throws when unset. */
+export function requiredAppSecret(purpose: string): string {
+  const secret = process.env.BETTER_AUTH_SECRET;
+  if (!secret) throw new Error(`BETTER_AUTH_SECRET is required for ${purpose}.`);
+  return secret;
 }

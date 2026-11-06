@@ -1,5 +1,4 @@
-// Presence store behind <LiveUpdates> and HeaderPresence (port of the presence
-// half of src/components/project/slots/live-updates.tsx). The component itself
+// Presence store behind <LiveUpdates> and HeaderPresence. The component itself
 // is live-updates.svelte; import this module WITH its extension:
 //   import { useProjectPresence, type PresenceUser } from '@/lib/components/project/slots/live-updates.svelte.ts';
 //
@@ -11,7 +10,8 @@
 //   const presence = useProjectPresence(() => projectId, () => ticketId);
 //   presence.current   other members active in the project (reactive)
 
-const HEARTBEAT_MS = 15_000;
+import { PRESENCE_HEARTBEAT_MS } from '@/lib/presence-model';
+
 /** Collapses bursts (layout + detail pane mounting together) into one POST. */
 const HEARTBEAT_SOON_MS = 150;
 
@@ -87,7 +87,7 @@ async function heartbeat(projectId: string) {
       // Offline or a blip — the next beat retries.
     }
   }
-  schedule(projectId, HEARTBEAT_MS);
+  schedule(projectId, PRESENCE_HEARTBEAT_MS);
 }
 
 function ensurePageListeners() {

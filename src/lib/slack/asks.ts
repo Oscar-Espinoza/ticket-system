@@ -8,23 +8,20 @@ import { and, asc, eq, inArray } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import { customerRequests, projectMembers, projects } from '@/db/schema';
-import { loadProjectStates } from '@/lib/workflow-server';
+import { projectStatesQuery } from '@/lib/workflow-server';
 import { matchCustomerByEmail } from '@/lib/customers';
 import { createIssue, DESCRIPTION_MAX, SYSTEM_ACTOR, TITLE_MAX } from '@/lib/issue-service';
 import { isPriority, PRIORITY_LABEL, PRIORITY_ORDER, type Priority } from '@/lib/issue-model';
 import { stripMentions } from '@/lib/mentions';
 import { firstStateOfType } from '@/lib/workflow';
 import { absoluteIssueUrl, appUrl } from '@/lib/integrations/app-url';
-import { roleAllows } from '@/lib/roles';
+import { rolesAllowing } from '@/lib/roles';
 
 import { respond, slackApi } from './api';
 import { ASK_VIEW_ID, SLACK_SETTINGS_PATH } from './config';
 import { slackEscape } from './format';
 import { getInstallation, linkedUserId, type SlackInstall } from './installations';
 
-const WRITE_ROLES = (['owner', 'admin', 'member', 'guest'] as const).filter((role) =>
-  roleAllows(role, 'write'),
-);
 const MAX_OPTIONS = 100; // Slack static_select limit
 const MODAL_DESCRIPTION_MAX = 3000; // Slack plain_text_input limit
 
@@ -85,7 +82,7 @@ export async function askProjects(install: SlackInstall, userId: string | null):
     .select(columns)
     .from(projectMembers)
     .innerJoin(projects, eq(projects.id, projectMembers.projectId))
-    .where(and(eq(projectMembers.userId, userId), inArray(projectMembers.role, WRITE_ROLES)))
+    .where(and(eq(projectMembers.userId, userId), inArray(projectMembers.role, rolesAllowing('write'))))
     .orderBy(asc(projects.name))
     .limit(MAX_OPTIONS);
 }
@@ -331,7 +328,7 @@ export async function submitAsk(input: {
         .from(projects)
         .where(eq(projects.id, values.projectId))
         .limit(1),
-      loadProjectStates(values.projectId),
+      projectStatesQuery(values.projectId),
       permalink(install, context),
       slackProfile(install, input.slackUserId),
     ]);
@@ -357,7 +354,10 @@ export async function submitAsk(input: {
     }
 
     // Best effort: link the request to a customer by the requester's email domain.
-    const customer = await matchCustomerByEmail(project.id, profile.email).catch(() => null);
+    const customer = await matchCustomerByEmail(project.id, profile.email).catch((err) => {
+      console.error('[slack] customer match failed', err);
+      return null;
+    });
     await db.insert(customerRequests).values({
       id: crypto.randomUUID(),
       projectId: project.id,
@@ -379,6 +379,8 @@ export async function submitAsk(input: {
     );
   } catch (err) {
     console.error('[slack] submitAsk failed', err);
-    await tell(install, input.slackUserId, input.context, 'Something went wrong creating the issue.').catch(() => {});
+    await tell(install, input.slackUserId, input.context, 'Something went wrong creating the issue.').catch((tellErr) =>
+      console.error('[slack] could not tell the user submitAsk failed', tellErr),
+    );
   }
 }

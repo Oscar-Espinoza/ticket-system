@@ -8,11 +8,11 @@ import { asc, eq } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import { labels, projectMembers, users } from '@/db/schema';
-import { loadProjectStates } from '@/lib/workflow-server';
+import { projectStatesQuery } from '@/lib/workflow-server';
 import { authorizeProjectAction } from '@/lib/action-auth';
 import { emitIssueEvent } from '@/lib/events';
 import { updateIssueFields } from '@/lib/issue-service';
-import type { IssuePatch, IssueRow, Priority, WorkflowState } from '@/lib/issue-model';
+import type { IssuePatch, IssueRow, Priority } from '@/lib/issue-model';
 import { isPriority } from '@/lib/issue-model';
 import { stripMentions } from '@/lib/mentions';
 import { fail, refreshesData, type ActionResult } from '@/lib/server/action-kit';
@@ -28,10 +28,6 @@ import {
 } from '@/lib/triage';
 
 export type TriageActionResult = ActionResult<{ warning?: string }>;
-
-async function loadStates(projectId: string): Promise<WorkflowState[]> {
-  return loadProjectStates(projectId);
-}
 
 /** The issue, if it's in this project, active, and still in triage. */
 async function triageIssue(
@@ -57,7 +53,7 @@ export async function acceptTriageIssue(input: {
   const found = await triageIssue(input.projectId, input.id);
   if ('error' in found) return fail(found.error);
 
-  const states = await loadStates(input.projectId);
+  const states = await projectStatesQuery(input.projectId);
   if (!acceptStates(states).some((s) => s.id === input.stateId)) {
     return fail('Pick an open workflow state.');
   }
@@ -89,7 +85,7 @@ export async function declineTriageIssue(input: {
     return fail(`Keep the reason under ${TRIAGE_REASON_MAX} characters.`);
   }
 
-  const target = declineState(await loadStates(input.projectId));
+  const target = declineState(await projectStatesQuery(input.projectId));
   if (!target) return fail('This project has no canceled state.');
   const { issue } = found;
   const result = await updateIssueFields({ userId: authz.userId }, input.projectId, issue.id, {

@@ -2,27 +2,18 @@
 // applies to new issues and priority changes (issue service) until an admin
 // applies it to open issues here.
 
-import { and, desc, eq, inArray, isNull, notInArray, sql, type SQL } from 'drizzle-orm';
+import { and, eq, inArray, isNull, notInArray, sql, type SQL } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
-import { activities, projects, tickets, workflowStates } from '@/db/schema';
+import { projects, tickets, workflowStates } from '@/db/schema';
 import { authorizeProjectAction } from '@/lib/action-auth';
 import { emitIssueEvent } from '@/lib/events';
-import { isStateType, PRIORITY_ORDER } from '@/lib/issue-model';
-import {
-  normalizeSlaPolicy,
-  timeInStatus,
-  type SlaPolicy,
-  type StateChange,
-  type StateRef,
-  type TimeInState,
-} from '@/lib/sla';
+import { PRIORITY_ORDER } from '@/lib/issue-model';
+import { normalizeSlaPolicy, type SlaPolicy, type TimeInState } from '@/lib/sla';
+import { readTimeInStatus } from '@/lib/time-in-status';
 import { slaDeadlineSql } from '@/lib/sla-server';
 import { openStateType } from '@/lib/workflow-server';
 import { fail, refreshesData, type ActionResult } from '@/lib/server/action-kit';
-
-/** State changes read per issue (newest kept). */
-const HISTORY_LIMIT = 500;
 
 export async function updateSlaPolicy(input: {
   projectId: string;
@@ -132,14 +123,6 @@ export async function applySlaPolicyToOpenIssues(input: {
   return { ok: true, updated };
 }
 
-function stateRef(value: unknown): StateRef | null {
-  if (!value || typeof value !== 'object') return null;
-  const { id, name, type } = value as Record<string, unknown>;
-  return typeof id === 'string' && typeof name === 'string' && isStateType(type)
-    ? { id, name, type }
-    : null;
-}
-
 /** Time spent in each workflow state, from the issue's activity history. */
 export async function getTimeInStatus(input: {
   projectId: string;
@@ -147,49 +130,5 @@ export async function getTimeInStatus(input: {
 }): Promise<ActionResult<{ states: TimeInState[] }>> {
   const authz = await authorizeProjectAction(input?.projectId, 'read');
   if (!authz.ok) return authz;
-  if (typeof input.issueId !== 'string' || !input.issueId) {
-    return fail('Issue not found.');
-  }
-  const { projectId, issueId } = input;
-
-  const [issueRows, changeRows] = await db.batch([
-    db
-      .select({
-        createdAt: tickets.createdAt,
-        stateId: workflowStates.id,
-        stateName: workflowStates.name,
-        stateType: workflowStates.type,
-      })
-      .from(tickets)
-      .innerJoin(workflowStates, eq(tickets.stateId, workflowStates.id))
-      .where(and(eq(tickets.projectId, projectId), eq(tickets.id, issueId)))
-      .limit(1),
-    db
-      .select({ data: activities.data, at: activities.createdAt })
-      .from(activities)
-      .where(
-        and(
-          eq(activities.projectId, projectId),
-          eq(activities.ticketId, issueId),
-          eq(activities.type, 'issue.updated'),
-          sql`${activities.data} @> ${JSON.stringify({ changes: [{ field: 'stateId' }] })}::jsonb`,
-        ),
-      )
-      .orderBy(desc(activities.createdAt))
-      .limit(HISTORY_LIMIT),
-  ]);
-  const [issue] = issueRows;
-  if (!issue) return fail('Issue not found.');
-
-  const changes: StateChange[] = [];
-  for (const row of changeRows.reverse()) {
-    const list = Array.isArray(row.data.changes) ? row.data.changes : [];
-    const change = list.find(
-      (c): c is { field: string; from: unknown; to: unknown } =>
-        !!c && typeof c === 'object' && (c as { field?: unknown }).field === 'stateId',
-    );
-    if (change) changes.push({ at: row.at, from: stateRef(change.from), to: stateRef(change.to) });
-  }
-  const current = { id: issue.stateId, name: issue.stateName, type: issue.stateType };
-  return { ok: true, states: timeInStatus(issue.createdAt, changes, current) };
+  return readTimeInStatus(input.projectId, input.issueId);
 }

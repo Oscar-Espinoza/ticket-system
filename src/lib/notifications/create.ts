@@ -2,6 +2,10 @@
 // preference, inserts the inbox rows, then delivers to the channels the type
 // uses. Dispatch (issue events), the SLA / pulse / recurring jobs and
 // reminders all come through here. Server-only.
+//
+// Who the recipients are is the caller's call: dispatch and the SLA job drop
+// people who are no longer project members before they get here. This module
+// applies only what depends on the notification type (RULES below).
 
 import { eq, inArray } from 'drizzle-orm';
 import type { BatchItem } from 'drizzle-orm/batch';
@@ -47,6 +51,8 @@ const CHUNK = 500;
 export interface CreateNotificationsOptions {
   /** Runs in the same transaction, before the insert (a new reminder replaces its predecessor). */
   replacing?: BatchItem<'pg'>;
+  /** Awaited after the insert and before email / push / Slack delivery. */
+  beforeDelivery?: Promise<unknown>;
 }
 
 type Recipient = Person & { prefs: Record<string, boolean> | null };
@@ -97,6 +103,7 @@ export async function createNotifications(
   await db.batch(statements as [BatchItem<'pg'>, ...BatchItem<'pg'>[]]);
   if (accepted.length === 0) return [];
 
+  await options.beforeDelivery;
   await Promise.allSettled([
     deliverEmail(
       accepted.filter((row) => ruleFor(row.type).email),

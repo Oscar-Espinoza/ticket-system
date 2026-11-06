@@ -16,7 +16,7 @@ import { ensureUpcomingCycles, completeEndedCycles } from '@/lib/cycles';
 import { emitIssueEvent } from '@/lib/events';
 import { SYSTEM_ACTOR, archive, bulkUpdate, purge, BULK_MAX } from '@/lib/issue-service';
 import { declineState } from '@/lib/triage';
-import { closedStateType, loadProjectStates } from '@/lib/workflow-server';
+import { closedStateType, projectStatesQuery } from '@/lib/workflow-server';
 
 export const TRASH_RETENTION_DAYS = 30;
 export const AUTO_CLOSED_EVENT = 'issue.auto_closed';
@@ -85,7 +85,7 @@ async function autoArchive(projectId: string, months: number) {
 }
 
 async function autoClose(projectId: string, months: number) {
-  const target = declineState(await loadProjectStates(projectId));
+  const target = declineState(await projectStatesQuery(projectId));
   if (!target) return;
 
   const rows = await db

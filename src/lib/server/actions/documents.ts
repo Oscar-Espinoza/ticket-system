@@ -7,7 +7,6 @@ import { and, eq } from 'drizzle-orm';
 import { documents, epics } from '@/db/schema';
 import {
   CONTENT_MAX,
-  DOCUMENT_ID_RE,
   DOCUMENT_TEMPLATES,
   ICON_MAX,
   TITLE_MAX,
@@ -24,7 +23,8 @@ import {
   refreshesData,
   type ActionResult,
 } from '@/lib/server/action-kit';
-import { sessionUserId } from '@/lib/server/workspace-authz';
+import { isEntityId } from '@/lib/ids';
+import { sessionUserId } from '@/lib/session';
 
 export type DocumentActionResult = ActionResult<{ id: string }>;
 
@@ -32,7 +32,7 @@ const DOCUMENT_NOT_FOUND = fail('Document not found.');
 
 async function epicInProject(epicId: unknown, projectId: string): Promise<string | null | false> {
   if (epicId === null) return null;
-  if (typeof epicId !== 'string' || !DOCUMENT_ID_RE.test(epicId)) return false;
+  if (!isEntityId(epicId)) return false;
   const [row] = await db
     .select({ id: epics.id })
     .from(epics)
@@ -43,7 +43,7 @@ async function epicInProject(epicId: unknown, projectId: string): Promise<string
 
 /** Loads the document's project and checks the caller may write to it. */
 async function authorizeDocument(documentId: unknown) {
-  if (typeof documentId !== 'string' || !DOCUMENT_ID_RE.test(documentId)) return DOCUMENT_NOT_FOUND;
+  if (!isEntityId(documentId)) return DOCUMENT_NOT_FOUND;
   const userId = await sessionUserId();
   if (!userId) return NOT_AUTHENTICATED;
   const access = await getDocumentAccess(documentId, userId);

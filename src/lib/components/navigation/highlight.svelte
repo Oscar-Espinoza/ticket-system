@@ -3,9 +3,7 @@
   Svelte escapes every segment, so issue content can never inject markup.
 -->
 <script module lang="ts">
-  // Duplicated from lib/search.ts (server-only) — keep in sync.
-  const MARK_START = '';
-  const MARK_END = '';
+  import { MARK_END, MARK_START } from '@/lib/search-marks';
 
   interface Part {
     text: string;

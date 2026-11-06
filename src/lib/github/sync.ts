@@ -171,7 +171,10 @@ export async function syncPush(project: SyncProject, payload: PushPayload) {
 
 async function octokitFor(project: SyncProject) {
   if (!project.githubConnectedById) return null;
-  return userOctokit(project.githubConnectedById).catch(() => null);
+  return userOctokit(project.githubConnectedById).catch((err) => {
+    console.error('[github] sync could not build the connecting user\'s client', err);
+    return null;
+  });
 }
 
 /**

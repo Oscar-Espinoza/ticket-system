@@ -22,6 +22,12 @@ export async function getSession() {
   return auth.api.getSession({ headers: await headers() });
 }
 
+/** The signed-in user's id, or null. */
+export async function sessionUserId(): Promise<string | null> {
+  const session = await getSession();
+  return session?.user?.id ?? null;
+}
+
 /**
  * The signed-in session, or a redirect to /login. The /dashboard guard in
  * hooks.server.ts already turns signed-out requests away (data requests

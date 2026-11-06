@@ -7,7 +7,7 @@ import { and, eq } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import { projectIntegrations, projects } from '@/db/schema';
-import { webhookBaseUrl } from '@/lib/vcs/hosts';
+import { webhookBaseUrl } from '@/lib/vcs/webhook-url';
 
 export const INTEGRATION_PROVIDERS = ['gitlab', 'bitbucket', 'sentry'] as const;
 export type IntegrationProvider = (typeof INTEGRATION_PROVIDERS)[number];

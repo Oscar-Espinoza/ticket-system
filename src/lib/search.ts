@@ -28,13 +28,10 @@ import {
 } from '@/lib/issue-filtering';
 import type { IssueRow } from '@/lib/issue-model';
 import { stripMentions } from '@/lib/mentions';
+import { MARK_END, MARK_START } from '@/lib/search-marks';
 import { closedStateType, openStateType } from '@/lib/workflow-server';
 import { slaPastDue } from '@/lib/sla-server';
 import { issueDocument, memberOfIssueProject, parseIssueKey, queryIssues } from '@/lib/tickets';
-
-/** Highlight delimiters (Unicode private use area — never typed by users). */
-export const MARK_START = '';
-export const MARK_END = '';
 
 const MAX_QUERY = 200;
 const LIMIT = 50;

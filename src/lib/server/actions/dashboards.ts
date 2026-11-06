@@ -21,7 +21,7 @@ import {
   refreshesData,
   type ActionResult,
 } from '@/lib/server/action-kit';
-import { sessionUserId } from '@/lib/server/workspace-authz';
+import { sessionUserId } from '@/lib/session';
 
 export type DashboardActionResult = ActionResult<{ id: string }>;
 

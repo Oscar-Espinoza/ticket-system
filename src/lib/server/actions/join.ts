@@ -17,12 +17,12 @@ import { and, eq, gt, isNull } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import { isUniqueViolation } from '@/lib/db-errors';
-import { formField, refreshesData } from '@/lib/server/action-kit';
+import { formField, NOT_AUTHENTICATED, refreshesData } from '@/lib/server/action-kit';
 import { getSession } from '@/lib/session';
 import { invitations, projectMembers } from '@/db/schema';
 
 export type JoinProjectState = {
-  error?: 'Not authenticated' | 'invalid' | 'wrong-account';
+  error?: typeof NOT_AUTHENTICATED.error | 'invalid' | 'wrong-account';
 };
 
 export async function joinProject(
@@ -30,7 +30,7 @@ export async function joinProject(
   formData: FormData,
 ): Promise<JoinProjectState> {
   const session = await getSession();
-  if (!session?.user) return { error: 'Not authenticated' };
+  if (!session?.user) return { error: NOT_AUTHENTICATED.error };
 
   const token = formField(formData, 'token');
   if (!token) return { error: 'invalid' };

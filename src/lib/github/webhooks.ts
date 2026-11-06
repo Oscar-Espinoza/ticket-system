@@ -4,7 +4,7 @@
 import type { Octokit } from '@octokit/rest';
 
 import { githubStatus, splitRepo } from '@/lib/github/client';
-import { webhookBaseUrl } from '@/lib/vcs/hosts';
+import { webhookBaseUrl } from '@/lib/vcs/webhook-url';
 
 export const WEBHOOK_EVENTS = [
   'pull_request',

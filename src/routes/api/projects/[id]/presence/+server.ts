@@ -12,9 +12,8 @@ import { allowOptions } from '../../../_lib/options';
 
 import { db } from '@/lib/db';
 import { presence, projectMembers, users } from '@/db/schema';
+import { PRESENCE_WINDOW_MS } from '@/lib/presence-model';
 import { ProjectAccessError, requireProjectMember } from '@/lib/project-access';
-
-const WINDOW_MS = 45_000;
 
 interface PresenceUser {
   id: string;
@@ -60,7 +59,7 @@ function othersQuery(projectId: string, userId: string) {
       and(
         eq(presence.projectId, projectId),
         ne(presence.userId, userId),
-        gt(presence.lastSeenAt, new Date(Date.now() - WINDOW_MS)),
+        gt(presence.lastSeenAt, new Date(Date.now() - PRESENCE_WINDOW_MS)),
       ),
     )
     .orderBy(users.name);

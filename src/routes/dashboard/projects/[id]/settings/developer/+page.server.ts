@@ -6,7 +6,7 @@ import { eq, sql } from 'drizzle-orm';
 
 import { projectIntegrations, users } from '@/db/schema';
 import { db } from '@/lib/db';
-import { isUnreachableUrl } from '@/lib/vcs/hosts';
+import { isUnreachableUrl } from '@/lib/vcs/webhook-url';
 import { roleAllows } from '@/lib/roles';
 import { GITLAB_DEFAULT_URL } from '@/lib/vcs/gitlab';
 import { integrationWebhookUrl, sentryIntegrationId } from '@/lib/vcs/integrations';

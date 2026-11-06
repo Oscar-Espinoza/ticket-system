@@ -5,7 +5,6 @@
 // so Slack, outgoing webhooks and notifications skip them (no flood per row).
 // Asana / Shortcut tokens are passed per call and never stored.
 
-import { revalidatePath } from '@/lib/kit/request';
 import { and, eq, or, sql } from 'drizzle-orm';
 import type { Octokit } from '@octokit/rest';
 
@@ -13,7 +12,9 @@ import { db } from '@/lib/db';
 import { labels, projectMembers, projects, tickets, users } from '@/db/schema';
 import { projectStatesQuery } from '@/lib/workflow-server';
 import { authorizeProjectAction } from '@/lib/action-auth';
-import type { Fail } from '@/lib/server/action-kit';
+import { isHexColor } from '@/lib/colors';
+import { LABEL_NAME_MAX } from '@/lib/label-model';
+import { fail, refreshesData, type Fail } from '@/lib/server/action-kit';
 import { getGitHubToken } from '@/lib/github-token';
 import { octokitFor } from '@/lib/github/client';
 import { isDateString } from '@/lib/dates';
@@ -37,8 +38,6 @@ import { describeImportError, type ExternalFetchResult } from '@/lib/import/exte
 import { fetchShortcutStories, listShortcutSources, type ShortcutOption } from '@/lib/import/shortcut';
 import { VcsHttpError } from '@/lib/vcs/http';
 
-const LABEL_NAME_MAX = 40;
-const COLOR_RE = /^#[0-9a-f]{6}$/;
 const LABEL_COLORS = ['#5e6ad2', '#26b5ce', '#4cb782', '#f2c94c', '#f2994a', '#eb5757', '#bb87fc', '#95a2b3'];
 const REPO_RE = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
 
@@ -67,7 +66,7 @@ function readLabels(value: unknown): ImportLabel[] {
     const name = str((item as ImportLabel)?.name, LABEL_NAME_MAX);
     if (!name) continue;
     const color = str((item as ImportLabel)?.color, 7)?.toLowerCase();
-    out.set(name.toLowerCase(), { name, color: color && COLOR_RE.test(color) ? color : null });
+    out.set(name.toLowerCase(), { name, color: isHexColor(color) ? color : null });
   }
   return [...out.values()];
 }
@@ -164,7 +163,7 @@ export async function importIssues(input: {
   if (!authz.ok) return authz;
   const { projectId } = input;
   if (!Array.isArray(input.records) || input.records.length > IMPORT_CHUNK) {
-    return { ok: false, error: `Send at most ${IMPORT_CHUNK} issues at a time.` };
+    return fail(`Send at most ${IMPORT_CHUNK} issues at a time.`);
   }
   const records = input.records.map(readRecord);
 
@@ -186,7 +185,7 @@ export async function importIssues(input: {
       .where(eq(projectMembers.projectId, projectId)),
   ]);
   const project = projectRows[0];
-  if (!project) return { ok: false, error: 'Project not found.' };
+  if (!project) return fail('Project not found.');
 
   // Labels: reuse by case-insensitive name, create the missing ones in one insert.
   const labelIds = new Map(labelRows.map((l) => [l.name.toLowerCase(), l.id]));
@@ -299,7 +298,7 @@ export async function importIssues(input: {
   }
 
   if (result.created || missing.size) {
-    revalidatePath(`/dashboard/projects/${projectId}`, 'layout');
+    refreshesData();
   }
   return { ok: true, ...result };
 }
@@ -319,15 +318,12 @@ async function githubClient(projectId: unknown): Promise<{ ok: true; octokit: Oc
 function githubError(err: unknown): Fail {
   const status = (err as { status?: number })?.status;
   if (status === 404) {
-    return {
-      ok: false,
-      error: 'Repository not found. Check the name, and that your GitHub login grants the repo scope.',
-    };
+    return fail('Repository not found. Check the name, and that your GitHub login grants the repo scope.');
   }
-  if (status === 401) return { ok: false, error: 'GitHub rejected your token. Reconnect GitHub.' };
-  if (status === 403) return { ok: false, error: 'GitHub refused the request (rate limit or access).' };
+  if (status === 401) return fail('GitHub rejected your token. Reconnect GitHub.');
+  if (status === 403) return fail('GitHub refused the request (rate limit or access).');
   console.error('[import] github failed', err);
-  return { ok: false, error: 'Could not reach GitHub.' };
+  return fail('Could not reach GitHub.');
 }
 
 export async function listGitHubRepos(
@@ -369,7 +365,7 @@ export async function fetchGitHubIssues(input: {
   includeClosed: boolean;
 }): Promise<GitHubFetchResult | GitHubFail> {
   const repo = typeof input?.repo === 'string' ? input.repo.trim() : '';
-  if (!REPO_RE.test(repo)) return { ok: false, error: 'Use the owner/name form, e.g. vercel/next.js.' };
+  if (!REPO_RE.test(repo)) return fail('Use the owner/name form, e.g. vercel/next.js.');
   const client = await githubClient(input.projectId);
   if (!client.ok) return client;
   const [owner, name] = repo.split('/');
@@ -434,10 +430,10 @@ function readToken(value: unknown): string | null {
 function externalError(provider: string, err: unknown): ExternalFail {
   if (err instanceof VcsHttpError) {
     if (err.status >= 500 || err.status === 0) console.error(`[import] ${provider} failed`, err);
-    return { ok: false, error: describeImportError(provider, err.status, err.message) };
+    return fail(describeImportError(provider, err.status, err.message));
   }
   console.error(`[import] ${provider} failed`, err);
-  return { ok: false, error: `Could not reach ${provider}.` };
+  return fail(`Could not reach ${provider}.`);
 }
 
 /** Write access to the project plus a token; the token only authenticates upstream. */
@@ -445,7 +441,7 @@ async function external(projectId: unknown, token: unknown): Promise<{ ok: true;
   const authz = await authorizeProjectAction(projectId, 'write');
   if (!authz.ok) return authz;
   const value = readToken(token);
-  if (!value) return { ok: false, error: 'Enter a personal access token.' };
+  if (!value) return fail('Enter a personal access token.');
   return { ok: true, token: value };
 }
 
@@ -472,7 +468,7 @@ export async function listAsanaProjectsAction(input: {
   const auth = await external(input?.projectId, input?.token);
   if (!auth.ok) return auth;
   if (typeof input.workspace !== 'string' || !GID_RE.test(input.workspace)) {
-    return { ok: false, error: 'Pick a workspace.' };
+    return fail('Pick a workspace.');
   }
   try {
     return { ok: true, projects: await listAsanaProjects(auth.token, input.workspace) };
@@ -490,7 +486,7 @@ export async function fetchAsanaTasksAction(input: {
   const auth = await external(input?.projectId, input?.token);
   if (!auth.ok) return auth;
   if (typeof input.project !== 'string' || !GID_RE.test(input.project)) {
-    return { ok: false, error: 'Pick a project.' };
+    return fail('Pick a project.');
   }
   try {
     return { ok: true, ...(await fetchAsanaTasks(auth.token, input.project, input.includeCompleted === true)) };
@@ -527,7 +523,7 @@ export async function fetchShortcutStoriesAction(input: {
     !Number.isSafeInteger(source.id) ||
     source.id <= 0
   ) {
-    return { ok: false, error: 'Pick a workflow or project.' };
+    return fail('Pick a workflow or project.');
   }
   try {
     return {

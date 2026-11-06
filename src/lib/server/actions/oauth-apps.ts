@@ -23,7 +23,7 @@ import {
   requiredText,
   type ActionResult,
 } from '@/lib/server/action-kit';
-import { sessionUserId } from '@/lib/server/workspace-authz';
+import { sessionUserId } from '@/lib/session';
 import {
   APP_NAME_MAX,
   OAUTH_APP_SCOPES,

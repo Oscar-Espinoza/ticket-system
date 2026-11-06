@@ -61,7 +61,10 @@ export async function listShortcutSources(
   const [workflows, projects] = await Promise.all([
     request<ShortcutWorkflow[]>(token, '/workflows'),
     // Projects are optional in Shortcut (older workspaces); an error here just means none.
-    request<{ id: number; name: string; archived?: boolean }[]>(token, '/projects').catch(() => []),
+    request<{ id: number; name: string; archived?: boolean }[]>(token, '/projects').catch((err) => {
+      console.error('[import] shortcut projects lookup failed', err);
+      return [];
+    }),
   ]);
   return {
     workflows: workflows.map(({ id, name }) => ({ id, name })),

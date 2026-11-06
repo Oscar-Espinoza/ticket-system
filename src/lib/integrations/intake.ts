@@ -4,15 +4,14 @@
 // bot can't fake "the page was open for a while": a submission faster than
 // MIN_FILL_MS (or with a bad stamp) is treated as spam.
 
-import { createHmac, randomBytes } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 
-import { appSecret, safeEqual } from '@/lib/server/secrets';
+import { appSecret, hmacBase64url, safeEqual } from '@/lib/server/secrets';
 
 export const MIN_FILL_MS = 3000;
 const MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
-const sign = (value: string) =>
-  createHmac('sha256', appSecret('intake-dev-secret')).update(`intake:${value}`).digest('base64url');
+const sign = (value: string) => hmacBase64url(`intake:${value}`, appSecret('intake-dev-secret'));
 
 export function generateIntakeToken(): string {
   return randomBytes(18).toString('base64url');

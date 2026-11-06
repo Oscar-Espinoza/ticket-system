@@ -1,7 +1,7 @@
 // Issue templates (per project). Anyone who can read the project can list them;
 // writers (members and up) manage them — same bar as creating issues.
 
-import { and, asc, eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import { issueTemplates } from '@/db/schema';
@@ -15,41 +15,19 @@ import {
   requiredText,
   type ActionResult,
 } from '@/lib/server/action-kit';
+import { TEMPLATE_FIELDS, sanitizeIssueDefaults } from '@/lib/issue-defaults';
 import {
-  TEMPLATE_FIELDS,
-  sanitizeIssueDefaults,
-  type IssueDefaults,
-} from '@/lib/issue-defaults';
+  issueTemplateColumns,
+  readIssueTemplates,
+  toIssueTemplate,
+  type IssueTemplate,
+} from '@/lib/issue-templates';
 
-export interface IssueTemplate {
-  id: string;
-  name: string;
-  title: string;
-  description: string;
-  data: IssueDefaults;
-}
+export type { IssueTemplate };
 
 export type TemplateResult = ActionResult<{ template: IssueTemplate }, 'name' | 'title' | 'description'>;
 
 const NAME_MAX = 60;
-
-const columns = {
-  id: issueTemplates.id,
-  name: issueTemplates.name,
-  title: issueTemplates.title,
-  description: issueTemplates.description,
-  data: issueTemplates.data,
-};
-
-function toTemplate(row: {
-  id: string;
-  name: string;
-  title: string;
-  description: string | null;
-  data: Record<string, unknown>;
-}): IssueTemplate {
-  return { ...row, description: row.description ?? '', data: row.data as IssueDefaults };
-}
 
 function validate(input: { name?: unknown; title?: unknown; description?: unknown }) {
   const name = requiredText(input.name, 'name', NAME_MAX);
@@ -66,12 +44,7 @@ export async function listTemplates(
 ): Promise<ActionResult<{ templates: IssueTemplate[] }>> {
   const authz = await authorizeProjectAction(projectId, 'read');
   if (!authz.ok) return authz;
-  const rows = await db
-    .select(columns)
-    .from(issueTemplates)
-    .where(eq(issueTemplates.projectId, projectId))
-    .orderBy(asc(issueTemplates.name));
-  return { ok: true, templates: rows.map(toTemplate) };
+  return { ok: true, templates: await readIssueTemplates(projectId) };
 }
 
 export async function createTemplate(input: {
@@ -100,9 +73,9 @@ export async function createTemplate(input: {
       createdAt: now,
       updatedAt: now,
     })
-    .returning(columns);
+    .returning(issueTemplateColumns);
   refreshesData();
-  return { ok: true, template: toTemplate(row) };
+  return { ok: true, template: toIssueTemplate(row) };
 }
 
 export async function updateTemplate(input: {
@@ -129,10 +102,10 @@ export async function updateTemplate(input: {
       updatedAt: new Date(),
     })
     .where(and(eq(issueTemplates.id, input.id), eq(issueTemplates.projectId, input.projectId)))
-    .returning(columns);
+    .returning(issueTemplateColumns);
   if (!row) return fail('Template not found.');
   refreshesData();
-  return { ok: true, template: toTemplate(row) };
+  return { ok: true, template: toIssueTemplate(row) };
 }
 
 export async function deleteTemplate(input: {

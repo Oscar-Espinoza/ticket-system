@@ -3,9 +3,9 @@
 // also set as an httpOnly cookie, so a callback only completes in the browser
 // that started it (login-CSRF / link-hijack safe).
 
-import { createHmac, randomBytes } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 
-import { appSecret, safeEqual } from '@/lib/server/secrets';
+import { appSecret, hmacBase64url, safeEqual } from '@/lib/server/secrets';
 
 export type SlackOAuthPurpose = 'install' | 'link';
 
@@ -19,8 +19,7 @@ interface StatePayload {
   e: number;
 }
 
-const sign = (value: string) =>
-  createHmac('sha256', appSecret('slack-dev-secret')).update(`slack-oauth:${value}`).digest('base64url');
+const sign = (value: string) => hmacBase64url(`slack-oauth:${value}`, appSecret('slack-dev-secret'));
 
 export function createState(purpose: SlackOAuthPurpose, userId: string): { state: string; nonce: string } {
   const nonce = randomBytes(16).toString('base64url');

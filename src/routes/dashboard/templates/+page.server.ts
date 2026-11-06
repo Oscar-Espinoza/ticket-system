@@ -4,7 +4,7 @@
 
 import { and, asc, eq, inArray } from 'drizzle-orm';
 
-import { listProjectTemplates } from '@/lib/server/actions/project-templates';
+import { readProjectTemplates } from '@/lib/project-templates';
 import { projectMembers, projects } from '@/db/schema';
 import { db } from '@/lib/db';
 import { rolesAllowing } from '@/lib/roles';
@@ -16,7 +16,7 @@ export const load: PageServerLoad = async () => {
   const { id: userId } = await requireUser();
 
   const [templates, adminProjects, workspaces] = await Promise.all([
-    listProjectTemplates(),
+    readProjectTemplates(userId),
     db
       .select({ id: projects.id, name: projects.name, ticketKey: projects.ticketKey })
       .from(projectMembers)
@@ -27,7 +27,7 @@ export const load: PageServerLoad = async () => {
   ]);
 
   return {
-    templates: templates.ok ? templates.templates : [],
+    templates,
     projects: adminProjects,
     workspaces: workspaces.map((w) => ({ id: w.id, name: w.name })),
   };

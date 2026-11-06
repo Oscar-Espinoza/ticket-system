@@ -11,7 +11,7 @@ import { db } from '@/lib/db';
 import { appUrl } from '@/lib/integrations/app-url';
 import { workspaceInvitations, workspaceMembers, workspaces } from '@/db/schema';
 
-import { workspaceRoleAllows, type WorkspaceRole } from '@/lib/workspace-types';
+import type { WorkspaceRole } from '@/lib/workspace-types';
 
 export type { WorkspaceRole };
 
@@ -22,13 +22,6 @@ export type WorkspaceMembership = {
   userId: string;
   role: WorkspaceRole;
 };
-
-export class WorkspaceAccessError extends Error {
-  constructor(message = 'Not a workspace member') {
-    super(message);
-    this.name = 'WorkspaceAccessError';
-  }
-}
 
 /** Membership by workspace slug or id; null for non-members (enumeration-safe). */
 export const getWorkspaceMembership = cache(
@@ -54,26 +47,6 @@ export const getWorkspaceMembership = cache(
     return null;
   },
 );
-
-export async function requireWorkspaceMember(
-  slugOrId: string,
-  userId: string,
-): Promise<WorkspaceMembership> {
-  const membership = await getWorkspaceMembership(slugOrId, userId);
-  if (!membership) throw new WorkspaceAccessError();
-  return membership;
-}
-
-export async function requireWorkspaceAdmin(
-  slugOrId: string,
-  userId: string,
-): Promise<WorkspaceMembership> {
-  const membership = await requireWorkspaceMember(slugOrId, userId);
-  if (!workspaceRoleAllows(membership.role, 'admin')) {
-    throw new WorkspaceAccessError('Not a workspace admin');
-  }
-  return membership;
-}
 
 export interface UserWorkspace {
   id: string;

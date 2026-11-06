@@ -582,7 +582,7 @@ export async function removeWorkspaceMember(input: {
 // ---------------------------------------------------------------------------
 
 export type AcceptWorkspaceInviteState = {
-  error?: 'Not authenticated' | 'invalid' | 'wrong-account';
+  error?: typeof NOT_AUTHENTICATED.error | 'invalid' | 'wrong-account';
 };
 
 export async function acceptWorkspaceInvite(
@@ -590,7 +590,7 @@ export async function acceptWorkspaceInvite(
   formData: FormData,
 ): Promise<AcceptWorkspaceInviteState> {
   const session = await getSession();
-  if (!session?.user) return { error: 'Not authenticated' };
+  if (!session?.user) return { error: NOT_AUTHENTICATED.error };
 
   const invite = await getPendingWorkspaceInvite(
     ((formData.get('token') as string | null) ?? '').trim(),

@@ -13,6 +13,7 @@ import { after } from '@/lib/kit/request';
 import { db } from '@/lib/db';
 import { projects } from '@/db/schema';
 import { verifyHmac } from '@/lib/server/secrets';
+import { readJsonBody } from '@/lib/vcs/webhook-request';
 import {
   syncCheckRun,
   syncCheckSuite,
@@ -22,8 +23,6 @@ import {
   syncStatus,
   type SyncProject,
 } from '@/lib/github/sync';
-
-const MAX_BODY = 5 * 1024 * 1024;
 
 const projectColumns = {
   id: projects.id,
@@ -67,15 +66,10 @@ export const POST: RequestHandler = async ({ request }) => {
     return Response.json({ error: 'Missing GitHub headers' }, { status: 403 });
   }
 
-  const raw = await request.text();
-  if (raw.length > MAX_BODY) return Response.json({ error: 'Payload too large' }, { status: 413 });
-
-  let payload: { repository?: { full_name?: string } } & Record<string, unknown>;
-  try {
-    payload = JSON.parse(raw);
-  } catch {
-    return Response.json({ error: 'Invalid JSON' }, { status: 400 });
-  }
+  const body = await readJsonBody(request);
+  if (!body.ok) return body.response;
+  const { raw } = body;
+  const payload = body.payload as { repository?: { full_name?: string } } & Record<string, unknown>;
 
   let verified: SyncProject[];
   try {

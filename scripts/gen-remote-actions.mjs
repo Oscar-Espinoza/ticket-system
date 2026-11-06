@@ -10,9 +10,9 @@
 // effect depend on it and re-run forever (effect_update_depth_exceeded).
 //
 // Semantics kept from Next:
-// - a function whose body calls refreshesData() (src/lib/server/action-kit.ts),
-//   or the legacy revalidatePath/revalidateTag, → the client wrapper awaits
-//   refreshAfterWrite() (a coalesced refreshAll) after it resolves;
+// - a function whose body calls refreshesData() (src/lib/server/action-kit.ts)
+//   → the client wrapper awaits refreshAfterWrite() (a coalesced refreshAll)
+//   after it resolves;
 // - redirect() inside an action → the wrapper navigates with goto();
 // - (prevState, formData: FormData) actions take a real FormData on the client;
 //   it is sent as entries and rebuilt server-side (string fields only).
@@ -58,7 +58,7 @@ for (const file of sources.sort()) {
       }
     }
   }
-  const refreshing = new Set([...bodies].filter(([, b]) => /\b(refreshesData|revalidate(Path|Tag))\s*\(/.test(b)).map(([n]) => n));
+  const refreshing = new Set([...bodies].filter(([, b]) => /\brefreshesData\s*\(/.test(b)).map(([n]) => n));
   for (let grew = true; grew; ) {
     grew = false;
     for (const [name, body] of bodies) {

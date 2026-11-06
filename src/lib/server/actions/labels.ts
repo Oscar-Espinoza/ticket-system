@@ -8,6 +8,7 @@ import { db } from '@/lib/db';
 import { labels } from '@/db/schema';
 import { authorizeProjectAction } from '@/lib/action-auth';
 import { isUniqueViolation } from '@/lib/db-errors';
+import { LABEL_DESCRIPTION_MAX, LABEL_NAME_MAX } from '@/lib/label-model';
 import type { IssueLabel } from '@/lib/issue-model';
 import {
   descriptionOrNull,
@@ -21,8 +22,6 @@ import {
 
 export type LabelActionResult = ActionResult<{ label?: IssueLabel }, 'name' | 'color' | 'description'>;
 
-const LABEL_NAME_MAX = 40;
-const LABEL_DESCRIPTION_MAX = 200;
 const DUPLICATE = fail('A label with this name already exists.', 'name');
 
 async function nameTaken(projectId: string, name: string, exceptId?: string) {

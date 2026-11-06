@@ -9,7 +9,6 @@ import { eq, inArray, notInArray } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import { workflowStates } from '@/db/schema';
-import type { WorkflowState } from '@/lib/issue-model';
 import { CLOSED_STATE_TYPES, DEFAULT_WORKFLOW_STATES } from '@/lib/workflow';
 
 /** Select list that yields a `WorkflowState`. */
@@ -28,13 +27,9 @@ export const closedStateType = () => inArray(workflowStates.type, [...CLOSED_STA
 /** SQL form of `!isClosed`. */
 export const openStateType = () => notInArray(workflowStates.type, [...CLOSED_STATE_TYPES]);
 
-/** The project's states (unsorted); a query, so it can join a db.batch. */
+/** The project's states (unsorted); a query, so it can join a db.batch or simply be awaited. */
 export function projectStatesQuery(projectId: string) {
   return db.select(workflowStateColumns).from(workflowStates).where(eq(workflowStates.projectId, projectId));
-}
-
-export function loadProjectStates(projectId: string): Promise<WorkflowState[]> {
-  return projectStatesQuery(projectId);
 }
 
 export function workflowStateInserts(
