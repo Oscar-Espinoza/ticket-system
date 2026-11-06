@@ -16,15 +16,11 @@ import { comments, cycles, epics, issueLabels, labels, projects, tickets, users,
 import { toDateString, weekRange } from '@/lib/dates';
 import {
   SLA_RISK_MS,
+  decodeSearchValue,
   parseSearchQuery,
-  searchCycle,
-  searchDue,
-  searchIs,
-  searchPriority,
-  searchSla,
-  searchStateType,
-  searchTimeRange,
+  wantsArchived,
   type SearchTerm,
+  type SearchValue,
 } from '@/lib/issue-filtering';
 import type { IssueRow } from '@/lib/issue-model';
 import { stripMentions } from '@/lib/mentions';
@@ -74,10 +70,10 @@ function stateWhere(where: SQL): SQL {
 
 const openState = () => stateWhere(openStateType());
 
-function userWhere(column: AnyPgColumn, value: string, userId: string): SQL {
-  const v = lower(value);
-  if (v === 'me') return eq(column, userId);
-  if (v === 'none' || v === 'unassigned') return isNull(column);
+function userWhere(column: AnyPgColumn, decoded: Extract<SearchValue, { key: 'assignee' | 'creator' }>, userId: string): SQL {
+  if (decoded.value === 'me') return eq(column, userId);
+  if (decoded.value === 'none') return isNull(column);
+  const value = decoded.raw;
   return exists(
     db
       .select({ one: sql`1` })
@@ -86,11 +82,10 @@ function userWhere(column: AnyPgColumn, value: string, userId: string): SQL {
   );
 }
 
-function valueCondition(key: SearchTerm['key'], value: string, userId: string, now: Date): SQL {
-  const v = lower(value);
-  switch (key) {
+function valueCondition(decoded: SearchValue, userId: string, now: Date): SQL {
+  switch (decoded.key) {
     case 'is': {
-      const is = searchIs(v);
+      const is = decoded.value;
       if (is === 'open') return openState();
       if (is === 'closed') return stateWhere(closedStateType());
       if (is === 'completed' || is === 'canceled') return stateWhere(eq(workflowStates.type, is));
@@ -98,21 +93,21 @@ function valueCondition(key: SearchTerm['key'], value: string, userId: string, n
       return FALSE;
     }
     case 'status':
-      return stateWhere(contains(workflowStates.name, value));
+      return stateWhere(contains(workflowStates.name, decoded.raw));
     case 'type': {
-      const type = searchStateType(v);
+      const type = decoded.value;
       return type ? stateWhere(eq(workflowStates.type, type)) : FALSE;
     }
     case 'assignee':
-      return userWhere(tickets.assigneeId, value, userId);
+      return userWhere(tickets.assigneeId, decoded, userId);
     case 'creator':
-      return userWhere(tickets.creatorId, value, userId);
+      return userWhere(tickets.creatorId, decoded, userId);
     case 'priority': {
-      const priority = searchPriority(v);
+      const priority = decoded.value;
       return priority ? eq(tickets.priority, priority) : FALSE;
     }
     case 'label':
-      if (v === 'none') {
+      if (decoded.value === 'none') {
         return sql`not ${exists(db.select({ one: sql`1` }).from(issueLabels).where(eq(issueLabels.ticketId, tickets.id)))}`;
       }
       return exists(
@@ -120,7 +115,7 @@ function valueCondition(key: SearchTerm['key'], value: string, userId: string, n
           .select({ one: sql`1` })
           .from(issueLabels)
           .innerJoin(labels, eq(issueLabels.labelId, labels.id))
-          .where(and(eq(issueLabels.ticketId, tickets.id), sql`lower(${labels.name}) = ${v}`)),
+          .where(and(eq(issueLabels.ticketId, tickets.id), sql`lower(${labels.name}) = ${decoded.value}`)),
       );
     case 'project':
       return exists(
@@ -130,12 +125,12 @@ function valueCondition(key: SearchTerm['key'], value: string, userId: string, n
           .where(
             and(
               eq(projects.id, tickets.projectId),
-              or(sql`lower(${projects.ticketKey}) = ${v}`, sql`lower(${projects.name}) = ${v}`),
+              or(sql`lower(${projects.ticketKey}) = ${decoded.value}`, sql`lower(${projects.name}) = ${decoded.value}`),
             ),
           ),
       );
     case 'cycle': {
-      const word = searchCycle(v);
+      const word = decoded.value;
       if (word === null) return FALSE;
       if (word === 'none') return isNull(tickets.cycleId);
       const where =
@@ -149,15 +144,15 @@ function valueCondition(key: SearchTerm['key'], value: string, userId: string, n
       return exists(db.select({ one: sql`1` }).from(cycles).where(and(eq(cycles.id, tickets.cycleId), where)));
     }
     case 'epic':
-      if (v === 'none') return isNull(tickets.epicId);
+      if (decoded.value === 'none') return isNull(tickets.epicId);
       return exists(
         db
           .select({ one: sql`1` })
           .from(epics)
-          .where(and(eq(epics.id, tickets.epicId), contains(epics.name, value))),
+          .where(and(eq(epics.id, tickets.epicId), contains(epics.name, decoded.raw))),
       );
     case 'due': {
-      const due = searchDue(v);
+      const due = decoded.value;
       const today = toDateString(now);
       switch (due) {
         case 'none':
@@ -177,16 +172,16 @@ function valueCondition(key: SearchTerm['key'], value: string, userId: string, n
     }
     case 'created':
     case 'updated': {
-      const range = searchTimeRange(v, now.getTime());
+      const range = decoded.value;
       if (!range) return FALSE;
-      const column = key === 'created' ? tickets.createdAt : tickets.updatedAt;
+      const column = decoded.key === 'created' ? tickets.createdAt : tickets.updatedAt;
       return and(
         range.after === undefined ? undefined : gte(column, new Date(range.after)),
         range.before === undefined ? undefined : lt(column, new Date(range.before)),
       )!;
     }
     case 'sla': {
-      const sla = searchSla(v);
+      const sla = decoded.value;
       switch (sla) {
         case 'breached':
           return or(isNotNull(tickets.slaBreachedAt), and(slaPastDue(now), openState()))!;
@@ -211,15 +206,10 @@ function valueCondition(key: SearchTerm['key'], value: string, userId: string, n
 /** SQL for parsed query terms (AND of terms; values any-of; `-` negates). */
 export function searchTermConditions(terms: SearchTerm[], userId: string, now = new Date()): SQL[] {
   return terms.map((term) => {
-    const any = or(...term.values.map((value) => valueCondition(term.key, value, userId, now)))!;
+    const any = or(...term.values.map((value) => valueCondition(decodeSearchValue(term.key, value, now.getTime()), userId, now)))!;
     // coalesce: a NULL comparison (e.g. no due date) must not survive negation as NULL.
     return term.negate ? sql`not coalesce((${any}), false)` : any;
   });
-}
-
-/** Whether the terms ask for archived issues explicitly (`is:archived`). */
-export function wantsArchived(terms: SearchTerm[]): boolean {
-  return terms.some((t) => t.key === 'is' && !t.negate && t.values.some((v) => searchIs(v) === 'archived'));
 }
 
 const commentDocument = sql`to_tsvector('english', ${comments.body})`;

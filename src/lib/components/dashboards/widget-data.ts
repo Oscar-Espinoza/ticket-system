@@ -2,7 +2,7 @@
 // same filter matcher the issue views use — so a widget's filters mean exactly
 // what they mean on a list, and edits re-render without a server round trip.
 
-import { filterIssues, parseSearchQuery, searchIs, type FilterContext } from '@/lib/issue-filtering';
+import { filterIssues, parseSearchQuery, wantsArchived, type FilterContext } from '@/lib/issue-filtering';
 import { sortIssues } from '@/lib/issue-grouping';
 import { PRIORITY_ORDER, type IssueRow, type StateType } from '@/lib/issue-model';
 import type { BreakdownRow, WeekPoint } from '@/lib/insights-model';
@@ -34,11 +34,9 @@ export function filterContext(dataset: DashboardDataset, projects: ProjectData[]
 export function widgetIssues(widget: Widget, dataset: DashboardDataset, now: number, history = false): IssueRow[] {
   const projects = widgetProjects(widget, dataset);
   const ids = new Set(projects.map((p) => p.project.id));
-  const wantsArchived = parseSearchQuery(widget.config.filters.q).terms.some(
-    (t) => t.key === 'is' && !t.negate && t.values.some((v) => searchIs(v) === 'archived'),
-  );
+  const archivedAsked = wantsArchived(parseSearchQuery(widget.config.filters.q).terms);
   const scope = dataset.issues.filter(
-    (issue) => ids.has(issue.projectId) && (history || wantsArchived || issue.archivedAt === null),
+    (issue) => ids.has(issue.projectId) && (history || archivedAsked || issue.archivedAt === null),
   );
   return filterIssues(scope, widget.config.filters, { ...filterContext(dataset, projects, now), allIssues: scope });
 }

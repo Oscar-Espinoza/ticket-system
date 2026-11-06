@@ -5,7 +5,8 @@
   import { Input } from '@/lib/components/ui/input';
   import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/lib/components/ui/select';
   import ProjectDataProvider from '@/lib/components/project/project-data-provider.svelte';
-  import SearchSyntaxHelp, { appendToken } from '@/lib/components/views/search-syntax-help.svelte';
+  import SearchSyntaxHelp from '@/lib/components/views/search-syntax-help.svelte';
+  import { appendToken } from '@/lib/search-token';
   import { normalizeIssueFilters } from '@/lib/issue-filtering';
   import { widgetIssues, widgetProjects } from '@/lib/components/dashboards/widget-data';
   import {

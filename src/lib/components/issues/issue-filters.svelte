@@ -12,6 +12,7 @@
   import FilterMenu from '@/lib/components/views/filter-menu.svelte';
   import FilterChips from '@/lib/components/views/filter-chips.svelte';
   import SearchSyntaxHelp from '@/lib/components/views/search-syntax-help.svelte';
+  import { appendToken } from '@/lib/search-token';
   import { createDebouncer } from '@/lib/svelte/debounce';
   import { registerHotkeys } from '@/lib/svelte/hotkeys.svelte';
   import { cn } from '@/lib/utils';
@@ -60,12 +61,6 @@
     // Nothing became a chip: keep the text exactly as typed (no reformatting under the caret).
     const unchanged = filtersKey({ ...next, q: '' }) === filtersKey({ ...filters, q: '' });
     return unchanged ? { ...filters, q } : next;
-  }
-
-  /** Appends `token` to `query` with a separating space (search-syntax-help's appendToken). */
-  function appendToken(query: string, token: string): string {
-    const base = query.trimEnd();
-    return base ? `${base} ${token} ` : `${token} `;
   }
 
   const value = $derived(filters.current.q);

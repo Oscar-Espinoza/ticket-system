@@ -5,14 +5,10 @@
   (label:bug assignee:me …) — see the "?" popover.
 -->
 <script module lang="ts">
+  import { appendToken } from '@/lib/search-token';
+
   const ALL = '__all';
   const DEBOUNCE_MS = 250;
-
-  /** Appends `token` to `query` with a separating space (appendToken in views/search-syntax-help). */
-  function appendToken(query: string, token: string): string {
-    const base = query.trimEnd();
-    return base ? `${base} ${token} ` : `${token} `;
-  }
 </script>
 
 <script lang="ts">
