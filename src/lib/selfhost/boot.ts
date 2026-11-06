@@ -1,4 +1,4 @@
-// Self-hosted startup (src/instrumentation.ts, SELF_HOSTED=true): apply the
+// Self-hosted startup (init in src/hooks.server.ts, SELF_HOSTED=true): apply the
 // migrations in src/db/migrations, then run the daily jobs at CRON_HOUR_UTC
 // (default 08:00 UTC, the hour vercel.json uses). Migrations hold a Postgres
 // advisory lock, so a second replica waits instead of migrating concurrently.

@@ -1,4 +1,4 @@
-// OAuth consent screen (D10a; port of src/app/oauth/consent/page.tsx). Better
+// OAuth consent screen. Better
 // Auth's oauth-provider redirects here with a signed copy of the authorization
 // request (`…&sig=…`); the Allow / Deny buttons post it back (the auth client
 // attaches the signed query), and the plugin answers with the client's
@@ -12,7 +12,7 @@ import { db } from '@/lib/db';
 import { oauthClients } from '@/db/schema';
 import type { PageServerLoad } from './$types';
 
-/** Next's searchParams → URLSearchParams: keys in first-seen order, every value. */
+/** The query regrouped by key (first-seen order), repeated values kept together. */
 function toQuery(search: URLSearchParams): URLSearchParams {
   const params = new URLSearchParams();
   for (const key of new Set(search.keys())) {

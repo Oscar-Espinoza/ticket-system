@@ -8,6 +8,7 @@ import type { RequestHandler } from './$types';
 import { allowOptions } from '../../_lib/options';
 
 import { db } from '@/lib/db';
+import { readJsonObject } from '@/lib/kit/json-body';
 import { pushSubscriptions } from '@/db/schema';
 
 const MAX_ENDPOINT = 1024;
@@ -16,15 +17,6 @@ const BASE64URL = /^[A-Za-z0-9_-]+=*$/;
 
 function fail(error: string, status: number) {
   return Response.json({ ok: false, error }, { status });
-}
-
-async function body(request: Request): Promise<Record<string, unknown> | null> {
-  try {
-    const value: unknown = await request.json();
-    return value && typeof value === 'object' ? (value as Record<string, unknown>) : null;
-  } catch {
-    return null;
-  }
 }
 
 function validEndpoint(value: unknown): value is string {
@@ -44,7 +36,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
   const user = locals.user;
   if (!user) return fail('Not authenticated', 401);
 
-  const input = await body(request);
+  const input = await readJsonObject(request);
   const keys = input?.keys as Record<string, unknown> | undefined;
   if (!input || !validEndpoint(input.endpoint) || !keys || !validKey(keys.p256dh) || !validKey(keys.auth)) {
     return fail('Invalid subscription', 400);
@@ -70,7 +62,6 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     })
     .returning({ id: pushSubscriptions.id });
 
-  // Next revalidated /dashboard/settings/notifications here; the caller refreshes page data.
   return Response.json({ ok: true, id: row.id });
 };
 
@@ -78,7 +69,7 @@ export const DELETE: RequestHandler = async ({ request, locals }) => {
   const user = locals.user;
   if (!user) return fail('Not authenticated', 401);
 
-  const input = await body(request);
+  const input = await readJsonObject(request);
   const id = typeof input?.id === 'string' && input.id.length <= 64 ? input.id : null;
   const endpoint = validEndpoint(input?.endpoint) ? input.endpoint : null;
   if (!id && !endpoint) return fail('Invalid request', 400);
@@ -95,5 +86,4 @@ export const DELETE: RequestHandler = async ({ request, locals }) => {
   return Response.json({ ok: true });
 };
 
-// Next answered OPTIONS automatically (204 + Allow); Kit would 405.
 export const OPTIONS = allowOptions('POST', 'DELETE');

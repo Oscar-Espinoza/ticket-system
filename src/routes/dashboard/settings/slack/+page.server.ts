@@ -1,13 +1,13 @@
-// Slack app (D7; port of src/app/dashboard/settings/slack/page.tsx): install
+// Slack app: install
 // into Slack workspaces (Asks → issues), pick where Asks land, and link your
 // own Slack account for DM notifications.
 
-import { redirect } from '@sveltejs/kit';
 import { and, asc, eq, inArray, or } from 'drizzle-orm';
 
 import { projectMembers, projects, slackInstallations, slackUserLinks, users } from '@/db/schema';
 import { db } from '@/lib/db';
-import { getSession } from '@/lib/session';
+import { rolesAllowing } from '@/lib/roles';
+import { requireUser } from '@/lib/session';
 import { slackConfig, slackManifest, slackUrls } from '@/lib/slack/config';
 import type { SlackWorkspace } from '@/lib/components/slack/slack-app-settings.svelte';
 import type { PageServerLoad } from './$types';
@@ -28,10 +28,8 @@ const ERROR_MESSAGES: Record<string, string> = {
 };
 
 export const load: PageServerLoad = async ({ url }) => {
-  const session = await getSession();
-  if (!session?.user) redirect(303, '/login');
-  const userId = session.user.id;
-  // Next's searchParams gave an array for a repeated key, which the page ignored.
+  const { id: userId } = await requireUser();
+  // A repeated key is ignored.
   const single = (name: string) => {
     const values = url.searchParams.getAll(name);
     return values.length === 1 ? values[0] : undefined;
@@ -48,7 +46,7 @@ export const load: PageServerLoad = async ({ url }) => {
       .select({ id: projects.id, name: projects.name, ticketKey: projects.ticketKey })
       .from(projectMembers)
       .innerJoin(projects, eq(projects.id, projectMembers.projectId))
-      .where(and(eq(projectMembers.userId, userId), inArray(projectMembers.role, ['owner', 'admin'])))
+      .where(and(eq(projectMembers.userId, userId), inArray(projectMembers.role, rolesAllowing('admin'))))
       .orderBy(asc(projects.name)),
   ]);
 

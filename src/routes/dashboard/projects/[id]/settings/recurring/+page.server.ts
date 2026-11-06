@@ -3,24 +3,18 @@
 // created before rendering, so schedules keep working (and the list is
 // current) even when the daily cron isn't configured.
 
-import { error, redirect } from '@sveltejs/kit';
-
-import { getSession } from '@/lib/session';
-import { getMemberProject } from '@/lib/project-access';
 import { roleAllows } from '@/lib/roles';
 import {
   getProjectRecurringIssues,
   runDueRecurringIssues,
   toRecurringIssue,
 } from '@/lib/recurring';
+import { loadViewerProject } from '../../project-load';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params }) => {
   const { id } = params;
-  const session = await getSession();
-  if (!session?.user) redirect(303, '/login');
-  const membership = await getMemberProject(id, session.user.id);
-  if (!membership) error(404, 'Not found');
+  const { project: membership } = await loadViewerProject(id);
 
   try {
     await runDueRecurringIssues(new Date(), id);

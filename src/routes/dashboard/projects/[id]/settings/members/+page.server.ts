@@ -1,26 +1,22 @@
 // Project settings › Members: roster with roles for everyone; invitations
 // (email + shareable link) for owners and admins.
 //
-// Security: getMemberProject (membership inner join) runs before any other
-// project-scoped read; non-members get a 404 so outsiders can't probe
-// project ids. Every invite/member action re-checks the role server-side.
+// Non-members get a 404 (loadViewerProject) before any other project-scoped
+// read, so outsiders can't probe project ids. Every invite/member action
+// re-checks the role server-side.
 
-import { error, redirect } from '@sveltejs/kit';
 import { and, asc, eq, isNull } from 'drizzle-orm';
 
 import { invitations, projectMembers, users } from '@/db/schema';
 import { db } from '@/lib/db';
-import { getMemberProject } from '@/lib/project-access';
+import { appUrl } from '@/lib/integrations/app-url';
 import { roleAllows } from '@/lib/roles';
+import { loadViewerProject } from '../../project-load';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ params, locals }) => {
+export const load: PageServerLoad = async ({ params }) => {
   const { id } = params;
-  if (!locals.user) redirect(303, '/login');
-  const appUrl = process.env.PUBLIC_APP_URL ?? '';
-
-  const project = await getMemberProject(id, locals.user.id);
-  if (!project) error(404, 'Not found');
+  const { user, project } = await loadViewerProject(id);
   const canInvite = roleAllows(project.role, 'admin');
 
   const [roster, invites] = await Promise.all([
@@ -63,7 +59,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
             email: invite.email,
             role: invite.role,
             expiresAt: invite.expiresAt.toISOString(),
-            url: `${appUrl}/invite/${invite.token}`,
+            url: `${appUrl()}/invite/${invite.token}`,
             invitedByName: invite.invitedByName,
           },
         ],
@@ -72,9 +68,9 @@ export const load: PageServerLoad = async ({ params, locals }) => {
   return {
     projectId: id,
     projectName: project.name,
-    currentUserId: locals.user.id,
+    currentUserId: user.id,
     canInvite,
-    inviteUrl: link ? `${appUrl}/invite/${link.token}` : null,
+    inviteUrl: link ? `${appUrl()}/invite/${link.token}` : null,
     pending,
     roster,
   };

@@ -2,22 +2,23 @@
 // operations (consumed by the catch-all API route and every server-side
 // session check).
 //
-// Key constraints (Plan 01-02 / RESEARCH Pattern 2, Pitfalls 1/4/6; CONTEXT D-11):
+// Key constraints:
 //   - database: drizzleAdapter(authDb, ...). MUST use `authDb` (neon-serverless /
 //     WebSocket). neon-http throws "No transactions support" on user creation
 //     (better-auth#4747).
-//   - emailAndPassword.minPasswordLength: 8 (D-11) — Better Auth defaults
+//   - emailAndPassword.minPasswordLength: 8 — Better Auth defaults
 //     otherwise; no custom complexity rules.
 //   - plugins: [sveltekitCookies()] — lets server actions/handlers set cookies.
-//   - NO cookie cache: avoids the RSC `getSession() == null` staleness bug
-//     (better-auth#7008) so signed-in refresh never bounces to /login.
+//   - Session cookie cache on (5 minutes, see `session` below): a revoked
+//     session stays valid for that window; Better Auth falls back to the DB
+//     when the cache is stale, so a signed-in refresh never bounces to /login.
 //   - NO `runtime = 'edge'` anywhere in the auth path — Better Auth's password
 //     hashing relies on the Node runtime (bcryptjs is not Edge-safe).
 //
 // GitHub OAuth (socialProviders.github) signs in with MINIMAL scopes only
-// (read:user, user:email — D-01). The elevated scopes (`repo`,
+// (read:user, user:email). The elevated scopes (`repo`,
 // `admin:repo_hook`) are requested only from Settings → GitHub via
-// authClient.linkSocial({ scopes }) (D-02), which re-runs OAuth for the same
+// authClient.linkSocial({ scopes }), which re-runs OAuth for the same
 // provider and updates the existing account row's token + scope.
 
 import { betterAuth } from 'better-auth';
@@ -62,8 +63,7 @@ import {
 // Better Auth's Drizzle adapter resolves its logical models by looking up
 // `schema[modelName]` using SINGULAR keys (`user`, `session`, `account`,
 // `verification`). Our shared schema module exports PLURAL identifiers
-// (`users`, `sessions`, ...) — keeping those names for app/Wave-1 code — so we
-// hand the adapter an explicitly aliased map from model name to table export.
+// (`users`, `sessions`, ...), so we hand the adapter an explicitly aliased map from model name to table export.
 const authSchema = {
   user: users,
   session: sessions,
@@ -86,29 +86,28 @@ export const auth = betterAuth({
   }),
   emailAndPassword: {
     enabled: true,
-    minPasswordLength: 8, // D-11
+    minPasswordLength: 8,
   },
-  // GitHub OAuth (AUTH-02). Better Auth always requests read:user + user:email
-  // for GitHub; `scope` below only restates them (D-01 — least privilege at
-  // sign-in). Tokens are read exclusively through getGitHubToken() in
-  // src/lib/github-token.ts (D-04), which decrypts them (see `account`).
+  // Better Auth always requests read:user + user:email for GitHub; `scope`
+  // below only restates them (least privilege at sign-in). Tokens are read
+  // exclusively through getGitHubToken() in src/lib/github-token.ts, which
+  // decrypts them (see `account`).
   socialProviders: {
     github: {
       clientId: process.env.GITHUB_CLIENT_ID!,
       clientSecret: process.env.GITHUB_CLIENT_SECRET!,
-      scope: ['read:user', 'user:email'], // D-01 minimal scopes
+      scope: ['read:user', 'user:email'],
     },
   },
   // Signed session snapshot in a cookie saves a DB lookup per request. Trade-off:
   // a revoked session stays valid up to maxAge; project membership is still
-  // checked against the DB on every request. 1.6.x falls back to the DB when the
-  // cache is stale (the old RSC-null bug, 01-RESEARCH Pitfall 6).
+  // checked against the DB on every request.
   session: {
     cookieCache: { enabled: true, maxAge: 5 * 60 },
   },
   account: {
-    // AES-256-GCM at rest now that linked tokens can carry `repo` scope (D-03
-    // superseded). Rows written before this stay plaintext and still read fine.
+    // AES-256-GCM at rest, since linked tokens can carry `repo` scope. Rows
+    // written before this stay plaintext and still read fine.
     encryptOAuthTokens: true,
     accountLinking: {
       // Email/password users often sign in to GitHub with another address.
@@ -117,10 +116,9 @@ export const auth = betterAuth({
       allowDifferentEmails: true,
     },
   },
-  // Round-2 plugins (UIs owned by the security/API agents — see
-  // .planning/features/10-MASTER-PLAN-2.md): TOTP 2FA, SAML/OIDC SSO, SCIM
-  // provisioning, and an OAuth 2.0 provider (third-party "OAuth apps", with
-  // jwt for signed tokens/JWKS). sveltekitCookies must stay last.
+  // TOTP 2FA, SAML/OIDC SSO, SCIM provisioning, and an OAuth 2.0 provider
+  // (third-party "OAuth apps", with jwt for signed tokens/JWKS).
+  // sveltekitCookies must stay last.
   plugins: [
     twoFactor({ issuer: 'Ticket System' }),
     jwt(),
@@ -132,7 +130,7 @@ export const auth = betterAuth({
       silenceWarnings: { oauthAuthServerConfig: true },
     }),
     // Providers are written only by workspace admins through
-    // src/app/actions/security.ts (domain proven, see src/lib/sso.ts), so the
+    // src/lib/server/actions/security.ts (domain proven, see src/lib/sso.ts), so the
     // IdP's email_verified claim can be trusted; self-service registration off.
     sso({ providersLimit: 0, trustEmailVerified: true }),
     scim({
@@ -147,7 +145,7 @@ export const auth = betterAuth({
     }),
     sveltekitCookies(getRequestEvent),
   ],
-  // D12 security. The SSO / SCIM plugins' self-service provider management
+  // The SSO / SCIM plugins' self-service provider management
   // would let any signed-in user register an IdP for any domain or manage
   // any token; workspace admins use the server actions instead (auth.api
   // calls bypass disabledPaths).

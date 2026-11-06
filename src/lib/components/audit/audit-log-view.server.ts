@@ -1,5 +1,4 @@
-// Server half of the audit log view (src/components/audit/audit-log-view.tsx was
-// an async server component): filters and the page cursor come from the URL;
+// Server half of the audit log view: filters and the page cursor come from the URL;
 // callers have already authorized the scope via resolveAuditScope. Call it from
 // a +page.server.ts load and pass the result to <AuditLogView data={…} />:
 //

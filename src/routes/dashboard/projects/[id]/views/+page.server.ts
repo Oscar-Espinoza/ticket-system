@@ -1,26 +1,22 @@
 // A project's saved views (the viewer's own + ones shared with the project).
 // The project layout already verified membership.
-// (Port of src/app/dashboard/projects/[id]/views/page.tsx.)
-
-import { redirect } from '@sveltejs/kit';
 
 import { getFavoritedIds } from '@/lib/favorites';
-import { getProjectData } from '@/lib/project-data';
 import { roleAllows } from '@/lib/roles';
 import { getVisibleViews } from '@/lib/views';
+import { requireUser } from '@/lib/session';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ locals, params }) => {
-  if (!locals.user) redirect(303, '/login');
-  const userId = locals.user.id;
+export const load: PageServerLoad = async ({ params, parent }) => {
+  const { id: userId } = await requireUser();
   const { id } = params;
 
-  const [data, views, favorited] = await Promise.all([
-    getProjectData(id, userId),
+  const [{ projectData }, views, favorited] = await Promise.all([
+    parent(),
     getVisibleViews(userId, id),
     getFavoritedIds(userId, 'view'),
   ]);
-  const canShare = data ? roleAllows(data.project.role, 'write') : false;
+  const canShare = roleAllows(projectData.project.role, 'write');
   // ViewListItem (navigation/view-list): SavedViewSummary + favorited + canShare.
   const items = views.map((view) => ({
     ...view,

@@ -39,6 +39,7 @@ import {
 } from '@/db/schema';
 import { appUrl } from '@/lib/integrations/app-url';
 import { recordWorkspaceEvent } from '@/lib/audit';
+import { workspaceRoleAllows } from '@/lib/workspace-types';
 
 // ---------------------------------------------------------------------------
 // Ids and URLs
@@ -623,7 +624,7 @@ export async function canGenerateScimToken(userId: string, providerId: string): 
     .from(workspaceMembers)
     .where(and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.userId, userId)))
     .limit(1);
-  return member?.role === 'owner' || member?.role === 'admin';
+  return member ? workspaceRoleAllows(member.role, 'admin') : false;
 }
 
 /**

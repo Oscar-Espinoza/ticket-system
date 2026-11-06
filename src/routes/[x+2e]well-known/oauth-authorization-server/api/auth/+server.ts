@@ -17,5 +17,4 @@ const metadata = oauthProviderAuthServerMetadata(auth);
 
 export const GET: RequestHandler = ({ request }) => metadata(request);
 
-// Next answered OPTIONS automatically (204 + Allow); Kit would 405.
 export const OPTIONS = allowOptions('GET');

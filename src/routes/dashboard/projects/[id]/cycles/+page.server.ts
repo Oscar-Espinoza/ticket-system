@@ -1,13 +1,10 @@
 // Cycles list. The project layout already checked membership (non-members 404)
 // and provides project data; the cycle reads below are scoped by project id.
 
-import { error, redirect } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import { projects } from '@/db/schema';
-import { getSession } from '@/lib/session';
-import { getProjectData } from '@/lib/project-data';
 import { roleAllows } from '@/lib/roles';
 import { cycleTotals, getProjectCycles, loadCycleHistory } from '@/lib/cycles';
 import type { CycleListItem } from '@/lib/components/cycles/cycles-list.svelte';
@@ -23,12 +20,9 @@ import type { PageServerLoad } from './$types';
 /** Past cycles shown in the velocity chart. */
 const VELOCITY_CYCLES = 8;
 
-export const load: PageServerLoad = async ({ params }) => {
+export const load: PageServerLoad = async ({ params, parent }) => {
   const { id } = params;
-  const session = await getSession();
-  if (!session?.user) redirect(303, '/login');
-  const data = await getProjectData(id, session.user.id);
-  if (!data) error(404, 'Not found');
+  const data = (await parent()).projectData;
   const { project } = data;
 
   if (!project.cyclesEnabled && data.cycles.length === 0) {

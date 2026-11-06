@@ -2,21 +2,17 @@
 // comment activity, member / role / settings changes) plus its workspace's
 // security events. Owners and admins only; non-members 404.
 
-import { error, redirect } from '@sveltejs/kit';
-
 import { projectHref } from '@/lib/components/app-shell/routes';
 import { resolveAuditScope } from '@/lib/audit';
 import { loadAuditLogView } from '@/lib/components/audit/audit-log-view.server';
-import { getMemberProject } from '@/lib/project-access';
+import { loadViewerProject } from '../../project-load';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ params, url, locals }) => {
+export const load: PageServerLoad = async ({ params, url }) => {
   const { id } = params;
-  if (!locals.user) redirect(303, '/login');
-  const project = await getMemberProject(id, locals.user.id);
-  if (!project) error(404, 'Not found');
+  const { user, project } = await loadViewerProject(id);
 
-  const scope = await resolveAuditScope('project', id, locals.user.id);
+  const scope = await resolveAuditScope('project', id, user.id);
 
   return {
     projectName: project.name,

@@ -1,7 +1,7 @@
-// Intake form settings + received customer requests (B11). Every member can
+// Intake form settings + received customer requests. Every member can
 // see the requests; only admins toggle or rotate the public link.
 
-import { error, redirect } from '@sveltejs/kit';
+import { error } from '@sveltejs/kit';
 import { and, desc, eq } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
@@ -10,9 +10,9 @@ import { customerRequests, customers, projects, tickets, workflowStates } from '
 import { db } from '@/lib/db';
 import { appUrl } from '@/lib/integrations/app-url';
 import { issuePath } from '@/lib/issue-links';
-import { getMemberProject } from '@/lib/project-access';
 import { roleAllows } from '@/lib/roles';
 import { memberOfIssueProject } from '@/lib/tickets';
+import { loadViewerProject } from '../../project-load';
 import type { PageServerLoad } from './$types';
 
 const issueProject = alias(projects, 'issue_project');
@@ -21,12 +21,9 @@ const REQUESTS_SHOWN = 50;
 const EXCERPT = 180;
 const dateFormat = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' });
 
-export const load: PageServerLoad = async ({ params, locals }) => {
+export const load: PageServerLoad = async ({ params }) => {
   const { id } = params;
-  if (!locals.user) redirect(303, '/login');
-
-  const membership = await getMemberProject(id, locals.user.id);
-  if (!membership) error(404, 'Not found');
+  const { user, project: membership } = await loadViewerProject(id);
 
   const [[project], requests] = await Promise.all([
     db
@@ -58,7 +55,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
       // only through membership of its current project, keyed by that project.
       .leftJoin(
         tickets,
-        and(eq(customerRequests.ticketId, tickets.id), memberOfIssueProject(locals.user.id)),
+        and(eq(customerRequests.ticketId, tickets.id), memberOfIssueProject(user.id)),
       )
       .leftJoin(issueProject, eq(issueProject.id, tickets.projectId))
       .leftJoin(workflowStates, eq(tickets.stateId, workflowStates.id))
@@ -76,8 +73,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
     triageEnabled: project.triageEnabled,
     requestsShown: REQUESTS_SHOWN,
     hasToken: !!project.intakeToken,
-    // Formatted here (server time zone, as the React server component did) so
-    // hydration can't disagree about the text.
+    // Formatted here (server time zone) so hydration can't disagree about the text.
     requests: requests.map((request) => {
       const key =
         request.number !== null && request.ticketKey ? `${request.ticketKey}-${request.number}` : null;

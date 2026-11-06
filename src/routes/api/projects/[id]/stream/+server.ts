@@ -5,29 +5,17 @@
 // falls back to polling `../changes` when streaming doesn't work.
 
 import type { RequestHandler } from './$types';
+import { NO_STORE, abortableSleep } from '../../../_lib/http';
 import { allowOptions } from '../../../_lib/options';
 
 import { getChangeToken } from '@/lib/sync/change-token';
 
-// Read by adapter-vercel (ignored by adapter-node); was `maxDuration` under Next.
+// Read by adapter-vercel (ignored by adapter-node).
 export const config = { maxDuration: 60 };
 
 const CHECK_MS = 1_500;
 const HEARTBEAT_MS = 15_000;
 const STREAM_MS = 50_000;
-const NO_STORE = { 'Cache-Control': 'no-store' };
-
-function sleep(ms: number, signal: AbortSignal) {
-  return new Promise<void>((resolve) => {
-    const timer = setTimeout(done, ms);
-    function done() {
-      clearTimeout(timer);
-      signal.removeEventListener('abort', done);
-      resolve();
-    }
-    signal.addEventListener('abort', done);
-  });
-}
 
 export const GET: RequestHandler = async ({ request, params, locals }) => {
   const { id } = params;
@@ -62,7 +50,7 @@ export const GET: RequestHandler = async ({ request, params, locals }) => {
       let sayEnd = true;
 
       while (!abort.signal.aborted && Date.now() - started < STREAM_MS) {
-        await sleep(CHECK_MS, abort.signal);
+        await abortableSleep(CHECK_MS, abort.signal);
         if (abort.signal.aborted) break;
         let token: string | null;
         try {
@@ -111,5 +99,4 @@ export const GET: RequestHandler = async ({ request, params, locals }) => {
   });
 };
 
-// Next answered OPTIONS automatically (204 + Allow); Kit would 405.
 export const OPTIONS = allowOptions('GET');

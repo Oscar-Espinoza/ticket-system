@@ -3,6 +3,7 @@
 // else (HTML, SVG, scripts, …) is a download, never sniffed, and sandboxed.
 
 import type { RequestHandler } from './$types';
+import { SANDBOX_CSP } from '../../_lib/http';
 import { allowOptions } from '../../_lib/options';
 
 import { getAttachmentFile } from '@/lib/attachments';
@@ -38,7 +39,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
   });
   // Browsers' PDF viewers break under a sandbox CSP; PDFs don't need one.
   if (stored !== 'application/pdf') {
-    headers.set('Content-Security-Policy', "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; sandbox");
+    headers.set('Content-Security-Policy', SANDBOX_CSP);
   }
 
   const bytes = Buffer.from(file.dataBase64, 'base64');
@@ -46,5 +47,4 @@ export const GET: RequestHandler = async ({ params, locals }) => {
   return new Response(bytes, { headers });
 };
 
-// Next answered OPTIONS automatically (204 + Allow); Kit would 405.
 export const OPTIONS = allowOptions('GET');

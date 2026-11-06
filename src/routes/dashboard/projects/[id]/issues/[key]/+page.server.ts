@@ -1,12 +1,11 @@
 // Issue permalink — the stable, shareable URL for one issue (notifications,
 // Slack, emails, search and "Copy link" all point here). The project layout
-// already 404s non-members; getProjectData is the same cached call.
-// (Port of src/app/dashboard/projects/[id]/issues/[key]/page.tsx.)
+// 404s non-members; `await parent()` waits for that check.
 
 import { error, redirect } from '@sveltejs/kit';
 
 import { issuePath } from '@/lib/issue-links';
-import { getProjectData } from '@/lib/project-data';
+import { requireUser } from '@/lib/session';
 import { getIssueByKey, getProjectIssues } from '@/lib/tickets';
 import type { PageServerLoad } from './$types';
 
@@ -24,19 +23,15 @@ function parseKeyNumber(raw: string): number | null {
   return match ? Number(match[2]) : null;
 }
 
-export const load: PageServerLoad = async ({ params, locals }) => {
+export const load: PageServerLoad = async ({ params, parent }) => {
   const { id, key } = params;
-  const userId = locals.user?.id;
+  const { id: userId } = await requireUser();
+  await parent();
   const number = parseKeyNumber(key);
 
-  let issue = null;
-  if (userId && number !== null) {
-    const data = await getProjectData(id, userId);
-    // Passing the viewer enables the moved-issue alias fallback (ticket_key_alias).
-    if (data) issue = await getIssueByKey(id, number, userId);
-  }
-  // Next set the title "Issue not found" and rendered the project not-found page.
-  if (!issue || !userId) error(404, 'Issue not found');
+  // Passing the viewer enables the moved-issue alias fallback (ticket_key_alias).
+  const issue = number === null ? null : await getIssueByKey(id, number, userId);
+  if (!issue) error(404, 'Issue not found');
 
   // Lowercase keys, keys from before a project-key rename and issues moved to
   // another project all redirect to the canonical URL.

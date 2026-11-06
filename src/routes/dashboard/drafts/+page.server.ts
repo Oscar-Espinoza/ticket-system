@@ -1,17 +1,15 @@
 // Drafts — the viewer's unfinished new issues across projects. Joined with
 // project_member so drafts in projects the viewer has left drop out.
 
-import { redirect } from '@sveltejs/kit';
 import { and, desc, eq } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import { issueDrafts, projectMembers, projects } from '@/db/schema';
-import { getSession } from '@/lib/session';
+import { requireUser } from '@/lib/session';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async () => {
-  const session = await getSession();
-  if (!session?.user) redirect(303, '/login');
+  const user = await requireUser();
 
   const drafts = await db
     .select({
@@ -32,7 +30,7 @@ export const load: PageServerLoad = async () => {
       ),
     )
     .innerJoin(projects, eq(projects.id, issueDrafts.projectId))
-    .where(eq(issueDrafts.userId, session.user.id))
+    .where(eq(issueDrafts.userId, user.id))
     .orderBy(desc(issueDrafts.updatedAt))
     .limit(200);
 

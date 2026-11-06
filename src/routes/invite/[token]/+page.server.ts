@@ -1,4 +1,4 @@
-// Invite landing page (port of src/app/invite/[token]/page.tsx). PUBLIC route
+// Invite landing page. PUBLIC route
 // (outside /dashboard); it resolves the session itself and renders one of four
 // states:
 //

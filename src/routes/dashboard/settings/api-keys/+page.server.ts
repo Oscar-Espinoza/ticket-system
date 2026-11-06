@@ -1,17 +1,16 @@
-// Personal API keys for the public REST API (B11; port of
-// src/app/dashboard/settings/api-keys/page.tsx). See docs/API.md.
+// Personal API keys for the public REST API. See docs/API.md.
 
-import { redirect } from '@sveltejs/kit';
 import { and, desc, eq, isNull } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import { apiKeys } from '@/db/schema';
 import { appUrl } from '@/lib/integrations/app-url';
 import type { ApiKeyView } from '@/lib/actions/api-keys';
+import { requireUser } from '@/lib/session';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ locals }) => {
-  if (!locals.user) redirect(303, '/login');
+export const load: PageServerLoad = async () => {
+  const user = await requireUser();
 
   const keys = await db
     .select({
@@ -22,7 +21,7 @@ export const load: PageServerLoad = async ({ locals }) => {
       lastUsedAt: apiKeys.lastUsedAt,
     })
     .from(apiKeys)
-    .where(and(eq(apiKeys.userId, locals.user.id), isNull(apiKeys.revokedAt)))
+    .where(and(eq(apiKeys.userId, user.id), isNull(apiKeys.revokedAt)))
     .orderBy(desc(apiKeys.createdAt));
 
   return {

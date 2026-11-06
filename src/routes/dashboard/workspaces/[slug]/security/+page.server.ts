@@ -1,11 +1,11 @@
-// Workspace → Security (port of src/app/dashboard/workspaces/[slug]/security/page.tsx):
-// SAML / OIDC single sign-on (+ "Require SSO") and SCIM provisioning. Owners
+// Workspace → Security: SAML / OIDC single sign-on (+ "Require SSO") and SCIM provisioning. Owners
 // and admins manage it; other members get a short note, non-members a 404
 // (slugs can't be probed). Every action re-checks the role.
 
-import { error, redirect } from '@sveltejs/kit';
+import { error } from '@sveltejs/kit';
 
 import { getWorkspaceMembership } from '@/lib/workspace-access';
+import { workspaceRoleAllows } from '@/lib/workspace-types';
 import {
   DOMAIN_TXT_LABEL,
   domainProofOptional,
@@ -16,20 +16,21 @@ import {
   workspaceSsoUrls,
 } from '@/lib/sso';
 import type { SsoProviderView } from '@/lib/components/security/workspace-sso-settings.svelte';
+import { requireUser } from '@/lib/session';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ params, locals }) => {
-  if (!locals.user) redirect(303, '/login');
-  const membership = await getWorkspaceMembership(params.slug, locals.user.id);
+export const load: PageServerLoad = async ({ params }) => {
+  const user = await requireUser();
+  const membership = await getWorkspaceMembership(params.slug, user.id);
   if (!membership) error(404, 'Workspace not found');
 
   const workspace = { slug: membership.slug, name: membership.name, role: membership.role };
-  if (membership.role === 'member') return { workspace, security: null };
+  if (!workspaceRoleAllows(membership.role, 'admin')) return { workspace, security: null };
 
   const workspaceId = membership.workspaceId;
   const view = await getWorkspaceSso(workspaceId);
   const urls = workspaceSsoUrls(workspaceId);
-  const ownDomain = emailDomain(locals.user.email);
+  const ownDomain = emailDomain(user.email);
 
   const provider: SsoProviderView | null = view.provider && {
     protocol: view.provider.protocol,

@@ -139,5 +139,4 @@ export const GET: RequestHandler = async ({ url, locals }) => {
   });
 };
 
-// Next answered OPTIONS automatically (204 + Allow); Kit would 405.
 export const OPTIONS = allowOptions('GET');

@@ -1,19 +1,15 @@
 // Issue search across the viewer's projects (Postgres full-text + filter
 // syntax such as `label:bug is:open`; see lib/search).
-// (Port of src/app/dashboard/search/page.tsx.)
-
-import { redirect } from '@sveltejs/kit';
 
 import { getProjectsForUser } from '@/lib/components/project-list.server';
 import { searchDocuments } from '@/lib/documents';
 import { searchIssues } from '@/lib/search';
+import { requireUser } from '@/lib/session';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ locals, url }) => {
-  if (!locals.user) redirect(303, '/login');
-  const userId = locals.user.id;
+export const load: PageServerLoad = async ({ url }) => {
+  const { id: userId } = await requireUser();
 
-  // Next's `first()`: the first value of a repeated param, else ''.
   const first = (name: string) => url.searchParams.get(name) ?? '';
   const q = first('q').trim();
   const includeArchived = first('archived') === '1';

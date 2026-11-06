@@ -13,8 +13,8 @@
     <link rel="icon" href="%sveltekit.assets%/icons/icon.svg" type="image/svg+xml" />
     <link rel="manifest" href="%sveltekit.assets%/manifest.webmanifest" />
     <!-- Density (src/lib/density.ts) before first paint, as the Next root layout did. -->
-    <script>try{if(localStorage.getItem('density')==='compact')document.documentElement.dataset.density='compact'}catch(e){}</script>
-    <style>html[data-density='compact']{font-size:93.75%}</style>
+    <script>%density.script%</script>
+    <style>%density.css%</style>
     %sveltekit.head%
   </head>
   <body class="min-h-full flex flex-col" data-sveltekit-preload-data="hover">

@@ -1,13 +1,14 @@
-// Server hooks: self-hosted startup, CSRF, Better Auth session + /api/auth/*.
+// Server hooks: self-hosted startup, CSRF, Better Auth session + /api/auth/*,
+// the /dashboard sign-in guard, gzip, and the density boot snippet.
 import type { Handle, HandleServerError, ServerInit } from '@sveltejs/kit/hooks';
 import { sequence } from '@sveltejs/kit/hooks';
 import { building, dev } from '$app/env';
 import { isAuthPath, svelteKitHandler } from 'better-auth/svelte-kit';
 import { auth } from '@/lib/auth';
+import { DENSITY_BOOT_SCRIPT, DENSITY_CSS } from '@/lib/density';
 
 // Awaited before the first request is served (adapter-node: before listen).
-// Self-hosted: apply migrations and schedule the daily jobs (was
-// src/instrumentation.ts under Next).
+// Self-hosted: apply migrations and schedule the daily jobs.
 export const init: ServerInit = async () => {
   if (building || process.env.SELF_HOSTED !== 'true') return;
   const { boot } = await import('@/lib/selfhost/boot');
@@ -60,20 +61,31 @@ const session: Handle = async ({ event, resolve }) => {
   return svelteKitHandler({ event, resolve, auth, building });
 };
 
-// Defence in depth: signed-out full-page requests under /dashboard go to
-// /login before any load runs. Client navigations (__data.json) still rely on
-// each page's own auth check, as under Next.
+// Signed-out requests under /dashboard go to /login before any load runs. A
+// layout load does not protect its pages' __data.json requests (they run in
+// parallel), so data requests are covered here too: SvelteKit turns a 30x
+// answer from handle into a JSON redirect for them. Remote functions answer
+// 'Not authenticated' themselves.
 const dashboardGuard: Handle = ({ event, resolve }) => {
   const { pathname } = event.url;
   const dashboard = pathname === '/dashboard' || pathname.startsWith('/dashboard/');
-  if (dashboard && !event.locals.user && !event.isDataRequest && !event.isRemoteRequest) {
+  if (dashboard && !event.locals.user && !event.isRemoteRequest) {
     return new Response(null, { status: 303, headers: { location: '/login' } });
   }
   return resolve(event);
 };
 
-// Next's server gzips responses; adapter-node doesn't compress SSR/JSON
-// responses (only prebuilt static files). Compress text responses here unless
+// Fills the %density.*% placeholders in src/app.html.
+const density: Handle = ({ event, resolve }) =>
+  resolve(event, {
+    transformPageChunk: ({ html }) =>
+      html
+        .replace('%density.script%', () => DENSITY_BOOT_SCRIPT)
+        .replace('%density.css%', () => DENSITY_CSS),
+  });
+
+// adapter-node doesn't compress SSR/JSON responses (only prebuilt static
+// files). Compress text responses here unless
 // running on Vercel (its edge compresses) or the client doesn't accept gzip.
 // Event streams are left alone so SSE events aren't held in the compressor.
 const COMPRESSIBLE = /^(text\/html|text\/plain|text\/csv|application\/json|application\/javascript|image\/svg\+xml)/;
@@ -96,7 +108,7 @@ const compress: Handle = async ({ event, resolve }) => {
   });
 };
 
-export const handle = sequence(compress, csrf, session, dashboardGuard);
+export const handle = sequence(compress, csrf, session, dashboardGuard, density);
 
 export const handleError: HandleServerError = ({ kind, error, event }) => {
   if (kind === 'unknown') {

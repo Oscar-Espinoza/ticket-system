@@ -45,10 +45,8 @@ export const POST: RequestHandler = async ({ request }) => {
   });
   if (!result.ok) return fail(result.error, 400);
 
-  // Next called revalidatePath here; under SvelteKit the caller refreshes the
-  // page data itself (refreshAfterWrite()) once this resolves.
+  // The caller refreshes page data itself (refreshAfterWrite()) once this resolves.
   return Response.json(result, { status: 201 });
 };
 
-// Next answered OPTIONS automatically (204 + Allow); Kit would 405.
 export const OPTIONS = allowOptions('POST');

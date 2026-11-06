@@ -8,11 +8,9 @@
 // Session-less callers (API keys, webhooks, automations) don't use this; they
 // authorize their own way and then call src/lib/issue-service.ts directly.
 
-import { headers } from '@/lib/kit/request';
-
-import { auth } from '@/lib/auth';
 import { ProjectAccessError, requireProjectMember } from '@/lib/project-access';
 import { roleAllows, type AccessLevel, type ProjectRole } from '@/lib/roles';
+import { getSession } from '@/lib/session';
 
 export type { AccessLevel, ProjectRole };
 export { roleAllows };
@@ -25,7 +23,7 @@ export async function authorizeProjectAction(
   projectId: unknown,
   level: AccessLevel,
 ): Promise<ProjectActionAuth> {
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getSession();
   if (!session?.user) return { ok: false, error: 'Not authenticated' };
   // projectId is untrusted client input.
   if (typeof projectId !== 'string' || !projectId) return { ok: false, error: 'Forbidden' };

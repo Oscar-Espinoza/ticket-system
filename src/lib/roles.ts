@@ -17,6 +17,11 @@ export function roleAllows(role: ProjectRole, level: AccessLevel): boolean {
   return ALLOWED[role]?.includes(level) ?? false;
 }
 
+/** The roles that allow `level`, e.g. the owner/admin set for SQL `inArray(role, …)` filters. */
+export function rolesAllowing(level: AccessLevel): ProjectRole[] {
+  return (Object.keys(ALLOWED) as ProjectRole[]).filter((role) => ALLOWED[role].includes(level));
+}
+
 // Who may change whose role. The owner row only changes through transferOwnership.
 //   owner  → sets admin / member / guest on anyone but themselves
 //   admin  → sets member / guest on member and guest rows

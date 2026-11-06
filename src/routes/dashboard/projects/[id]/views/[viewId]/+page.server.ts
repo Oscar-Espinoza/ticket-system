@@ -1,18 +1,17 @@
 // One saved view: the project's issues through the view's filters and display
 // options. Visibility (owner, or shared + member) is checked in SQL.
-// (Port of src/app/dashboard/projects/[id]/views/[viewId]/page.tsx.)
 
-import { error, redirect } from '@sveltejs/kit';
+import { error } from '@sveltejs/kit';
 
 import { getFavoritedIds } from '@/lib/favorites';
 import { VIEW_COOKIE } from '@/lib/issue-model';
 import { getProjectIssues } from '@/lib/tickets';
 import { getViewForUser } from '@/lib/views';
+import { requireUser } from '@/lib/session';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ locals, params, cookies }) => {
-  if (!locals.user) redirect(303, '/login');
-  const userId = locals.user.id;
+export const load: PageServerLoad = async ({ params, cookies }) => {
+  const { id: userId } = await requireUser();
   const { id, viewId } = params;
 
   const view = await getViewForUser(viewId, userId);

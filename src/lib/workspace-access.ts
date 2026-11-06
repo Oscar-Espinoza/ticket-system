@@ -8,6 +8,7 @@ import { cache } from '@/lib/kit/request';
 import { and, asc, eq, gt, isNull } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
+import { appUrl } from '@/lib/integrations/app-url';
 import { workspaceInvitations, workspaceMembers, workspaces } from '@/db/schema';
 
 import { workspaceRoleAllows, type WorkspaceRole } from '@/lib/workspace-types';
@@ -109,8 +110,7 @@ export const WORKSPACE_INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 export const newWorkspaceInviteToken = () => randomBytes(32).toString('base64url');
 
-export const workspaceInviteUrl = (token: string) =>
-  `${process.env.PUBLIC_APP_URL ?? ''}/invite/workspace/${token}`;
+export const workspaceInviteUrl = (token: string) => `${appUrl()}/invite/workspace/${token}`;
 
 export interface PendingWorkspaceInvite {
   id: string;

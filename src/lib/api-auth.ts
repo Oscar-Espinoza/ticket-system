@@ -8,6 +8,7 @@
 // OAuth tokens are further limited to their granted scopes.
 
 import { createHash, randomBytes } from 'node:crypto';
+import { readJsonObject } from '@/lib/kit/json-body';
 import { after } from '@/lib/kit/request';
 import { and, eq, gt, isNotNull, isNull } from 'drizzle-orm';
 
@@ -158,13 +159,7 @@ export async function authenticateApiRequest(req: Request): Promise<ApiAuth> {
 export async function readJsonBody(
   req: Request,
 ): Promise<{ ok: true; body: Record<string, unknown> } | { ok: false; response: Response }> {
-  try {
-    const body: unknown = await req.json();
-    if (body && typeof body === 'object' && !Array.isArray(body)) {
-      return { ok: true, body: body as Record<string, unknown> };
-    }
-  } catch {
-    // fall through
-  }
+  const body = await readJsonObject(req);
+  if (body) return { ok: true, body };
   return { ok: false, response: apiError(400, 'Request body must be a JSON object.') };
 }

@@ -1,6 +1,3 @@
-// Server-only copy of src/app/dashboard/my-issues/queries.ts (unchanged logic).
-// The Next file stays until cutover; delete it then.
-
 // My Issues reads. Every query is scoped to projects the viewer is a member of
 // (memberOfIssueProject — a correlated EXISTS) and to active issues.
 

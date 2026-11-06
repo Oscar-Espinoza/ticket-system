@@ -1,4 +1,4 @@
-// Public intake form (B11; port of src/app/request/[token]/page.tsx). No auth,
+// Public intake form. No auth,
 // outside /dashboard. The token is the only credential; the page reveals
 // nothing but the project name, and an unknown or rotated token gets the same
 // neutral message as a disabled form (never a 404 that would confirm which
@@ -25,7 +25,7 @@ export const load: PageServerLoad = async ({ params }) => {
   return {
     token,
     projectName: project?.name ?? null,
-    // Signed per render, as the Next server component did.
+    // Signed per render.
     stamp: project ? signFormStamp() : null,
   };
 };

@@ -1,13 +1,12 @@
 // Request-scoped helpers for server code (src/lib, src/lib/server/actions),
-// built on SvelteKit's getRequestEvent(). They keep the call shapes the code
-// had under Next.js (headers(), cookies(), after(), cache(), redirect(),
-// notFound()), so the server actions run unchanged.
+// built on SvelteKit's getRequestEvent(): headers(), after(), cache(),
+// redirect().
 //
-// revalidatePath()/revalidateTag() do nothing at runtime: they mark actions
-// whose client wrapper should refresh the page afterwards
-// (scripts/gen-remote-actions.mjs looks for them).
+// revalidatePath() does nothing at runtime: it marks actions whose client
+// wrapper should refresh the page afterwards (scripts/gen-remote-actions.mjs
+// looks for it).
 
-import { error, redirect as kitRedirect } from '@sveltejs/kit';
+import { redirect as kitRedirect } from '@sveltejs/kit';
 import { waitUntil as vercelWaitUntil } from '@vercel/functions';
 import { getRequestEvent } from '$app/server';
 
@@ -16,26 +15,11 @@ export async function headers(): Promise<Headers> {
   return getRequestEvent().request.headers;
 }
 
-/** A minimal cookie store over SvelteKit's event.cookies. */
-export async function cookies() {
-  const { cookies } = getRequestEvent();
-  return {
-    get: (name: string) => {
-      const value = cookies.get(name);
-      return value === undefined ? undefined : { name, value };
-    },
-    getAll: () => cookies.getAll(),
-    has: (name: string) => cookies.get(name) !== undefined,
-    set: (name: string, value: string, options: Parameters<typeof cookies.set>[2] = { path: '/' }) =>
-      cookies.set(name, value, { path: '/', ...options }),
-    delete: (name: string) => cookies.delete(name, { path: '/' }),
-  };
-}
-
 /**
- * after(task): run work after the response. Vercel functions keep
- * it alive through @vercel/functions' waitUntil; on Node (adapter-node) the process stays up, so
- * the promise simply runs on. Errors are logged, never thrown at the caller.
+ * after(task): run work after the response. Vercel functions keep it alive
+ * through @vercel/functions' waitUntil; on Node (adapter-node) the process
+ * stays up, so the promise simply runs on. Errors are logged, never thrown at
+ * the caller.
  */
 export function after(task: Promise<unknown> | (() => unknown)): void {
   const run = typeof task === 'function' ? Promise.resolve().then(task) : task;
@@ -50,19 +34,11 @@ export function after(task: Promise<unknown> | (() => unknown)): void {
   }
 }
 
-/** No-ops at runtime; see the header comment. */
+/** No-op at runtime; see the header comment. */
 export function revalidatePath(_path?: string, _type?: 'page' | 'layout'): void {}
-export function revalidateTag(_tag?: string): void {}
 
-/** Redirect / 404 helpers with Next's signatures. */
 export function redirect(location: string): never {
   kitRedirect(303, location);
-}
-export function permanentRedirect(location: string): never {
-  kitRedirect(308, location);
-}
-export function notFound(): never {
-  error(404, 'Not found');
 }
 
 /**

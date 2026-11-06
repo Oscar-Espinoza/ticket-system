@@ -1,17 +1,14 @@
-// Account settings › Profile (port of src/app/dashboard/settings/profile/page.tsx).
+// Account settings › Profile.
 
-import { redirect } from '@sveltejs/kit';
 import { and, eq } from 'drizzle-orm';
 
 import { accounts, userProfiles } from '@/db/schema';
 import { db } from '@/lib/db';
-import { getSession } from '@/lib/session';
+import { requireUser } from '@/lib/session';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async () => {
-  const session = await getSession();
-  if (!session?.user) redirect(303, '/login');
-  const { user } = session;
+  const user = await requireUser();
 
   const [[profile], [credential]] = await Promise.all([
     db

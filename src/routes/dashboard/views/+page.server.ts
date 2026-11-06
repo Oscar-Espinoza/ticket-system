@@ -1,17 +1,15 @@
 // Saved views across every project the viewer belongs to: their own, then
-// views other members shared. (Port of src/app/dashboard/views/page.tsx.)
-
-import { redirect } from '@sveltejs/kit';
+// views other members shared.
 
 import { getProjectsForUser } from '@/lib/components/project-list.server';
 import { getFavoritedIds } from '@/lib/favorites';
 import { roleAllows } from '@/lib/roles';
 import { getVisibleViews } from '@/lib/views';
+import { requireUser } from '@/lib/session';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ locals }) => {
-  if (!locals.user) redirect(303, '/login');
-  const userId = locals.user.id;
+export const load: PageServerLoad = async () => {
+  const { id: userId } = await requireUser();
 
   const [views, favorited, projects] = await Promise.all([
     getVisibleViews(userId),

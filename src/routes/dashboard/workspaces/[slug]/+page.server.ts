@@ -1,9 +1,9 @@
-// Workspace page (port of src/app/dashboard/workspaces/[slug]/page.tsx): its
+// Workspace page: its
 // projects ("teams") and members. Members only — anyone else gets a 404, so
 // slugs can't be probed. Project names and keys are visible to every workspace
 // member; issue counts only for projects the viewer belongs to.
 
-import { error, redirect } from '@sveltejs/kit';
+import { error } from '@sveltejs/kit';
 import { and, asc, desc, eq, inArray, isNotNull, isNull, ne, or, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
@@ -18,14 +18,14 @@ import {
   workspaces,
 } from '@/db/schema';
 import { db } from '@/lib/db';
-import { getSession } from '@/lib/session';
+import { rolesAllowing } from '@/lib/roles';
+import { requireUser } from '@/lib/session';
 import { getWorkspaceMembership, workspaceInviteUrl } from '@/lib/workspace-access';
+import { workspaceRoleAllows } from '@/lib/workspace-types';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params }) => {
-  const session = await getSession();
-  if (!session?.user) redirect(303, '/login');
-  const userId = session.user.id;
+  const { id: userId } = await requireUser();
 
   const membership = await getWorkspaceMembership(params.slug, userId);
   if (!membership) error(404, 'Workspace not found');
@@ -33,7 +33,7 @@ export const load: PageServerLoad = async ({ params }) => {
 
   const viewer = alias(projectMembers, 'viewer_member');
   const otherWorkspace = alias(workspaces, 'other_workspace');
-  const isAdmin = membership.role !== 'member';
+  const isAdmin = workspaceRoleAllows(membership.role, 'admin');
 
   const [projectRows, openRows, memberRows, eligibleRows, invitationRows] = await db.batch([
     db
@@ -100,7 +100,7 @@ export const load: PageServerLoad = async ({ params }) => {
       .where(
         and(
           eq(viewer.userId, userId),
-          inArray(viewer.role, ['owner', 'admin']),
+          inArray(viewer.role, rolesAllowing('admin')),
           or(isNull(projects.workspaceId), ne(projects.workspaceId, workspaceId)),
         ),
       )

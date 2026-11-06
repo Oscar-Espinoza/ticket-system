@@ -1,19 +1,17 @@
-// OAuth apps (D10a; port of src/app/dashboard/settings/oauth-apps/page.tsx):
-// apps the user registered against our OAuth 2.0 provider, and third-party
+// OAuth apps: apps the user registered against our OAuth 2.0 provider, and third-party
 // apps the user has authorized. See docs/API.md → OAuth.
 
-import { redirect } from '@sveltejs/kit';
 import { asc, desc, eq } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import { oauthClients, oauthConsents } from '@/db/schema';
 import { appUrl } from '@/lib/integrations/app-url';
 import type { AuthorizedAppView, OAuthAppView } from '@/lib/oauth-model';
+import { requireUser } from '@/lib/session';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ locals }) => {
-  if (!locals.user) redirect(303, '/login');
-  const userId = locals.user.id;
+export const load: PageServerLoad = async () => {
+  const { id: userId } = await requireUser();
 
   const [apps, consents] = await Promise.all([
     db

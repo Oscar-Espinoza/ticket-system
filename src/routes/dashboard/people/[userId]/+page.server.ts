@@ -1,10 +1,10 @@
-// Member profile (port of src/app/dashboard/people/[userId]/page.tsx). Visible
+// Member profile. Visible
 // to the person themselves and to anyone who shares at least one project with
 // them; everyone else gets a 404 (no probing user ids). Everything shown —
 // projects, assigned issues, activity — is limited to projects the viewer is a
 // member of.
 
-import { error, redirect } from '@sveltejs/kit';
+import { error } from '@sveltejs/kit';
 import { and, desc, eq, inArray, notInArray } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
@@ -12,6 +12,7 @@ import { activities, projects, tickets, userProfiles, users, workflowStates } fr
 import { getSharedProjects } from '@/lib/project-access';
 import { activeIssue, memberOfIssueProject, queryIssues } from '@/lib/tickets';
 import { activitySummary } from '@/lib/components/people/activity-summary';
+import { requireUser } from '@/lib/session';
 import type { PageServerLoad } from './$types';
 
 const dateFormat = new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric' });
@@ -28,10 +29,10 @@ function ago(date: Date, now = Date.now()): string {
   return dateFormat.format(date);
 }
 
-export const load: PageServerLoad = async ({ params, locals }) => {
+export const load: PageServerLoad = async ({ params }) => {
   const { userId } = params;
-  if (!locals.user) redirect(303, '/login');
-  const viewerId = locals.user.id;
+  const user = await requireUser();
+  const viewerId = user.id;
   const shared = await getSharedProjects(viewerId, userId);
   if (viewerId !== userId && shared.length === 0) error(404, 'Profile not found');
 

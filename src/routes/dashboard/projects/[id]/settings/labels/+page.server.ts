@@ -3,21 +3,17 @@
 // counts of active issues. Members and up can manage labels (labels.ts is
 // write-level); guests see a read-only list.
 
-import { error, redirect } from '@sveltejs/kit';
 import { and, eq, isNull, sql } from 'drizzle-orm';
 
 import { issueLabels, tickets } from '@/db/schema';
 import { db } from '@/lib/db';
-import { getMemberProject } from '@/lib/project-access';
 import { roleAllows } from '@/lib/roles';
+import { loadViewerProject } from '../../project-load';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ params, locals }) => {
+export const load: PageServerLoad = async ({ params }) => {
   const { id } = params;
-  if (!locals.user) redirect(303, '/login');
-
-  const project = await getMemberProject(id, locals.user.id);
-  if (!project) error(404, 'Not found');
+  const { project } = await loadViewerProject(id);
 
   const rows = await db
     .select({ labelId: issueLabels.labelId, count: sql<number>`cast(count(*) as int)` })

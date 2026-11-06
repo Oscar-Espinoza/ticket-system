@@ -1,12 +1,8 @@
-// Workspace invitation landing page (port of
-// src/app/invite/workspace/[token]/page.tsx). PUBLIC route. The token names a
+// Workspace invitation landing page. PUBLIC route. The token names a
 // pending workspace_invitation row (src/lib/workspace-access.ts): unknown,
 // expired, revoked or used tokens all get the same generic message; a
 // signed-in user with a different email sees why they can't accept. Joining is
 // the explicit POST in acceptWorkspaceInvite.
-//
-// SvelteKit already URL-decodes `params.token`; Next handed over the raw
-// segment and the page decoded it itself, so the lookup value is the same.
 
 import { getPendingWorkspaceInvite } from '@/lib/workspace-access';
 import type { PageServerLoad } from './$types';

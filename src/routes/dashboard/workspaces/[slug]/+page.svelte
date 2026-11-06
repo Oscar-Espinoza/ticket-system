@@ -4,7 +4,7 @@
   import ShieldCheckIcon from '@lucide/svelte/icons/shield-check';
   import TargetIcon from '@lucide/svelte/icons/target';
 
-  import { WORKSPACE_ROLE_LABEL } from '@/lib/workspace-types';
+  import { WORKSPACE_ROLE_LABEL, workspaceRoleAllows } from '@/lib/workspace-types';
   import { Button } from '@/lib/components/ui/button';
   import { LabelChip } from '@/lib/components/ui-icons';
   import WorkspaceActions from '@/lib/components/workspaces/workspace-actions.svelte';
@@ -15,7 +15,7 @@
   let { data }: PageProps = $props();
 
   const membership = $derived(data.membership);
-  const isAdmin = $derived(membership.role !== 'member');
+  const isAdmin = $derived(workspaceRoleAllows(membership.role, 'admin'));
 </script>
 
 <svelte:head>

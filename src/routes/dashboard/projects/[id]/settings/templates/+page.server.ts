@@ -1,15 +1,13 @@
-import { error, redirect } from '@sveltejs/kit';
+import { error } from '@sveltejs/kit';
 
 import { listTemplates } from '@/lib/server/actions/templates';
-import { getMemberProject } from '@/lib/project-access';
 import { roleAllows } from '@/lib/roles';
+import { loadViewerProject } from '../../project-load';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ params, locals }) => {
+export const load: PageServerLoad = async ({ params }) => {
   const { id } = params;
-  if (!locals.user) redirect(303, '/login');
-  const membership = await getMemberProject(id, locals.user.id);
-  if (!membership) error(404, 'Not found');
+  const { project: membership } = await loadViewerProject(id);
 
   const result = await listTemplates(id);
   if (!result.ok) error(404, 'Not found');

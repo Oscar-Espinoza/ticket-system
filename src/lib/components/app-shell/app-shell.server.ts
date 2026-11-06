@@ -1,7 +1,6 @@
-// Server half of src/components/app-shell/app-shell.tsx and its async slots
-// (slots/inbox-badge, slots/sidebar-favorites, slots/sidebar-workspaces): the
-// data the shell renders, resolved once by src/routes/dashboard/+layout.server.ts
-// and passed to <AppShell> as props.
+// The data the app shell renders (sidebar projects, favorites, workspaces,
+// inbox badge), resolved once by src/routes/dashboard/+layout.server.ts and
+// passed to <AppShell> as props.
 
 import { getProjectsForUser } from '@/lib/components/project-list.server';
 import { getSidebarFavorites } from '@/lib/favorites';
@@ -12,7 +11,7 @@ import type { ShellProject } from './shell-frame.svelte';
 import type { SidebarWorkspace } from './slots/sidebar-workspaces.svelte';
 
 export async function loadAppShellData(userId: string) {
-  // Memoized per request (React cache → kit shim): the dashboard page reuses it.
+  // Memoized per request: the dashboard page reuses getProjectsForUser.
   const [projects, favorites, workspaces] = await Promise.all([
     getProjectsForUser(userId),
     // Slot owners: favorites (access re-checked in SQL) and workspaces.
@@ -20,8 +19,7 @@ export async function loadAppShellData(userId: string) {
     getUserWorkspaces(userId),
   ]);
 
-  // Inbox badge: streamed (not awaited) so the count query never holds up the
-  // shell, as the React slot's own Suspense boundary did.
+  // Inbox badge: streamed (not awaited) so the count query never holds up the shell.
   const inboxCount = countUnreadNotifications(userId).catch((err) => {
     console.error('[inbox] unread count failed', err);
     return 0;

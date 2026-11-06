@@ -7,6 +7,7 @@
 import { and, eq, gt, ne, sql } from 'drizzle-orm';
 
 import type { RequestHandler } from './$types';
+import { NO_STORE } from '../../../_lib/http';
 import { allowOptions } from '../../../_lib/options';
 
 import { db } from '@/lib/db';
@@ -14,7 +15,6 @@ import { presence, projectMembers, users } from '@/db/schema';
 import { ProjectAccessError, requireProjectMember } from '@/lib/project-access';
 
 const WINDOW_MS = 45_000;
-const NO_STORE = { 'Cache-Control': 'no-store' };
 
 interface PresenceUser {
   id: string;
@@ -104,5 +104,4 @@ export const POST: RequestHandler = async (event) => {
   return Response.json({ users: others satisfies PresenceUser[] }, { headers: NO_STORE });
 };
 
-// Next answered OPTIONS automatically (204 + Allow); Kit would 405.
 export const OPTIONS = allowOptions('GET', 'POST');

@@ -1,12 +1,12 @@
-import { error, redirect } from '@sveltejs/kit';
+import { error } from '@sveltejs/kit';
 import { and, asc, eq } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
 import { projectMembers, projects, workspaces } from '@/db/schema';
 import { db } from '@/lib/db';
-import { getMemberProject } from '@/lib/project-access';
 import { roleAllows } from '@/lib/roles';
 import { getUserWorkspaces } from '@/lib/workspace-access';
+import { loadViewerProject } from '../../project-load';
 import type { PageServerLoad } from './$types';
 
 /** Ids of `rootId` and every project below it (sub-teams can't become parents). */
@@ -24,14 +24,10 @@ function subtree(rootId: string, rows: { id: string; parentId: string | null }[]
   return ids;
 }
 
-export const load: PageServerLoad = async ({ params, locals }) => {
+export const load: PageServerLoad = async ({ params }) => {
   const { id } = params;
-  if (!locals.user) redirect(303, '/login');
-  const userId = locals.user.id;
-
-  // Membership first (D-13), then the project's editable columns.
-  const membership = await getMemberProject(id, userId);
-  if (!membership) error(404, 'Not found');
+  const { user, project: membership } = await loadViewerProject(id);
+  const userId = user.id;
   const [[project], userWorkspaces] = await Promise.all([
     db
       .select({

@@ -1,4 +1,4 @@
-// Audit log (D12): the read side over `activity` for the project / workspace
+// Audit log: the read side over `activity` for the project / workspace
 // audit pages and the export route, plus writers for security events (2FA,
 // SSO, SCIM, exports) that have no issue to hang on.
 //
@@ -30,6 +30,8 @@ import {
 import { alias } from 'drizzle-orm/pg-core';
 
 import { db } from '@/lib/db';
+import { roleAllows, rolesAllowing } from '@/lib/roles';
+import { workspaceRoleAllows } from '@/lib/workspace-types';
 import {
   activities,
   projectMembers,
@@ -177,8 +179,6 @@ export type AuditScope =
       adminProjectIds: string[];
     };
 
-const ADMIN_ROLES = ['owner', 'admin'] as const;
-
 /**
  * The audit scope when `userId` may read it, else null (callers 404):
  * project owner/admin for a project, workspace owner/admin for a workspace
@@ -204,7 +204,7 @@ export async function resolveAuditScope(
       .innerJoin(projects, eq(projectMembers.projectId, projects.id))
       .where(and(eq(projectMembers.projectId, id), eq(projectMembers.userId, userId)))
       .limit(1);
-    if (!row || !(ADMIN_ROLES as readonly string[]).includes(row.role)) return null;
+    if (!row || !roleAllows(row.role, 'admin')) return null;
     return {
       kind: 'project',
       id: row.id,
@@ -231,7 +231,7 @@ export async function resolveAuditScope(
         ),
       )
       .limit(1);
-    if (!row || row.role === 'member') return null;
+    if (!row || !workspaceRoleAllows(row.role, 'admin')) return null;
     const adminProjects = await db
       .select({ id: projects.id })
       .from(projects)
@@ -239,7 +239,7 @@ export async function resolveAuditScope(
         projectMembers,
         and(eq(projectMembers.projectId, projects.id), eq(projectMembers.userId, userId)),
       )
-      .where(and(eq(projects.workspaceId, row.id), inArray(projectMembers.role, [...ADMIN_ROLES])));
+      .where(and(eq(projects.workspaceId, row.id), inArray(projectMembers.role, rolesAllowing('admin'))));
     return {
       kind: 'workspace',
       id: row.id,

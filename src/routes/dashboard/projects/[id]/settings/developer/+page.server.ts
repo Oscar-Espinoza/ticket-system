@@ -1,14 +1,12 @@
-// Settings → GitLab, Bitbucket & Sentry (owner: D10b). Membership is checked
+// Settings → GitLab, Bitbucket & Sentry. Membership is checked
 // here; every action re-checks the admin role. Tokens and secrets never leave
 // the server — the client only learns what's connected.
 
-import { error, redirect } from '@sveltejs/kit';
 import { eq, sql } from 'drizzle-orm';
 
 import { projectIntegrations, users } from '@/db/schema';
 import { db } from '@/lib/db';
-import { isUnreachableUrl } from '@/lib/github/webhooks';
-import { getMemberProject } from '@/lib/project-access';
+import { isUnreachableUrl } from '@/lib/vcs/hosts';
 import { roleAllows } from '@/lib/roles';
 import { GITLAB_DEFAULT_URL } from '@/lib/vcs/gitlab';
 import { integrationWebhookUrl, sentryIntegrationId } from '@/lib/vcs/integrations';
@@ -16,15 +14,14 @@ import type {
   SentryIntegrationView,
   VcsIntegrationView,
 } from '@/lib/components/developer/developer-settings.svelte';
+import { loadViewerProject } from '../../project-load';
 import type { PageServerLoad } from './$types';
 
 const str = (value: unknown) => (typeof value === 'string' ? value : null);
 
-export const load: PageServerLoad = async ({ params, locals }) => {
+export const load: PageServerLoad = async ({ params }) => {
   const { id } = params;
-  if (!locals.user) redirect(303, '/login');
-  const membership = await getMemberProject(id, locals.user.id);
-  if (!membership) error(404, 'Not found');
+  const { project: membership } = await loadViewerProject(id);
 
   const rows = await db
     .select({
