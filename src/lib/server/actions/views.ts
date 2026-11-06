@@ -8,6 +8,7 @@ import { db } from '@/lib/db';
 import { favorites, savedViews } from '@/db/schema';
 import { authorizeProjectAction } from '@/lib/action-auth';
 import { fail, refreshesData, type ActionResult } from '@/lib/server/action-kit';
+import { clippedText } from '@/lib/text';
 
 export type ViewActionResult = ActionResult<{ id: string; projectId: string }>;
 
@@ -26,17 +27,6 @@ function isPlainJson(value: unknown): value is Json {
   }
 }
 
-function cleanName(value: unknown): string | null {
-  if (typeof value !== 'string') return null;
-  const name = value.trim().slice(0, MAX_NAME);
-  return name || null;
-}
-
-function cleanDescription(value: unknown): string | null {
-  if (typeof value !== 'string') return null;
-  return value.trim().slice(0, MAX_DESCRIPTION) || null;
-}
-
 export async function createView(input: {
   projectId: string;
   name: string;
@@ -53,7 +43,7 @@ export async function createView(input: {
         : authz.error,
     );
   }
-  const name = cleanName(input.name);
+  const name = clippedText(input.name, MAX_NAME);
   if (!name) return fail('Give the view a name.');
   if (!isPlainJson(input.filters) || !isPlainJson(input.display)) {
     return fail('Invalid view settings.');
@@ -66,7 +56,7 @@ export async function createView(input: {
     ownerId: authz.userId,
     projectId: input.projectId,
     name,
-    description: cleanDescription(input.description),
+    description: clippedText(input.description, MAX_DESCRIPTION),
     filters: input.filters,
     display: input.display,
     shared: input.shared === true,
@@ -110,11 +100,11 @@ export async function updateView(input: {
 
   const set: Partial<typeof savedViews.$inferInsert> = { updatedAt: new Date() };
   if (input.name !== undefined) {
-    const name = cleanName(input.name);
+    const name = clippedText(input.name, MAX_NAME);
     if (!name) return fail('Give the view a name.');
     set.name = name;
   }
-  if (input.description !== undefined) set.description = cleanDescription(input.description);
+  if (input.description !== undefined) set.description = clippedText(input.description, MAX_DESCRIPTION);
   if (input.shared !== undefined) set.shared = input.shared === true;
   if (input.filters !== undefined) {
     if (!isPlainJson(input.filters)) return fail('Invalid view settings.');

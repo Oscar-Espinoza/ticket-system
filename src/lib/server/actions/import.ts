@@ -37,25 +37,23 @@ import { fetchAsanaTasks, listAsanaProjects, listAsanaWorkspaces, type AsanaOpti
 import { describeImportError, type ExternalFetchResult } from '@/lib/import/external';
 import { fetchShortcutStories, listShortcutSources, type ShortcutOption } from '@/lib/import/shortcut';
 import { VcsHttpError } from '@/lib/vcs/http';
+import { ensureLabels } from '@/lib/labels';
+import { clippedText } from '@/lib/text';
 
-const LABEL_COLORS = ['#5e6ad2', '#26b5ce', '#4cb782', '#f2c94c', '#f2994a', '#eb5757', '#bb87fc', '#95a2b3'];
 const REPO_RE = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
-
-const str = (value: unknown, max: number): string | null =>
-  typeof value === 'string' && value.trim() ? value.trim().slice(0, max) : null;
 
 function readSource(value: unknown): ImportSource | null {
   if (!value || typeof value !== 'object') return null;
   const raw = value as Record<string, unknown>;
   const kind = raw.kind;
-  const id = str(raw.id, 200);
+  const id = clippedText(raw.id, 200);
   if (!isImportSourceKind(kind) || !id) return null;
-  const url = str(raw.url, 500);
+  const url = clippedText(raw.url, 500);
   return {
     kind,
     id,
     url: url && /^https?:\/\//.test(url) ? url : null,
-    createdAt: str(raw.createdAt, 40),
+    createdAt: clippedText(raw.createdAt, 40),
   };
 }
 
@@ -63,9 +61,9 @@ function readLabels(value: unknown): ImportLabel[] {
   if (!Array.isArray(value)) return [];
   const out = new Map<string, ImportLabel>();
   for (const item of value.slice(0, 50)) {
-    const name = str((item as ImportLabel)?.name, LABEL_NAME_MAX);
+    const name = clippedText((item as ImportLabel)?.name, LABEL_NAME_MAX);
     if (!name) continue;
-    const color = str((item as ImportLabel)?.color, 7)?.toLowerCase();
+    const color = clippedText((item as ImportLabel)?.color, 7)?.toLowerCase();
     out.set(name.toLowerCase(), { name, color: isHexColor(color) ? color : null });
   }
   return [...out.values()];
@@ -74,15 +72,15 @@ function readLabels(value: unknown): ImportLabel[] {
 function readRecord(value: unknown): ImportRecord | null {
   if (!value || typeof value !== 'object') return null;
   const raw = value as Record<string, unknown>;
-  const title = str(raw.title, TITLE_MAX);
+  const title = clippedText(raw.title, TITLE_MAX);
   if (!title) return null;
   return {
     title,
-    description: str(raw.description, DESCRIPTION_MAX),
-    state: str(raw.state, 100),
+    description: clippedText(raw.description, DESCRIPTION_MAX),
+    state: clippedText(raw.state, 100),
     closed: raw.closed === true,
     priority: isPriority(raw.priority) ? raw.priority : null,
-    assignee: str(raw.assignee, 320),
+    assignee: clippedText(raw.assignee, 320),
     labels: readLabels(raw.labels),
     estimate: typeof raw.estimate === 'number' && Number.isFinite(raw.estimate) ? raw.estimate : null,
     dueDate: isDateString(raw.dueDate) ? raw.dueDate : null,
@@ -188,35 +186,11 @@ export async function importIssues(input: {
   if (!project) return fail('Project not found.');
 
   // Labels: reuse by case-insensitive name, create the missing ones in one insert.
-  const labelIds = new Map(labelRows.map((l) => [l.name.toLowerCase(), l.id]));
-  const missing = new Map<string, ImportLabel>();
-  for (const record of records) {
-    for (const label of record?.labels ?? []) {
-      const k = label.name.toLowerCase();
-      if (!labelIds.has(k) && !missing.has(k)) missing.set(k, label);
-    }
-  }
-  if (missing.size) {
-    const now = new Date();
-    await db
-      .insert(labels)
-      .values(
-        [...missing.values()].map((label, i) => ({
-          id: crypto.randomUUID(),
-          projectId,
-          name: label.name,
-          color: label.color ?? LABEL_COLORS[(labelIds.size + i) % LABEL_COLORS.length],
-          createdAt: now,
-        })),
-      )
-      .onConflictDoNothing();
-    // Re-read so labels a concurrent writer just created resolve too.
-    const fresh = await db
-      .select({ id: labels.id, name: labels.name })
-      .from(labels)
-      .where(eq(labels.projectId, projectId));
-    for (const l of fresh) labelIds.set(l.name.toLowerCase(), l.id);
-  }
+  const { ids: labelIds, created: labelsCreated } = await ensureLabels(
+    projectId,
+    labelRows,
+    records.flatMap((record) => record?.labels ?? []),
+  );
 
   // Duplicates: the source footer is the marker (trash included — restore instead).
   // Parent markers resolve sub-issues to issues imported in earlier chunks.
@@ -297,7 +271,7 @@ export async function importIssues(input: {
     }
   }
 
-  if (result.created || missing.size) {
+  if (result.created || labelsCreated) {
     refreshesData();
   }
   return { ok: true, ...result };

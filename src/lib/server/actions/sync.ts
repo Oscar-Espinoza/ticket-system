@@ -3,20 +3,15 @@
 // session the request carries: a stale tab whose account was switched in
 // another tab must not apply (or lose) one user's queued changes as another.
 
-import { getSession } from '@/lib/session';
-import {
-  OUTBOX_ACTIONS,
-  runOutboxAction,
-  type OutboxActionName,
-  type OutboxArgs,
-  type OutboxResult,
-} from '@/lib/sync/actions';
+import { OUTBOX_ACTIONS, runOutboxAction } from '@/lib/server/outbox-actions';
+import { sessionUserId } from '@/lib/session';
+import type { OutboxActionName, OutboxArgs, OutboxResult } from '@/lib/sync/actions';
 
 /** The session doesn't belong to the queue owner: keep the op queued, don't run it. */
 export type OutboxSuspended = { ok: false; suspended: true; error: string };
 
 const isOutboxAction = (name: unknown): name is OutboxActionName =>
-  typeof name === 'string' && Object.prototype.hasOwnProperty.call(OUTBOX_ACTIONS, name);
+  typeof name === 'string' && Object.hasOwn(OUTBOX_ACTIONS, name);
 
 export async function runOutboxCall<N extends OutboxActionName>(call: {
   queueOwner: string;
@@ -26,8 +21,7 @@ export async function runOutboxCall<N extends OutboxActionName>(call: {
   if (!call || !isOutboxAction(call.action)) {
     return { ok: false, suspended: true, error: 'Unknown change type.' };
   }
-  const session = await getSession();
-  const userId = session?.user?.id;
+  const userId = await sessionUserId();
   if (!userId) return { ok: false, suspended: true, error: 'Signed out.' };
   if (typeof call.queueOwner !== 'string' || call.queueOwner !== userId) {
     return { ok: false, suspended: true, error: 'Signed in as a different account.' };

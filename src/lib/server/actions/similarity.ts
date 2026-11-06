@@ -3,10 +3,10 @@
 // treat any error as "no hints".
 
 import { authorizeProjectAction } from '@/lib/action-auth';
-import { fail } from '@/lib/server/action-kit';
-import { findSimilarIssues, readSimilarIssues, type SimilarResult } from '@/lib/similarity';
+import { fail, type ActionResult } from '@/lib/server/action-kit';
+import { findIssuesSimilarTo, findSimilarIssues, type SimilarIssue } from '@/lib/similarity';
 
-export type { SimilarResult };
+export type SimilarResult = ActionResult<{ similar: SimilarIssue[] }>;
 
 /** Title typed in the new-issue dialog → up to 3 possible duplicates. */
 export async function findPossibleDuplicates(input: {
@@ -35,5 +35,7 @@ export async function getSimilarIssues(input: {
 }): Promise<SimilarResult> {
   const authz = await authorizeProjectAction(input?.projectId, 'read');
   if (!authz.ok) return authz;
-  return readSimilarIssues(authz.userId, input.projectId, input.ticketId);
+  if (typeof input.ticketId !== 'string' || !input.ticketId) return fail('Issue not found.');
+  const similar = await findIssuesSimilarTo(authz.userId, input.projectId, input.ticketId);
+  return similar ? { ok: true, similar } : fail('Issue not found.');
 }

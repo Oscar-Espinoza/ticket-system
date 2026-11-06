@@ -3,7 +3,7 @@
 // because server actions cap request bodies at 1 MB.
 
 import type { RequestHandler } from './$types';
-import { fail, readUploadForm, uploadedFile } from '../_lib/http';
+import { authFailResponse, fail, readUploadForm, uploadedFile } from '../_lib/http';
 import { allowOptions } from '../_lib/options';
 
 import { authorizeProjectAction } from '@/lib/action-auth';
@@ -19,7 +19,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
   const projectId = form.get('projectId');
   const authz = await authorizeProjectAction(projectId, 'write');
-  if (!authz.ok) return fail(authz.error, authz.error === 'Not authenticated' ? 401 : 403);
+  if (!authz.ok) return authFailResponse(authz);
 
   const upload = uploadedFile(form, MAX_ATTACHMENT_BYTES, TOO_LARGE);
   if (!upload.ok) return upload.response;

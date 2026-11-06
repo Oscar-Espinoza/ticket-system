@@ -10,7 +10,7 @@ import { db } from '@/lib/db';
 import { isEntityId } from '@/lib/ids';
 import { roleAllows, type ProjectRole } from '@/lib/roles';
 import { projectMemberOf } from '@/lib/project-access';
-import { activeIssue, memberOfIssueProject } from '@/lib/tickets';
+import { activeIssue, memberOfIssueProject, formatIssueKey } from '@/lib/tickets';
 import {
   excerptOf,
   type DocumentBacklink,
@@ -137,7 +137,7 @@ export async function getDocumentBacklinks(
     .limit(50);
   return rows.map((row) => ({
     id: row.id,
-    key: `${row.ticketKey}-${row.number}`,
+    key: formatIssueKey(row.ticketKey, row.number),
     title: row.title,
     projectId: row.projectId,
     state: { name: row.stateName, type: row.stateType, color: row.stateColor },

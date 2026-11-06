@@ -22,22 +22,13 @@ import {
   type ActionResult,
 } from '@/lib/server/action-kit';
 import { sessionUserId } from '@/lib/session';
+import { clippedText } from '@/lib/text';
 
 export type DashboardActionResult = ActionResult<{ id: string }>;
 
 const MAX_NAME = 80;
 const MAX_DESCRIPTION = 500;
 const MAX_JSON = 32_000;
-
-function cleanName(value: unknown): string | null {
-  if (typeof value !== 'string') return null;
-  return value.trim().slice(0, MAX_NAME) || null;
-}
-
-function cleanDescription(value: unknown): string | null {
-  if (typeof value !== 'string') return null;
-  return value.trim().slice(0, MAX_DESCRIPTION) || null;
-}
 
 /**
  * Normalised widgets whose project references stay inside the dashboard's
@@ -90,7 +81,7 @@ export async function createDashboard(input: {
     userId = await sessionUserId();
     if (!userId) return NOT_AUTHENTICATED;
   }
-  const name = cleanName(input?.name);
+  const name = clippedText(input?.name, MAX_NAME);
   if (!name) return fail('Give the dashboard a name.');
 
   const now = new Date();
@@ -100,7 +91,7 @@ export async function createDashboard(input: {
     ownerId: userId,
     projectId,
     name,
-    description: cleanDescription(input?.description),
+    description: clippedText(input?.description, MAX_DESCRIPTION),
     shared: false,
     widgets: starterWidgets() as unknown as Record<string, unknown>[],
     createdAt: now,
@@ -136,11 +127,11 @@ export async function updateDashboard(input: {
 
   const set: Partial<typeof dashboards.$inferInsert> = { updatedAt: new Date() };
   if (input.name !== undefined) {
-    const name = cleanName(input.name);
+    const name = clippedText(input.name, MAX_NAME);
     if (!name) return fail('Give the dashboard a name.');
     set.name = name;
   }
-  if (input.description !== undefined) set.description = cleanDescription(input.description);
+  if (input.description !== undefined) set.description = clippedText(input.description, MAX_DESCRIPTION);
   if (input.shared !== undefined) {
     if (input.shared === true) {
       if (!dashboard.projectId) {

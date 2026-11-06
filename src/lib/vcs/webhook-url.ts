@@ -3,7 +3,7 @@
 // (vcs/hosts.ts); imports no host API client. Server-only.
 
 import { appUrl } from '@/lib/integrations/app-url';
-import { VCS_PROVIDER_LABEL, VCS_REQUEST_NOUN, type VcsProvider } from '@/lib/vcs/providers';
+import { VCS_PROVIDER_LABEL, requestNoun, type VcsProvider } from '@/lib/vcs/providers';
 
 /**
  * Origin hosts deliver webhooks to. GITHUB_WEBHOOK_BASE_URL points every host
@@ -36,5 +36,5 @@ export function isUnreachableUrl(url: string): boolean {
 
 /** The warning shown when a host can't reach `url`, so PR automation can't work. */
 export function unreachableWebhookWarning(provider: VcsProvider, url: string): string {
-  return `${VCS_PROVIDER_LABEL[provider]} can't reach ${url}. ${VCS_REQUEST_NOUN[provider].long} automation needs a public URL — set PUBLIC_APP_URL (or GITHUB_WEBHOOK_BASE_URL for a tunnel) and register the webhook again.`;
+  return `${VCS_PROVIDER_LABEL[provider]} can't reach ${url}. ${requestNoun(provider).long} automation needs a public URL — set PUBLIC_APP_URL (or GITHUB_WEBHOOK_BASE_URL for a tunnel) and register the webhook again.`;
 }

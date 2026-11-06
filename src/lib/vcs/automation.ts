@@ -27,6 +27,7 @@ import {
   resolveAutomationState,
   shouldAdvance,
 } from '@/lib/vcs/automation-state';
+import type { VcsProject } from '@/lib/vcs/project';
 import { classifyPullRequest, closingNumbers } from '@/lib/vcs/references';
 import {
   prNoun,
@@ -36,14 +37,6 @@ import {
   type ReviewDecision,
   type VcsProvider,
 } from '@/lib/vcs/providers';
-
-export interface VcsProject {
-  id: string;
-  ticketKey: string;
-  /** The project's PR automation settings (Settings → GitHub), shared by every provider. */
-  prOpenStateId: string | null;
-  prMergeStateId: string | null;
-}
 
 export interface VcsPullRequest {
   provider: VcsProvider;
@@ -71,7 +64,7 @@ export interface VcsPullRequest {
 export type PrTrigger = 'opened' | 'updated' | 'closed';
 
 /** Non-deleted issues of the project by number and/or stored branch name. */
-async function findIssues(projectId: string, numbers: number[], branch?: string | null): Promise<IssueRow[]> {
+async function findIssues(projectId: string, numbers: number[], branch: string | null): Promise<IssueRow[]> {
   const match: SQL[] = [];
   if (numbers.length) match.push(inArray(tickets.ticketNumber, numbers));
   if (branch) match.push(eq(tickets.githubBranch, branch));
@@ -254,7 +247,7 @@ export async function syncClosingCommits(
   if (!closedBy.size) return;
 
   const [issues, states] = await Promise.all([
-    findIssues(project.id, [...closedBy.keys()]),
+    findIssues(project.id, [...closedBy.keys()], null),
     projectStatesQuery(project.id),
   ]);
   const target = resolveAutomationState(project.prMergeStateId, states, defaultPrMergeState);

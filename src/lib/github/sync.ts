@@ -13,15 +13,11 @@ import {
   syncPullRequest as syncVcsPullRequest,
   updatePullRequestStatus,
   type PrTrigger,
-  type VcsProject,
 } from '@/lib/vcs/automation';
+import type { VcsProject } from '@/lib/vcs/project';
 import { combineChecks, combineReviews, type ChecksState, type ReviewDecision } from '@/lib/vcs/providers';
 
-export interface SyncProject {
-  id: string;
-  ticketKey: string;
-  githubPrOpenStateId: string | null;
-  githubPrMergeStateId: string | null;
+export interface SyncProject extends VcsProject {
   /** Whose token reads reviews / checks (the admin who connected the repo). */
   githubConnectedById: string | null;
 }
@@ -109,15 +105,6 @@ const PR_ACTIONS = new Set([
 /** Actions that (re)announce a PR as open and ready — the "PR opened" automation. */
 const OPEN_ACTIONS = new Set(['opened', 'reopened', 'ready_for_review']);
 
-function vcsProject(project: SyncProject): VcsProject {
-  return {
-    id: project.id,
-    ticketKey: project.ticketKey,
-    prOpenStateId: project.githubPrOpenStateId,
-    prMergeStateId: project.githubPrMergeStateId,
-  };
-}
-
 function triggerOf(action: string): PrTrigger {
   if (action === 'closed') return 'closed';
   return OPEN_ACTIONS.has(action) ? 'opened' : 'updated';
@@ -136,7 +123,7 @@ export async function syncPullRequest(project: SyncProject, payload: PullRequest
     ? ((await currentReviewDecision(project, repo, pr.number)) ?? 'review_required')
     : null;
   await syncVcsPullRequest(
-    vcsProject(project),
+    project,
     {
       provider: 'github',
       repo,
@@ -162,7 +149,7 @@ export async function syncPullRequest(project: SyncProject, payload: PullRequest
 /** Commits pushed to the default branch close issues they reference with closing words. */
 export async function syncPush(project: SyncProject, payload: PushPayload) {
   if (payload.ref !== `refs/heads/${payload.repository.default_branch}`) return;
-  await syncClosingCommits(vcsProject(project), {
+  await syncClosingCommits(project, {
     provider: 'github',
     repo: payload.repository.full_name,
     commits: payload.commits ?? [],

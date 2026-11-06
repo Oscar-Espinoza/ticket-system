@@ -24,6 +24,7 @@ import {
   parseLinkUrl,
   type AttachmentView,
 } from '@/lib/attachment-utils';
+import { formatIssueKey } from '@/lib/tickets';
 
 export type AttachmentResult =
   | { ok: true; attachment: AttachmentView }
@@ -82,7 +83,7 @@ async function loadIssue(projectId: string, ticketId: unknown): Promise<IssueRef
     .where(and(eq(tickets.id, ticketId), eq(tickets.projectId, projectId)))
     .limit(1);
   if (!row || row.deletedAt) return null;
-  return { id: row.id, key: `${row.ticketKey}-${row.number}`, title: row.title };
+  return { id: row.id, key: formatIssueKey(row.ticketKey, row.number), title: row.title };
 }
 
 function attachmentEvent(

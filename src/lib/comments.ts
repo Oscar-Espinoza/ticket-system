@@ -30,6 +30,7 @@ import {
   type ReactionGroup,
   type TimelineComment,
 } from '@/lib/timeline';
+import { formatIssueKey } from '@/lib/tickets';
 
 export const COMMENT_EVENT = {
   created: ISSUE_EVENT.commentCreated,
@@ -79,7 +80,7 @@ async function findIssue(projectId: string, ticketId: unknown) {
     .innerJoin(projects, eq(projects.id, tickets.projectId))
     .where(and(eq(tickets.id, ticketId), eq(tickets.projectId, projectId)))
     .limit(1);
-  return row ? { id: row.id, key: `${row.ticketKey}-${row.number}`, title: row.title } : null;
+  return row ? { id: row.id, key: formatIssueKey(row.ticketKey, row.number), title: row.title } : null;
 }
 
 /** A comment with its issue, if the comment is on an issue of the project. */
@@ -101,7 +102,7 @@ async function findComment(projectId: string, commentId: unknown) {
     .innerJoin(projects, eq(projects.id, tickets.projectId))
     .where(and(eq(comments.id, commentId), eq(tickets.projectId, projectId)))
     .limit(1);
-  return row ? { ...row, key: `${row.ticketKey}-${row.number}` } : null;
+  return row ? { ...row, key: formatIssueKey(row.ticketKey, row.number) } : null;
 }
 
 /** The subset of `ids` that are members of the project (mentions of others are ignored). */

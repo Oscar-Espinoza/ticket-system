@@ -7,6 +7,7 @@ import { and, eq } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import { projectIntegrations, projects } from '@/db/schema';
+import { vcsProjectColumns } from '@/lib/vcs/project';
 import { webhookBaseUrl } from '@/lib/vcs/webhook-url';
 
 export const INTEGRATION_PROVIDERS = ['gitlab', 'bitbucket', 'sentry'] as const;
@@ -73,22 +74,13 @@ export async function getProjectIntegration<C>(
 export async function getWebhookIntegration<C>(integrationId: string, provider: IntegrationProvider) {
   if (!/^[0-9a-f-]{36}$/i.test(integrationId)) return null;
   const [row] = await db
-    .select({
-      ...columns,
-      ticketKey: projects.ticketKey,
-      prOpenStateId: projects.githubPrOpenStateId,
-      prMergeStateId: projects.githubPrMergeStateId,
-    })
+    .select({ integration: columns, project: vcsProjectColumns })
     .from(projectIntegrations)
     .innerJoin(projects, eq(projects.id, projectIntegrations.projectId))
     .where(and(eq(projectIntegrations.id, integrationId), eq(projectIntegrations.provider, provider)))
     .limit(1);
   if (!row) return null;
-  const { ticketKey, prOpenStateId, prMergeStateId, ...integration } = row;
-  return {
-    integration: integration as IntegrationRow<C>,
-    project: { id: row.projectId, ticketKey, prOpenStateId, prMergeStateId },
-  };
+  return { integration: row.integration as IntegrationRow<C>, project: row.project };
 }
 
 export function integrationWebhookUrl(provider: IntegrationProvider, integrationId: string): string {

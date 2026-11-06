@@ -12,8 +12,7 @@ import { issueRelations, projects, tickets } from '@/db/schema';
 import { prepareIssueEvents, publishIssueEvents } from '@/lib/events';
 import { updateIssueFields } from '@/lib/issue-service';
 import type { IssueRow } from '@/lib/issue-model';
-import { fail, type ActionResult } from '@/lib/server/action-kit';
-import { queryIssues } from '@/lib/tickets';
+import { queryIssues, formatIssueKey } from '@/lib/tickets';
 import { duplicateState } from '@/lib/triage';
 import { projectStatesQuery } from '@/lib/workflow-server';
 
@@ -87,7 +86,7 @@ async function loadTickets(projectId: string, ids: string[]): Promise<Map<string
   return new Map(
     rows.map((r) => [
       r.id,
-      { id: r.id, key: `${r.ticketKey}-${r.number}`, title: r.title, deletedAt: r.deletedAt },
+      { id: r.id, key: formatIssueKey(r.ticketKey, r.number), title: r.title, deletedAt: r.deletedAt },
     ]),
   );
 }
@@ -124,14 +123,6 @@ function relationWrites(
     .set({ updatedAt: new Date() })
     .where(and(eq(tickets.projectId, projectId), inArray(tickets.id, [source.id, target.id])));
   return { events, touch };
-}
-
-export type GetRelationsResult = ActionResult<{ relations: IssueRelationView[] }>;
-
-/** `listIssueRelations` for an untrusted `ticketId`; a missing id is "not found". */
-export async function readIssueRelations(projectId: string, ticketId: unknown): Promise<GetRelationsResult> {
-  if (typeof ticketId !== 'string' || !ticketId) return fail('Issue not found.');
-  return { ok: true, relations: await listIssueRelations(projectId, ticketId) };
 }
 
 /** Every relation of the issue; relations to trashed issues are hidden. */

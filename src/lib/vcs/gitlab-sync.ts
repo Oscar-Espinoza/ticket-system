@@ -8,8 +8,8 @@ import {
   syncPullRequest,
   updatePullRequestStatus,
   type PrTrigger,
-  type VcsProject,
 } from '@/lib/vcs/automation';
+import type { VcsProject } from '@/lib/vcs/project';
 import type { GitlabConfig } from '@/lib/vcs/integrations';
 import type { ChecksState, ReviewDecision } from '@/lib/vcs/providers';
 

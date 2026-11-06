@@ -36,6 +36,7 @@ import {
   hasDomainTxtRecord,
   isFreeMailDomain,
   normalizeDomain,
+  parseStored,
   scimProviderIdFor,
   ssoProviderIdFor,
   workspaceSsoUrls,
@@ -43,6 +44,7 @@ import {
   type StoredOidcConfig,
   type StoredSamlConfig,
 } from '@/lib/sso';
+import { clippedTextOrEmpty } from '@/lib/text';
 
 export type SecurityField =
   | 'domain'
@@ -154,8 +156,7 @@ export interface SaveSsoInput {
 
 const EMAIL_NAME_ID = 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress';
 const METADATA_MAX_BYTES = 100_000;
-const text = (value: unknown, max = 2_000) =>
-  typeof value === 'string' ? value.trim().slice(0, max) : '';
+const FIELD_MAX = 2_000;
 
 function httpUrl(value: string): string | null {
   try {
@@ -181,10 +182,10 @@ function buildSamlConfig(
   urls: ReturnType<typeof workspaceSsoUrls>,
   existing: StoredSamlConfig | null,
 ): { issuer: string; config: StoredSamlConfig } | SecurityFailure {
-  const entryPointInput = text(input.samlEntryPoint);
+  const entryPointInput = clippedTextOrEmpty(input.samlEntryPoint, FIELD_MAX);
   // Blank metadata / certificate on edit = keep the stored one.
   const metadata =
-    text(input.samlMetadata, METADATA_MAX_BYTES + 1) ||
+    clippedTextOrEmpty(input.samlMetadata, METADATA_MAX_BYTES + 1) ||
     (!entryPointInput ? (existing?.idpMetadata?.metadata ?? '') : '');
   const common = {
     callbackUrl: urls.acsUrl,
@@ -202,7 +203,7 @@ function buildSamlConfig(
       return fail('That doesn’t look like IdP metadata XML.', 'samlMetadata');
     }
     const entityId = /entityID\s*=\s*"([^"]+)"/.exec(metadata)?.[1] ?? '';
-    const issuer = text(input.samlIssuer, 500) || entityId;
+    const issuer = clippedTextOrEmpty(input.samlIssuer, 500) || entityId;
     if (!issuer) return fail('Add the IdP entity ID.', 'samlIssuer');
     const entryPoint = /SingleSignOnService[^>]*Location\s*=\s*"([^"]+)"/.exec(metadata)?.[1];
     return {
@@ -215,9 +216,9 @@ function buildSamlConfig(
   if (!entryPoint) {
     return fail('Paste IdP metadata, or enter the SSO URL.', 'samlEntryPoint');
   }
-  const issuer = text(input.samlIssuer, 500);
+  const issuer = clippedTextOrEmpty(input.samlIssuer, 500);
   if (!issuer) return fail('Enter the IdP entity ID (issuer).', 'samlIssuer');
-  const cert = normalizeCert(text(input.samlCert, 25_000) || existing?.cert || '');
+  const cert = normalizeCert(clippedTextOrEmpty(input.samlCert, 25_000) || existing?.cert || '');
   if (!cert) return fail('Paste the IdP’s X.509 signing certificate.', 'samlCert');
   return {
     issuer,
@@ -238,11 +239,11 @@ async function buildOidcConfig(
   input: SaveSsoInput,
   existing: StoredOidcConfig | null,
 ): Promise<{ issuer: string; config: StoredOidcConfig } | SecurityFailure> {
-  const issuer = httpUrl(text(input.oidcIssuer));
+  const issuer = httpUrl(clippedTextOrEmpty(input.oidcIssuer, FIELD_MAX));
   if (!issuer) return fail('Enter the issuer URL (https://…).', 'oidcIssuer');
-  const clientId = text(input.oidcClientId, 256);
+  const clientId = clippedTextOrEmpty(input.oidcClientId, 256);
   if (!clientId) return fail('Enter the client ID.', 'oidcClientId');
-  const clientSecret = text(input.oidcClientSecret, 1_000) || existing?.clientSecret || '';
+  const clientSecret = clippedTextOrEmpty(input.oidcClientSecret, 1_000) || existing?.clientSecret || '';
   if (!clientSecret) {
     return fail('Enter the client secret.', 'oidcClientSecret');
   }
@@ -273,15 +274,6 @@ async function buildOidcConfig(
       scopes: ['openid', 'email', 'profile'],
     },
   };
-}
-
-function parseStored<T>(value: string | null | undefined): T | null {
-  if (!value) return null;
-  try {
-    return JSON.parse(value) as T;
-  } catch {
-    return null;
-  }
 }
 
 export async function saveWorkspaceSso(input: SaveSsoInput): Promise<SecurityResult> {

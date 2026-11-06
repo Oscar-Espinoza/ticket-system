@@ -13,7 +13,7 @@ import { after } from '@/lib/kit/request';
 import { db } from '@/lib/db';
 import { projects } from '@/db/schema';
 import { verifyHmac } from '@/lib/server/secrets';
-import { readJsonBody } from '@/lib/vcs/webhook-request';
+import { readWebhookBody } from '@/lib/vcs/webhook-request';
 import {
   syncCheckRun,
   syncCheckSuite,
@@ -23,13 +23,11 @@ import {
   syncStatus,
   type SyncProject,
 } from '@/lib/github/sync';
+import { vcsProjectColumns } from '@/lib/vcs/project';
 
 const projectColumns = {
-  id: projects.id,
-  ticketKey: projects.ticketKey,
+  ...vcsProjectColumns,
   githubWebhookSecret: projects.githubWebhookSecret,
-  githubPrOpenStateId: projects.githubPrOpenStateId,
-  githubPrMergeStateId: projects.githubPrMergeStateId,
   githubConnectedById: projects.githubConnectedById,
 };
 
@@ -66,7 +64,7 @@ export const POST: RequestHandler = async ({ request }) => {
     return Response.json({ error: 'Missing GitHub headers' }, { status: 403 });
   }
 
-  const body = await readJsonBody(request);
+  const body = await readWebhookBody(request);
   if (!body.ok) return body.response;
   const { raw } = body;
   const payload = body.payload as { repository?: { full_name?: string } } & Record<string, unknown>;

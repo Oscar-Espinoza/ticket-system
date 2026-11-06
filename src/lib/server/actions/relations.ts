@@ -5,14 +5,14 @@ import { authorizeProjectAction } from '@/lib/action-auth';
 import {
   createIssueRelation,
   deleteIssueRelation,
-  readIssueRelations,
+  listIssueRelations,
   type AddableRelationKind,
-  type GetRelationsResult,
+  type IssueRelationView,
   type RelationResult,
 } from '@/lib/relations';
-import { refreshesData } from '@/lib/server/action-kit';
+import { fail, refreshesData, type ActionResult } from '@/lib/server/action-kit';
 
-export type { GetRelationsResult };
+export type GetRelationsResult = ActionResult<{ relations: IssueRelationView[] }>;
 
 export async function getIssueRelations(input: {
   projectId: string;
@@ -20,7 +20,8 @@ export async function getIssueRelations(input: {
 }): Promise<GetRelationsResult> {
   const authz = await authorizeProjectAction(input?.projectId, 'read');
   if (!authz.ok) return authz;
-  return readIssueRelations(input.projectId, input.ticketId);
+  if (typeof input.ticketId !== 'string' || !input.ticketId) return fail('Issue not found.');
+  return { ok: true, relations: await listIssueRelations(input.projectId, input.ticketId) };
 }
 
 export async function addIssueRelation(input: {

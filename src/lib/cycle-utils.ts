@@ -20,6 +20,8 @@ export const WEEKDAYS = [
 ] as const;
 
 export const CYCLE_DURATIONS = [1, 2, 3, 4, 5, 6, 7, 8] as const;
+export const MIN_CYCLE_WEEKS = CYCLE_DURATIONS[0];
+export const MAX_CYCLE_WEEKS = CYCLE_DURATIONS[CYCLE_DURATIONS.length - 1];
 /** Auto-create keeps this many upcoming cycles scheduled. */
 export const UPCOMING_CYCLES = 2;
 /** Cooldown between cycles: 0 (back-to-back) … MAX_COOLDOWN_WEEKS weeks. */
@@ -29,6 +31,15 @@ export const COOLDOWN_OPTIONS = [0, 1, 2, 3, 4] as const;
 export const CAPACITY_CYCLES = 3;
 /** Choices for auto-archive / auto-close (null = off). */
 export const AUTOMATION_MONTHS = [1, 3, 6, 9, 12] as const;
+
+/** How a project lays out its cycles (project.cycle_* settings). */
+export interface CycleCadence {
+  durationWeeks: number;
+  /** 0 = Sunday … 6 = Saturday: the day a fresh cadence starts on. */
+  weekday: number;
+  /** Weeks between consecutive cycles, 0 … MAX_COOLDOWN_WEEKS. */
+  cooldownWeeks: number;
+}
 
 export interface CycleLike {
   number: number;

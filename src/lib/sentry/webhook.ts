@@ -24,6 +24,8 @@ import { verifyHmac } from '@/lib/server/secrets';
 import type { StateType } from '@/lib/issue-model';
 import { guardedRequest } from '@/lib/integrations/url-guard';
 import { WEBHOOK_TIMEOUT_MS } from '@/lib/integrations/timeouts';
+import { clippedText } from '@/lib/text';
+import { formatIssueKey } from '@/lib/tickets';
 
 /**
  * Sentry signs `JSON.stringify(body)` — normally the raw body byte for byte;
@@ -46,9 +48,6 @@ interface SentryIssueInfo {
   rule: string | null;
 }
 
-const text = (value: unknown, max = 500): string | null =>
-  typeof value === 'string' && value.trim() ? value.trim().slice(0, max) : null;
-
 /** `…/issues/<id>/events/<event>/` → `…/issues/<id>/`. */
 function issueUrlFrom(url: string | null, id: string): string | null {
   if (!url || !/^https:\/\//.test(url)) return null;
@@ -60,21 +59,21 @@ async function fromEventAlert(data: Record<string, unknown>, token: string | nul
   const event = (data.event ?? {}) as Record<string, unknown>;
   const id = String(event.issue_id ?? '');
   if (!/^\d+$/.test(id)) return null;
-  const url = issueUrlFrom(text(event.web_url, 1000), id);
+  const url = issueUrlFrom(clippedText(event.web_url, 1000), id);
   if (!url) return null;
-  const details = token ? await fetchIssue(text(event.issue_url, 1000), id, token) : null;
-  if (details) return { ...details, rule: text(data.triggered_rule, 200) };
+  const details = token ? await fetchIssue(clippedText(event.issue_url, 1000), id, token) : null;
+  if (details) return { ...details, rule: clippedText(data.triggered_rule, 200) };
   return {
     id,
     shortId: null,
-    title: text(event.title, TITLE_MAX) ?? 'Sentry issue',
-    culprit: text(event.culprit),
+    title: clippedText(event.title, TITLE_MAX) ?? 'Sentry issue',
+    culprit: clippedText(event.culprit, 500),
     url,
-    level: text(event.level, 20),
+    level: clippedText(event.level, 20),
     count: null,
     userCount: null,
     projectName: null,
-    rule: text(data.triggered_rule, 200),
+    rule: clippedText(data.triggered_rule, 200),
   };
 }
 
@@ -82,19 +81,19 @@ function fromIssue(data: Record<string, unknown>): SentryIssueInfo | null {
   const issue = (data.issue ?? {}) as Record<string, unknown>;
   const id = String(issue.id ?? '');
   if (!/^\d+$/.test(id)) return null;
-  const url = issueUrlFrom(text(issue.web_url, 1000), id) ?? issueUrlFrom(text(issue.permalink, 1000), id);
+  const url = issueUrlFrom(clippedText(issue.web_url, 1000), id) ?? issueUrlFrom(clippedText(issue.permalink, 1000), id);
   if (!url) return null;
   const project = (issue.project ?? {}) as Record<string, unknown>;
   return {
     id,
-    shortId: text(issue.shortId, 100),
-    title: text(issue.title, TITLE_MAX) ?? 'Sentry issue',
-    culprit: text(issue.culprit),
+    shortId: clippedText(issue.shortId, 100),
+    title: clippedText(issue.title, TITLE_MAX) ?? 'Sentry issue',
+    culprit: clippedText(issue.culprit, 500),
     url,
-    level: text(issue.level, 20),
+    level: clippedText(issue.level, 20),
     count: issue.count == null ? null : String(issue.count).slice(0, 20),
     userCount: typeof issue.userCount === 'number' ? issue.userCount : null,
-    projectName: text(project.name ?? project.slug, 100),
+    projectName: clippedText(project.name ?? project.slug, 100),
     rule: null,
   };
 }
@@ -195,7 +194,7 @@ async function recordResolved(projectId: string, ticketKey: string, info: Sentry
       actorId: null,
       type: ISSUE_EVENT.sentryResolved,
       data: {
-        key: `${ticketKey}-${issue.number}`,
+        key: formatIssueKey(ticketKey, issue.number),
         title: issue.title,
         actorName: 'Sentry',
         summary: `resolved the Sentry issue ${name}`,

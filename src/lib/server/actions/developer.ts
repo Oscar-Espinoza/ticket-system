@@ -42,11 +42,9 @@ import {
 } from '@/lib/vcs/providers';
 import { decryptToken, encryptToken } from '@/lib/server/crypto';
 import { newSecret } from '@/lib/server/secrets';
+import { clippedTextOrEmpty } from '@/lib/text';
 
 const TOKEN_MAX = 500;
-
-const str = (value: unknown, max: number): string =>
-  typeof value === 'string' ? value.trim().slice(0, max) : '';
 
 export interface PullRequestView {
   id: string;
@@ -230,9 +228,9 @@ export async function connectGitlab(input: {
   if (!authz.ok) return authz;
   const baseUrl = normalizeGitlabUrl(input.baseUrl);
   if (!baseUrl) return fail('Enter a public http(s) GitLab URL, e.g. https://gitlab.com.');
-  const path = str(input.repo, 300).replace(/^\/+|\/+$/g, '').replace(/\.git$/, '');
+  const path = clippedTextOrEmpty(input.repo, 300).replace(/^\/+|\/+$/g, '').replace(/\.git$/, '');
   if (!isGitlabPath(path)) return fail('Use the project path, e.g. group/project.');
-  const token = str(input.token, TOKEN_MAX);
+  const token = clippedTextOrEmpty(input.token, TOKEN_MAX);
   if (!token) return fail('Enter an access token.');
 
   let remote;
@@ -259,11 +257,11 @@ export async function connectBitbucket(input: {
 }): Promise<VcsConnectResult> {
   const authz = await authorizeProjectAction(input?.projectId, 'admin');
   if (!authz.ok) return authz;
-  const repo = str(input.repo, 200).replace(/^\/+|\/+$/g, '').replace(/\.git$/, '');
+  const repo = clippedTextOrEmpty(input.repo, 200).replace(/^\/+|\/+$/g, '').replace(/\.git$/, '');
   if (!isBitbucketRepo(repo)) return fail('Use the workspace/repository form, e.g. acme/web.');
-  const token = str(input.token, TOKEN_MAX);
+  const token = clippedTextOrEmpty(input.token, TOKEN_MAX);
   if (!token) return fail('Enter an access token.');
-  const username = str(input.username, 200) || null;
+  const username = clippedTextOrEmpty(input.username, 200) || null;
   const auth: BitbucketAuth = { token, username };
 
   let remote;
@@ -343,11 +341,11 @@ export async function connectSentry(input: {
 }): Promise<{ ok: true; webhookUrl: string } | Fail> {
   const authz = await authorizeProjectAction(input?.projectId, 'admin');
   if (!authz.ok) return authz;
-  const clientSecret = str(input.clientSecret, 200);
+  const clientSecret = clippedTextOrEmpty(input.clientSecret, 200);
   if (clientSecret.length < 16 || /\s/.test(clientSecret)) {
     return fail("Paste the integration's Client Secret from Sentry.");
   }
-  const authToken = str(input.authToken, TOKEN_MAX);
+  const authToken = clippedTextOrEmpty(input.authToken, TOKEN_MAX);
   const now = new Date();
   const values = {
     config: {},

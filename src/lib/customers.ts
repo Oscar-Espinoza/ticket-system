@@ -19,7 +19,7 @@ import {
 } from '@/db/schema';
 import { openStateType } from '@/lib/workflow-server';
 import type { IssueRow, StateType } from '@/lib/issue-model';
-import { memberOfIssueProject, queryIssues } from '@/lib/tickets';
+import { memberOfIssueProject, queryIssues, formatIssueKey } from '@/lib/tickets';
 import {
   isCustomerStatus,
   isImportance,
@@ -205,7 +205,7 @@ export const getCustomerDetail = cache(async function getCustomerDetail(
         ? {
             id: r.ticketId,
             projectId: r.ticketProjectId,
-            key: `${r.ticketKey}-${r.number}`,
+            key: formatIssueKey(r.ticketKey, r.number),
             title: r.title ?? '',
             stateType: (r.stateType ?? 'backlog') as StateType,
             stateColor: r.stateColor,

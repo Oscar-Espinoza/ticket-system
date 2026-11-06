@@ -192,7 +192,10 @@ export async function discoverOidcEndpoints(issuer: string) {
   };
   if (!allowPrivate) {
     const host = new URL(issuer).hostname;
-    const resolved = await lookup(host, { all: true }).catch(() => []);
+    const resolved = await lookup(host, { all: true }).catch((err) => {
+      console.warn(`[sso] DNS lookup failed for ${host}`, err instanceof Error ? err.message : err);
+      return [];
+    });
     if (!isPublicRoutableHost(host) || resolved.some((r) => !isPublicRoutableHost(r.address))) {
       throw new Error('The issuer must be a public address.');
     }
@@ -221,7 +224,8 @@ export interface WorkspaceSsoView {
   ssoMemberIds: string[];
 }
 
-function parseJson<T>(value: string | null): T | null {
+/** A stored JSON config column; null when empty or unparsable. */
+export function parseStored<T>(value: string | null | undefined): T | null {
   if (!value) return null;
   try {
     return JSON.parse(value) as T;
@@ -274,8 +278,8 @@ export async function getWorkspaceSso(workspaceId: string): Promise<WorkspaceSso
 
   let provider: WorkspaceSsoView['provider'] = null;
   if (link.providerId && link.domain && link.issuer) {
-    const saml = parseJson<StoredSamlConfig>(link.samlConfig);
-    const oidc = parseJson<StoredOidcConfig>(link.oidcConfig);
+    const saml = parseStored<StoredSamlConfig>(link.samlConfig);
+    const oidc = parseStored<StoredOidcConfig>(link.oidcConfig);
     provider = {
       providerId: link.providerId,
       protocol: oidc ? 'oidc' : 'saml',

@@ -14,11 +14,10 @@ import {
   milestones,
   projectMembers,
   projects,
-  tickets,
   users,
   workspaceMembers,
 } from '@/db/schema';
-import { epicProgressQuery, selectEpics, toEpicRow } from '@/lib/epics';
+import { epicProgressFor, epicRowQueries, toEpicRows } from '@/lib/epics';
 import { projectMemberOf } from '@/lib/project-access';
 import { roleAllows } from '@/lib/roles';
 import { EMPTY_PROGRESS, addProgress, type Progress } from '@/lib/epic-model';
@@ -106,9 +105,7 @@ export const getWorkspaceInitiatives = cache(
         .select({ id: epics.id, initiativeId: epics.initiativeId })
         .from(epics)
         .where(and(inArray(epics.initiativeId, workspaceInitiativeIds), visibleEpics(userId))),
-      epicProgressQuery(
-        and(inArray(tickets.epicId, linkedEpicIds), projectMemberOf(tickets.projectId, userId)),
-      ),
+      epicProgressFor(linkedEpicIds, userId),
     ]);
 
     const progressByEpic = new Map(progressRows.map(({ key, ...p }) => [key, p]));
@@ -149,10 +146,7 @@ export const getInitiativeDetail = cache(
             isWorkspaceMember,
           ),
         ),
-        selectEpics(linked),
-        epicProgressQuery(
-          and(inArray(tickets.epicId, linkedEpicIds), projectMemberOf(tickets.projectId, userId)),
-        ),
+        ...epicRowQueries(linked, userId),
         db
           .select({
             id: milestones.id,
@@ -206,13 +200,12 @@ export const getInitiativeDetail = cache(
     const [row] = rows;
     if (!row) return null;
     const projectById = new Map(projectRows.map((p) => [p.id, p]));
-    const progress = new Map(progressRows.map(({ key, ...p }) => [key, p]));
-    const epicList = epicRows.flatMap((epicRow) => {
+    const epicList = toEpicRows(epicRows, progressRows).flatMap((epicRow) => {
       const project = projectById.get(epicRow.projectId);
       if (!project) return [];
       return [
         {
-          ...toEpicRow(epicRow, progress),
+          ...epicRow,
           projectName: project.name,
           projectKey: project.ticketKey,
           canEdit: roleAllows(project.role, 'write'),

@@ -25,6 +25,7 @@ import {
 } from '@/lib/server/action-kit';
 import { isEntityId } from '@/lib/ids';
 import { sessionUserId } from '@/lib/session';
+import { clippedText } from '@/lib/text';
 
 export type DocumentActionResult = ActionResult<{ id: string }>;
 
@@ -55,11 +56,6 @@ async function authorizeDocument(documentId: unknown) {
 
 function cleanTitle(value: unknown): string {
   return typeof value === 'string' ? value.replace(/\s+/g, ' ').trim().slice(0, TITLE_MAX) || 'Untitled' : 'Untitled';
-}
-
-function cleanIcon(value: unknown): string | null {
-  if (typeof value !== 'string') return null;
-  return value.trim().slice(0, ICON_MAX) || null;
 }
 
 export async function createDocument(input: {
@@ -108,7 +104,7 @@ export async function updateDocument(input: {
 
   const patch: Partial<typeof documents.$inferInsert> = {};
   if (input.title !== undefined) patch.title = cleanTitle(input.title);
-  if (input.icon !== undefined) patch.icon = cleanIcon(input.icon);
+  if (input.icon !== undefined) patch.icon = clippedText(input.icon, ICON_MAX);
   if (input.epicId !== undefined) {
     const epicId = await epicInProject(input.epicId, doc.projectId);
     if (epicId === false) return fail('That epic isn’t in this project.');

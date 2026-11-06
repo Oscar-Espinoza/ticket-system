@@ -118,7 +118,7 @@ export function toIssueRow(row: IssueSelectRow, issueLabelsList: IssueLabel[] = 
   return {
     id: row.id,
     projectId: row.projectId,
-    key: `${row.ticketKey}-${row.number}`,
+    key: formatIssueKey(row.ticketKey, row.number),
     number: row.number,
     title: row.title,
     description: row.description,
@@ -278,6 +278,11 @@ export async function getIssueByKey(
     { limit: 1 },
   );
   return found ?? null;
+}
+
+/** ("APP", 12) → "APP-12": the issue key shown to people and accepted by `parseIssueKey`. */
+export function formatIssueKey(ticketKey: string, number: number): string {
+  return `${ticketKey}-${number}`;
 }
 
 /** "app-12" → { prefix: 'APP', number: 12 }; null when it isn't an issue key. */

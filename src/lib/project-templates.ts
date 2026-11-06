@@ -74,7 +74,7 @@ export interface ProjectTemplateConfig {
   issueTemplates: TemplateIssueTemplate[];
 }
 
-export const TEMPLATE_LIMITS = { states: 50, labels: 200, issueTemplates: 100 } as const;
+const TEMPLATE_LIMITS = { states: 50, labels: 200, issueTemplates: 100 } as const;
 
 const DEFAULT_SETTINGS: TemplateSettings = {
   estimateScale: 'none',
@@ -109,7 +109,7 @@ const list = (value: unknown, max: number): unknown[] =>
   Array.isArray(value) ? value.slice(0, max) : [];
 
 /** Drops anything malformed; duplicate names keep the first. */
-export function normalizeTemplateConfig(raw: unknown): ProjectTemplateConfig {
+function normalizeTemplateConfig(raw: unknown): ProjectTemplateConfig {
   const input = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
 
   const seenStates = new Set<string>();
@@ -232,7 +232,7 @@ export async function snapshotProject(projectId: string): Promise<ProjectTemplat
   });
 }
 
-export function templateSummary(config: ProjectTemplateConfig) {
+function templateSummary(config: ProjectTemplateConfig) {
   return {
     states: config.states.length,
     labels: config.labels.length,
@@ -322,7 +322,7 @@ export function projectSeed(
 // ---------------------------------------------------------------------------
 
 /** Templates `userId` may use: their own + ones shared with a workspace they're in. */
-export function usableTemplateFilter(userId: string) {
+function usableTemplateFilter(userId: string) {
   return or(
     eq(projectTemplates.ownerId, userId),
     inArray(

@@ -9,8 +9,8 @@ import {
   syncPullRequest,
   updatePullRequestStatus,
   type PrTrigger,
-  type VcsProject,
 } from '@/lib/vcs/automation';
+import type { VcsProject } from '@/lib/vcs/project';
 import { listCommitStatuses, type BitbucketAuth } from '@/lib/vcs/bitbucket';
 import type { BitbucketConfig } from '@/lib/vcs/integrations';
 import { combineChecks, combineReviews, type ChecksState } from '@/lib/vcs/providers';

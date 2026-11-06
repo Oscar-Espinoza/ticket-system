@@ -30,6 +30,7 @@ import {
 import { alias } from 'drizzle-orm/pg-core';
 
 import { db } from '@/lib/db';
+import { getMemberProject } from '@/lib/project-access';
 import { roleAllows, rolesAllowing } from '@/lib/roles';
 import { workspaceRoleAllows } from '@/lib/workspace-types';
 import {
@@ -41,6 +42,7 @@ import {
   workspaceMembers,
   workspaces,
 } from '@/db/schema';
+import { formatIssueKey } from '@/lib/tickets';
 
 // ---------------------------------------------------------------------------
 // Categories
@@ -192,18 +194,7 @@ export async function resolveAuditScope(
   if (typeof id !== 'string' || !id || id.length > 128 || !userId) return null;
 
   if (kind === 'project') {
-    const [row] = await db
-      .select({
-        id: projects.id,
-        name: projects.name,
-        ticketKey: projects.ticketKey,
-        workspaceId: projects.workspaceId,
-        role: projectMembers.role,
-      })
-      .from(projectMembers)
-      .innerJoin(projects, eq(projectMembers.projectId, projects.id))
-      .where(and(eq(projectMembers.projectId, id), eq(projectMembers.userId, userId)))
-      .limit(1);
+    const row = await getMemberProject(id, userId);
     if (!row || !roleAllows(row.role, 'admin')) return null;
     return {
       kind: 'project',
@@ -398,7 +389,7 @@ export async function queryAuditRows(
     const dataKey = typeof data.key === 'string' ? data.key : null;
     const liveKey =
       row.ticketNumber !== null && row.ticketProjectKey
-        ? `${row.ticketProjectKey}-${row.ticketNumber}`
+        ? formatIssueKey(row.ticketProjectKey, row.ticketNumber)
         : null;
     const key = liveKey ?? dataKey;
     return {

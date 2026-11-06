@@ -1,13 +1,13 @@
-// Label mutations (write level). Names are 1–40 chars and unique per project
-// (case-insensitively — the DB constraint is case-sensitive, so we pre-check;
-// 23505 stays the race backstop). Colors are #rrggbb.
+// Label mutations (write level): validate (names 1–40 chars, colors #rrggbb),
+// then the labels service applies them and enforces name uniqueness per project.
 
-import { and, eq, ne, sql } from 'drizzle-orm';
-
-import { db } from '@/lib/db';
-import { labels } from '@/db/schema';
 import { authorizeProjectAction } from '@/lib/action-auth';
-import { isUniqueViolation } from '@/lib/db-errors';
+import {
+  createLabel as createProjectLabel,
+  deleteLabel as deleteProjectLabel,
+  labelNameTaken,
+  updateLabel as updateProjectLabel,
+} from '@/lib/labels';
 import { LABEL_DESCRIPTION_MAX, LABEL_NAME_MAX } from '@/lib/label-model';
 import type { IssueLabel } from '@/lib/issue-model';
 import {
@@ -23,21 +23,6 @@ import {
 export type LabelActionResult = ActionResult<{ label?: IssueLabel }, 'name' | 'color' | 'description'>;
 
 const DUPLICATE = fail('A label with this name already exists.', 'name');
-
-async function nameTaken(projectId: string, name: string, exceptId?: string) {
-  const [row] = await db
-    .select({ id: labels.id })
-    .from(labels)
-    .where(
-      and(
-        eq(labels.projectId, projectId),
-        sql`lower(${labels.name}) = lower(${name})`,
-        exceptId ? ne(labels.id, exceptId) : undefined,
-      ),
-    )
-    .limit(1);
-  return Boolean(row);
-}
 
 export async function createLabel(input: {
   projectId: string;
@@ -55,21 +40,10 @@ export async function createLabel(input: {
   const description = descriptionOrNull(input.description, LABEL_DESCRIPTION_MAX);
   if (isFail(description)) return description;
 
-  if (await nameTaken(input.projectId, name)) return DUPLICATE;
-  const label = { id: crypto.randomUUID(), name, color };
-  try {
-    await db.insert(labels).values({
-      ...label,
-      projectId: input.projectId,
-      description,
-      createdAt: new Date(),
-    });
-  } catch (err) {
-    if (isUniqueViolation(err)) return DUPLICATE;
-    throw err;
-  }
+  const created = await createProjectLabel(input.projectId, { name, color, description });
+  if (!created.ok) return DUPLICATE;
   refreshesData();
-  return { ok: true, label };
+  return { ok: true, label: created.label };
 }
 
 export async function updateLabel(input: {
@@ -86,7 +60,7 @@ export async function updateLabel(input: {
   if (input.name !== undefined) {
     const name = requiredText(input.name, 'name', LABEL_NAME_MAX);
     if (isFail(name)) return name;
-    if (await nameTaken(input.projectId, name, input.id)) return DUPLICATE;
+    if (await labelNameTaken(input.projectId, name, input.id)) return DUPLICATE;
     changes.name = name;
   }
   if (input.color !== undefined) {
@@ -101,20 +75,10 @@ export async function updateLabel(input: {
   }
   if (Object.keys(changes).length === 0) return { ok: true };
 
-  let updated;
-  try {
-    updated = await db
-      .update(labels)
-      .set(changes)
-      .where(and(eq(labels.id, input.id), eq(labels.projectId, input.projectId)))
-      .returning({ id: labels.id, name: labels.name, color: labels.color });
-  } catch (err) {
-    if (isUniqueViolation(err)) return DUPLICATE;
-    throw err;
-  }
-  if (updated.length === 0) return fail('Label not found.');
+  const updated = await updateProjectLabel(input.projectId, input.id, changes);
+  if (!updated.ok) return updated.reason === 'duplicate' ? DUPLICATE : fail('Label not found.');
   refreshesData();
-  return { ok: true, label: updated[0] };
+  return { ok: true, label: updated.label };
 }
 
 /** Removes the label from every issue too (issue_label cascades). */
@@ -124,11 +88,7 @@ export async function deleteLabel(input: {
 }): Promise<LabelActionResult> {
   const authz = await authorizeProjectAction(input?.projectId, 'write');
   if (!authz.ok) return authz;
-  const deleted = await db
-    .delete(labels)
-    .where(and(eq(labels.id, input.id), eq(labels.projectId, input.projectId)))
-    .returning({ id: labels.id });
-  if (deleted.length === 0) return fail('Label not found.');
+  if (!(await deleteProjectLabel(input.projectId, input.id))) return fail('Label not found.');
   refreshesData();
   return { ok: true };
 }

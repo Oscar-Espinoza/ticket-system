@@ -17,9 +17,11 @@ import { emitIssueEvent } from '@/lib/events';
 import { SYSTEM_ACTOR, archive, bulkUpdate, purge, BULK_MAX } from '@/lib/issue-service';
 import { declineState } from '@/lib/triage';
 import { closedStateType, projectStatesQuery } from '@/lib/workflow-server';
+import { formatIssueKey } from '@/lib/tickets';
 
 export const TRASH_RETENTION_DAYS = 30;
-export const AUTO_CLOSED_EVENT = 'issue.auto_closed';
+
+const AUTO_CLOSED_EVENT = 'issue.auto_closed';
 
 const ARCHIVE_LIMIT = 100;
 const PURGE_LIMIT = 100;
@@ -123,7 +125,7 @@ async function autoClose(projectId: string, months: number) {
       ticketId: row.id,
       actorId: null,
       type: AUTO_CLOSED_EVENT,
-      data: { key: `${row.key}-${row.number}`, title: row.title, summary, months },
+      data: { key: formatIssueKey(row.key, row.number), title: row.title, summary, months },
     })),
   );
 }
@@ -152,10 +154,12 @@ async function cycleUpkeep(projectId: string, settings: ProjectSettings) {
   if (settings.cycleAutoCreate) {
     await ensureUpcomingCycles(
       projectId,
-      settings.cycleDurationWeeks,
+      {
+        durationWeeks: settings.cycleDurationWeeks,
+        weekday: settings.cycleStartWeekday,
+        cooldownWeeks: settings.cycleCooldownWeeks,
+      },
       now,
-      settings.cycleStartWeekday,
-      settings.cycleCooldownWeeks,
     );
   }
   await completeEndedCycles(SYSTEM_ACTOR, projectId, now, {

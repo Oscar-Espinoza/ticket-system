@@ -15,6 +15,7 @@ import { createNotifications } from '@/lib/notifications/create';
 import { countUnreadNotifications, visibleNotification } from '@/lib/notifications/inbox';
 import { NOTIFICATION_PREFS } from '@/lib/notifications/types';
 import { getSession, sessionUserId } from '@/lib/session';
+import { formatIssueKey } from '@/lib/tickets';
 
 const MAX_IDS = 500;
 const MAX_AHEAD_MS = 366 * 24 * 60 * 60 * 1000;
@@ -174,7 +175,7 @@ async function issueInProject(projectId: string, ticketId: unknown) {
     .innerJoin(projects, eq(tickets.projectId, projects.id))
     .where(and(eq(tickets.id, ticketId), eq(tickets.projectId, projectId)))
     .limit(1);
-  return row ? { id: row.id, key: `${row.prefix}-${row.number}`, title: row.title } : null;
+  return row ? { id: row.id, key: formatIssueKey(row.prefix, row.number), title: row.title } : null;
 }
 
 function pendingReminder(userId: string, ticketId: string) {

@@ -26,14 +26,14 @@ export function isChecksState(value: unknown): value is ChecksState {
 }
 
 /** What each host calls a pull request; GitLab numbers them `!12`, the others `#12`. */
-export const VCS_REQUEST_NOUN: Record<VcsProvider, { short: string; long: string; numberPrefix: string }> = {
+const VCS_REQUEST_NOUN: Record<VcsProvider, { short: string; long: string; numberPrefix: string }> = {
   github: { short: 'PR', long: 'Pull request', numberPrefix: '#' },
   gitlab: { short: 'MR', long: 'Merge request', numberPrefix: '!' },
   bitbucket: { short: 'PR', long: 'Merge request', numberPrefix: '#' },
 };
 
 /** Unknown provider values (old rows, bad input) read like GitHub. */
-const requestNoun = (provider: VcsProvider) => VCS_REQUEST_NOUN[provider] ?? VCS_REQUEST_NOUN.github;
+export const requestNoun = (provider: VcsProvider) => VCS_REQUEST_NOUN[provider] ?? VCS_REQUEST_NOUN.github;
 
 export function prNoun(provider: VcsProvider): string {
   return requestNoun(provider).short;

@@ -26,6 +26,7 @@ import { issuePath } from '@/lib/issue-links';
 import type { StateType } from '@/lib/issue-model';
 import { viewVisibleTo } from '@/lib/views';
 import { dashboardVisibleTo } from '@/lib/dashboards';
+import { formatIssueKey } from '@/lib/tickets';
 
 export interface SidebarFavorite {
   /** favorite row id */
@@ -129,7 +130,7 @@ export async function getSidebarFavorites(userId: string): Promise<SidebarFavori
     put('project', p.id, { label: p.name, href: `/dashboard/projects/${p.id}`, color: p.color });
   }
   for (const t of issueRows) {
-    const key = `${t.ticketKey}-${t.number}`;
+    const key = formatIssueKey(t.ticketKey, t.number);
     put('issue', t.id, {
       label: `${key} ${t.title}`,
       href: issuePath(t.projectId, key),

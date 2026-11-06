@@ -36,6 +36,7 @@ import {
   type Importance,
   type IssueCustomerRequest,
 } from '@/lib/customer-model';
+import { formatIssueKey } from '@/lib/tickets';
 
 export type CustomerActionResult<T = object> = ActionResult<T>;
 
@@ -275,7 +276,7 @@ async function loadTicket(projectId: string, ticketId: unknown) {
     .innerJoin(projects, eq(tickets.projectId, projects.id))
     .where(and(eq(tickets.id, ticketId), eq(tickets.projectId, projectId)))
     .limit(1);
-  return row ? { id: row.id, key: `${row.ticketKey}-${row.number}`, title: row.title } : null;
+  return row ? { id: row.id, key: formatIssueKey(row.ticketKey, row.number), title: row.title } : null;
 }
 
 export async function getIssueCustomers(input: {

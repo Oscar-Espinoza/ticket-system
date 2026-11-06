@@ -7,7 +7,6 @@ import { and, desc, eq, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { activities, tickets, workflowStates } from '@/db/schema';
 import { isStateType } from '@/lib/issue-model';
-import { fail, type ActionResult } from '@/lib/server/action-kit';
 import { timeInStatus, type StateChange, type StateRef, type TimeInState } from '@/lib/sla';
 
 /** State changes read per issue (newest kept). */
@@ -21,13 +20,8 @@ function stateRef(value: unknown): StateRef | null {
     : null;
 }
 
-/** Time spent in each workflow state of an issue (untrusted `issueId`). */
-export async function readTimeInStatus(
-  projectId: string,
-  issueId: unknown,
-): Promise<ActionResult<{ states: TimeInState[] }>> {
-  if (typeof issueId !== 'string' || !issueId) return fail('Issue not found.');
-
+/** Time spent in each workflow state of an issue; null when the issue isn't in the project. */
+export async function readTimeInStatus(projectId: string, issueId: string): Promise<TimeInState[] | null> {
   const [issueRows, changeRows] = await db.batch([
     db
       .select({
@@ -55,7 +49,7 @@ export async function readTimeInStatus(
       .limit(HISTORY_LIMIT),
   ]);
   const [issue] = issueRows;
-  if (!issue) return fail('Issue not found.');
+  if (!issue) return null;
 
   const changes: StateChange[] = [];
   for (const row of changeRows.reverse()) {
@@ -67,5 +61,5 @@ export async function readTimeInStatus(
     if (change) changes.push({ at: row.at, from: stateRef(change.from), to: stateRef(change.to) });
   }
   const current = { id: issue.stateId, name: issue.stateName, type: issue.stateType };
-  return { ok: true, states: timeInStatus(issue.createdAt, changes, current) };
+  return timeInStatus(issue.createdAt, changes, current);
 }

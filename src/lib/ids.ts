@@ -1,7 +1,7 @@
 // Shapes of ids that cross the wire. Client-safe.
 
 /** Document, epic and collab-key ids: short, URL-safe. */
-export const ENTITY_ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
+const ENTITY_ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
 
 export const isEntityId = (value: unknown): value is string =>
   typeof value === 'string' && ENTITY_ID_RE.test(value);

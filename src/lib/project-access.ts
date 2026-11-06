@@ -114,6 +114,7 @@ export const getMemberProject = cache(
         id: projects.id,
         name: projects.name,
         ticketKey: projects.ticketKey,
+        workspaceId: projects.workspaceId,
         role: projectMembers.role,
       })
       .from(projectMembers)

@@ -18,7 +18,6 @@ import { db } from '@/lib/db';
 import { issueRelations, tickets, workflowStates } from '@/db/schema';
 import type { IssueRow } from '@/lib/issue-model';
 import { stripMentions } from '@/lib/mentions';
-import { fail, type ActionResult } from '@/lib/server/action-kit';
 import { getTicketById, issueDocument, memberOfIssueProject, queryIssues } from '@/lib/tickets';
 import { closedStateType } from '@/lib/workflow-server';
 
@@ -143,20 +142,18 @@ export async function findSimilarIssues(
   });
 }
 
-export type SimilarResult = ActionResult<{ similar: SimilarIssue[] }>;
-
 /**
- * Issues similar to an existing one (untrusted `ticketId`), minus the ones
- * already tied to it: relations in either direction, its parent and its sub-issues.
+ * Issues similar to an existing one, minus the ones already tied to it:
+ * relations in either direction, its parent and its sub-issues. Null when the
+ * issue doesn't exist (or is trashed).
  */
-export async function readSimilarIssues(
+export async function findIssuesSimilarTo(
   userId: string,
   projectId: string,
-  ticketId: unknown,
-): Promise<SimilarResult> {
-  if (typeof ticketId !== 'string' || !ticketId) return fail('Issue not found.');
+  ticketId: string,
+): Promise<SimilarIssue[] | null> {
   const issue = await getTicketById(projectId, ticketId);
-  if (!issue || issue.deletedAt) return fail('Issue not found.');
+  if (!issue || issue.deletedAt) return null;
 
   const [relations, children] = await db.batch([
     db
@@ -169,11 +166,10 @@ export async function readSimilarIssues(
   if (issue.parentId) exclude.add(issue.parentId);
   for (const r of relations) exclude.add(r.a).add(r.b);
 
-  const similar = await findSimilarIssues(userId, projectId, {
+  return findSimilarIssues(userId, projectId, {
     title: issue.title,
     description: issue.description ? stripMentions(issue.description) : null,
     excludeIds: [...exclude],
     limit: 5,
   });
-  return { ok: true, similar };
 }

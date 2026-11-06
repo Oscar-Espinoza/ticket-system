@@ -18,7 +18,7 @@ import { isStateType, type StateType } from '@/lib/issue-model';
 import { stripMentions } from '@/lib/mentions';
 import { ensureSubscribed, getSubscriberIdsByTicket } from '@/lib/subscriptions';
 import { isClosed } from '@/lib/workflow';
-import { createNotifications } from './create';
+import { deliverNotifications, insertNotifications } from './create';
 import type { ChannelNotification } from './channels';
 import type { NotificationData, NotificationType } from './types';
 
@@ -223,6 +223,7 @@ async function dispatch(events: StoredIssueEvent[]) {
     createdAt: candidate.event.createdAt,
   }));
 
-  await createNotifications(rows, { beforeDelivery: subscribing });
-  await subscribing;
+  const inserted = await insertNotifications(rows);
+  await subscribing; // auto-subscriptions land before any email / push / Slack goes out
+  if (inserted) await deliverNotifications(inserted);
 }

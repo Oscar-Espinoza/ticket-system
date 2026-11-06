@@ -51,8 +51,12 @@ const CHUNK = 500;
 export interface CreateNotificationsOptions {
   /** Runs in the same transaction, before the insert (a new reminder replaces its predecessor). */
   replacing?: BatchItem<'pg'>;
-  /** Awaited after the insert and before email / push / Slack delivery. */
-  beforeDelivery?: Promise<unknown>;
+}
+
+/** Rows that were inserted, waiting to be delivered by `deliverNotifications`. */
+export interface InsertedNotifications {
+  accepted: ChannelNotification[];
+  people: Map<string, Recipient>;
 }
 
 type Recipient = Person & { prefs: Record<string, boolean> | null };
@@ -73,11 +77,11 @@ async function loadRecipients(ids: string[]): Promise<Map<string, Recipient>> {
   return new Map(people.map((person) => [person.id, person]));
 }
 
-/** Returns the rows that were inserted (those the recipients' preferences allowed). */
-export async function createNotifications(
+/** Inserts the rows the recipients' preferences allow; null when none were inserted. */
+export async function insertNotifications(
   rows: ChannelNotification[],
   options: CreateNotificationsOptions = {},
-): Promise<ChannelNotification[]> {
+): Promise<InsertedNotifications | null> {
   const needsPeople = rows.some((row) => ruleFor(row.type).prefs || ruleFor(row.type).email);
   const emailsAny = rows.some((row) => ruleFor(row.type).email);
   const ids = new Set<string>();
@@ -99,11 +103,13 @@ export async function createNotifications(
   for (let i = 0; i < accepted.length; i += CHUNK) {
     statements.push(db.insert(notifications).values(accepted.slice(i, i + CHUNK)));
   }
-  if (statements.length === 0) return [];
+  if (statements.length === 0) return null;
   await db.batch(statements as [BatchItem<'pg'>, ...BatchItem<'pg'>[]]);
-  if (accepted.length === 0) return [];
+  return accepted.length === 0 ? null : { accepted, people };
+}
 
-  await options.beforeDelivery;
+/** Email / push / Slack delivery of inserted rows; never throws. */
+export async function deliverNotifications({ accepted, people }: InsertedNotifications): Promise<void> {
   await Promise.allSettled([
     deliverEmail(
       accepted.filter((row) => ruleFor(row.type).email),
@@ -111,5 +117,15 @@ export async function createNotifications(
     ),
     deliverToChannels(accepted.filter((row) => ruleFor(row.type).channels)),
   ]);
-  return accepted;
+}
+
+/** Inserts and delivers. Returns the rows that were inserted (those the recipients' preferences allowed). */
+export async function createNotifications(
+  rows: ChannelNotification[],
+  options: CreateNotificationsOptions = {},
+): Promise<ChannelNotification[]> {
+  const inserted = await insertNotifications(rows, options);
+  if (!inserted) return [];
+  await deliverNotifications(inserted);
+  return inserted.accepted;
 }

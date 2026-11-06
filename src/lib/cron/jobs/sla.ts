@@ -15,6 +15,7 @@ import { createNotifications } from '@/lib/notifications/create';
 import { slaPastDue } from '@/lib/sla-server';
 import { getSubscriberIdsByTicket } from '@/lib/subscriptions';
 import { openStateType } from '@/lib/workflow-server';
+import { formatIssueKey } from '@/lib/tickets';
 
 const BATCH = 500;
 /** Safety valve: at most this many batches per run (the next run continues). */
@@ -78,7 +79,7 @@ async function flagBatch(now: Date): Promise<number> {
 
   const rows: NotificationInsert[] = [];
   const events = claimed.map((issue) => {
-    const key = `${keyOf.get(issue.projectId) ?? '?'}-${issue.number}`;
+    const key = formatIssueKey(keyOf.get(issue.projectId) ?? '?', issue.number);
     const data = { key, title: issue.title, summary: SUMMARY };
     const recipients = new Set([issue.assigneeId, ...(subscribers.get(issue.id) ?? [])]);
     for (const userId of recipients) {
