@@ -29,7 +29,7 @@
     /** The project's epic labels. */
     labels: EpicLabelRow[];
     relations: EpicRelationRow[];
-    /** Project docs linked to this epic (D2). */
+    /** Project docs linked to this epic. */
     documents?: DocumentSummary[];
     /** null: the project isn't in a workspace the viewer belongs to. */
     initiatives: InitiativeOption[] | null;

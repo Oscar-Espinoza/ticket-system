@@ -1,5 +1,5 @@
 <!--
-  Port of src/components/issue-detail/issue-detail-pane.tsx: the issue list's
+  The issue list's
   side pane (desktop) / right sheet (below lg). `useIsDesktop` is re-exported
   from the module script (React exported it from the same file).
 -->
@@ -27,7 +27,7 @@
 
   const desktop = useIsDesktop();
 
-  // Desktop pane isn't a dialog, so Esc goes through the C3 registry (which
+  // Desktop pane isn't a dialog, so Esc goes through the hotkey registry (which
   // already ignores it inside text fields and while a menu/dialog is open).
   $effect(() => {
     if (!desktop.current) return;

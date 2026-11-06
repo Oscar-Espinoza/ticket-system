@@ -1,5 +1,4 @@
-<!-- Read-only chips for the filter terms of a query (search page header).
-     Port of SearchTermChips in src/components/views/search-syntax-help.tsx. -->
+<!-- Read-only chips for the filter terms of a query (search page header). -->
 <script lang="ts">
   import { formatSearchTerm, parseSearchQuery } from '@/lib/issue-filtering';
   import { cn } from '@/lib/utils';

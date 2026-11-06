@@ -1,7 +1,7 @@
 <!--
   "Similar issues": trigram + full-text neighbours of this
   issue (already-related ones excluded server-side), each with "Mark as
-  duplicate of…" (B4's relation action, which also moves this issue to the
+  duplicate of…" (the relation action, which also moves this issue to the
   Duplicate state) and a per-viewer dismiss kept in localStorage.
 -->
 <script module lang="ts">

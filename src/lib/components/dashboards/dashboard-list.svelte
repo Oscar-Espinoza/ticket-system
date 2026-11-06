@@ -66,7 +66,7 @@
       const result = await deleteDashboard({ id: target.id });
       if (!result.ok) toast.error(result.error);
       else {
-        // The action wrapper already refreshed the page data (revalidatePath).
+        // The action wrapper already refreshed the page data (refreshesData()).
         toast.success('Dashboard deleted');
       }
     });

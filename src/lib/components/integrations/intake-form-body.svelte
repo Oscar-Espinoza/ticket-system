@@ -1,4 +1,4 @@
-<!-- The intake form itself (FormBody in intake-form.tsx): useActionState → state + pending. -->
+<!-- The intake form itself: useActionState → state + pending. -->
 <script lang="ts">
   import { tick } from 'svelte';
   import CircleCheckIcon from '@lucide/svelte/icons/circle-check';

@@ -1,4 +1,4 @@
-<!-- Emoji picker for a comment (ReactionPicker of reactions.tsx). -->
+<!-- Emoji picker for a comment. -->
 <script lang="ts">
   import SmilePlus from '@lucide/svelte/icons/smile-plus';
 

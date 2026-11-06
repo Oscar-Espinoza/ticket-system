@@ -1,6 +1,5 @@
 <!--
-  A draggable board card. Port of BoardCard from src/components/board/board-card.tsx
-  (props: id, index, container, issue, active, onSelect). Must render inside
+  A draggable board card. Must render inside
   the board's DragDropProvider.
 -->
 <script lang="ts">
@@ -12,6 +11,7 @@
     useIsSelected,
     useIssueSelection,
   } from '@/lib/components/issues/selection.svelte';
+  import { BOARD_CARD_ATTR, issueAttr } from '@/lib/components/issues/issue-dom';
   import { isPendingIssue } from '@/lib/components/issues/use-issue-mutations.svelte';
   import { useProjectPermission } from '@/lib/components/project/project-data.svelte';
   import type { IssueRow } from '@/lib/issue-model';
@@ -62,7 +62,7 @@
 <div
   {@attach sortable.attach}
   tabindex={0}
-  data-board-card={issue.id}
+  {...issueAttr(BOARD_CARD_ATTR, issue.id)}
   aria-label={`${issue.key} ${issue.title}, ${issue.state.name}.${canWrite.current ? ' Press Space to move.' : ''}`}
   aria-current={active ? 'true' : undefined}
   aria-selected={selection.enabled ? selected.current : undefined}

@@ -1,7 +1,7 @@
 // Shared tail of every importer: chunked import with progress → result summary.
 // Chunks run sequentially so issue numbers follow file order.
 //
-// Svelte port of useImportRunner (src/components/import/import-runner.tsx):
+// useImportRunner:
 //   const runner = useImportRunner(projectId);   // id or getter; call during init
 //   runner.run(records) / runner.progress / runner.summary / runner.reset()
 // `progress` and `summary` are reactive getters (read them off `runner`).

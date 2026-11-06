@@ -1,5 +1,4 @@
-// Relation kinds shown by SectionRelations / AddRelation (port of the module
-// constants in src/components/issue-detail/slots/section-relations.tsx).
+// Relation kinds shown by SectionRelations / AddRelation.
 
 import ArrowLeftRightIcon from '@lucide/svelte/icons/arrow-left-right';
 import CopyIcon from '@lucide/svelte/icons/copy';

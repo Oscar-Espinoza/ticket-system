@@ -1,7 +1,6 @@
 <!--
   Editor dialog for a recurring issue: title, description, cadence, default
-  properties, due offset, with a preview of the next runs (local helper of
-  recurring-settings.tsx).
+  properties, due offset, with a preview of the next runs.
 -->
 <script lang="ts">
   import { untrack } from 'svelte';

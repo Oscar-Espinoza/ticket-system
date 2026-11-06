@@ -2,7 +2,7 @@
   Docs tab: the project's documents as dense rows (icon, title, preview, epic,
   last editor, updated), a search box kept in `?q=` (title + content, server
   side), Active / Archived, and per-row actions (copy link, archive, delete).
-  Port of documents-list.tsx (DeleteDocumentDialog is ./delete-document-dialog.svelte;
+  (DeleteDocumentDialog is ./delete-document-dialog.svelte;
   copyDocumentLink is exported from this file's module script).
 -->
 <script module lang="ts">

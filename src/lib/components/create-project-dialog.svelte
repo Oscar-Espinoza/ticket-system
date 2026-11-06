@@ -1,12 +1,11 @@
 <!--
-  CreateProjectDialog — PROJ-01. Port of src/components/create-project-dialog.tsx.
+  CreateProjectDialog: a dialog triggered by the "New project" button, not a dedicated route.
 
-  D-16: shadcn Dialog triggered by "New project" button, NOT a dedicated route.
-  D-17: ticket key auto-uppercases and strips non-A-Z characters on every keystroke,
-        capped at 6 chars. Validation (2-char minimum, uniqueness) happens on submit.
+  The ticket key auto-uppercases and strips non-A-Z characters on every keystroke,
+  capped at 6 chars. Validation (2-char minimum, uniqueness) happens on submit.
   The form posts to the createProject server action through its generated
   (prevState, formData) wrapper — useActionState's state + pending, by hand.
-  Project templates (D4a): an optional Template select, loaded when the dialog opens.
+  Project templates an optional Template select, loaded when the dialog opens.
 -->
 <script lang="ts">
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
@@ -51,7 +50,7 @@
     controlledOnOpenChange?.(next);
   }
 
-  // IN-03: this dialog mounts more than once per page (section header + empty
+  // This dialog mounts more than once per page (section header + empty
   // state CTA). Derive all field/error ids from a $props.id() prefix so the two
   // instances never collide on duplicate DOM ids (which would break
   // aria-describedby / for associations for screen readers).
@@ -70,7 +69,7 @@
   let nameInput = $state<HTMLInputElement | null>(null);
 
   // Success side effects run inside the submit (not an effect) so they fire on
-  // EVERY successful submit (02-REVIEW WR-04).
+  // EVERY successful submit.
   async function onsubmit(event: SubmitEvent & { currentTarget: HTMLFormElement }) {
     event.preventDefault();
     if (isPending) return;
@@ -142,7 +141,7 @@
           placeholder="APP"
           value={ticketKey}
           oninput={(event: Event & { currentTarget: HTMLInputElement }) => {
-            // D-17: auto-uppercase, strip non-A-Z, cap at 6 chars.
+            // Auto-uppercase, strip non-A-Z, cap at 6 chars.
             // Client transform is UX only — server re-validates on submit.
             const transformed = event.currentTarget.value
               .toUpperCase()

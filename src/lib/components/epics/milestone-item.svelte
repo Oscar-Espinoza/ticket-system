@@ -1,4 +1,4 @@
-<!-- One milestone row (milestones-section.tsx MilestoneItem). -->
+<!-- One milestone row. -->
 <script lang="ts">
   import ArrowDownIcon from '@lucide/svelte/icons/arrow-down';
   import ArrowUpIcon from '@lucide/svelte/icons/arrow-up';

@@ -1,8 +1,8 @@
 <!--
-  Owner: B2 (notifications). Unread count at the end of the sidebar Inbox link.
+  Unread count at the end of the sidebar Inbox link.
   The dashboard layout load streams the count (an un-awaited promise), so the
   query never holds up the shell; the client pill then keeps itself fresh.
-  Port of src/components/app-shell/slots/inbox-badge.tsx — the server query
+  The server query
   (countUnreadNotifications, errors → 0) lives in app-shell.server.ts.
 -->
 <script module lang="ts">

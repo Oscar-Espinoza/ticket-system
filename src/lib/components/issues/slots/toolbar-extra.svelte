@@ -4,7 +4,7 @@
   saved view page (known through our SavedViewProvider, else IssuesView's
   view context or the `savedView` prop).
   Cycle / epic pages list a scoped subset a view wouldn't capture, so they get
-  nothing here. Port of src/components/issues/slots/toolbar-extra.tsx.
+  nothing here.
 -->
 <script lang="ts">
   import BookmarkPlusIcon from '@lucide/svelte/icons/bookmark-plus';

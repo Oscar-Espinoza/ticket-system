@@ -37,6 +37,7 @@
   } from '@/lib/components/ui/dropdown-menu';
   import { Avatar } from '@/lib/components/ui-icons';
   import type { IssueRow } from '@/lib/issue-model';
+  import { copyToClipboard } from '@/lib/components/productivity/issue-actions';
   import { cn } from '@/lib/utils';
   import { isClosed } from '@/lib/workflow';
   import CustomerDialog from './customer-dialog.svelte';
@@ -86,14 +87,7 @@
     }
   }
 
-  async function copyLink() {
-    try {
-      await navigator.clipboard.writeText(window.location.href.split('?')[0]);
-      toast.success('Copied customer link');
-    } catch {
-      toast.error('Could not copy to the clipboard.');
-    }
-  }
+  const copyLink = () => copyToClipboard(window.location.href.split('?')[0], 'customer link');
 
   const openIssues = $derived(issues.filter((issue) => !issue.archivedAt && !isClosed(issue.state.type)).length);
   const owner = $derived(customer.owner);

@@ -22,6 +22,8 @@
   import { addDays, formatDueDate, fromDateString, toDateString } from '@/lib/dates';
   import type { IssueGroup } from '@/lib/issue-grouping';
   import type { IssuePatch, IssueRow } from '@/lib/issue-model';
+  import { DAY_MS } from '@/lib/time';
+  import { NAME_COLUMN } from './timeline-layout';
   import { cn } from '@/lib/utils';
   import type { IssueViewProps } from '@/lib/components/issues/views';
   import { readStorage, writeStorage } from '@/lib/svelte/storage';
@@ -37,9 +39,7 @@
   const PX_PER_DAY: Record<Zoom, number> = { week: 36, month: 12 };
   const ZOOM_KEY = 'issues-timeline-zoom';
 
-  const NAME_COLUMN = 280;
   const STUB_DAYS = 2; // no due date: a 3-day dashed stub
-  const DAY_MS = 86_400_000;
 
   const monthLabel = new Intl.DateTimeFormat('en', { month: 'short' });
   const weekdayLabel = new Intl.DateTimeFormat('en', { weekday: 'narrow' });

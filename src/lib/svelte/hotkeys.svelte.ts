@@ -1,6 +1,6 @@
 // The app's only global keydown listener; the `?` overlay lists exactly what is registered.
 //
-// Svelte port of src/lib/hotkeys.ts. API (same names as the React module):
+// API:
 //   registerHotkeys(list) → cleanup      call from $effect / onMount and return the cleanup
 //   formatHotkey({ mod, shift, key })    "⌘⇧K" on Mac, "Ctrl+Shift+K" elsewhere
 //   getHotkeys() / subscribeHotkeys(fn)  raw snapshot + listener (useSyncExternalStore pair)
@@ -8,7 +8,7 @@
 //                                        useSyncExternalStore(subscribeHotkeys, getHotkeys))
 //   hasOpenLayer() / isEditableTarget()  the layer / text-field tests the registry uses
 //
-// This is its own registry (not a re-export of src/lib/hotkeys.ts) because the
+// This is its own registry (not a re-export) because the
 // open-layer test must look for bits-ui's floating wrapper instead of Radix's.
 // Every Svelte module must register here — never import '@/lib/hotkeys'.
 //

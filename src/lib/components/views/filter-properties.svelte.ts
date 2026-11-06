@@ -1,7 +1,5 @@
-// The filterable properties behind FilterMenu and FilterChips (the
-// useFilterProperties / toggleValue / valuesText helpers of
-// src/components/views/filter-menu.tsx). Option icons were ReactNodes; here
-// they are plain descriptors that FilterMenu renders (FilterOptionIcon).
+// The filterable properties behind FilterMenu and FilterChips.
+// Option icons are plain descriptors that FilterMenu renders (FilterOptionIcon).
 
 import type { LucideIcon } from '@lucide/svelte';
 import CalendarClockIcon from '@lucide/svelte/icons/calendar-clock';

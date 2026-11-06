@@ -1,4 +1,4 @@
-<!-- OAuth consent card (port of src/components/oauth/consent-form.tsx). -->
+<!-- OAuth consent card. -->
 <script module lang="ts">
   export interface ConsentApp {
     name: string;

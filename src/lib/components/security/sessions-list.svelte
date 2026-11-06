@@ -1,5 +1,5 @@
 <!--
-  Settings → Security → Sessions (port of src/components/security/sessions-list.tsx):
+  Settings → Security → Sessions:
   every signed-in device, newest activity first; revoke one or all others.
   Revocation goes through server actions that map the session id to its token
   server-side.

@@ -1,15 +1,15 @@
 <!-- One calendar day: drop target + up to MAX_CHIPS chips, the rest behind "+N more".
-     (DayCell in src/components/views/calendar-view.tsx; renders inside the DragDropProvider.) -->
+     Renders inside the DragDropProvider. -->
 <script lang="ts">
   import { createDroppable } from '@dnd-kit/svelte';
 
   import { Popover, PopoverContent, PopoverTrigger } from '@/lib/components/ui/popover';
   import type { IssueRow } from '@/lib/issue-model';
   import { cn } from '@/lib/utils';
+  import { dayDropId } from './calendar-ids';
   import CalendarDraggableChip from './calendar-draggable-chip.svelte';
 
   const MAX_CHIPS = 4;
-  const DAY_PREFIX = 'day:';
   const dayFormat = new Intl.DateTimeFormat('en', { weekday: 'long', month: 'long', day: 'numeric' });
 
   let {
@@ -28,7 +28,7 @@
 
   const droppable = createDroppable({
     get id() {
-      return `${DAY_PREFIX}${date}`;
+      return dayDropId(date);
     },
     accept: 'issue',
   });

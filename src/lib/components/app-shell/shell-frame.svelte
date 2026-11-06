@@ -3,6 +3,7 @@
   import type { Snippet } from 'svelte';
   import { createSubscriber, MediaQuery } from 'svelte/reactivity';
 
+  import { readStorage, writeStorage } from '@/lib/svelte/storage';
   import type { SidebarProject } from './sidebar-types';
 
   export type ShellProject = SidebarProject;
@@ -23,19 +24,11 @@
   const collapseListeners = new Set<() => void>();
 
   function readCollapsed(): boolean {
-    try {
-      return localStorage.getItem(COLLAPSED_KEY) === '1';
-    } catch {
-      return false;
-    }
+    return readStorage(COLLAPSED_KEY) === '1';
   }
 
   function writeCollapsed(value: boolean) {
-    try {
-      localStorage.setItem(COLLAPSED_KEY, value ? '1' : '0');
-    } catch {
-      // Storage unavailable (private mode): the choice just isn't remembered.
-    }
+    writeStorage(COLLAPSED_KEY, value ? '1' : '0');
     collapseListeners.forEach((listener) => listener());
   }
 

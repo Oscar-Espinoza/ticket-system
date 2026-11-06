@@ -54,7 +54,7 @@
     onCreate?: (patch: IssuePatch | null) => void;
   } = $props();
 
-  // Pointer only: Space on a focused row belongs to peek preview (B6).
+  // Pointer only: Space on a focused row belongs to peek preview.
   // The manager is built here (with the sensors) so rows that register before
   // the provider's own sensor sync never get the default KeyboardSensor
   // (dnd-kit#2112); `sensors` is still passed so the provider keeps them.

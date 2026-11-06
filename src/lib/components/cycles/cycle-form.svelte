@@ -1,4 +1,4 @@
-<!-- Create / edit form inside CycleFormDialog (local helper of cycle-dialogs.tsx). -->
+<!-- Create / edit form inside CycleFormDialog. -->
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { untrack } from 'svelte';

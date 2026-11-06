@@ -1,6 +1,6 @@
 <!--
   Sandboxed provider iframe with a quiet caption, shared by the editor's embed
-  node view and the markdown renderer. Port of src/components/editor/embed-frame.tsx.
+  node view and the markdown renderer.
 -->
 <script lang="ts">
   import ExternalLink from '@lucide/svelte/icons/external-link';

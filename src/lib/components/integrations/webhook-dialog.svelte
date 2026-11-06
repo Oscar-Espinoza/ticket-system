@@ -1,4 +1,4 @@
-<!-- Add / edit a webhook (WebhookDialog in webhook-settings.tsx). Mounted while open. -->
+<!-- Add / edit a webhook. Mounted while open. -->
 <script lang="ts">
   import LoaderCircleIcon from '@lucide/svelte/icons/loader-circle';
   import { toast } from 'svelte-sonner';

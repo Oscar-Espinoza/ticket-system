@@ -1,4 +1,4 @@
-// Tiptap setup for the rich editor (port of src/components/editor/extensions.ts).
+// Tiptap setup for the rich editor.
 // Everything dynamic (members, issues, upload target, callbacks, the
 // suggestion menu) is read through `runtime`, a holder the Svelte component
 // keeps current, so the extensions are built once per editor. Same extension

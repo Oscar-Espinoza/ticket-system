@@ -1,4 +1,4 @@
-<!-- initiative-detail.tsx InitiativeDescription. -->
+<!-- Initiative description: markdown view + editor. -->
 <script lang="ts">
   import RichText from '@/lib/components/epics/rich-text.svelte';
   import RichTextEditor from '@/lib/components/epics/rich-text-editor.svelte';

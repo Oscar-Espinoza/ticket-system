@@ -1,4 +1,4 @@
-<!-- Slack app setup: request URLs and the app manifest (SetupGuide in slack-app-settings.tsx). -->
+<!-- Slack app setup: request URLs and the app manifest. -->
 <script lang="ts">
   import ExternalLinkIcon from '@lucide/svelte/icons/external-link';
 

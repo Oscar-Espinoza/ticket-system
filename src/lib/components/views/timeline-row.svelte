@@ -1,4 +1,4 @@
-<!-- One timeline row: sticky name cell + the bar (TimelineRow in src/components/views/timeline-view.tsx). -->
+<!-- One timeline row: sticky name cell + the bar. -->
 <script module lang="ts">
   export type DragMode = 'move' | 'start' | 'end';
   export type TimelinePointerEvent = PointerEvent & { currentTarget: EventTarget & HTMLElement };
@@ -20,13 +20,14 @@
     useIsSelected,
     useIssueSelection,
   } from '@/lib/components/issues/selection.svelte';
+  import { ISSUE_ROW_ATTR, issueAttr } from '@/lib/components/issues/issue-dom';
   import { isPendingIssue } from '@/lib/components/issues/use-issue-mutations.svelte';
   import { StateIcon } from '@/lib/components/ui-icons';
   import type { IssueRow } from '@/lib/issue-model';
   import { cn } from '@/lib/utils';
+  import { NAME_COLUMN } from './timeline-layout';
   import { isClosed } from '@/lib/workflow';
 
-  const NAME_COLUMN = 280;
   const ROW_HEIGHT = 32;
 
   let {
@@ -61,11 +62,10 @@
 </script>
 
 <div role="listitem" class="flex border-b border-border/60" style:height="{ROW_HEIGHT}px">
-  <!-- Same markup as React: a focusable row cell without a role. -->
   <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_static_element_interactions -->
   <div
     tabindex="0"
-    data-issue-row={issue.id}
+    {...issueAttr(ISSUE_ROW_ATTR, issue.id)}
     aria-label={`${issue.key} ${issue.title}, ${issue.state.name}`}
     aria-current={active ? 'true' : undefined}
     aria-selected={selection.enabled ? selected.current : undefined}

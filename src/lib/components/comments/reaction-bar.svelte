@@ -1,4 +1,4 @@
-<!-- A comment's reaction chips (ReactionBar of reactions.tsx). -->
+<!-- A comment's reaction chips. -->
 <script lang="ts">
   import { Tooltip, TooltipContent, TooltipTrigger } from '@/lib/components/ui/tooltip';
   import type { CommentReaction, ReactionGroup } from '@/lib/timeline';

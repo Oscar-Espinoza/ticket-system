@@ -2,7 +2,7 @@ import { refreshAll } from '$app/navigation';
 import { page } from '$app/state';
 
 // Refresh the open route after a write, the way Next applied an action's
-// revalidatePath. Used by the generated action wrappers (src/lib/actions/*)
+// refreshesData(). Used by the generated action wrappers (src/lib/actions/*)
 // and the outbox (outbox.svelte.ts).
 //
 // A refreshAll() that starts while another is loading makes Kit throw the

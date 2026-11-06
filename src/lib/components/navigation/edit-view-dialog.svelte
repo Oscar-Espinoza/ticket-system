@@ -1,4 +1,4 @@
-<!-- Rename / re-describe / (un)share a saved view (EditViewDialog in src/components/navigation/view-list.tsx). -->
+<!-- Rename / re-describe / (un)share a saved view. -->
 <script lang="ts">
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
   import { toast } from 'svelte-sonner';

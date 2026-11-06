@@ -2,7 +2,7 @@
 // Templates load the first time a dialog opens; saving / deleting a template
 // calls `invalidateProjectTemplates()`.
 //
-// Svelte port of the non-component exports of template-select.tsx:
+// Non-component exports of template-select:
 //   invalidateProjectTemplates()
 //   useProjectTemplates(enabled)  → { readonly current: ProjectTemplateRow[] | undefined }
 //     `enabled` is a boolean or a getter (dialog open); undefined while loading.

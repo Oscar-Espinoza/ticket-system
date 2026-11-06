@@ -1,5 +1,4 @@
-// Svelte side of the Postgres-relayed Yjs provider (port of
-// src/components/collab/use-collab.ts): a shared, ref-counted provider per
+// Svelte side of the Postgres-relayed Yjs provider: a shared, ref-counted provider per
 // key, its status, the Tiptap Collaboration + caret extensions for
 // MarkdownEditor (`extensions`, `history={false}`, `controlled={false}`) and
 // the other people currently in the document.

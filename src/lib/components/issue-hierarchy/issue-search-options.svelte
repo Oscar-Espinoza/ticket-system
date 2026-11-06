@@ -1,6 +1,5 @@
 <!--
-  Bare searchable issue list, for popovers / dialogs (port of IssueSearchOptions
-  in src/components/issue-hierarchy/issue-search-picker.tsx).
+  Bare searchable issue list, for popovers / dialogs.
 -->
 <script module lang="ts">
   import type { IssueRow } from '@/lib/issue-model';

@@ -1,7 +1,7 @@
 // Per-IssuesView facts that rows, cards and the toolbar slot read without prop
 // drilling: sub-issue progress per parent and the saved view being shown.
 //
-// API (port of src/components/views/view-context.tsx):
+// API:
 //   setIssuesViewContext(() => ({ subIssues, savedView }))   provider; GETTER arg
 //   <IssuesViewContextProvider value={…}>                    same, as a component
 //   useSubIssueCount(issueId | () => issueId): { readonly current: SubIssueCount | null }

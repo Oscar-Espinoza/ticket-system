@@ -1,4 +1,4 @@
-// Non-component export of src/components/comments/reactions.tsx (ReactionBar
+// Non-component exports of the reactions UI (ReactionBar
 // and ReactionPicker are ./reaction-bar.svelte and ./reaction-picker.svelte).
 
 import { COMMENT_REACTIONS, type CommentReaction, type ReactionGroup } from '@/lib/timeline';

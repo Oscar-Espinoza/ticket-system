@@ -1,4 +1,4 @@
-<!-- Invite by email to the workspace (InviteDialog in workspace-members.tsx). -->
+<!-- Invite by email to the workspace. -->
 <script lang="ts">
   import LoaderCircleIcon from '@lucide/svelte/icons/loader-circle';
   import { toast } from 'svelte-sonner';

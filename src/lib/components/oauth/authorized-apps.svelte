@@ -1,6 +1,5 @@
 <!--
   Apps the user granted access to (OAuth consents), with Revoke.
-  Port of src/components/oauth/authorized-apps.tsx.
 -->
 <script lang="ts">
   import { untrack } from 'svelte';

@@ -3,8 +3,8 @@
 //
 //   const loading = useNavigationLoading();
 //   loading.active      a navigation has been running for > DELAY_MS (progress bar)
-//   loading.dashboard   show the dashboard skeleton (src/app/dashboard/loading.tsx)
-//   loading.project     show the project issues skeleton (src/app/dashboard/projects/[id]/loading.tsx)
+//   loading.dashboard   show the dashboard skeleton 
+//   loading.project     show the project issues skeleton
 //
 // Next keyed each loading.tsx Suspense boundary by the route segment directly
 // below the layout that owns it, and ran navigations as transitions: a

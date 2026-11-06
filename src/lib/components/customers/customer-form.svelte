@@ -1,4 +1,4 @@
-<!-- The create / edit customer form (CustomerForm in customer-dialog.tsx). -->
+<!-- The create / edit customer form. -->
 <script lang="ts">
   import { goto } from '$app/navigation';
   import UserRoundIcon from '@lucide/svelte/icons/user-round';

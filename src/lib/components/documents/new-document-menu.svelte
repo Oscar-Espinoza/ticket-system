@@ -1,7 +1,7 @@
 <!--
   "New doc" button + template menu (Blank / Spec / RFC / Meeting notes). Also
-  registers the "New document" palette commands while mounted. Port of
-  new-document-menu.tsx; its useCreateDocument hook is ./use-create-document.svelte.ts.
+  registers the "New document" palette commands while mounted. Its useCreateDocument
+  hook is ./use-create-document.svelte.ts.
 -->
 <script lang="ts">
   import ChevronDown from '@lucide/svelte/icons/chevron-down';

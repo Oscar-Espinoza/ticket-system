@@ -1,9 +1,8 @@
-<!-- One customer row (CustomerListItem in customers-list.tsx): a link with a right-click menu. -->
+<!-- One customer row: a link with a right-click menu. -->
 <script lang="ts">
   import Link2Icon from '@lucide/svelte/icons/link-2';
   import PencilIcon from '@lucide/svelte/icons/pencil';
   import Trash2Icon from '@lucide/svelte/icons/trash-2';
-  import { toast } from 'svelte-sonner';
 
   import {
     customerPath,
@@ -19,6 +18,7 @@
     ContextMenuTrigger,
   } from '@/lib/components/ui/context-menu';
   import { Avatar } from '@/lib/components/ui-icons';
+  import { copyToClipboard } from '@/lib/components/productivity/issue-actions';
   import { cn } from '@/lib/utils';
   import CustomerLogo from './customer-logo.svelte';
   import CustomerStatusChip from './customer-status-chip.svelte';
@@ -41,14 +41,7 @@
 
   const href = $derived(customerPath(projectId, customer.id));
 
-  async function copyLink() {
-    try {
-      await navigator.clipboard.writeText(new URL(href, window.location.origin).toString());
-      toast.success('Copied customer link');
-    } catch {
-      toast.error('Could not copy to the clipboard.');
-    }
-  }
+  const copyLink = () => copyToClipboard(new URL(href, window.location.origin).toString(), 'customer link');
 </script>
 
 <ContextMenu>

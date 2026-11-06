@@ -5,7 +5,6 @@
 <script module lang="ts">
   import type { IssuePatch, IssueRow as Issue } from '@/lib/issue-model';
 
-
   export interface IssueRowProps {
     issue: Issue;
     active: boolean;
@@ -22,6 +21,7 @@
 <script lang="ts">
   import UserRoundIcon from '@lucide/svelte/icons/user-round';
 
+  import { ISSUE_ROW_ATTR, issueAttr } from '@/lib/components/issues/issue-dom';
   import { AssigneePicker, PriorityPicker, StatePicker } from '@/lib/components/issue-pickers';
   import { useProjectData, useProjectPermission } from '@/lib/components/project/project-data.svelte';
   import SlaChip from '@/lib/components/sla/sla-chip.svelte';
@@ -86,7 +86,7 @@
   bind:this={ref}
   {...rest}
   tabindex={0}
-  data-issue-row={issue.id}
+  {...issueAttr(ISSUE_ROW_ATTR, issue.id)}
   data-active={active}
   aria-label={`${issue.key} ${issue.title}, ${issue.state.name}`}
   aria-current={active ? 'true' : undefined}

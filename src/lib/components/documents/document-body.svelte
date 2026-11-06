@@ -1,5 +1,5 @@
 <!--
-  The collaborative body of a document (local DocumentBody of document-view.tsx):
+  The collaborative body of a document:
   the full-width editor once the Y.Doc is reconciled, the saved snapshot while
   it loads, or the snapshot only when live editing is unavailable / for guests
   before anyone with write access opened it.

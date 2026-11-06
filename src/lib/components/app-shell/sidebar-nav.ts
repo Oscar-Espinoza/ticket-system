@@ -1,7 +1,7 @@
 // Sidebar building blocks shared by the shell and its slot owners (favorites,
 // workspaces), so every row has the same density, focus ring and active logic.
 //
-// Svelte port of src/components/app-shell/sidebar-nav.tsx. Same export names:
+// Exports:
 //   sidebarRowClass, isActivePath   (plain values, this module)
 //   SidebarLink, SidebarSection     (components: sidebar-link.svelte, sidebar-section.svelte)
 //   import { SidebarLink, sidebarRowClass } from '@/lib/components/app-shell/sidebar-nav';

@@ -1,5 +1,4 @@
-<!-- `?` overlay: the shortcuts currently registered in this session.
-     Port of src/components/hotkey-overlay.tsx. -->
+<!-- `?` overlay: the shortcuts currently registered in this session. -->
 <script lang="ts">
   import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/lib/components/ui/dialog';
   import { formatHotkey, registeredHotkeys, type Hotkey } from '@/lib/svelte/hotkeys.svelte';

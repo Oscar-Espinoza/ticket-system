@@ -53,6 +53,7 @@
   import MilestoneGlyph from '@/lib/components/epics/milestone-glyph.svelte';
   import { isClosedEpic, progressPercent } from '@/lib/epic-model';
   import { addDays, formatDueDate, fromDateString, toDateString } from '@/lib/dates';
+  import { DAY_MS } from '@/lib/time';
   import { cn } from '@/lib/utils';
 
   const PX_PER_DAY: Record<Zoom, number> = { weeks: 28, months: 8, quarters: 3 };
@@ -60,7 +61,6 @@
   const NAME_COLUMN = 240;
   const ROW_HEIGHT = 36;
   const STUB_DAYS = 13; // one-sided dates render as a two-week stub
-  const DAY_MS = 86_400_000;
   const MARKER_KINDS = ['ok', 'conflict'] as const;
 
   type DragMode = 'move' | 'start' | 'end';

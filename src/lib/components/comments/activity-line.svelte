@@ -1,6 +1,6 @@
 <!--
-  One line of issue history: "Ana changed status from Todo to In Progress · 2h"
-  (port of activity-line.tsx). issue.updated events expand to one line per
+  One line of issue history: "Ana changed status from Todo to In Progress · 2h".
+  issue.updated events expand to one line per
   change; unknown event types use their `data.summary` (the event-bus
   convention), else "updated the issue". The React describe* functions that
   returned ReactNode are the snippets below, with the same branches.

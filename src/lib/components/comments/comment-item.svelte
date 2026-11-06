@@ -1,4 +1,4 @@
-<!-- One comment with its actions, reactions and inline edit (port of comment-item.tsx). -->
+<!-- One comment with its actions, reactions and inline edit. -->
 <script module lang="ts">
   import type { CommentReaction, TimelineComment } from '@/lib/timeline';
 

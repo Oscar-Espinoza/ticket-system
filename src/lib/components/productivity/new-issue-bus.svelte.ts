@@ -1,7 +1,4 @@
-// Svelte copy of src/components/productivity/new-issue-bus.ts. The React-free
-// original imports '@/lib/hotkeys' (the React app's registry, which tests for
-// Radix layers and would add a second keydown listener); this one registers
-// `c` with the Svelte registry (@/lib/svelte/hotkeys.svelte) so the `?` overlay
+// Registers `c` with the hotkey registry (@/lib/svelte/hotkeys.svelte) so the `?` overlay
 // lists it and open bits-ui layers block it. Every Svelte module must import the
 // bus from HERE — hosts and requesters must share one module instance.
 //

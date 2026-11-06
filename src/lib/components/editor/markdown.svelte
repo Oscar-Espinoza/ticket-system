@@ -1,7 +1,6 @@
 <!--
   Safe markdown renderer shared by descriptions, comments, epic updates and the
-  inbox (port of src/components/editor/markdown.tsx, react-markdown →
-  svelte-exmarkdown + gfm). No raw HTML (skipHtml), URLs pass react-markdown's
+  inbox. No raw HTML (skipHtml), URLs pass react-markdown's
   default protocol filter, external links open in a new tab without referrer /
   opener. Mentions (`@[Name](user:ID)`) render as chips; the current project's
   issue keys (`APP-12`) link to their permalink. A top-level paragraph holding

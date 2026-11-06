@@ -1,4 +1,4 @@
-// Non-component parts of src/components/editor/markdown.tsx, for the
+// Non-component parts of the markdown renderer, for the
 // svelte-exmarkdown renderer (markdown.svelte): the four mdast plugins
 // (unchanged except hProperties keys, which svelte-exmarkdown spreads as-is so
 // they are written kebab-case), the shared typography classes, and

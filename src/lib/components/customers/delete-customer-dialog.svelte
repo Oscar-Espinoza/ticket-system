@@ -1,4 +1,4 @@
-<!-- Admin-only delete confirmation (DeleteCustomerDialog in customer-dialog.tsx). Open while `customer` is set. -->
+<!-- Admin-only delete confirmation. Open while `customer` is set. -->
 <script lang="ts">
   import { toast } from 'svelte-sonner';
 

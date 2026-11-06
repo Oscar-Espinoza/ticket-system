@@ -1,4 +1,4 @@
-<!-- Delivery log of one webhook (WebhookDeliveries in webhook-settings.tsx). Mounted while open. -->
+<!-- Delivery log of one webhook. Mounted while open. -->
 <script lang="ts">
   import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
   import HistoryIcon from '@lucide/svelte/icons/history';

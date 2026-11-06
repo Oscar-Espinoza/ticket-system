@@ -1,4 +1,4 @@
-// Non-component exports of src/components/customers/customer-glyphs.tsx. The
+// Non-component customer glyph exports. The
 // glyph components themselves are customer-logo.svelte, customer-status-chip.svelte,
 // importance-icon.svelte and request-source-icon.svelte (one file per export).
 

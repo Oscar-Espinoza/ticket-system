@@ -1,5 +1,5 @@
 <!--
-  Enable 2FA in three steps (EnableDialog in two-factor-settings.tsx): confirm
+  Enable 2FA in three steps: confirm
   password → add the secret to an authenticator app and enter the first code
   (that verification is what turns 2FA on) → save the backup codes, shown once.
   No QR code: that would need a QR encoder dependency; every authenticator app

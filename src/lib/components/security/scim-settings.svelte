@@ -1,5 +1,5 @@
 <!--
-  Workspace → Security → SCIM provisioning (port of src/components/security/scim-settings.tsx):
+  Workspace → Security → SCIM provisioning:
   one bearer token per workspace, shown once (stored hashed), rotate or revoke
   any time.
 -->

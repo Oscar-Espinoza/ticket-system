@@ -1,4 +1,4 @@
-<!-- Customer notes: markdown, edited in place (CustomerNotes in customer-detail.tsx). -->
+<!-- Customer notes: markdown, edited in place. -->
 <script lang="ts">
   import PencilIcon from '@lucide/svelte/icons/pencil';
 

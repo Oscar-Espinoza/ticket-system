@@ -4,7 +4,7 @@
   D2-collaborative-editing.md) whose markdown snapshot is saved to
   `document.content` 1.5 s after local typing stops. "Mentioned in" lists the
   issues whose description links here. Guests and archived docs are read-only.
-  Port of document-view.tsx; mount it inside {#key document.id} (React keyed it
+  Mount it inside {#key document.id} (React keyed it
   by id: switching docs must never reuse the previous doc's editor).
 -->
 <script lang="ts">

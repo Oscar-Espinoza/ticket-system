@@ -1,8 +1,7 @@
 <!--
   "?" popover listing the query syntax (lib/issue-filtering SEARCH_SYNTAX_HELP).
   Clicking an example hands it to `onInsert` (appended to the query box).
-  Port of SearchSyntaxHelp in src/components/views/search-syntax-help.tsx; the
-  file's `appendToken` helper is exported from this module:
+  The file's `appendToken` helper is exported from this module:
     import SearchSyntaxHelp, { appendToken } from '@/lib/components/views/search-syntax-help.svelte';
 -->
 <script module lang="ts">

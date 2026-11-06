@@ -1,4 +1,4 @@
-<!-- initiative-detail.tsx InitiativeName. -->
+<!-- Editable initiative title. -->
 <script lang="ts">
   import { Textarea } from '@/lib/components/ui/textarea';
   import { INITIATIVE_NAME_MAX } from '@/lib/initiative-model';

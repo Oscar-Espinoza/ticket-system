@@ -1,6 +1,5 @@
 <!--
-  StartDatePicker (exported from React's slots/property-start-date.tsx; the
-  table view reuses it). DueDatePicker's copy is about due dates, so this is
+  StartDatePicker (the table view reuses it). DueDatePicker's copy is about due dates, so this is
   its start-date twin (quick options + calendar). Trigger = `children` snippet
   receiving `{ props }` (asChild), like every PickerPopover picker.
 -->

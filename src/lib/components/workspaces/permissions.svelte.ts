@@ -1,6 +1,6 @@
 // UI gating from the viewer's project role (the server re-checks everything).
 //
-// Port of src/components/workspaces/permissions.ts. Same exports:
+// Same exports:
 //   projectPermissions(role): ProjectPermissions   pure snapshot for a role
 //   useProjectPermissions(): ProjectPermissions    call during component init, below a
 //                                                  ProjectDataProvider

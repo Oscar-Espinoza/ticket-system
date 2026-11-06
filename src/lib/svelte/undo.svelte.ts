@@ -1,7 +1,7 @@
 // Session undo stack for issue mutations (client only). useIssueMutations pushes
 // an inverse operation after each successful change; toasts and ⌘Z pop them.
 //
-// Svelte port of src/lib/undo.ts (same exports): pushUndo, runUndo, undoLast,
+// Exports: pushUndo, runUndo, undoLast,
 // undoToastAction (svelte-sonner `action`), retainUndoHotkey (⌘Z, registered in
 // the Svelte hotkey registry; call from $effect and return its cleanup).
 

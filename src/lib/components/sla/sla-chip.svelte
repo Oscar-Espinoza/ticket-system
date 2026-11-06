@@ -1,9 +1,9 @@
 <!--
-  Compact SLA indicator for list rows, board cards and the table (D8 renders it
+  Compact SLA indicator for list rows, board cards and the table (rendered
   when the "sla" display property is on): "2d left" / "5h left" / "Breached".
   Renders nothing when the issue has no SLA or is closed (the clock stopped).
 
-  Port of src/components/sla/sla-chip.tsx. `SLA_TONE` and `slaText` are exported
+  `SLA_TONE` and `slaText` are exported
   from this file's module script:
     import SlaChip, { SLA_TONE, slaText } from '@/lib/components/sla/sla-chip.svelte';
 -->

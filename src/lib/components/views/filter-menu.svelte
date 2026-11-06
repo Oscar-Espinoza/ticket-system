@@ -2,7 +2,6 @@
   Linear-style two-level filter menu (property → values). Pure UI over
   IssueFilters — state lives in IssueFiltersProvider
   (src/lib/components/issues/issue-filters.svelte.ts).
-  Port of FilterMenu in src/components/views/filter-menu.tsx (same props).
   The chips for active filters are filter-chips.svelte.
 -->
 <script module lang="ts">

@@ -2,10 +2,15 @@
 // as an issue, which selector set each consumer matches, and how to read the id
 // back. Row-shaped elements (list row, table `tr`, timeline row) carry
 // `data-issue-row`, board cards `data-board-card`, calendar chips
-// `data-issue-chip`. The markup that emits these attributes writes the literal
-// names; everything that queries them goes through here.
+// `data-issue-chip`. The markup that emits these attributes spreads
+// `issueAttr(NAME, id)`; everything that queries them goes through here.
 
 export const ISSUE_ROW_ATTR = 'data-issue-row';
+export const BOARD_CARD_ATTR = 'data-board-card';
+export const ISSUE_CHIP_ATTR = 'data-issue-chip';
+
+/** Spread onto an element to mark it as showing issue `id`. */
+export const issueAttr = (name: string, id: string) => ({ [name]: id });
 
 /** List rows, table rows and timeline rows. */
 export const ISSUE_ROW = '[data-issue-row]';

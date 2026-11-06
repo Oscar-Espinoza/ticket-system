@@ -1,19 +1,19 @@
-<!-- Docs search box kept in `?q=` (the local DocumentSearch of documents-list.tsx). -->
+<!-- Docs search box kept in `?q=`. -->
 <script lang="ts">
   import { untrack } from 'svelte';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import Search from '@lucide/svelte/icons/search';
 
+  import { createDebouncer } from '@/lib/svelte/debounce';
+
   let { initial }: { initial: string } = $props();
 
   // useState(initial): the first value only.
   let value = $state(untrack(() => initial));
-  let timer: ReturnType<typeof setTimeout> | null = null;
+  const debounce = createDebouncer();
 
-  $effect(() => () => {
-    if (timer) clearTimeout(timer);
-  });
+  $effect(() => debounce.cancel);
 
   function push(next: string) {
     const q = next.trim();
@@ -33,8 +33,7 @@
     oninput={(e) => {
       const next = e.currentTarget.value;
       value = next;
-      if (timer) clearTimeout(timer);
-      timer = setTimeout(() => push(next), 300);
+      debounce.schedule(() => push(next), 300);
     }}
     onkeydown={(e) => {
       if (e.key === 'Escape' && value) {

@@ -1,4 +1,4 @@
-<!-- A customer's requests, newest first, with unlink (RequestsTimeline in customer-detail.tsx). -->
+<!-- A customer's requests, newest first, with unlink. -->
 <script lang="ts">
   import MessageSquareTextIcon from '@lucide/svelte/icons/message-square-text';
   import UnlinkIcon from '@lucide/svelte/icons/unlink';

@@ -1,4 +1,4 @@
-<!-- Health toggle + markdown body, ⌘Enter to post (epic-updates.tsx UpdateComposer). -->
+<!-- Health toggle + markdown body, ⌘Enter to post. -->
 <script lang="ts">
   import { toast } from 'svelte-sonner';
 

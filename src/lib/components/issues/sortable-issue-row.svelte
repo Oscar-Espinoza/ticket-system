@@ -1,5 +1,5 @@
 <!--
-  A draggable list row slot (SortableIssueRow in issue-list.tsx). The sortable
+  A draggable list row slot. The sortable
   element is the row itself: `children` receives the attachment to put on it.
   Must render inside the list's DragDropProvider.
 -->

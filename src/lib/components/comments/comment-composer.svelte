@@ -1,5 +1,5 @@
 <!--
-  Comment / reply / edit box (port of comment-composer.tsx). `onSubmit`
+  Comment / reply / edit box. `onSubmit`
   resolves false on failure, which restores the text so nothing typed is lost.
 -->
 <script lang="ts">

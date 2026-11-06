@@ -1,5 +1,4 @@
-// Shared types/constants of the suggestion menu (suggestion-menu.tsx's
-// non-component exports), used by the menu, its options, the rich editor's
+// Shared types/constants of the suggestion menu, used by the menu, its options, the rich editor's
 // extensions and the raw editor.
 import type { LucideIcon } from '@lucide/svelte';
 

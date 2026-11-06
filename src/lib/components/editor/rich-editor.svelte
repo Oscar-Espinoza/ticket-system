@@ -1,6 +1,5 @@
 <!--
-  Tiptap 3 WYSIWYG surface behind MarkdownEditor (port of
-  src/components/editor/rich-editor.tsx). Markdown in / markdown out: the doc is
+  Tiptap 3 WYSIWYG surface behind MarkdownEditor. Markdown in / markdown out: the doc is
   loaded from `value` whenever it differs from what this editor last emitted,
   and every change is serialized back (tidied for Slack / email). Suggestion
   menus render inline in the editor root, not portaled, so they stay inside

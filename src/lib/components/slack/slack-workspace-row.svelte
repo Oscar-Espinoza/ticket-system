@@ -1,4 +1,4 @@
-<!-- One installed Slack workspace: where unlinked Asks land, uninstall (WorkspaceRow in slack-app-settings.tsx). -->
+<!-- One installed Slack workspace: where unlinked Asks land, uninstall. -->
 <script lang="ts">
   import LoaderCircleIcon from '@lucide/svelte/icons/loader-circle';
   import { toast } from 'svelte-sonner';

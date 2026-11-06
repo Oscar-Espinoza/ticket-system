@@ -1,4 +1,4 @@
-<!-- initiative-glyphs.tsx StatusOptions. -->
+<!-- Initiative status options. -->
 <script lang="ts">
   import { digitShortcut, keywordFilter } from '@/lib/components/issue-pickers';
   import {

@@ -1,7 +1,7 @@
 <!--
   Kanban board: columns per group, optional swimlanes (sub-grouping), drag to
   move / reorder (pointer + keyboard: Space picks up, arrows move one column,
-  Space/Enter drops, Esc cancels). Port of src/components/board/board.tsx —
+  Space/Enter drops, Esc cancels). —
   the default export, loaded lazily by the issues view registry (IssueViewProps).
 -->
 <script lang="ts">

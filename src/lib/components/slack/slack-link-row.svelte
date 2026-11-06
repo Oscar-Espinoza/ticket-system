@@ -1,4 +1,4 @@
-<!-- The viewer's own link to one Slack workspace: DM toggle, unlink (LinkRow in slack-app-settings.tsx). -->
+<!-- The viewer's own link to one Slack workspace: DM toggle, unlink. -->
 <script lang="ts">
   import { toast } from 'svelte-sonner';
 

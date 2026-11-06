@@ -2,7 +2,6 @@
   Documents linked to an epic, for the epic detail page (the epic lane renders
   this with `documentsForEpic(epicId, userId)` from src/lib/documents, loaded
   server-side). "New doc" creates a blank document already linked to the epic.
-  Port of epic-documents.tsx.
 -->
 <script lang="ts">
   import FileText from '@lucide/svelte/icons/file-text';

@@ -1,5 +1,5 @@
 <!--
-  SCIM setup notes (port of ScimNotes in src/components/security/setup-notes.tsx).
+  SCIM setup notes.
 -->
 <script lang="ts">
   import Notes from './setup-notes-details.svelte';

@@ -2,7 +2,7 @@
 // logout button, 2FA / SSO / OAuth consent) to call signUp.email /
 // signIn.email / signOut / twoFactor.* / signIn.sso / $fetch.
 //
-// Svelte port of src/lib/auth-client.ts: `better-auth/svelte` instead of
+// Uses `better-auth/svelte` instead of
 // `better-auth/react`, same plugins and two-factor redirect. `useSession()`
 // returns a nanostores atom here (read with `$session` or `fromStore`), but the
 // app renders auth-dependent UI from the layout's `locals.user` instead.

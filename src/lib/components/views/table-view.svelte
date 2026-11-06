@@ -14,6 +14,7 @@
     PriorityPicker,
     StatePicker,
   } from '@/lib/components/issue-pickers';
+  import { ISSUE_ROW_ATTR, issueAttr } from '@/lib/components/issues/issue-dom';
   import { useDisplayOptions, type DisplayProperty } from '@/lib/components/issues/display-options.svelte';
   import { DueDateChip, EstimateChip, LabelChips } from '@/lib/components/issues/issue-properties';
   import { relativeTime } from '@/lib/relative-time';
@@ -404,7 +405,7 @@
           <tr
             {@attach trackRow(issue.id)}
             tabindex="0"
-            data-issue-row={issue.id}
+            {...issueAttr(ISSUE_ROW_ATTR, issue.id)}
             aria-current={active ? 'true' : undefined}
             aria-selected={selection.enabled ? checked : undefined}
             aria-label={`${issue.key} ${issue.title}, ${issue.state.name}`}

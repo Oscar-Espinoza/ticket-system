@@ -1,5 +1,4 @@
-// Tiny shared pieces for the hand-rolled SVG charts (port of
-// src/components/insights/chart-kit.tsx): nice axis maxima, index-based hover
+// Tiny shared pieces for the hand-rolled SVG charts: nice axis maxima, index-based hover
 // (pointer + arrow keys), week / duration formatting. The visual parts are
 //   chart-tooltip.svelte  (ChartTooltip, content as children)
 //   series-key.svelte     (SeriesKey)

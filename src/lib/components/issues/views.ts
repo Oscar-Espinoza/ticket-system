@@ -19,6 +19,7 @@ import type { IssueGroup } from '@/lib/issue-grouping';
 import type { IssuePatch, IssueRow } from '@/lib/issue-model';
 import type { ViewLayout } from './display-options.svelte';
 import ListView from './list-view.svelte';
+import type { ViewCapabilities } from './view-capabilities';
 import type { IssueMutations } from './use-issue-mutations.svelte';
 
 export interface IssueViewProps {
@@ -48,6 +49,7 @@ export interface IssueViewDefinition {
   id: ViewLayout;
   label: string;
   icon: LucideIcon;
+  caps: ViewCapabilities;
   /** Rendered directly (bundled with the page). */
   component?: Component<IssueViewProps>;
   /** Code-split view. */
@@ -67,14 +69,33 @@ export function preloadViews() {
 }
 
 export const ISSUE_VIEWS: IssueViewDefinition[] = [
-  { id: 'list', label: 'List', icon: ListIcon, component: ListView },
-  { id: 'board', label: 'Board', icon: KanbanIcon, lazy: { load: loadBoard, ssr: true, loading: 'board' } },
-  { id: 'table', label: 'Table', icon: SheetIcon, lazy: { load: loadTable, ssr: true, loading: 'rows' } },
+  {
+    id: 'list',
+    label: 'List',
+    icon: ListIcon,
+    caps: { grouped: true, subGrouping: true, swimlanes: false, ordered: true, displayProperties: true },
+    component: ListView,
+  },
+  {
+    id: 'board',
+    label: 'Board',
+    icon: KanbanIcon,
+    caps: { grouped: true, subGrouping: true, swimlanes: true, ordered: true, displayProperties: true },
+    lazy: { load: loadBoard, ssr: true, loading: 'board' },
+  },
+  {
+    id: 'table',
+    label: 'Table',
+    icon: SheetIcon,
+    caps: { grouped: false, subGrouping: false, swimlanes: false, ordered: true, displayProperties: true },
+    lazy: { load: loadTable, ssr: true, loading: 'rows' },
+  },
   // Client only: "today" and the visible month depend on the viewer's timezone.
   {
     id: 'calendar',
     label: 'Calendar',
     icon: CalendarDaysIcon,
+    caps: { grouped: false, subGrouping: false, swimlanes: false, ordered: false, displayProperties: false },
     lazy: { load: loadCalendar, ssr: false, loading: 'card' },
   },
   // Client only too: "today", the zoom (localStorage) and scroll position.
@@ -82,6 +103,7 @@ export const ISSUE_VIEWS: IssueViewDefinition[] = [
     id: 'timeline',
     label: 'Timeline',
     icon: GanttChartIcon,
+    caps: { grouped: true, subGrouping: false, swimlanes: false, ordered: true, displayProperties: false },
     lazy: { load: loadTimeline, ssr: false, loading: 'card' },
   },
 ];

@@ -1,7 +1,7 @@
 <!--
   Thin progress bar at the top of the viewport while a navigation runs for more
-  than 150 ms (the dashboard's single navigation indicator; the per-route
-  loading.tsx skeletons are dashboard-loading / project-loading).
+  than 150 ms (the dashboard's single navigation indicator; the route
+  skeletons are dashboard-loading / project-loading).
 -->
 <script lang="ts">
   let { active }: { active: boolean } = $props();

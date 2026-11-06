@@ -1,4 +1,4 @@
-<!-- One schedule in Settings → Recurring issues (local helper of recurring-settings.tsx). -->
+<!-- One schedule in Settings → Recurring issues. -->
 <script lang="ts">
   import CirclePause from '@lucide/svelte/icons/circle-pause';
   import CirclePlay from '@lucide/svelte/icons/circle-play';

@@ -1,4 +1,4 @@
-<!-- One formatting button of MarkdownEditor's toolbar (local ToolbarButton of markdown-editor.tsx). -->
+<!-- One formatting button of MarkdownEditor's toolbar. -->
 <script lang="ts">
   import type { Snippet } from 'svelte';
 

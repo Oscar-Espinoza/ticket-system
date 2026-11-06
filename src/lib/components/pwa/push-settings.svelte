@@ -1,7 +1,7 @@
 <!--
   Settings → Notifications → Push. The browser permission prompt only appears
   when the user clicks "Enable desktop notifications".
-  Port of src/components/pwa/push-settings.tsx. Exports the PushDevice type:
+  Exports the PushDevice type:
     import PushSettings, { type PushDevice } from '@/lib/components/pwa/push-settings.svelte';
 -->
 <script module lang="ts">

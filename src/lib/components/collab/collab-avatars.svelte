@@ -1,8 +1,6 @@
 <!--
   Who else is editing (awareness), as a small overlapped avatar stack ringed in
-  each person's caret color (port of CollabAvatars in
-  src/components/collab/collab-avatars.tsx; CollabStatusBadge is
-  ./collab-status-badge.svelte).
+  each person's caret color.
 -->
 <script lang="ts">
   import { Avatar } from '@/lib/components/ui-icons';

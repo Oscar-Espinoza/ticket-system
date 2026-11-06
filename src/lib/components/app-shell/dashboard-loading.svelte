@@ -1,4 +1,4 @@
-<!-- Dashboard home skeleton (port of src/app/dashboard/loading.tsx). -->
+<!-- Dashboard home skeleton. -->
 <script lang="ts">
   import { Skeleton } from '@/lib/components/ui-icons';
 </script>

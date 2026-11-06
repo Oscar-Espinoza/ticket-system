@@ -1,4 +1,4 @@
-<!-- Section header used by the B4 sections: title, optional meta, actions. -->
+<!-- Section header used by the hierarchy sections: title, optional meta, actions. -->
 <script lang="ts">
   import type { Snippet } from 'svelte';
 

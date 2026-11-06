@@ -1,4 +1,4 @@
-// Barrel for the editor (port of src/components/editor/index.ts), same export names.
+// Barrel for the editor, same export names.
 // React → Svelte: `<Markdown>{text}</Markdown>` → `<Markdown source={text} />`;
 // MarkdownEditor `actions` is a snippet; refs → bind:this + exported functions
 // (MarkdownEditor: focus(), getEditor()).

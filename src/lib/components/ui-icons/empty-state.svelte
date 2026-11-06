@@ -7,7 +7,7 @@
     icon?: Snippet;
     title: string;
     description?: string;
-    /** CTA slot — pass a real control (D-21: never a dead button). */
+    /** CTA slot — pass a real control (never a dead button). */
     action?: Snippet;
   }
 </script>

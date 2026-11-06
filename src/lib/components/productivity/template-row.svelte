@@ -1,4 +1,4 @@
-<!-- One template in Settings → Templates (local helper of template-settings.tsx). -->
+<!-- One template in Settings → Templates. -->
 <script lang="ts">
   import FilePlus2 from '@lucide/svelte/icons/file-plus-corner';
   import FileText from '@lucide/svelte/icons/file-text';

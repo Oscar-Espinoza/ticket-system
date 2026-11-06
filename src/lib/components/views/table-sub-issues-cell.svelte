@@ -1,4 +1,4 @@
-<!-- Sub-issue progress cell (SubIssuesCell in src/components/views/table-view.tsx). -->
+<!-- Sub-issue progress cell. -->
 <script lang="ts">
   import type { IssueRow } from '@/lib/issue-model';
   import SubIssueChip from './sub-issue-chip.svelte';

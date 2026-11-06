@@ -1,5 +1,5 @@
 <!--
-  Settings → Slack (D7). Workspaces the viewer installed / linked to (where Asks
+  Settings → Slack. Workspaces the viewer installed / linked to (where Asks
   land, uninstall), the viewer's own Slack link (DM toggle, unlink), and the
   setup guide with the exact request URLs + an app manifest.
 -->

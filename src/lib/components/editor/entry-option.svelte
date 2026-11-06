@@ -1,4 +1,4 @@
-<!-- One suggestion row (the non-exported EntryOption of suggestion-menu.tsx). -->
+<!-- One suggestion row. -->
 <script lang="ts">
   import { StateIcon } from '@/lib/components/ui-icons';
   import MemberOption from './member-option.svelte';

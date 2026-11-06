@@ -1,10 +1,10 @@
 // Where the editor is being used, for image uploads and `#` issue suggestions.
 // Hosts that know more than the project route (an issue, a doc) wrap their
 // subtree; explicit MarkdownEditor props win over this, and this wins over the
-// current project route. D2 (docs + collaboration) extends editors through
+// current project route. Docs + collaboration extend editors through
 // `extensions` / `history` here or on the props.
 //
-// API (port of src/components/editor/context.tsx):
+// API:
 //   setRichEditorContext(() => value)       provider; call during component init, GETTER arg
 //   <RichEditorProvider value={{ … }}>      same, as a component (rich-editor-provider.svelte)
 //   useRichEditorContext(): RichEditorContextValue | null

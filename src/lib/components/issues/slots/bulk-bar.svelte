@@ -1,7 +1,7 @@
 <!--
-  Owner: Wave C (C1). Floating action bar for the multi-selection: every edit,
+  Floating action bar for the multi-selection: every edit,
   label toggle, archive and trash is one mutation call (one server call, one
-  undo entry). Port of src/components/issues/slots/bulk-bar.tsx (props: issues, mutations).
+  undo entry).
 -->
 <script lang="ts">
   import type { LucideIcon } from '@lucide/svelte';
@@ -71,7 +71,7 @@
       },
     ]);
     // Capture phase: with a selection, ⌘⌫ means the selection, not the focused
-    // issue (B10's single-issue ⌘⌫ skips events that were already handled).
+    // issue (the single-issue ⌘⌫ skips events that were already handled).
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Backspace' || !(event.metaKey || event.ctrlKey)) return;
       if (event.altKey || event.shiftKey || event.defaultPrevented) return;

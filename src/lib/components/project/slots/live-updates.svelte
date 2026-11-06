@@ -1,7 +1,5 @@
 <!--
-  Owner: B12 (data & realtime), D3 (SSE, cross-tab, outbox). Mounted once by
-  the project layout. Port of src/components/project/slots/live-updates.tsx
-  (the presence store is live-updates.svelte.ts).
+  Mounted once by the project layout (the presence store is live-updates.svelte.ts).
 
   Live updates without websockets (Vercel Hobby): a short-lived SSE stream
   (`/api/projects/[id]/stream`) pushes the project's change token; when it
@@ -150,7 +148,7 @@
       };
     };
 
-    // --- Polling fallback (B12) --------------------------------------------
+    // --- Polling fallback --------------------------------------------
     const poll = async () => {
       clearTimeout(timer);
       if (inFlight || !active()) return;

@@ -1,4 +1,4 @@
-<!-- Create / edit dialog for an issue template (local helper of template-settings.tsx). -->
+<!-- Create / edit dialog for an issue template. -->
 <script lang="ts">
   import { untrack } from 'svelte';
   import { toast } from 'svelte-sonner';

@@ -1,5 +1,5 @@
 <!-- Cell trigger: out of the tab order (the row is the stop), clicks don't open the issue.
-     (CellButton in src/components/views/table-view.tsx.) Spread a picker trigger's
+     Spread a picker trigger's
      `props` onto it: {#snippet children({ props })}<TableCellButton {...props} label="…">…{/snippet} -->
 <script lang="ts">
   import type { HTMLButtonAttributes } from 'svelte/elements';

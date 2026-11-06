@@ -1,4 +1,4 @@
-<!-- One row of the epics list, with its context menu (epics-list.tsx EpicListRow). -->
+<!-- One row of the epics list, with its context menu. -->
 <script lang="ts">
   import ArchiveIcon from '@lucide/svelte/icons/archive';
   import ArchiveRestoreIcon from '@lucide/svelte/icons/archive-restore';

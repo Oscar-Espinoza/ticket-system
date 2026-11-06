@@ -1,4 +1,4 @@
-<!-- Create a project inside the workspace (CreateProjectDialog in workspace-projects.tsx). -->
+<!-- Create a project inside the workspace. -->
 <script lang="ts">
   import { goto } from '$app/navigation';
   import LoaderCircleIcon from '@lucide/svelte/icons/loader-circle';

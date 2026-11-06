@@ -1,4 +1,4 @@
-// useCreateDocument (the hook exported by src/components/documents/new-document-menu.tsx).
+// useCreateDocument:
 //   const doc = useCreateDocument(projectId | () => projectId, epicId? | () => epicId)
 //   doc.create(template); doc.pending (reactive)
 // createDocument's wrapper refreshes the page (the action revalidates); then

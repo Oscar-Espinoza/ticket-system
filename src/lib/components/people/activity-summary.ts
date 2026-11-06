@@ -1,6 +1,6 @@
 // Short, project-independent phrasing of an activity row for the member
 // profile feed ("moved to In Progress", "commented on"). The issue timeline
-// (B1) has richer per-change lines, but it needs a single project's data;
+// has richer per-change lines, but it needs a single project's data;
 // the profile mixes projects.
 
 const FIELD_LABEL: Record<string, string> = {

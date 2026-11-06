@@ -1,4 +1,4 @@
-<!-- initiative-detail.tsx AddEpicPicker. -->
+<!-- Picker that adds an epic to an initiative. -->
 <script lang="ts">
   import EpicIcon from '@/lib/components/epics/epic-icon.svelte';
   import { PickerPopover, keywordFilter, type PickerPopoverProps } from '@/lib/components/issue-pickers';

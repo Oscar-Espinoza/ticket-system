@@ -1,7 +1,6 @@
 <!--
   "N changes pending sync" pill while the offline outbox holds this viewer's
   ops. Bottom-centre like B12's offline banner; offline it sits just above it.
-  Port of src/components/sync/sync-status.tsx.
 -->
 <script lang="ts">
   import CloudOffIcon from '@lucide/svelte/icons/cloud-off';

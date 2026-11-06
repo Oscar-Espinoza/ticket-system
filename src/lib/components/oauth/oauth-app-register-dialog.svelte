@@ -1,6 +1,5 @@
 <!--
-  "Register OAuth app" dialog — the non-exported RegisterAppDialog of
-  src/components/oauth/oauth-app-settings.tsx. Mounted only while open.
+  "Register OAuth app" dialog. Mounted only while open.
 -->
 <script lang="ts">
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';

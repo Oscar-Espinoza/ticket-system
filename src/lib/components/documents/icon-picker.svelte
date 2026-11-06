@@ -1,4 +1,4 @@
-<!-- Emoji icon picker for a document (local IconPicker of document-view.tsx). -->
+<!-- Emoji icon picker for a document. -->
 <script lang="ts">
   import SmilePlus from '@lucide/svelte/icons/smile-plus';
 

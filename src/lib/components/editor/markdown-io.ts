@@ -1,5 +1,4 @@
-// Port of src/components/editor/markdown-io.ts: identical logic; JSONContent now
-// comes from @tiptap/core instead of @tiptap/react.
+// JSONContent comes from @tiptap/core.
 //
 // Markdown ⇄ Tiptap JSON glue around @tiptap/markdown: structure fixes after
 // parsing (top-level embeds, block images), readable output after serializing

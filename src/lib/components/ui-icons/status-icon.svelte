@@ -16,7 +16,7 @@
     type: StateType;
     /** Any CSS color (a state's hex). Defaults to the type's token color. */
     color?: string;
-    /** 14 or 16 px (C4 contract). */
+    /** 14 or 16 px. */
     size?: 14 | 16;
     /** Started pie fill, 0–100. Ignored by other types. */
     percent?: number;
@@ -114,7 +114,7 @@
 
   {#if type === 'completed'}
     <circle cx="8" cy="8" r="6.5" fill="currentColor" />
-    <!-- Check is knocked out in the C1 primary-foreground (white in both
+    <!-- Check is knocked out in the primary-foreground (white in both
          themes) so it stays contrasty over any state color. -->
     <path
       d="M5.4 8.2 L7.3 10.1 L10.6 6.4"

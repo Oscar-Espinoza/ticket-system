@@ -249,7 +249,7 @@ function withClientId<N extends OutboxActionName>(call: OutboxCall<N>): OutboxCa
   return { ...call, args: { ...args, clientId: crypto.randomUUID() } as OutboxArgs<N> };
 }
 
-// Next applied the action's revalidatePath to the open route; do the same.
+// Next applied the action's refreshesData() to the open route; do the same.
 //
 async function send<N extends OutboxActionName>(
   call: Pick<OutboxCall<N>, 'userId' | 'action' | 'args'>,

@@ -1,5 +1,4 @@
-<!-- Two-column settings frame: nav on the left, a readable column of content.
-     Port of SettingsFrame in src/components/app-shell/settings-nav.tsx. -->
+<!-- Two-column settings frame: nav on the left, a readable column of content. -->
 <script lang="ts">
   import type { Snippet } from 'svelte';
 

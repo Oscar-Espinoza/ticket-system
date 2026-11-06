@@ -2,7 +2,7 @@
 // null on the server (the value depends on the viewer's clock, so it renders
 // after hydration instead of mismatching).
 //
-// Port of src/components/sla/use-now.ts:
+// Usage:
 //   const now = useMinuteNow();   now.current: epoch ms rounded down to the minute,
 //                                 or null during SSR / the first hydration.
 // Call during component init (it creates an $effect). A component mounted after

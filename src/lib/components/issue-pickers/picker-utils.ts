@@ -18,7 +18,7 @@ export function digitShortcut(search: string, pick: (digit: number) => boolean) 
   };
 }
 
-// New labels get a random swatch from Linear-ish defaults; B9's settings edit it.
+// New labels get a random swatch from Linear-ish defaults.
 export const LABEL_COLORS = [
   '#5e6ad2',
   '#26b5ce',

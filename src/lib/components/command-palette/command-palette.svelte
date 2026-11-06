@@ -1,5 +1,4 @@
-<!-- ⌘K command palette: built-in commands (props) + registered extensions.
-     Port of src/components/command-palette/command-palette.tsx. -->
+<!-- ⌘K command palette: built-in commands (props) + registered extensions. -->
 <script lang="ts">
   import {
     Command,

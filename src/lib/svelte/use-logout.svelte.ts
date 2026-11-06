@@ -1,4 +1,4 @@
-// Sign out, then go to /login with fresh data (port of src/hooks/use-logout.ts).
+// Sign out, then go to /login with fresh data.
 //
 //   const logout = useLogout();
 //   <button onclick={logout.logout} disabled={logout.loading}>Log out</button>

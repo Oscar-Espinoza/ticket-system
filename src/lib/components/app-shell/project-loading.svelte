@@ -1,4 +1,4 @@
-<!-- Project issues skeleton (port of src/app/dashboard/projects/[id]/loading.tsx).
+<!-- Project issues skeleton.
      The project header and tabs live in the layout, so only the issues body loads here. -->
 <script lang="ts">
   import { Skeleton } from '@/lib/components/ui-icons';

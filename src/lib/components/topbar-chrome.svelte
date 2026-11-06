@@ -1,7 +1,7 @@
 <!--
   Topbar right side: palette trigger, the command palette, the `?` overlay, the
   palette-owned create-project dialog and the global shortcuts (⌘K, /, ?, g…, c).
-  Port of src/components/topbar-chrome.tsx. The app-wide <Toaster> lives in the
+ The app-wide <Toaster> lives in the
   root layout (src/routes/+layout.svelte), so it is not rendered here.
 -->
 <script module lang="ts">

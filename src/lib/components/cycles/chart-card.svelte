@@ -1,4 +1,4 @@
-<!-- Card frame shared by the burndown and velocity charts (local helper of cycle-charts.tsx). -->
+<!-- Card frame shared by the burndown and velocity charts. -->
 <script lang="ts">
   import type { Snippet } from 'svelte';
 

@@ -1,5 +1,4 @@
-// The pure reconcile decision of the collaborative editor, identical to
-// reconcileTarget in src/components/collab/use-collab-editor.ts (a test
+// The pure reconcile decision of the collaborative editor, (a test
 // imports it; plain module, no runes, no Svelte).
 
 import type { CollabProjection } from '@/lib/collab/codec';

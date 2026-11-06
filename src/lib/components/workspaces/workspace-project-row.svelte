@@ -1,4 +1,4 @@
-<!-- One team of the workspace: link or Join, counts, role, remove (ProjectRow in workspace-projects.tsx). -->
+<!-- One team of the workspace: link or Join, counts, role, remove. -->
 <script lang="ts">
   import { goto } from '$app/navigation';
   import CornerDownRightIcon from '@lucide/svelte/icons/corner-down-right';

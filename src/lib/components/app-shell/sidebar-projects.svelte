@@ -1,6 +1,7 @@
 <!-- "Your projects" sidebar section. -->
 <script lang="ts">
-  import SidebarProjectItem, { MAX_DEPTH } from './sidebar-project-item.svelte';
+  import { MAX_DEPTH } from '@/lib/components/project-tree';
+  import SidebarProjectItem from './sidebar-project-item.svelte';
   import SidebarSection from './sidebar-section.svelte';
   import type { SidebarProject } from './sidebar-types';
 

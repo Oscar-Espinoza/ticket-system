@@ -3,13 +3,14 @@
   viewer administers) and "New project" (created inside the workspace).
   Projects the viewer isn't a member of show their name only, and only when
   they're workspace-visible (with a Join button); private ones stay hidden.
-  Sub-teams are listed under their parent (D4a).
+  Sub-teams are listed under their parent.
 -->
 <script lang="ts">
   import FolderPlusIcon from '@lucide/svelte/icons/folder-plus';
   import PlusIcon from '@lucide/svelte/icons/plus';
 
   import { workspaceRoleAllows, type EligibleProject, type WorkspaceRole } from '@/lib/workspace-types';
+  import { MAX_DEPTH } from '@/lib/components/project-tree';
   import { Button } from '@/lib/components/ui/button';
   import { EmptyState } from '@/lib/components/ui-icons';
   import { roleAllows } from '@/lib/roles';
@@ -29,8 +30,6 @@
     eligible: EligibleProject[];
     role: WorkspaceRole;
   } = $props();
-
-  const MAX_DEPTH = 4;
 
   /**
    * Visible rows in tree order with their depth: private projects the viewer

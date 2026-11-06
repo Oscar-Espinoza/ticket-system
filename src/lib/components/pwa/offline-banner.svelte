@@ -1,7 +1,6 @@
 <!--
   Shown while the browser reports no network. Cached pages still open, and
   issue edits queue in the sync outbox (src/lib/svelte/outbox.svelte.ts) until reconnect.
-  Port of src/components/pwa/offline-banner.tsx.
 -->
 <script lang="ts">
   import WifiOffIcon from '@lucide/svelte/icons/wifi-off';

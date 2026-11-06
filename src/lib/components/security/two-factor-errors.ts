@@ -1,5 +1,4 @@
-// Error copy shared by the two-factor settings dialogs (the `errorMessage`
-// helper of src/components/security/two-factor-settings.tsx).
+// Error copy shared by the two-factor settings dialogs.
 
 export function errorMessage(error: { status?: number; code?: string; message?: string } | null) {
   if (error?.code === 'INVALID_PASSWORD') return 'That password isn’t right.';

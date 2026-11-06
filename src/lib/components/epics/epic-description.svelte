@@ -1,4 +1,4 @@
-<!-- Epic description: markdown view + editor (epic-detail.tsx EpicDescription). -->
+<!-- Epic description: markdown view + editor. -->
 <script lang="ts">
   import PencilIcon from '@lucide/svelte/icons/pencil';
 

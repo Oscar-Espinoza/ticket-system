@@ -1,4 +1,4 @@
-<!-- Two-step picker (kind → epic) that adds an epic dependency (epic-relations.tsx AddDependency). -->
+<!-- Two-step picker (kind → epic) that adds an epic dependency. -->
 <script lang="ts">
   import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
   import BanIcon from '@lucide/svelte/icons/ban';

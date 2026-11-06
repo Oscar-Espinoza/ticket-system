@@ -1,4 +1,4 @@
-<!-- SidebarLink (port of src/components/app-shell/sidebar-nav.tsx). -->
+<!-- SidebarLink. -->
 <script module lang="ts">
   import type { Snippet } from 'svelte';
 

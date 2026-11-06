@@ -1,7 +1,7 @@
 // Per-project template cache for the new-issue dialog and palette: one
 // listTemplates call per project per session, refetched after CRUD in this tab.
 //
-// Svelte port of src/components/productivity/templates-store.ts:
+// Usage:
 //   useTemplates(projectId, enabled?) → { readonly current: IssueTemplate[] | undefined }
 //     Call during component init. `projectId` / `enabled` may be getters so the
 //     store follows prop changes. `current` is undefined while loading (or while

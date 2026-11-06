@@ -1,10 +1,10 @@
 <!--
   Issue detail — rendered in the list's side pane ('pane') and on the
-  permalink page ('page', B6). The header, properties panel and sections host
-  slot components owned by Wave B agents; this host's layout is frozen.
+  permalink page ('page'). The header, properties panel and sections host
+  slot components; this host's layout is frozen.
 -->
 <script module lang="ts">
-  // Menu hints for the shortcuts IssueShortcuts registers (B10).
+  // Menu hints for the shortcuts IssueShortcuts registers.
   const COPY_LINK_KEY = { mod: true, shift: true, key: ',' };
   const COPY_ID_KEY = { mod: true, key: '.' };
 
@@ -28,8 +28,8 @@
   import UserRoundIcon from '@lucide/svelte/icons/user-round';
   import XIcon from '@lucide/svelte/icons/x';
   import type { Snippet } from 'svelte';
-  import { toast } from 'svelte-sonner';
 
+  import { copyToClipboard } from '@/lib/components/productivity/issue-actions';
   import {
     AssigneePicker,
     DueDatePicker,
@@ -110,15 +110,6 @@
     if (next !== issue.title) update({ title: next });
   }
 
-  async function copy(text: string, what: string) {
-    try {
-      await navigator.clipboard.writeText(text);
-      toast.success(`Copied ${what}`);
-    } catch {
-      toast.error('Could not copy to the clipboard.');
-    }
-  }
-
   /** Ghost property button classes (React PropertyButton). */
   const propertyButton = (extra?: string) => cn('-ml-2 max-w-full gap-2 font-normal', extra);
 </script>
@@ -157,12 +148,12 @@
           {/snippet}
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" class="w-56">
-          <DropdownMenuItem onSelect={() => copy(issueUrl(data.project.id, issue.key), 'link')}>
+          <DropdownMenuItem onSelect={() => copyToClipboard(issueUrl(data.project.id, issue.key), 'link')}>
             <Link2Icon />
             Copy link
             <DropdownMenuShortcut>{formatHotkey(COPY_LINK_KEY)}</DropdownMenuShortcut>
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => copy(issue.key, issue.key)}>
+          <DropdownMenuItem onSelect={() => copyToClipboard(issue.key, issue.key)}>
             <HashIcon />
             Copy ID
             <DropdownMenuShortcut>{formatHotkey(COPY_ID_KEY)}</DropdownMenuShortcut>

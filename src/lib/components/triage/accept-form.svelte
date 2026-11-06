@@ -1,4 +1,4 @@
-<!-- Accept form inside AcceptDialog (local helper of triage-dialogs.tsx). -->
+<!-- Accept form inside AcceptDialog. -->
 <script lang="ts">
   import { untrack } from 'svelte';
   import LoaderCircle from '@lucide/svelte/icons/loader-circle';

@@ -1,6 +1,6 @@
 <!--
   Settings → Security → Two-factor authentication (Better Auth twoFactor).
-  Port of src/components/security/two-factor-settings.tsx; the dialogs live in
+  The dialogs live in
   two-factor-enable-dialog / two-factor-password-dialog /
   two-factor-regenerate-dialog.svelte.
 -->

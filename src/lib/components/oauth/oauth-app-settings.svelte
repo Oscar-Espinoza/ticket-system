@@ -1,5 +1,5 @@
 <!--
-  OAuth apps the user registered (port of src/components/oauth/oauth-app-settings.tsx):
+  OAuth apps the user registered:
   list, register, rotate secret, delete, and the one-time credential reveal.
 -->
 <script lang="ts">
