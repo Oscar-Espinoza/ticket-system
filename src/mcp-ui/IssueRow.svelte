@@ -2,7 +2,7 @@
   import type { IssueDetail, IssueSummary } from '@/lib/server/mcp/contracts';
   import { toDateString } from '@/lib/dates';
   import { host } from './lib/app.svelte';
-  import { dueTone, safeColor, shortDate } from './lib/model';
+  import { dueTone, plainText, safeColor, shortDate } from './lib/model';
   import Avatar from './Avatar.svelte';
   import Chip from './Chip.svelte';
   import ExpandedIssue from './ExpandedIssue.svelte';
@@ -64,7 +64,7 @@
         {/if}
       </span>
       {#if issue.snippet}
-        <span class="mt-1 line-clamp-2 block text-fg2 [overflow-wrap:anywhere]">{issue.snippet}</span>
+        <span class="mt-1 line-clamp-2 text-fg2 [overflow-wrap:anywhere]">{plainText(issue.snippet)}</span>
       {/if}
     </span>
     <span class="mt-0.5 flex shrink-0 items-center gap-1.5"><Avatar user={issue.assignee} size={20} /><Icon name={open ? 'chevron-down' : 'chevron-right'} size={12} /></span>

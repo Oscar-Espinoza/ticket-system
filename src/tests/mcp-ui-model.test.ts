@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { CycleView, IssueSummary } from '@/lib/server/mcp/contracts';
 import { rehypeSafe, safeHref } from '../mcp-ui/lib/markdown';
-import { burndownGeometry, dueTone, groupIssues, initials, relativeTime, safeColor, typeSegments } from '../mcp-ui/lib/model';
+import { burndownGeometry, dueTone, groupIssues, initials, plainText, relativeTime, safeColor, typeSegments } from '../mcp-ui/lib/model';
 
 const issue = (key: string, state: [string, string], priority = 'none'): IssueSummary => ({
   id: key,
@@ -59,6 +59,12 @@ describe('text and colour helpers', () => {
     expect(initials('grace')).toBe('G');
     expect(initials('  ')).toBe('?');
     expect(initials('<<>> 山田 太郎')).toBe('山太');
+  });
+
+  it('flattens Markdown in a search snippet to plain text', () => {
+    expect(plainText('Users on **slow networks** see [the write-up](https://x.example/a) ... ```ts\nconst a_b = 1;\n``` ~~old~~')).toBe(
+      'Users on slow networks see the write-up ... const a_b = 1; old',
+    );
   });
 
   it('lets only hex colours reach a style attribute', () => {

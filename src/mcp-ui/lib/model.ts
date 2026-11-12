@@ -25,6 +25,16 @@ export function initials(name: string): string {
   return (first + last).toUpperCase();
 }
 
+/** Markdown source as one plain line (search snippets are cut from the raw description). */
+export function plainText(markdown: string): string {
+  return markdown
+    .replace(/```[\w-]*/g, ' ')
+    .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/[*~`>#]+/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 const HEX = /^#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
 
 /**
