@@ -7,20 +7,40 @@
 import { redirect } from '@sveltejs/kit';
 
 import { signInProviders } from '@/lib/auth-providers';
+import { emailVerificationAvailable, passwordResetAvailable } from '@/lib/email-verification';
 import { safeRedirect } from '@/lib/safe-redirect';
 import type { PageServerLoad } from './$types';
 
 const SSO_REQUIRED_COPY = 'Your workspace requires single sign-on. Continue with SSO.';
 
+const normalizeCode = (value: string) => value.toLowerCase().replace(/\s+/g, '_').slice(0, 80);
+
+/**
+ * account_not_linked: Better Auth found an account with that address but
+ * links only when both sides are verified (auth.ts accountLinking). With
+ * verification available the form lists the steps under this headline (sign
+ * in, verify from the banner, continue with Google/GitHub) and offers
+ * "Forgot password?" to someone who never set that password. No verification
+ * email can be requested from here while signed out.
+ */
+function accountNotLinkedCopy(verificationAvailable: boolean): string {
+  const headline =
+    'An account with this email already exists, but its address isn’t verified yet, so Google or GitHub couldn’t be connected to it.';
+  const sso = 'Using single sign-on? Ask your admin to add an email_verified attribute in the identity provider.';
+  return verificationAvailable
+    ? headline
+    : `${headline} Sign in with your password instead, or ask your admin to verify your address. ${sso}`;
+}
+
 /** Error codes from Better Auth / the SSO plugin redirects (spaces or underscores). */
-function signInErrorCopy(value: string | null): string | null {
+function signInErrorCopy(value: string | null, verificationAvailable: boolean): string | null {
   if (!value) return null;
-  const code = value.toLowerCase().replace(/\s+/g, '_').slice(0, 80);
+  const code = normalizeCode(value);
   if (code.includes('email_domain_not_allowed')) {
     return 'Your identity provider signed you in with an email outside this workspace’s SSO domain.';
   }
   if (code.includes('account_not_linked')) {
-    return 'An account with this email already exists and couldn’t be linked automatically. Sign in the way you did before (for example with your password). For single sign-on, ask your admin to add an email_verified attribute in the identity provider.';
+    return accountNotLinkedCopy(verificationAvailable);
   }
   if (code.includes('unable_to_create_session') || code.includes('sso_required')) {
     return SSO_REQUIRED_COPY;
@@ -38,12 +58,17 @@ export const load: PageServerLoad = async ({ url, locals }) => {
   const oauthReauth = !!url.searchParams.get('sig') && !!url.searchParams.get('client_id');
   if (locals.session && !oauthReauth) redirect(303, redirectTo);
 
-  const error = signInErrorCopy(url.searchParams.get('error'));
+  const verificationAvailable = emailVerificationAvailable();
+  const errorParam = url.searchParams.get('error');
+  const error = signInErrorCopy(errorParam, verificationAvailable);
 
   return {
     redirectTo,
     ...signInProviders(),
     initialError: error,
+    // Show the account_not_linked steps under the headline.
+    offerVerification: verificationAvailable && !!errorParam && normalizeCode(errorParam).includes('account_not_linked'),
+    passwordResetAvailable: passwordResetAvailable(),
     initialSso: url.searchParams.get('sso') === '1' || error === SSO_REQUIRED_COPY,
   };
 };

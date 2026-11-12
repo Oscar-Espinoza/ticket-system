@@ -10,11 +10,15 @@ export interface EmailMessage {
   html?: string;
 }
 
-export async function sendEmail(message: EmailMessage): Promise<boolean> {
-  const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.EMAIL_FROM;
+type Env = Record<string, string | undefined>;
 
-  if (!apiKey || !from) {
+/** Both RESEND_API_KEY and EMAIL_FROM set: emails are really sent (not just logged). */
+export function emailConfigured(env: Env = process.env): boolean {
+  return !!env.RESEND_API_KEY?.trim() && !!env.EMAIL_FROM?.trim();
+}
+
+export async function sendEmail(message: EmailMessage): Promise<boolean> {
+  if (!emailConfigured()) {
     console.info('[email] (not sent — RESEND_API_KEY/EMAIL_FROM unset)', {
       to: message.to,
       subject: message.subject,
@@ -22,6 +26,8 @@ export async function sendEmail(message: EmailMessage): Promise<boolean> {
     });
     return false;
   }
+  const apiKey = process.env.RESEND_API_KEY!.trim();
+  const from = process.env.EMAIL_FROM!.trim();
 
   try {
     const response = await fetch('https://api.resend.com/emails', {

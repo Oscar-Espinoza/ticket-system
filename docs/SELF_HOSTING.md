@@ -85,7 +85,9 @@ migrations are exempt.
 
 Every integration switches off cleanly when its variables are empty
 (`docker/selfhost.env.example` lists them): GitHub sign-in and PR automation
-(`GITHUB_*`), Google sign-in (`GOOGLE_*`), email (`RESEND_*`), web push
+(`GITHUB_*`), Google sign-in (`GOOGLE_*`), email (`RESEND_API_KEY`,
+`EMAIL_FROM`; also email verification, password reset and
+`REQUIRE_EMAIL_VERIFICATION`), web push
 (`*VAPID*`), Slack (`SLACK_*`).
 
 ### Google sign-in
@@ -122,13 +124,217 @@ reads or uses a Google token (GitHub branch creation still needs GitHub).
 
 Rules that apply to Google like they do to GitHub: an existing account is linked
 only when Google reports the email as verified and the account's email is
-verified in this app (otherwise the person signs in the way they did before);
+verified in this app (see [Email verification](#email-verification); until then
+the person gets "account not linked" and signs in the way they did before);
 a domain with "Enforce SSO" turned on cannot use Google to get around it.
+
+### Email verification
+
+Accounts created through Google, GitHub or SSO arrive verified when the provider
+says the address is verified. Password accounts start unverified. When email is
+configured (`RESEND_API_KEY` and `EMAIL_FROM`), the app:
+
+- emails a verification link on password sign-up (it works for 24 hours and
+  lands on `/email-verification`; signing up still signs you in);
+- honours a link **only inside a session of the account it names**. "Verified"
+  means the holder proved both the password and the mailbox. Opened signed out,
+  as another account, or fetched by a mail scanner, the link changes nothing:
+  the page asks for that account's password, signs in with it and finishes.
+  So someone who registers another person's address can't get it verified by
+  that person clicking the email, and the email tells such a person to reset
+  the password instead (below);
+- shows signed-in unverified users a "Verify your email" banner on the
+  dashboard and a row in Settings → Profile, both with a resend button. Only
+  the signed-in holder can ask for a link (`/api/auth/send-verification-email`
+  refuses signed-out callers and always lands the link on the dashboard), at
+  most one email per account per minute, plus Better Auth's per-IP limit;
+- once the address is verified, "Continue with Google" or "Continue with GitHub"
+  with the same address signs in to that same account and links it. Automatic
+  linking (signing in with a provider whose address matches an existing
+  account) never happens while either side is unverified, and no provider is
+  "trusted" to skip that check. Two deliberate exceptions: a signed-in user can
+  link a provider from their own account settings (the session already proves
+  the account), and a workspace's SSO on its DNS-proven domain links to the
+  account with that address (see [Rolling out SSO](#rolling-out-sso)).
+  Opening a link never signs anyone in by itself (that would skip the
+  password, two-factor and "Enforce SSO").
+
+`REQUIRE_EMAIL_VERIFICATION=true` (off by default) also refuses password sign-in
+to unverified accounts; a correct password then emails a fresh link (same
+one-a-minute limit). The link's page signs the holder in with the password plus
+the link itself (the only way an unverified account gets a session while the
+switch is on), then verifies. Sign-up says "check your email" instead of
+signing in. The switch is ignored while email isn't configured, so it can't
+lock anyone out. Existing sessions are not ended. Turn it on only after
+existing users have had time to verify.
+
+Without email configured nothing changes: no email, no banner, no resend
+button, no "Forgot password?", everyone signs in as before, and password
+accounts stay unverified (so Google/GitHub can't be linked to them by signing
+in). An admin who has confirmed the person owns the address another way can
+mark it verified in the database:
+
+```sql
+UPDATE "user" SET email_verified = true, updated_at = now() WHERE email = 'person@example.com';
+```
+
+(`docker compose exec postgres psql -U tickets tickets`; emails are stored
+lowercase.) Don't do this for an address you haven't confirmed: a verified
+address lets anyone who controls that Google/GitHub identity into the account.
+
+#### Password reset
+
+With email configured, "Forgot password?" on the sign-in page emails a reset
+link. The answer is the same whether or not the address has an account. The link
+opens `/reset-password` with its token in the URL fragment (never sent to the
+server or in a Referer), works once, for one hour, and only the newest one
+works; at most one reset email per account per minute, plus Better Auth's
+per-IP limit on `/api/auth/request-password-reset`. The app never logs the
+link. Domains with "Enforce SSO" get the same refusal as on password sign-in,
+also for a link sent before SSO was enforced.
+
+Timing: `/api/auth/request-password-reset` answers before the email work runs
+(Better Auth's `advanced.backgroundTasks`, wired to the app's after-response
+mechanism: Vercel's `waitUntil`, or the Node process on adapter-node), so a
+known address no longer waits for the cooldown claim and Resend while an
+unknown one answers at once. The same applies to every email Better Auth sends
+(verification on sign-up and on sign-in). What remains: for a known address
+Better Auth writes the reset token (one insert) where an unknown one does a
+dummy lookup, a difference of a few milliseconds that Better Auth's per-IP
+limit (3 a minute in production) makes slow to measure.
+
+Completing a reset proves the mailbox and sets the password, so it:
+
+- marks the address verified and signs out **every** session of the account;
+- never signs in by itself: the next sign-in still asks for two-factor when
+  it is enabled.
+
+If the account was **unverified** before the reset, the reset secures
+("claims") it. Before email verification existed no password account was
+verified, so the app can't tell a real early user from someone who registered
+another person's address; whoever proves the mailbox takes the account, and
+everything the previous holder could have set up is removed in one
+transaction (the same cleanup runs when a workspace's SSO links to an
+unverified account, see [Rolling out SSO](#rolling-out-sso)):
+
+| Removed | Kept |
+| --- | --- |
+| every session; the old password (replaced) | the account itself, its name, avatar and profile |
+| linked Google, GitHub and other social sign-ins (SSO and SCIM identities stay: an IdP on a DNS-proven domain vouched for them) | workspace and project memberships (they came from invitations; a workspace admin can remove them) |
+| two-factor enrolment and its backup codes | tickets, comments and other content it wrote |
+| API keys | webhooks and integrations it configured (workspace data; the email asks to review them) |
+| every app consent, access and refresh token it granted (authorized apps, Claude / ChatGPT MCP connectors) | OAuth apps it registered: **disabled**, not deleted (Settings → OAuth apps shows "Disabled"; delete and register again to use one) |
+| Slack DM links and web-push subscriptions | |
+| pending invitations it sent (workspace invites and project invite links), so a previous holder can't bring a second account back in | |
+
+Because a real early user can lose all of that, it is never silent:
+
+- **Before:** the reset page asks the server (`POST /api/password-reset/preview`
+  with the link's token in the body; without a working token the answer is
+  always `{ "claim": false }`) and, for an unverified account, lists what this
+  account actually has that would go, explains why, offers the harmless route
+  ("if you still know your password, sign in and verify your email first:
+  then nothing is removed") and requires a checkbox. The server enforces it:
+  `/api/auth/reset-password` on an unverified account is refused
+  (`ACCOUNT_CLAIM_NOT_ACKNOWLEDGED`, nothing changes) unless the body carries
+  `"acknowledgeAccountClaim": true`. A verified account's reset needs nothing
+  extra and removes nothing.
+- **After:** the success page lists what was removed and what to set up again;
+  a "Your account was secured" email (only with email configured; no
+  user-supplied text) lists it with the time and what to do if it wasn't them;
+  the first dashboard page of the next session shows the same notice once; and
+  the audit log gets `security.account_claimed` with the counts per category
+  (no secrets).
+- **If securing fails** (the claim's transaction errors): the new password is
+  already set, so every session is revoked anyway, the account stays
+  unverified and the page asks for a new link; the next reset claims again.
+- OAuth access tokens are opaque database rows (deleted), except stateless JWT
+  access tokens issued for a resource (the MCP connectors): those stay valid
+  until they expire, at most one hour.
+
+Afterwards the owner signs in with the new password, and "Continue with
+Google" links to the account.
+
+Decisions about other ways an address can be proven:
+
+| Event | Marks the address verified? |
+| --- | --- |
+| Sign-up or sign-in through Google, GitHub or SSO | Yes, if the provider says the address is verified (unchanged). |
+| Opening the emailed verification link while signed in to that account | Yes (and only then). |
+| Completing a password reset | Yes, and on an unverified account it claims it (above). |
+| Accepting an invitation | No: invite links are shareable, they don't prove anyone owns an address. |
+| Changing the email in settings | Not possible: the address is read-only in the profile and Better Auth's change-email is off, so a verified flag can never move to an unproven address. |
+| SCIM / SSO provisioning | As the SSO/SCIM code sets it (a SCIM email change resets it to unverified); SSO linking to an unverified account claims it (above). |
+
+#### Known limits (follow-ups)
+
+- A verification link reaches the server in the query string of Better
+  Auth's `GET /api/auth/verify-email?token=…` (inherent to Better Auth). The app
+  never logs it, but a reverse proxy's access log would: keep query strings out
+  of proxy logs, or keep those logs short-lived. (Reset links keep the token in
+  the URL fragment and never send it in a URL.)
+- The browser's history keeps the first visit to `/email-verification#token=…`
+  and `/reset-password#token=…` until the page strips the fragment; a reset
+  token is single-use and dies on use or after an hour, a verification token
+  only works inside the holder's own session.
+- A user removed by SCIM deprovisioning keeps their account. On a domain that
+  does not enforce SSO they can still use "Forgot password?" to set a password
+  and sign in (without workspace access). Enforce SSO for the domain to close
+  that.
+
+#### Existing users
+
+People who signed up with a password before verification existed:
+
+1. Sign in with email and password as before.
+2. Use **Resend email** on the dashboard banner (or Settings → Profile) and open
+   the link while still signed in.
+3. Sign out and use **Continue with Google** (or GitHub) with the same address:
+   it opens the same account and links it, so either way of signing in works
+   from then on.
+
+If someone tries Google first they see "account not linked" on the sign-in page,
+with these same steps. A person who never set that password (someone else
+signed up with their address, or they forgot it) uses **Forgot password?**:
+the reset proves the address, takes the account back as described above, and
+then Google links. Without email configured, an admin can delete the squatter's
+account so the person can sign up with Google.
 
 **SSO (SAML/OIDC) and SCIM** work self-hosted. A workspace admin proves the
 company domain with a DNS TXT record (`_ticket-system.<domain>`), shown in
 workspace settings → Security. The record must stay published: the app re-checks
 it and stops trusting the IdP for that domain if it disappears.
+
+#### Rolling out SSO
+
+The first SSO sign-in of an existing account whose email was never verified
+**secures** it, like a reset of an unverified account (above), but more: the
+password goes too (sign-in is through the IdP from then on). Removed: every
+session, the password, two-factor, API keys, connected apps and assistants
+(Claude / ChatGPT connectors), linked Google/GitHub sign-ins, the Slack link,
+push subscriptions and pending invitations; OAuth apps it registered are
+disabled. The domain is DNS-proven, so the IdP is the authority and a squatter
+must lose everything; the person gets the "Your account was secured" email and
+a one-time notice on the first page after signing in, and the audit log records
+it. If securing fails, the SSO sign-in fails (sessions revoked, the new SSO link
+removed) and the next attempt tries again.
+
+Before you configure or enforce SSO for a domain whose people already have
+password accounts:
+
+1. Ask them to sign in with their password and verify their email (the
+   dashboard banner or Settings → Profile → resend, then open the link while
+   signed in). A verified account keeps everything when SSO links to it.
+2. Check workspace settings → Security: once SSO is configured, it shows how
+   many members on the domain still haven't verified. To list them:
+
+   ```sql
+   SELECT u.email FROM "user" u
+   JOIN workspace_member m ON m.user_id = u.id
+   WHERE m.workspace_id = '<workspace id>' AND NOT u.email_verified
+     AND lower(u.email) LIKE '%@example.com';
+   ```
+3. Then enforce SSO.
 
 **AI assistants (MCP)** work self-hosted with Claude Code out of the box (it
 connects from each user's machine). claude.ai, Claude Desktop/mobile and

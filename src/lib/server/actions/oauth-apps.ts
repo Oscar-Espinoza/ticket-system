@@ -143,6 +143,7 @@ export async function createOAuthApp(input: {
         uri: homepage.url ?? null,
         redirectUris: redirects.uris,
         isPublic,
+        disabled: false,
         createdAt: new Date().toISOString(),
       },
     };
