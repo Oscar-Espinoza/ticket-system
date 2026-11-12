@@ -18,6 +18,12 @@ jobs. A run missed while the app is down is not made up at start; the next one
 happens at the usual hour. A job still running after 10 minutes is reported in
 the logs and the next job starts.
 
+Incoming GitHub, GitLab and Bitbucket webhooks are stored whole (table
+`vcs_webhook_delivery`) so a failed sync can be retried. A stored payload
+includes the pull request or merge request text and the commit messages of a
+push, private repositories included. Processed deliveries are deleted after
+3 days, and deliveries that gave up after 30 days.
+
 ## Start
 
 ```bash

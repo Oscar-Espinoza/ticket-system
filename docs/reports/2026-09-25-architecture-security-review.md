@@ -208,5 +208,27 @@ fails.
   with the outgoing-webhook backoff. This does not rely on provider retries.
   Test: `vcs-inbound.test.ts`.
 
+Review round 1 (same day) widened two of them:
+
+- **History recorded in another project.** A move rewrites the project of
+  every activity row of the issue, so updates made while it lived in a
+  private project (that project's key, state / label / cycle names, earlier
+  titles) and the move rows' `droppedLabels` travelled with it. The same owner
+  (`redactActivityFor`) now works out from the issue's target-side move rows
+  which project each row was recorded in, and collapses rows recorded in a
+  project the reader is not a member of into "activity in another project"
+  (no actor, no data). A row stamped at a move's exact instant needs both
+  projects. Comments, the current title and description, and the time-in-status
+  breakdown still come along with the issue (follow-up).
+- **Out-of-order deliveries.** With retries, an older PR snapshot can arrive
+  after a newer one. The PR link update and its merged / closed events skip a
+  stale snapshot: never away from `merged`, never older than the stored
+  provider timestamp (`github_pull_request.provider_updated_at`), and an issue
+  moves only when its link holds that snapshot's state. Every claim of a
+  stored delivery counts as an attempt, so a runner that is cut off every time
+  stops after the last attempt; a provider redelivery of a delivery that gave
+  up starts it over. Stored payloads keep PR text and commit messages for 3
+  days (30 if the delivery gave up): see `docs/SELF_HOSTING.md`.
+
 Deploy: run `npm run db:migrate` (migration `0012_vcs_webhook_deliveries`)
 before the new code.
