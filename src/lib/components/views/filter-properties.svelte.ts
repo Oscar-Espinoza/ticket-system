@@ -6,6 +6,7 @@ import CalendarClockIcon from '@lucide/svelte/icons/calendar-clock';
 import CalendarDaysIcon from '@lucide/svelte/icons/calendar-days';
 import CircleDashedIcon from '@lucide/svelte/icons/circle-dashed';
 import ClockIcon from '@lucide/svelte/icons/clock';
+import HourglassIcon from '@lucide/svelte/icons/hourglass';
 import HistoryIcon from '@lucide/svelte/icons/history';
 import LayersIcon from '@lucide/svelte/icons/layers';
 import NetworkIcon from '@lucide/svelte/icons/network';
@@ -19,6 +20,7 @@ import { useProjectData, type ProjectData } from '@/lib/components/project/proje
 import {
   DUE_FILTERS,
   DUE_FILTER_LABEL,
+  FOLLOW_UP_FILTER_LABEL,
   HIERARCHY_FILTERS,
   HIERARCHY_FILTER_LABEL,
   ME,
@@ -49,7 +51,9 @@ export type FilterPropertyId =
   | 'labels'
   | 'cycle'
   | 'epic'
+  | 'waitingOn'
   | 'due'
+  | 'followUp'
   | 'created'
   | 'updated'
   | 'hierarchy';
@@ -132,6 +136,18 @@ export function filterProperties(data: Pick<ProjectData, 'project' | 'states' | 
       set: (f, assigneeIds) => ({ ...f, assigneeIds }),
     },
     {
+      id: 'waitingOn',
+      label: 'Waiting on',
+      icon: HourglassIcon,
+      options: [
+        me,
+        { value: NONE, label: 'Not waiting', icon: lucide(HourglassIcon, 'text-muted-foreground/60') },
+        ...people,
+      ],
+      get: (f) => f.waitingOnIds,
+      set: (f, waitingOnIds) => ({ ...f, waitingOnIds }),
+    },
+    {
       id: 'creator',
       label: 'Creator',
       icon: UserRoundPenIcon,
@@ -199,6 +215,18 @@ export function filterProperties(data: Pick<ProjectData, 'project' | 'states' | 
       })),
       get: (f) => f.due,
       set: (f, values) => ({ ...f, due: DUE_FILTERS.filter((d) => values.includes(d)) as DueFilter[] }),
+    },
+    {
+      id: 'followUp',
+      label: 'Follow-up',
+      icon: CalendarClockIcon,
+      options: DUE_FILTERS.map((d) => ({
+        value: d,
+        label: FOLLOW_UP_FILTER_LABEL[d],
+        icon: lucide(CalendarClockIcon, 'text-muted-foreground'),
+      })),
+      get: (f) => f.followUp,
+      set: (f, values) => ({ ...f, followUp: DUE_FILTERS.filter((d) => values.includes(d)) as DueFilter[] }),
     },
     {
       id: 'created',

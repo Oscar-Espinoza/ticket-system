@@ -15,8 +15,12 @@ export const copyIssueMarkdown = (issue: IssueRow) =>
     'markdown link',
   );
 
-/** Everything needed to recreate `issue` as a new one (same text + properties). */
-export function duplicateInput(issue: IssueRow): CreateIssueInput {
+/**
+ * Everything needed to recreate `issue` as a new one (same text + properties).
+ * `memberIds` are the project's current members: a waiting-on person who has left
+ * is dropped (creation would refuse them) rather than failing the duplicate.
+ */
+export function duplicateInput(issue: IssueRow, memberIds: ReadonlySet<string>): CreateIssueInput {
   return {
     title: issue.title,
     description: issue.description,
@@ -24,7 +28,9 @@ export function duplicateInput(issue: IssueRow): CreateIssueInput {
     priority: issue.priority,
     estimate: issue.estimate,
     dueDate: issue.dueDate,
+    followUp: issue.followUp,
     assigneeId: issue.assignee?.id ?? null,
+    waitingOnId: issue.waitingOn && memberIds.has(issue.waitingOn.id) ? issue.waitingOn.id : null,
     labelIds: issue.labels.map((l) => l.id),
     parentId: issue.parentId,
     cycleId: issue.cycleId,

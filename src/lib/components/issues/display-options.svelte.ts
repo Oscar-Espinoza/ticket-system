@@ -40,9 +40,11 @@ export type DisplayProperty =
   | 'status'
   | 'priority'
   | 'assignee'
+  | 'waitingOn'
   | 'labels'
   | 'estimate'
   | 'dueDate'
+  | 'followUp'
   | 'startDate'
   | 'sla'
   | 'created'
@@ -58,9 +60,11 @@ export const DISPLAY_PROPERTY_LABEL: Record<DisplayProperty, string> = {
   status: 'Status',
   priority: 'Priority',
   assignee: 'Assignee',
+  waitingOn: 'Waiting on',
   labels: 'Labels',
   estimate: 'Estimate',
   dueDate: 'Due date',
+  followUp: 'Follow-up',
   startDate: 'Start date',
   sla: 'SLA',
   created: 'Created',
@@ -94,9 +98,11 @@ export const DEFAULT_DISPLAY_OPTIONS: DisplayOptions = {
     status: true,
     priority: true,
     assignee: true,
+    waitingOn: false,
     labels: true,
     estimate: true,
     dueDate: true,
+    followUp: false,
     startDate: false,
     sla: true,
     created: true,

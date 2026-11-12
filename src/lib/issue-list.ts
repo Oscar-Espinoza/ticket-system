@@ -8,7 +8,9 @@ import { and, desc, eq, exists, gte, isNull, lt, or, sql, type SQL } from 'drizz
 
 import { db } from '@/lib/db';
 import { issueLabels, labels, tickets, workflowStates } from '@/db/schema';
+import { searchFollowUp } from '@/lib/issue-filtering';
 import { isStateType, type IssueRow } from '@/lib/issue-model';
+import { dateWhere } from '@/lib/search';
 import { queryIssues } from '@/lib/tickets';
 
 export const ISSUE_PAGE_DEFAULT = 50;
@@ -21,6 +23,14 @@ export interface IssueListFilter {
   assignee?: string | null;
   /** Label id or name (case-insensitive). */
   label?: string | null;
+  /** Waiting-on user id, `me` or `none`. */
+  waitingOn?: string | null;
+  /**
+   * Follow-up date: `overdue` (before today, open issues), `today`, `week`,
+   * `next-week`, `none`, or a day with an optional comparison
+   * (`2026-12-01`, `<=2026-12-01`, `>2026-11-30`). "Today" is the server's date.
+   */
+  followUp?: string | null;
   /** ISO 8601 date-time. */
   updatedSince?: string | null;
   includeArchived?: boolean | null;
@@ -39,7 +49,7 @@ export async function listProjectIssues(
   const where: (SQL | undefined)[] = [eq(tickets.projectId, projectId), isNull(tickets.deletedAt)];
   if (!filter.includeArchived) where.push(isNull(tickets.archivedAt));
 
-  const { state, assignee, label, updatedSince } = filter;
+  const { state, assignee, label, waitingOn, followUp, updatedSince } = filter;
   if (state) {
     where.push(
       or(
@@ -53,6 +63,21 @@ export async function listProjectIssues(
 
   if (assignee === 'none') where.push(isNull(tickets.assigneeId));
   else if (assignee) where.push(eq(tickets.assigneeId, assignee === 'me' ? viewerId : assignee));
+
+  if (waitingOn === 'none') where.push(isNull(tickets.waitingOnId));
+  else if (waitingOn) where.push(eq(tickets.waitingOnId, waitingOn === 'me' ? viewerId : waitingOn));
+
+  if (followUp) {
+    const value = searchFollowUp(followUp);
+    if (!value) {
+      return {
+        ok: false,
+        error: 'follow_up must be overdue, today, week, next-week, none or a YYYY-MM-DD date (optionally <, <=, >, >=).',
+        field: 'follow_up',
+      };
+    }
+    where.push(dateWhere(tickets.followUp, value, new Date()));
+  }
 
   if (label) {
     where.push(

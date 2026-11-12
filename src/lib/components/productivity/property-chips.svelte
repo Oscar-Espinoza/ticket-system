@@ -1,9 +1,12 @@
 <!--
-  Property chips (status, priority, assignee, labels, estimate, due date) for
+  Property chips (status, priority, assignee, waiting on, labels, estimate, due
+  date, follow-up) for
   forms that build an IssuePatch: the new-issue dialog and the template editor.
 -->
 <script lang="ts">
+  import CalendarClock from '@lucide/svelte/icons/calendar-clock';
   import CalendarDays from '@lucide/svelte/icons/calendar-days';
+  import Hourglass from '@lucide/svelte/icons/hourglass';
   import Tag from '@lucide/svelte/icons/tag';
   import Triangle from '@lucide/svelte/icons/triangle';
   import UserRound from '@lucide/svelte/icons/user-round';
@@ -33,7 +36,7 @@
     onChange: (patch: IssuePatch) => void;
     /** Shown when `value.stateId` is unset (the state a new issue would get). */
     fallbackState?: WorkflowState;
-    /** Templates have no due date. */
+    /** Templates have no due date (nor follow-up date). */
     showDueDate?: boolean;
   } = $props();
 
@@ -41,6 +44,7 @@
   const state = $derived(data.states.find((s) => s.id === value.stateId) ?? fallbackState);
   const priority = $derived(value.priority ?? 'none');
   const assignee = $derived(data.members.find((m) => m.id === value.assigneeId));
+  const waitingOn = $derived(data.members.find((m) => m.id === value.waitingOnId));
   const labelIds = $derived(value.labelIds ?? []);
   const selectedLabels = $derived(data.labels.filter((l) => labelIds.includes(l.id)));
 
@@ -81,6 +85,25 @@
         {:else}
           <UserRound />
           Assignee
+        {/if}
+      </Button>
+    {/snippet}
+  </AssigneePicker>
+
+  <AssigneePicker
+    value={value.waitingOnId ?? null}
+    placeholder="Waiting on…"
+    noneLabel="Not waiting on anyone"
+    onChange={(waitingOnId: string | null) => onChange({ waitingOnId })}
+  >
+    {#snippet children({ props })}
+      <Button type="button" variant="outline" size="xs" class={CHIP} aria-label="Waiting on: {waitingOn?.name ?? 'no one'}" {...props}>
+        {#if waitingOn}
+          <Avatar name={waitingOn.name} src={waitingOn.image} size={20} class="-my-1 size-4" />
+          <span class="truncate text-foreground">{waitingOn.name}</span>
+        {:else}
+          <Hourglass />
+          Waiting on
         {/if}
       </Button>
     {/snippet}
@@ -136,6 +159,23 @@
             <span class="text-foreground">{formatDueDate(value.dueDate)}</span>
           {:else}
             Due date
+          {/if}
+        </Button>
+      {/snippet}
+    </DueDatePicker>
+    <DueDatePicker
+      value={value.followUp ?? null}
+      placeholder="Follow up on…"
+      removeLabel="Remove follow-up date"
+      onChange={(followUp: string | null) => onChange({ followUp })}
+    >
+      {#snippet children({ props })}
+        <Button type="button" variant="outline" size="xs" class={CHIP} aria-label="Follow-up date" {...props}>
+          <CalendarClock />
+          {#if value.followUp}
+            <span class="text-foreground">{formatDueDate(value.followUp)}</span>
+          {:else}
+            Follow-up
           {/if}
         </Button>
       {/snippet}

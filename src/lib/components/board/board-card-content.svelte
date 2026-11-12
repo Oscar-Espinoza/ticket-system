@@ -4,6 +4,7 @@
 <script lang="ts">
   import { useDisplayOptions } from '@/lib/components/issues/display-options.svelte';
   import DueDateChip from '@/lib/components/issues/due-date-chip.svelte';
+  import WaitingOnChip from '@/lib/components/issues/waiting-on-chip.svelte';
   import EstimateChip from '@/lib/components/issues/estimate-chip.svelte';
   import LabelChips from '@/lib/components/issues/label-chips.svelte';
   import { useProjectData } from '@/lib/components/project/project-data.svelte';
@@ -32,6 +33,8 @@
       (show.labels && issue.labels.length > 0) ||
       (show.estimate && issue.estimate !== null && data.project.estimateScale !== 'none') ||
       (show.dueDate && issue.dueDate !== null) ||
+      (show.followUp && issue.followUp !== null) ||
+      (show.waitingOn && issue.waitingOn !== null) ||
       (show.startDate && issue.startDate !== null) ||
       // SlaChip renders nothing without a deadline (and hides itself when closed).
       (show.sla && issue.slaDueAt !== null) ||
@@ -62,6 +65,10 @@
       {#if show.estimate}<EstimateChip scale={data.project.estimateScale} value={issue.estimate} />{/if}
       {#if show.startDate}<StartDateChip startDate={issue.startDate} />{/if}
       {#if show.dueDate}<DueDateChip dueDate={issue.dueDate} stateType={issue.state.type} />{/if}
+      {#if show.followUp}
+        <DueDateChip dueDate={issue.followUp} stateType={issue.state.type} kind="followUp" />
+      {/if}
+      {#if show.waitingOn}<WaitingOnChip user={issue.waitingOn} />{/if}
       {#if show.sla}<SlaChip {issue} />{/if}
       {#if show.cycle}<CycleChip cycleId={issue.cycleId} />{/if}
       {#if show.epic}<EpicChip epicId={issue.epicId} />{/if}

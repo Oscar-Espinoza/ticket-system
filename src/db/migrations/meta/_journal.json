@@ -78,6 +78,13 @@
       "when": 1794496644832,
       "tag": "0010_mcp_connectors",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1794501278194,
+      "tag": "0011_follow_up_fields",
+      "breakpoints": true
     }
   ]
 }

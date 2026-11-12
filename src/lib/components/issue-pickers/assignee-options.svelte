@@ -5,6 +5,9 @@
     /** Current assignee id; null = unassigned; undefined = mixed (bulk edit). */
     value: string | null | undefined;
     onSelect: (userId: string | null, user: IssueUser | null) => void;
+    /** Copy for other person fields (waiting on). */
+    placeholder?: string;
+    noneLabel?: string;
   }
 
   const NO_ASSIGNEE = '__none';
@@ -19,25 +22,25 @@
   import { viewerFirst } from './option-builders';
   import { keywordFilter } from './picker-utils';
 
-  let { value, onSelect }: AssigneeOptionsProps = $props();
+  let { value, onSelect, placeholder = 'Assign to…', noneLabel = 'No assignee' }: AssigneeOptionsProps = $props();
 
   const data = useProjectData();
   const ordered = $derived(viewerFirst(data.members, data.viewer.id));
 </script>
 
 <Command filter={keywordFilter}>
-  <CommandInput placeholder="Assign to…" />
+  <CommandInput {placeholder} />
   <CommandList>
     <CommandEmpty>No member found.</CommandEmpty>
     <CommandGroup>
       <CommandItem
         value={NO_ASSIGNEE}
-        keywords={['No assignee', 'Unassigned']}
+        keywords={[noneLabel, 'Unassigned', 'None']}
         data-checked={value === null}
         onSelect={() => onSelect(null, null)}
       >
         <UserRoundIcon class="text-muted-foreground" />
-        No assignee
+        {noneLabel}
       </CommandItem>
       {#each ordered as member (member.id)}
         <CommandItem

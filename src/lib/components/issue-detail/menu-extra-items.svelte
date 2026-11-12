@@ -15,12 +15,13 @@
   import type { IssueMutations } from '@/lib/components/issues/use-issue-mutations.svelte';
   import { copyIssueMarkdown, duplicateInput } from '@/lib/components/productivity/issue-actions';
   import { setCachedTemplates, useTemplates } from '@/lib/components/productivity/templates-store.svelte';
-  import { useProjectPermission } from '@/lib/components/project/project-data.svelte';
+  import { useProjectData, useProjectPermission } from '@/lib/components/project/project-data.svelte';
   import { DropdownMenuItem } from '@/lib/components/ui/dropdown-menu';
   import type { IssueRow } from '@/lib/issue-model';
 
   let { issue, mutations }: { issue: IssueRow; mutations: IssueMutations } = $props();
 
+  const data = useProjectData();
   const canWrite = useProjectPermission('write');
   // Only read here to keep the dialog's cached list fresh after a save.
   const templates = useTemplates(() => issue.projectId, false);
@@ -38,6 +39,7 @@
         stateId: issue.stateId,
         priority: issue.priority,
         assigneeId: issue.assignee?.id ?? null,
+        waitingOnId: issue.waitingOn?.id ?? null,
         labelIds: issue.labels.map((l) => l.id),
         estimate: issue.estimate,
       },
@@ -61,7 +63,7 @@
   Copy as markdown link
 </DropdownMenuItem>
 {#if canWrite.current}
-  <DropdownMenuItem onSelect={() => mutations.create(duplicateInput(issue))}>
+  <DropdownMenuItem onSelect={() => mutations.create(duplicateInput(issue, new Set(data.members.map((m) => m.id))))}>
     <CopyIcon />
     Duplicate issue
   </DropdownMenuItem>

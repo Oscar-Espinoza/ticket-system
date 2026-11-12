@@ -40,13 +40,13 @@ export function isPendingIssue(issue: IssueRow) {
 export type PatchData = Pick<ProjectData, 'states' | 'labels' | 'members' | 'epics'>;
 
 /**
- * The issue after `patch`, with `state`, `labels` and `assignee` objects derived
+ * The issue after `patch`, with `state`, `labels`, `assignee` and `waitingOn` objects derived
  * from project data — the client twin of the server's write, used for
  * optimistic updates. Unknown ids leave the related object unchanged / dropped.
  */
 export function applyIssuePatch(issue: IssueRow, patch: IssuePatch, data: PatchData): IssueRow {
   const next: IssueRow = { ...issue };
-  for (const field of ['title', 'description', 'priority', 'estimate', 'startDate', 'dueDate', 'parentId', 'cycleId', 'sortOrder'] as const) {
+  for (const field of ['title', 'description', 'priority', 'estimate', 'startDate', 'dueDate', 'followUp', 'parentId', 'cycleId', 'sortOrder'] as const) {
     if (patch[field] !== undefined) (next as unknown as Record<string, unknown>)[field] = patch[field];
   }
   if (patch.title !== undefined) next.title = patch.title.trim();
@@ -63,6 +63,10 @@ export function applyIssuePatch(issue: IssueRow, patch: IssuePatch, data: PatchD
   if (patch.assigneeId !== undefined) {
     const member = data.members.find((m) => m.id === patch.assigneeId);
     next.assignee = member ? { id: member.id, name: member.name, image: member.image } : null;
+  }
+  if (patch.waitingOnId !== undefined) {
+    const member = data.members.find((m) => m.id === patch.waitingOnId);
+    next.waitingOn = member ? { id: member.id, name: member.name, image: member.image } : null;
   }
   if (patch.labelIds !== undefined) {
     const ids = new Set(patch.labelIds);
@@ -100,6 +104,8 @@ export function patchChangesIssue(issue: IssueRow, patch: IssuePatch): boolean {
     switch (field) {
       case 'assigneeId':
         return value !== (issue.assignee?.id ?? null);
+      case 'waitingOnId':
+        return value !== (issue.waitingOn?.id ?? null);
       case 'labelIds': {
         const current = new Set(issue.labels.map((l) => l.id));
         const next = new Set(value as string[]);
@@ -228,6 +234,8 @@ const FIELD_WORDS: Record<IssueField, string> = {
   startDate: 'start date',
   dueDate: 'due date',
   assigneeId: 'assignee',
+  waitingOnId: 'waiting on',
+  followUp: 'follow-up',
   parentId: 'parent',
   cycleId: 'cycle',
   epicId: 'epic',
@@ -255,6 +263,7 @@ export function inversePatch(issue: IssueRow, patch: IssuePatch): IssuePatch {
   for (const field of Object.keys(patch) as IssueField[]) {
     if (patch[field] === undefined) continue;
     if (field === 'assigneeId') inverse.assigneeId = issue.assignee?.id ?? null;
+    else if (field === 'waitingOnId') inverse.waitingOnId = issue.waitingOn?.id ?? null;
     else if (field === 'labelIds') inverse.labelIds = issue.labels.map((l) => l.id);
     else if (field === 'addLabelIds' || field === 'removeLabelIds') continue;
     else (inverse as Record<string, unknown>)[field] = (issue as unknown as Record<string, unknown>)[field];
@@ -615,6 +624,8 @@ export function useIssueMutations(
             slaBreachedAt: null,
             stateChangedAt: now,
             assignee: null,
+            waitingOn: null,
+            followUp: null,
             creator: data.viewer,
             labels: [],
             parentId: null,

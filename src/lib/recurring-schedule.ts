@@ -34,6 +34,7 @@ export interface RecurringDefaults {
   stateId?: string;
   priority?: string;
   assigneeId?: string | null;
+  waitingOnId?: string | null;
   labelIds?: string[];
   estimate?: number | null;
   /** Due date = the run's day + N days; absent = no due date. */

@@ -110,6 +110,7 @@
         stateId: properties.stateId,
         priority: properties.priority,
         assigneeId: properties.assigneeId ?? null,
+        waitingOnId: properties.waitingOnId ?? null,
         labelIds: properties.labelIds ? [...properties.labelIds] : [],
         estimate: properties.estimate ?? null,
         dueInDays: due,

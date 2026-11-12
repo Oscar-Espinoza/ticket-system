@@ -96,6 +96,8 @@ Active issues, highest number first. Trashed issues are never listed.
 | `state` | `state=In%20Progress`, `state=started`, `state=<id>` | state id, name or type |
 | `assignee` | `assignee=me`, `assignee=none`, `assignee=<userId>` | |
 | `label` | `label=Bug`, `label=<id>` | label id or name |
+| `waiting_on` | `waiting_on=me`, `waiting_on=none`, `waiting_on=<userId>` | who the issue is waiting on |
+| `follow_up` | `follow_up=overdue`, `follow_up=today`, `follow_up=week`, `follow_up=next-week`, `follow_up=none`, `follow_up=2026-12-01`, `follow_up=<=2026-12-01` | follow-up date; `overdue` = before today and open; a date with optional `<`, `<=`, `>`, `>=` (URL-encode them). "Today" is the server's date (UTC on hosted and Docker deployments) |
 | `updated_since` | `updated_since=2026-09-01T00:00:00Z` | ISO 8601 |
 | `include_archived` | `include_archived=true` | archived issues are excluded by default |
 | `limit` | `limit=100` | 1–100, default 50 |
@@ -128,7 +130,9 @@ curl -H "Authorization: Bearer $TICKETS_KEY" \
   "estimate": 3,
   "startDate": null,
   "dueDate": "2026-10-01",
+  "followUp": "2026-09-28",
   "assignee": { "id": "…", "name": "Ada", "image": null },
+  "waitingOn": { "id": "…", "name": "Grace", "image": null },
   "creator": { "id": "…", "name": "Grace", "image": null },
   "labels": [{ "id": "…", "name": "Bug", "color": "#eb5757" }],
   "parentId": null,
@@ -147,6 +151,14 @@ curl -H "Authorization: Bearer $TICKETS_KEY" \
 ```
 
 `priority` is one of `urgent`, `high`, `medium`, `low`, `none`.
+`waitingOn` is the project member the issue is waiting on and `followUp` the
+date (`YYYY-MM-DD`) to follow up; both are `null` when unset. When the follow-up
+date arrives, the assignee gets a "Follow-up date reached" notification. It is
+sent once per date value: changing the follow-up to a new date re-arms it, but
+changing it and back to a date already notified, or reassigning the issue after
+the notification, does not notify again. Issues without an assignee, or whose
+assignee is no longer a project member, notify nobody until a current member is
+assigned.
 
 ### `POST /projects/:id/issues`
 
@@ -164,14 +176,17 @@ curl -X POST -H "Authorization: Bearer $TICKETS_KEY" -H "Content-Type: applicati
     "assigneeId": "<user id>",
     "labelIds": ["<label id>"],
     "estimate": 3,
-    "dueDate": "2026-10-01"
+    "dueDate": "2026-10-01",
+    "waitingOnId": "<user id>",
+    "followUp": "2026-09-28"
   }'
 # 201 { "issue": { … } }
 ```
 
 Accepted fields: `title`, `description`, `stateId`, `priority`, `estimate`,
-`startDate` / `dueDate` (`YYYY-MM-DD`), `assigneeId`, `labelIds`, `parentId`, `cycleId`,
-`epicId`, `milestoneId`. Every id must belong to the project.
+`startDate` / `dueDate` / `followUp` (`YYYY-MM-DD`), `assigneeId`, `waitingOnId`, `labelIds`,
+`parentId`, `cycleId`, `epicId`, `milestoneId`. Every id must belong to the project;
+`assigneeId` and `waitingOnId` must be project members.
 
 ### `GET /issues/:key`
 
@@ -252,7 +267,7 @@ children, comments…) are batched per request, so wide queries stay cheap.
 | `project(id: ID, key: String)` | `Project` or `null` |
 | `issue(id: ID, key: String)` | `Issue` or `null` (archived / trashed included) |
 | `issues(projectId: ID!, filter: IssueFilter, first: Int = 50, after: String)` | `IssueConnection { nodes pageInfo { hasNextPage endCursor } }` |
-| `search(query: String!, projectId: ID, first: Int = 20)` | `[Issue!]!` (full-text over titles, descriptions, comments) |
+| `search(query: String!, projectId: ID, first: Int = 20)` | `[Issue!]!` (full-text over titles, descriptions, comments; accepts the in-app filter syntax, e.g. `waiting:me followup:overdue`) |
 
 | Mutation | Notes |
 |---|---|
@@ -264,13 +279,15 @@ children, comments…) are batched per request, so wide queries stay cheap.
 Types: `Project { id name key description icon color role triageEnabled
 cyclesEnabled estimateScale states labels members cycles epics issues url }`,
 `Issue { id key number title description state priority estimate startDate
-dueDate assignee creator labels parent children cycle epic milestoneId comments
+dueDate followUp assignee waitingOn creator labels parent children cycle epic milestoneId comments
 relations { id type issue } githubBranch slaDueAt … createdAt updatedAt url }`,
 `WorkflowState`, `Label`, `Cycle`, `Epic`, `Comment`, `User`. Enum values are
 lowercase (`priority: high`, `state { type }` = `started`, relation `type` =
 `blocks | blocked_by | related | duplicate_of | duplicated_by`). `IssueFilter`
 mirrors the REST list: `state` (id, name or type), `assignee` (id, `me`, `none`),
-`label` (id or name), `updatedSince`, `includeArchived`. Introspect the endpoint
+`waitingOn` (id, `me`, `none`), `followUp` (same values as REST `follow_up`),
+`label` (id or name), `updatedSince`, `includeArchived`. `IssueCreateInput` /
+`IssueUpdateInput` take `waitingOnId` and `followUp` like `assigneeId` and `dueDate`. Introspect the endpoint
 for the full schema.
 
 ### Examples
@@ -394,7 +411,7 @@ Configured per project in **Settings → Slack & webhooks**. Each event is a
   "issue": {
     "id": "…", "key": "APP-42", "title": "…",
     "state": { "id": "…", "name": "Done", "type": "completed" },
-    "priority": "high", "assignee": null, "url": "https://…"
+    "priority": "high", "assignee": null, "waitingOn": null, "url": "https://…"
   },
   "data": { "changes": [ { "field": "stateId", "from": { … }, "to": { … } } ] }
 }

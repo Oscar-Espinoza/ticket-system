@@ -28,7 +28,8 @@ export const GET: RequestHandler = async ({ url, params, locals }) => {
     .select({ id: tickets.assigneeId })
     .from(tickets)
     .where(inProject)
-    .union(db.select({ id: tickets.creatorId }).from(tickets).where(inProject));
+    .union(db.select({ id: tickets.creatorId }).from(tickets).where(inProject))
+    .union(db.select({ id: tickets.waitingOnId }).from(tickets).where(inProject));
 
   const [rows, labelRows, userRows, cycleRows, epicRows, milestoneRows, numberRows, projectRows] =
     await db.batch([
@@ -84,6 +85,9 @@ export const GET: RequestHandler = async ({ url, params, locals }) => {
     estimate: issue.estimate,
     estimateLabel: issue.estimate === null ? null : formatEstimate(scale, issue.estimate),
     dueDate: issue.dueDate,
+    waitingOn: issue.waitingOn?.name ?? null,
+    waitingOnEmail: (issue.waitingOn && email.get(issue.waitingOn.id)) ?? null,
+    followUp: issue.followUp,
     cycle: (issue.cycleId && cycleName.get(issue.cycleId)) ?? null,
     epic: (issue.epicId && epicName.get(issue.epicId)) ?? null,
     milestone: (issue.milestoneId && milestoneName.get(issue.milestoneId)) ?? null,
@@ -139,6 +143,10 @@ export const GET: RequestHandler = async ({ url, params, locals }) => {
       'Completed',
       'Canceled',
       'Archived',
+      // Appended (not next to their siblings) so positional readers of older exports keep working.
+      'Waiting On',
+      'Waiting On Email',
+      'Follow-up Date',
     ],
     ...records.map((r) => [
       r.id,
@@ -164,6 +172,9 @@ export const GET: RequestHandler = async ({ url, params, locals }) => {
       r.completedAt,
       r.canceledAt,
       r.archivedAt,
+      r.waitingOn,
+      r.waitingOnEmail,
+      r.followUp,
     ]),
   ]);
   return new Response(csv, {

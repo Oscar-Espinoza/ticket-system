@@ -36,6 +36,7 @@
   import { cn } from '@/lib/utils';
   import { useDisplayOptions } from './display-options.svelte';
   import DueDateChip from './due-date-chip.svelte';
+  import WaitingOnChip from './waiting-on-chip.svelte';
   import { focusIssueRow } from './issue-dom';
   import EstimateChip from './estimate-chip.svelte';
   import { relativeTime } from '@/lib/relative-time';
@@ -163,6 +164,10 @@
   {#if show.estimate}<EstimateChip scale={data.project.estimateScale} value={issue.estimate} />{/if}
   {#if show.startDate}<StartDateChip startDate={issue.startDate} class="hidden sm:inline-flex" />{/if}
   {#if show.dueDate}<DueDateChip dueDate={issue.dueDate} stateType={issue.state.type} />{/if}
+  {#if show.followUp}
+    <DueDateChip dueDate={issue.followUp} stateType={issue.state.type} kind="followUp" class="hidden sm:inline-flex" />
+  {/if}
+  {#if show.waitingOn}<WaitingOnChip user={issue.waitingOn} class="hidden md:inline-flex" />{/if}
   {#if show.sla}<SlaChip {issue} />{/if}
 
   {#if show.assignee && !canWrite.current && issue.assignee}

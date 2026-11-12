@@ -82,11 +82,12 @@ export function templateProps(
   template: IssueTemplate,
   data: Pick<ProjectData, 'states' | 'labels' | 'members' | 'project'>,
 ): IssuePatch {
-  const { stateId, priority, assigneeId, labelIds, estimate } = template.data;
+  const { stateId, priority, assigneeId, waitingOnId, labelIds, estimate } = template.data;
   const props: IssuePatch = {};
   if (stateId && data.states.some((s) => s.id === stateId)) props.stateId = stateId;
   if (priority) props.priority = priority;
   if (assigneeId && data.members.some((m) => m.id === assigneeId)) props.assigneeId = assigneeId;
+  if (waitingOnId && data.members.some((m) => m.id === waitingOnId)) props.waitingOnId = waitingOnId;
   if (labelIds?.length) {
     const ids = labelIds.filter((id) => data.labels.some((l) => l.id === id));
     if (ids.length) props.labelIds = ids;

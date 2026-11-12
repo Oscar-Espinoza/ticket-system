@@ -32,26 +32,26 @@ Postgres (Neon on Vercel, or plain Postgres self-hosted via Docker), Better Auth
   result contract, provider-neutral VCS engine; merged at `bcb256e`. Report and decision log: `docs/untangle/`.
 - **MCP server plan** (2026-11-05): `docs/mcp/PLAN.md`.
 
-## In flight (open PRs on `Oscar-Espinoza/ticket-system`)
+## Merged 2026-11-12 (PRs on `Oscar-Espinoza/ticket-system`, merge commits, in this order)
 
 | PR | Branch | What |
 |---|---|---|
-| #1 | `feat/google-sign-in` | Optional Google sign-in |
+| #5 | `chore/stabilise` | CI workflow, smoke test of the main flows with fixes, this file |
 | #2 | `fix/event-followups` | Review follow-ups: webhook payloads scoped to the event's project; every event committed with its mutation |
-| #3 | `feat/follow-up-fields` | Waiting-on and follow-up issue fields + daily follow-up notification |
-| #4 | `feat/mcp-server` | MCP server phase 1: `/mcp` with OAuth (DCR, JWT), read tools and three audited writes |
-| #5 | `chore/stabilise` | This PR: CI workflow, smoke test of the main flows with fixes, this file |
+| #1 | `feat/google-sign-in` | Optional Google sign-in |
+| #4 | `feat/mcp-server` | MCP server phase 1: `/mcp` with OAuth (DCR, JWT), read tools and three audited writes (migration 0010) |
+| #3 | `feat/follow-up-fields` | Waiting-on and follow-up issue fields + daily follow-up notification (migration 0011) |
 
-CI (`.github/workflows/ci.yml`) only starts on a branch once it contains that file: #1–#4 get it after this PR
-merges and they are rebased.
+CI (`.github/workflows/ci.yml`) runs on every push and pull request. The login and sign-up pages show each social
+button only when its provider is configured (`signInProviders()` in `src/lib/auth-providers.ts`). Follow-up left
+open: the new issue fields are not yet exposed through the MCP `create_issue` / `update_issue` / `get_issue` tools.
 
 ## What is next
 
-1. Merge the five PRs above (CI green on each after rebase).
-2. **Pilot at Go Nimbly with ~6 developers**, using the app as their task tracker. GitHub and Slack are not verified
+1. **Pilot at Go Nimbly with ~6 developers**, using the app as their task tracker. GitHub and Slack are not verified
    end to end yet: that needs a GitHub OAuth app and a Slack app created by Oscar (setup lists are in the stabilise PR
    body and in Settings → Slack).
-3. Decisions left to Oscar: **licence**, **repo owner/org**, **hosting** (Vercel + Neon vs. self-hosted Docker),
+2. Decisions left to Oscar: **licence**, **repo owner/org**, **hosting** (Vercel + Neon vs. self-hosted Docker),
    **DNS / public URL** (it is baked into the browser bundle as `PUBLIC_APP_URL` and is the origin the server trusts).
 
 ## Stale planning files (not rewritten; read with care)

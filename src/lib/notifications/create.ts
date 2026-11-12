@@ -37,6 +37,7 @@ const RULES: Record<NotificationType, NotificationRule> = {
   completed: WITH_EMAIL,
   github: WITH_EMAIL,
   sla_breached: NO_EMAIL,
+  follow_up: NO_EMAIL,
   recurring_created: NO_EMAIL,
   pulse: NO_EMAIL,
   // Self-set and surfaced when due: no switch, no push or email at creation.

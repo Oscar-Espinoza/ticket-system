@@ -454,6 +454,18 @@ export const tickets = pgTable(
     creatorId: text('creator_id').references(() => users.id, {
       onDelete: 'set null',
     }),
+    /** Who the issue is waiting on (a project member, like the assignee). */
+    waitingOnId: text('waiting_on_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    /** When to follow up: calendar date, YYYY-MM-DD (no timezone), like dueDate. */
+    followUp: date('follow_up', { mode: 'string' }),
+    /**
+     * The follow_up value the daily follow-up job last notified for. The job
+     * claims an issue by setting this to follow_up, so a rerun never notifies
+     * twice and a new follow_up date re-arms it.
+     */
+    followUpNotifiedOn: date('follow_up_notified_on', { mode: 'string' }),
     parentId: text('parent_id').references((): AnyPgColumn => tickets.id, {
       onDelete: 'set null',
     }),
@@ -480,6 +492,13 @@ export const tickets = pgTable(
     projectIdx: index('ticket_project_idx').on(table.projectId),
     parentIdx: index('ticket_parent_idx').on(table.parentId),
     assigneeIdx: index('ticket_assignee_idx').on(table.assigneeId),
+    waitingOnIdx: index('ticket_waiting_on_idx').on(table.waitingOnId),
+    // The daily follow-up job: arrived, not yet notified, still live.
+    followUpPendingIdx: index('ticket_follow_up_pending_idx')
+      .on(table.followUp)
+      .where(
+        sql`follow_up is not null and follow_up_notified_on is distinct from follow_up and deleted_at is null and archived_at is null`,
+      ),
     cycleIdx: index('ticket_cycle_idx').on(table.cycleId),
     epicIdx: index('ticket_epic_idx').on(table.epicId),
   }),
@@ -693,7 +712,7 @@ export const issueTemplates = pgTable('issue_template', {
   name: text('name').notNull(),
   title: text('title').notNull().default(''),
   description: text('description'),
-  /** Default property values: { priority, labelIds, stateId, estimate, assigneeId }. */
+  /** Default property values: { priority, labelIds, stateId, estimate, assigneeId, waitingOnId }. */
   data: jsonb('data').$type<Record<string, unknown>>().notNull().default({}),
   createdById: text('created_by_id').references(() => users.id, {
     onDelete: 'set null',
@@ -1073,7 +1092,7 @@ export const recurringIssues = pgTable('recurring_issue', {
   }),
   title: text('title').notNull(),
   description: text('description'),
-  /** Default properties: { stateId, priority, assigneeId, labelIds, estimate, dueInDays }. */
+  /** Default properties: { stateId, priority, assigneeId, waitingOnId, labelIds, estimate, dueInDays }. */
   data: jsonb('data').$type<Record<string, unknown>>().notNull().default({}),
   /** { freq: 'daily'|'weekly'|'monthly', interval, weekdays?: number[], dayOfMonth?: number } */
   schedule: jsonb('schedule').$type<Record<string, unknown>>().notNull(),

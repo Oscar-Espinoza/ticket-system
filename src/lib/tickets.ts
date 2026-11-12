@@ -29,6 +29,7 @@ export const issueDocument = sql`to_tsvector('english', coalesce(${tickets.title
 /** Join aliases, exported so callers can filter/sort on them in `where`/`orderBy`. */
 export const assigneeUsers = alias(users, 'assignee');
 export const creatorUsers = alias(users, 'creator');
+export const waitingOnUsers = alias(users, 'waiting_on');
 
 const issueColumns = {
   id: tickets.id,
@@ -47,6 +48,7 @@ const issueColumns = {
   estimate: tickets.estimate,
   startDate: tickets.startDate,
   dueDate: tickets.dueDate,
+  followUp: tickets.followUp,
   slaDueAt: tickets.slaDueAt,
   slaBreachedAt: tickets.slaBreachedAt,
   stateChangedAt: tickets.stateChangedAt,
@@ -69,6 +71,9 @@ const issueColumns = {
   creatorId: creatorUsers.id,
   creatorName: creatorUsers.name,
   creatorImage: creatorUsers.image,
+  waitingOnId: waitingOnUsers.id,
+  waitingOnName: waitingOnUsers.name,
+  waitingOnImage: waitingOnUsers.image,
 };
 
 export type IssueSelectRow = Awaited<ReturnType<typeof selectIssueRows>>[number];
@@ -81,7 +86,7 @@ export interface QueryIssuesOptions {
 }
 
 // Both queries share this join chain, so any `where` over tickets, projects,
-// workflowStates, assigneeUsers or creatorUsers is valid in either.
+// workflowStates, assigneeUsers, creatorUsers or waitingOnUsers is valid in either.
 function selectIssueRows(where: SQL | undefined, opts: QueryIssuesOptions = {}) {
   let query = db
     .select(issueColumns)
@@ -90,6 +95,7 @@ function selectIssueRows(where: SQL | undefined, opts: QueryIssuesOptions = {}) 
     .innerJoin(workflowStates, eq(tickets.stateId, workflowStates.id))
     .leftJoin(assigneeUsers, eq(tickets.assigneeId, assigneeUsers.id))
     .leftJoin(creatorUsers, eq(tickets.creatorId, creatorUsers.id))
+    .leftJoin(waitingOnUsers, eq(tickets.waitingOnId, waitingOnUsers.id))
     .where(where)
     .orderBy(...(opts.orderBy ?? [desc(tickets.createdAt), desc(tickets.ticketNumber)]))
     .$dynamic();
@@ -106,6 +112,7 @@ function selectIssueIds(where: SQL | undefined, opts: QueryIssuesOptions) {
     .innerJoin(workflowStates, eq(tickets.stateId, workflowStates.id))
     .leftJoin(assigneeUsers, eq(tickets.assigneeId, assigneeUsers.id))
     .leftJoin(creatorUsers, eq(tickets.creatorId, creatorUsers.id))
+    .leftJoin(waitingOnUsers, eq(tickets.waitingOnId, waitingOnUsers.id))
     .where(where)
     .orderBy(...(opts.orderBy ?? [desc(tickets.createdAt), desc(tickets.ticketNumber)]))
     .$dynamic();
@@ -141,6 +148,10 @@ export function toIssueRow(row: IssueSelectRow, issueLabelsList: IssueLabel[] = 
     assignee: row.assigneeId
       ? { id: row.assigneeId, name: row.assigneeName ?? '', image: row.assigneeImage }
       : null,
+    waitingOn: row.waitingOnId
+      ? { id: row.waitingOnId, name: row.waitingOnName ?? '', image: row.waitingOnImage }
+      : null,
+    followUp: row.followUp,
     creator: row.creatorId
       ? { id: row.creatorId, name: row.creatorName ?? '', image: row.creatorImage }
       : null,

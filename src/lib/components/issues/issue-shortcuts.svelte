@@ -222,7 +222,7 @@
       case 'copyMarkdown':
         return void copyIssueMarkdown(issue);
       case 'duplicate':
-        return mutations.create(duplicateInput(issue));
+        return mutations.create(duplicateInput(issue, new Set(data.members.map((m) => m.id))));
       case 'archive':
         return mutations.archive(issue);
       case 'trash':

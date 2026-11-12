@@ -134,6 +134,18 @@
     {:else}
       removed the due date
     {/if}
+  {:else if change.field === 'waitingOnId'}
+    {#if to?.name}
+      set waiting on to {@render v(to.name)}
+    {:else}
+      {#if from?.name}stopped waiting on {@render v(from.name)}{:else}removed waiting on{/if}
+    {/if}
+  {:else if change.field === 'followUp'}
+    {#if isDateString(change.to)}
+      set the follow-up date to {@render v(formatDueDate(change.to))}
+    {:else}
+      removed the follow-up date
+    {/if}
   {:else if change.field === 'startDate'}
     {#if isDateString(change.to)}
       set the start date to {@render v(formatDueDate(change.to))}

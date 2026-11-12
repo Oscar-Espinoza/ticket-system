@@ -12,6 +12,8 @@ const FIELD_LABEL: Record<string, string> = {
   labelIds: 'labels',
   estimate: 'estimate',
   dueDate: 'due date',
+  waitingOnId: 'waiting on',
+  followUp: 'follow-up date',
   parentId: 'parent',
   cycleId: 'cycle',
   epicId: 'epic',

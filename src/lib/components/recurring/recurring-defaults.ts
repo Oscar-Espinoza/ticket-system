@@ -15,6 +15,9 @@ export function defaultsToPatch(
   if (data.assigneeId && project.members.some((m) => m.id === data.assigneeId)) {
     patch.assigneeId = data.assigneeId;
   }
+  if (data.waitingOnId && project.members.some((m) => m.id === data.waitingOnId)) {
+    patch.waitingOnId = data.waitingOnId;
+  }
   const labelIds = (data.labelIds ?? []).filter((id) => project.labels.some((l) => l.id === id));
   if (labelIds.length) patch.labelIds = labelIds;
   if (data.estimate != null && project.project.estimateScale !== 'none') patch.estimate = data.estimate;
