@@ -8,6 +8,7 @@
 import { redirect } from '@sveltejs/kit';
 
 import { getConsentClient } from '@/lib/public-links-read';
+import { isDynamicClient } from '@/lib/server/mcp/register';
 import type { PageServerLoad } from './$types';
 
 /** The query regrouped by key (first-seen order), repeated values kept together. */
@@ -57,6 +58,9 @@ export const load: PageServerLoad = async ({ url, locals }) => {
             uri: client.uri,
             policy: client.policy,
             tos: client.tos,
+            // Registered by the connecting app itself (MCP connectors): its
+            // name is self-asserted, so the page says so next to the redirect host.
+            dynamic: isDynamicClient(client.metadata),
           }
         : null,
     scopes,

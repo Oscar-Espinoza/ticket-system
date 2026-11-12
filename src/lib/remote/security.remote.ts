@@ -19,6 +19,9 @@ export const removeWorkspaceSso = command('unchecked', (args: Parameters<typeof 
 export const setSsoEnforced = command('unchecked', (args: Parameters<typeof impl.setSsoEnforced>) =>
   run(() => impl.setSsoEnforced(...args)),
 );
+export const setAiConnectorsAllowed = command('unchecked', (args: Parameters<typeof impl.setAiConnectorsAllowed>) =>
+  run(() => impl.setAiConnectorsAllowed(...args)),
+);
 export const generateScimToken = command('unchecked', (args: Parameters<typeof impl.generateScimToken>) =>
   run(() => impl.generateScimToken(...args)),
 );

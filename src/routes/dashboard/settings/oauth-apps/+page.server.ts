@@ -5,6 +5,7 @@ import { getOAuthSettings } from '@/lib/account-settings-read';
 import { appUrl } from '@/lib/integrations/app-url';
 import type { AuthorizedAppView, OAuthAppView } from '@/lib/oauth-model';
 import { requireUser } from '@/lib/session';
+import { mcpUrl } from '@/lib/server/mcp/urls';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async () => {
@@ -14,6 +15,7 @@ export const load: PageServerLoad = async () => {
 
   return {
     origin: appUrl(),
+    mcpUrl: mcpUrl(),
     apps: apps.map(
       (app): OAuthAppView => ({
         clientId: app.clientId,

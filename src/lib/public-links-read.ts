@@ -48,6 +48,7 @@ export async function getConsentClient(clientId: string) {
       policy: oauthClients.policy,
       tos: oauthClients.tos,
       disabled: oauthClients.disabled,
+      metadata: oauthClients.metadata,
     })
     .from(oauthClients)
     .where(eq(oauthClients.clientId, clientId))

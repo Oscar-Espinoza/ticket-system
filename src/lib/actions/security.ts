@@ -20,6 +20,9 @@ export async function removeWorkspaceSso(...args: Parameters<typeof impl.removeW
 export async function setSsoEnforced(...args: Parameters<typeof impl.setSsoEnforced>): Promise<Awaited<ReturnType<typeof impl.setSsoEnforced>>> {
   return settle(await untrack(() => remote.setSsoEnforced(args)), true);
 }
+export async function setAiConnectorsAllowed(...args: Parameters<typeof impl.setAiConnectorsAllowed>): Promise<Awaited<ReturnType<typeof impl.setAiConnectorsAllowed>>> {
+  return settle(await untrack(() => remote.setAiConnectorsAllowed(args)), true);
+}
 export async function generateScimToken(...args: Parameters<typeof impl.generateScimToken>): Promise<Awaited<ReturnType<typeof impl.generateScimToken>>> {
   return settle(await untrack(() => remote.generateScimToken(args)), true);
 }
