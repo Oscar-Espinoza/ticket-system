@@ -6,6 +6,9 @@
     /** YYYY-MM-DD, or null. */
     value: string | null | undefined;
     onSelect: (dueDate: string | null) => void;
+    /** Copy for other date fields (follow-up). */
+    placeholder?: string;
+    removeLabel?: string;
   }
 </script>
 
@@ -17,7 +20,8 @@
   import { Command, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from '@/lib/components/ui/command';
   import { formatDueDate, fromDateString } from '@/lib/dates';
 
-  let { value, onSelect }: DueDateOptionsProps = $props();
+  let { value, onSelect, placeholder = 'Set due date…', removeLabel = 'Remove due date' }: DueDateOptionsProps =
+    $props();
 
   const selected = $derived(value ? fromDateString(value) : undefined);
   // Computed when the list opens; the list only lives while the popover is open.
@@ -26,7 +30,7 @@
 
 <div class="flex flex-col">
   <Command>
-    <CommandInput placeholder="Set due date…" />
+    <CommandInput {placeholder} />
     <CommandList>
       <CommandGroup>
         {#each options as option (option.label)}
@@ -39,9 +43,9 @@
           </CommandItem>
         {/each}
         {#if value}
-          <CommandItem value="Remove due date" onSelect={() => onSelect(null)}>
+          <CommandItem value={removeLabel} onSelect={() => onSelect(null)}>
             <XIcon class="text-muted-foreground" />
-            Remove due date
+            {removeLabel}
           </CommandItem>
         {/if}
       </CommandGroup>

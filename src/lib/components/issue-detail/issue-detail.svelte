@@ -67,9 +67,11 @@
   import MenuMove from './menu-move.svelte';
   import PropertyCycle from './property-cycle.svelte';
   import PropertyEpic from './property-epic.svelte';
+  import PropertyFollowUp from './property-follow-up.svelte';
   import PropertyParent from './property-parent.svelte';
   import PropertySla from './property-sla.svelte';
   import PropertyStartDate from './property-start-date.svelte';
+  import PropertyWaitingOn from './property-waiting-on.svelte';
   import SectionActivity from './section-activity.svelte';
   import SectionAttachments from './section-attachments.svelte';
   import SectionCustomers from './section-customers.svelte';
@@ -333,6 +335,8 @@
       {@render picker(assigneeTrigger, assigneeWrap)}
     </PropertyRow>
 
+    <PropertyWaitingOn {issue} {mutations} />
+
     <PropertyRow label="Labels">
       {@render picker(labelsTrigger, labelsWrap)}
     </PropertyRow>
@@ -346,6 +350,8 @@
     <PropertyRow label="Due date">
       {@render picker(dueTrigger, dueWrap)}
     </PropertyRow>
+
+    <PropertyFollowUp {issue} {mutations} />
 
     <PropertyStartDate {issue} {mutations} />
     <PropertySla {issue} {mutations} />

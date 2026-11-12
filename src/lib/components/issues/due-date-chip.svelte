@@ -1,7 +1,9 @@
 <!--
   "Mar 4" — red when overdue, amber when due today (unless the issue is closed).
+  `kind="followUp"` renders the follow-up date the same way.
 -->
 <script lang="ts">
+  import CalendarClockIcon from '@lucide/svelte/icons/calendar-clock';
   import CalendarDaysIcon from '@lucide/svelte/icons/calendar-days';
 
   import { dueStatus, formatDueDate } from '@/lib/dates';
@@ -12,19 +14,26 @@
   let {
     dueDate,
     stateType,
+    kind = 'due',
     class: className,
   }: {
     dueDate: string | null;
     stateType: StateType;
+    kind?: 'due' | 'followUp';
     class?: string;
   } = $props();
+
+  const TITLES = {
+    due: { overdue: 'Overdue', today: 'Due today', upcoming: 'Due date' },
+    followUp: { overdue: 'Follow-up overdue', today: 'Follow up today', upcoming: 'Follow-up date' },
+  };
 
   const status = $derived(dueDate ? (isClosed(stateType) ? 'upcoming' : dueStatus(dueDate)) : null);
 </script>
 
 {#if dueDate}
   <span
-    title={status === 'overdue' ? 'Overdue' : status === 'today' ? 'Due today' : 'Due date'}
+    title={TITLES[kind][status ?? 'upcoming']}
     class={cn(
       'inline-flex h-5 shrink-0 items-center gap-1 rounded border border-border px-1.5 text-xs text-muted-foreground',
       status === 'overdue' && 'border-destructive/40 text-destructive',
@@ -32,7 +41,11 @@
       className,
     )}
   >
-    <CalendarDaysIcon class="size-3" aria-hidden="true" />
+    {#if kind === 'followUp'}
+      <CalendarClockIcon class="size-3" aria-hidden="true" />
+    {:else}
+      <CalendarDaysIcon class="size-3" aria-hidden="true" />
+    {/if}
     {formatDueDate(dueDate)}
   </span>
 {/if}
