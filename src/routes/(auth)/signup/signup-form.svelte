@@ -60,6 +60,7 @@
     const { error } = await authClient.signIn.social({
       provider: 'github',
       callbackURL: redirectTo,
+      errorCallbackURL: authHref('/login', redirectTo),
     });
     if (error) {
       formError = 'GitHub sign-in failed. Try again or use email and password.';
