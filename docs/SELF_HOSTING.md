@@ -63,6 +63,11 @@ docker run -d --name tickets --restart unless-stopped -p 3000:3000 \
   ticket-system-app
 ```
 
+Set `PUBLIC_APP_URL` and `BETTER_AUTH_URL` to the same canonical URL: lowercase
+host, `https` (plain `http` only for `localhost`), no default port, no trailing
+slash. AI assistants (MCP) compare the OAuth issuer byte for byte, and Better
+Auth does not rewrite a non-canonical URL consistently.
+
 Add `?sslmode=require` to `DATABASE_URL` if the server requires TLS. The app
 uses the standard Postgres driver for any host that isn't `*.neon.tech`
 (`DATABASE_DRIVER=pg|neon` overrides the guess) and keeps up to

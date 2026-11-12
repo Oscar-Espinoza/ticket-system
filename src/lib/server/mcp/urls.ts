@@ -5,27 +5,22 @@
 // so they agree byte for byte. Server-only, no imports of auth.ts (auth.ts
 // imports this file).
 //
-// One place: the resource (`<app URL>/mcp`) comes from the app URL and the
-// authorization server we advertise is Better Auth's base URL (the token
-// issuer), and `mcpConfig()` refuses to serve when the two aren't the same
+// One place: the resource (`<app URL>/mcp`) comes from the app URL; the
+// authorization server we advertise is Better Auth's base URL as Better Auth
+// itself holds it at runtime (`tokenIssuer()` in ./auth.ts, the `iss` of its
+// tokens), and `mcpConfig()` refuses to serve when the two aren't the same
 // site: clients would fetch metadata from one host for an issuer on another
-// and fail in ways that are hard to trace.
+// and fail in ways that are hard to trace. The comparison forgives letter
+// case, a default port and a trailing slash, but Better Auth doesn't rewrite
+// its base URL that way (its OAuth metadata even upgrades http to https for a
+// non-loopback host while tokens keep the raw URL): set PUBLIC_APP_URL and
+// BETTER_AUTH_URL to the canonical form (docs/SELF_HOSTING.md).
 
 import { appUrl, authBaseUrl } from '@/lib/integrations/app-url';
 
 /** `<origin>/mcp`. */
 export function mcpUrl(): string {
   return `${appUrl()}/mcp`;
-}
-
-/**
- * The authorization server `/mcp` advertises (RFC 9728 `authorization_servers`):
- * Better Auth's base URL in the normalised form Better Auth itself uses as
- * the issuer in its metadata and tokens (RFC 8414 §3.3 wants them identical).
- * With a sound configuration it is `<app URL>/api/auth`.
- */
-export function mcpAuthorizationServer(): string {
-  return normalized(authBaseUrl()) ?? authBaseUrl();
 }
 
 /** RFC 9728 metadata URL for the MCP resource (path-suffixed form). */

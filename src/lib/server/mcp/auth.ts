@@ -49,14 +49,24 @@ const toScopes = (values: Iterable<string>) =>
 /** Cache key for the JWKS (verifyJwsAccessToken caches per key object for five minutes). */
 const JWKS_CACHE_KEY = {};
 
+/**
+ * Better Auth's base URL as it runs (from BETTER_AUTH_URL): the `iss` of the
+ * tokens it signs, so the issuer we accept and the authorization server
+ * /mcp advertises (./metadata.ts). Taken from Better Auth itself rather than
+ * re-derived, so the two can't drift on an unusual URL.
+ */
+export async function tokenIssuer(): Promise<string> {
+  return (await auth.$context).baseURL;
+}
+
 async function authenticateJwt(token: string): Promise<McpAuth> {
-  const context = await auth.$context;
+  const issuer = await tokenIssuer();
   let payload: Awaited<ReturnType<typeof verifyJwsAccessToken>>;
   try {
     payload = await verifyJwsAccessToken(token, {
       jwksFetch: () => auth.api.getJwks(),
       jwksCacheKey: JWKS_CACHE_KEY,
-      verifyOptions: { issuer: context.baseURL, audience: mcpUrl() },
+      verifyOptions: { issuer, audience: mcpUrl() },
     });
   } catch {
     return { ok: false, response: unauthorized(INVALID_TOKEN) };

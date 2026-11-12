@@ -491,12 +491,14 @@ Closes the open notes of PR #4's focused re-review and its follow-up list.
   the cascades scanned).
 - **Config.** `mcpConfig()` compares `<app URL>/api/auth` with Better Auth's
   base URL after normalising (`URL.origin` + path without trailing slash), so
-  letter case or `:443` is no longer a mismatch; the advertised authorization
-  server is now Better Auth's base URL normalised the way Better Auth
-  normalises its issuer (checked on the built server: `BETTER_AUTH_URL=
-  http://LOCALHOST:3032/` gives issuer `http://localhost:3032/api/auth`), so
-  the two are byte-identical (RFC 8414 §3.3); unchanged when the URLs already
-  agree. A mismatch answers
+  letter case or `:443` is no longer a mismatch. The advertised authorization
+  server and the issuer `/mcp` accepts are both Better Auth's base URL as
+  Better Auth holds it at runtime (`tokenIssuer()`, the `iss` of its tokens),
+  not a re-derivation; for a canonical URL it is byte-identical to before.
+  Better Auth itself doesn't normalise consistently (its OAuth metadata
+  upgrades http→https for non-loopback hosts; tokens keep the raw URL), so
+  self-hosted instances must use a canonical URL (docs/SELF_HOSTING.md;
+  review round 1). A mismatch answers
   a generic 500; the two URLs are logged once per configuration.
 - **`request_id` race.** `createIssue` returns `replayed: true` when the client
   id was already used (before the insert or after losing the unique race);
