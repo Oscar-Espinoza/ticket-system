@@ -74,7 +74,8 @@ migrations are exempt.
 Every integration switches off cleanly when its variables are empty
 (`docker/selfhost.env.example` lists them): GitHub sign-in and PR automation
 (`GITHUB_*`), Google sign-in (`GOOGLE_*`), email (`RESEND_API_KEY`,
-`EMAIL_FROM`; also email verification and `REQUIRE_EMAIL_VERIFICATION`), web push
+`EMAIL_FROM`; also email verification, password reset and
+`REQUIRE_EMAIL_VERIFICATION`), web push
 (`*VAPID*`), Slack (`SLACK_*`).
 
 ### Google sign-in
@@ -123,27 +124,38 @@ configured (`RESEND_API_KEY` and `EMAIL_FROM`), the app:
 
 - emails a verification link on password sign-up (it works for 24 hours and
   lands on `/email-verification`; signing up still signs you in);
-- shows unverified users a "Verify your email" banner on the dashboard and a row
-  in Settings → Profile, both with a resend button (one email per account per
-  minute, plus Better Auth's per-IP limit on `/api/auth/send-verification-email`);
+- honours a link **only inside a session of the account it names**. "Verified"
+  means the holder proved both the password and the mailbox. Opened signed out,
+  as another account, or fetched by a mail scanner, the link changes nothing:
+  the page asks for that account's password, signs in with it and finishes.
+  So someone who registers another person's address can't get it verified by
+  that person clicking the email, and the email tells such a person to reset
+  the password instead (below);
+- shows signed-in unverified users a "Verify your email" banner on the
+  dashboard and a row in Settings → Profile, both with a resend button. Only
+  the signed-in holder can ask for a link (`/api/auth/send-verification-email`
+  refuses signed-out callers and always lands the link on the dashboard), at
+  most one email per account per minute, plus Better Auth's per-IP limit;
 - once the address is verified, "Continue with Google" or "Continue with GitHub"
   with the same address signs in to that same account and links it. Linking
   never happens while either side is unverified, and no provider is "trusted"
-  to skip that check. Opening a link verifies the address but never signs
-  anyone in by itself (that would skip the password, two-factor and "Enforce
-  SSO"); a signed-in user simply stays signed in.
+  to skip that check. Opening a link never signs anyone in by itself (that
+  would skip the password, two-factor and "Enforce SSO").
 
 `REQUIRE_EMAIL_VERIFICATION=true` (off by default) also refuses password sign-in
-to unverified accounts: the sign-in form explains it and offers a new link, and
-sign-up then says "check your email" instead of signing in. It is ignored while
-email isn't configured, so it can't lock anyone out. Existing sessions are not
-ended. Turn it on only after existing users have had time to verify.
+to unverified accounts; a correct password then emails a fresh link (same
+one-a-minute limit). The link's page signs the holder in with the password plus
+the link itself (the only way an unverified account gets a session while the
+switch is on), then verifies. Sign-up says "check your email" instead of
+signing in. The switch is ignored while email isn't configured, so it can't
+lock anyone out. Existing sessions are not ended. Turn it on only after
+existing users have had time to verify.
 
 Without email configured nothing changes: no email, no banner, no resend
-button, everyone signs in as before, and password accounts stay unverified (so
-Google/GitHub can't be linked to them by signing in). An admin who has
-confirmed the person owns the address another way can mark it verified in the
-database:
+button, no "Forgot password?", everyone signs in as before, and password
+accounts stay unverified (so Google/GitHub can't be linked to them by signing
+in). An admin who has confirmed the person owns the address another way can
+mark it verified in the database:
 
 ```sql
 UPDATE "user" SET email_verified = true, updated_at = now() WHERE email = 'person@example.com';
@@ -153,16 +165,50 @@ UPDATE "user" SET email_verified = true, updated_at = now() WHERE email = 'perso
 lowercase.) Don't do this for an address you haven't confirmed: a verified
 address lets anyone who controls that Google/GitHub identity into the account.
 
+#### Password reset
+
+With email configured, "Forgot password?" on the sign-in page emails a reset
+link. The answer is the same whether or not the address has an account. The link
+opens `/reset-password` with its token in the URL fragment (never sent to the
+server or in a Referer), works once, for one hour, and only the newest one
+works; at most one reset email per account per minute, plus Better Auth's
+per-IP limit on `/api/auth/request-password-reset`. The app never logs the
+link. Domains with "Enforce SSO" get the same refusal as on password sign-in,
+also for a link sent before SSO was enforced.
+
+Completing a reset proves the mailbox and sets the password, so it:
+
+- marks the address verified and signs out **every** session of the account;
+- never signs in by itself: the next sign-in still asks for two-factor when
+  it is enabled.
+
+If the account was **unverified** before the reset, the reset is the real
+owner claiming an address someone else may have registered. Everything the
+previous holder could have set up is removed in one transaction (the same
+cleanup runs when a workspace's SSO links to an unverified account):
+
+| Removed | Kept |
+| --- | --- |
+| every session; the old password (replaced) | the account itself, its name, avatar and profile |
+| linked Google, GitHub and other social sign-ins (SSO and SCIM identities stay: an IdP on a DNS-proven domain vouched for them) | workspace and project memberships (they came from invitations; a workspace admin can remove them) |
+| two-factor enrolment and its backup codes | tickets, comments and other content it wrote |
+| API keys | |
+| OAuth apps it registered, and every app consent, access and refresh token it granted (authorized apps, MCP connectors) | |
+| Slack DM links and web-push subscriptions | |
+
+An audit event (`security.account_claimed`) records it. Afterwards the owner
+signs in with the new password, and "Continue with Google" links to the account.
+
 Decisions about other ways an address can be proven:
 
 | Event | Marks the address verified? |
 | --- | --- |
 | Sign-up or sign-in through Google, GitHub or SSO | Yes, if the provider says the address is verified (unchanged). |
-| Clicking the emailed verification link | Yes. |
-| Password reset by email | The app has no password-reset flow today; if one is added it should verify the address (Better Auth 1.6.33 does not on its own). |
+| Opening the emailed verification link while signed in to that account | Yes (and only then). |
+| Completing a password reset | Yes, and on an unverified account it claims it (above). |
 | Accepting an invitation | No: invite links are shareable, they don't prove anyone owns an address. |
 | Changing the email in settings | Not possible: the address is read-only in the profile and Better Auth's change-email is off, so a verified flag can never move to an unproven address. |
-| SCIM / SSO provisioning | As the SSO/SCIM code sets it (a SCIM email change resets it to unverified). |
+| SCIM / SSO provisioning | As the SSO/SCIM code sets it (a SCIM email change resets it to unverified); SSO linking to an unverified account claims it (above). |
 
 #### Existing users
 
@@ -170,16 +216,17 @@ People who signed up with a password before verification existed:
 
 1. Sign in with email and password as before.
 2. Use **Resend email** on the dashboard banner (or Settings → Profile) and open
-   the link.
+   the link while still signed in.
 3. Sign out and use **Continue with Google** (or GitHub) with the same address:
    it opens the same account and links it, so either way of signing in works
    from then on.
 
 If someone tries Google first they see "account not linked" on the sign-in page,
-with these same steps and a button that emails the link. If a person never
-created the password account that holds their address (someone else signed up
-with it), they can't verify it; an admin should delete that account so the
-person can sign up with Google.
+with these same steps. A person who never set that password (someone else
+signed up with their address, or they forgot it) uses **Forgot password?**:
+the reset proves the address, takes the account back as described above, and
+then Google links. Without email configured, an admin can delete the squatter's
+account so the person can sign up with Google.
 
 **SSO (SAML/OIDC) and SCIM** work self-hosted. A workspace admin proves the
 company domain with a DNS TXT record (`_ticket-system.<domain>`), shown in
