@@ -623,6 +623,12 @@ export interface CreateIssueOptions {
    * duplicate the issue.
    */
   id?: string;
+  /**
+   * Rows that belong to the new issue (e.g. the link a Sentry alert dedupes
+   * on), written in the create's own transaction so the issue never exists
+   * without them. Called with the issue id; not run on a replay.
+   */
+  withRows?: (issueId: string) => BatchItem<'pg'>[];
 }
 
 /** The issue an earlier attempt with the same client id created, or why it can't be reused. */
@@ -779,6 +785,7 @@ export async function createIssue(
       ...(labelList.length
         ? [db.insert(issueLabels).values(labelList.map((l) => ({ ticketId: id, labelId: l.id })))]
         : []),
+      ...(opts?.withRows?.(id) ?? []),
       activityInsert,
     ];
     const results = await db.batch(items as [BatchItem<'pg'>, ...BatchItem<'pg'>[]]);
