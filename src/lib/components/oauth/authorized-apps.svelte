@@ -20,7 +20,7 @@
   } from '@/lib/components/ui/alert-dialog';
   import { Button } from '@/lib/components/ui/button';
   import { EmptyState } from '@/lib/components/ui-icons';
-  import { describeScope, type AuthorizedAppView } from '@/lib/oauth-model';
+  import { describeScope, safeHref, type AuthorizedAppView } from '@/lib/oauth-model';
   import AppIcon from './app-icon.svelte';
 
   let { apps: initial }: { apps: AuthorizedAppView[] } = $props();
@@ -57,12 +57,13 @@
   {:else}
     <ul class="divide-y divide-border rounded-lg border border-border">
       {#each apps as app (app.id)}
+        {@const href = safeHref(app.uri)}
         <li class="flex items-center gap-3 px-3 py-2.5">
           <AppIcon name={app.name} src={app.icon} />
           <div class="min-w-0 flex-1">
             <p class="truncate text-sm font-medium">
-              {#if app.uri}
-                <a href={app.uri} target="_blank" rel="noopener noreferrer nofollow" class="hover:underline">
+              {#if href}
+                <a {href} target="_blank" rel="noopener noreferrer nofollow" class="hover:underline">
                   {app.name}
                 </a>
               {:else}

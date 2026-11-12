@@ -12,16 +12,6 @@
 
   /** openid is implied by any sign-in; don't list it as a separate permission. */
   const HIDDEN_SCOPES = new Set(['openid']);
-
-  function safeHref(uri: string | null): string | null {
-    if (!uri) return null;
-    try {
-      const url = new URL(uri);
-      return url.protocol === 'https:' || url.protocol === 'http:' ? url.toString() : null;
-    } catch {
-      return null;
-    }
-  }
 </script>
 
 <script lang="ts">
@@ -40,7 +30,7 @@
     CardHeader,
     CardTitle,
   } from '@/lib/components/ui/card';
-  import { describeScope } from '@/lib/oauth-model';
+  import { describeScope, safeHref } from '@/lib/oauth-model';
   import AppIcon from './app-icon.svelte';
 
   let {

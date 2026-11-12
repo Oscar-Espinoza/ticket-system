@@ -1,16 +1,18 @@
 // Dynamic client registration through Better Auth's /oauth2/register with the
 // MCP policy (docs/mcp/PLAN.md D3): allowlisted redirects only, public clients
-// only, dynamic clients marked, and stale ones cleaned up daily. Needs a local
-// Postgres (LOCAL_DB_TESTS=1).
+// only, client URLs https only (stored XSS), dynamic clients marked, and
+// stale ones cleaned up daily. Needs a local Postgres
+// (LOCAL_DB_TESTS=1).
 import { describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
+import { auth } from '@/lib/auth';
 import { oauthClients } from '@/db/schema';
 import { run as cleanup } from '@/lib/cron/jobs/oauth-dcr-cleanup';
 import { isDynamicClient } from '@/lib/server/mcp/register';
 import { localDb } from '../local-db/guard';
-import { register } from './oauth-flow';
+import { authRequest, register, signUp } from './oauth-flow';
 
 const publicClient = (redirect: string, extra: Record<string, unknown> = {}) => ({
   client_name: 'Claude',
@@ -68,6 +70,52 @@ describe.skipIf(!localDb)('MCP dynamic client registration', () => {
       expect(res.status, JSON.stringify(extra)).toBe(400);
       expect(((await res.json()) as { error: string }).error).toBe('invalid_client_metadata');
     }
+  });
+
+  it('accepts https homepage, logo, terms and policy URLs', async () => {
+    const res = await register(
+      publicClient('https://claude.ai/api/mcp/auth_callback', {
+        client_uri: 'https://claude.ai',
+        logo_uri: 'https://claude.ai/logo.png',
+        tos_uri: 'https://www.anthropic.com/legal/consumer-terms',
+        policy_uri: 'https://www.anthropic.com/legal/privacy',
+      }),
+    );
+    expect(res.status).toBe(200);
+    const row = await stored(((await res.json()) as { client_id: string }).client_id);
+    expect(row.uri).toBe('https://claude.ai');
+  });
+
+  it.each(['client_uri', 'logo_uri', 'tos_uri', 'policy_uri'])('refuses a script or data URL in %s', async (field) => {
+    for (const value of ['javascript:alert(document.domain)', 'data:text/html,<script>alert(1)</script>', 'http://example.com/']) {
+      const res = await register(publicClient('http://localhost:4000/cb', { [field]: value }));
+      expect(res.status, `${field}=${value}`).toBe(400);
+      expect(((await res.json()) as { error: string }).error).toBe('invalid_client_metadata');
+    }
+  });
+
+  it('refuses post-logout redirects on dynamic registration', async () => {
+    const res = await register(publicClient('http://localhost:4000/cb', { post_logout_redirect_uris: ['https://example.com/'] }));
+    expect(res.status).toBe(400);
+  });
+
+  it("closes Better Auth's own client endpoints over HTTP and checks URLs when the app calls them", async () => {
+    const { cookie } = await signUp('client-writes');
+    const body = { client_name: 'X', redirect_uris: ['https://example.com/cb'], client_uri: 'https://example.com' };
+    for (const path of ['/oauth2/create-client', '/oauth2/update-client']) {
+      const res = await authRequest(path, { method: 'POST', cookie, headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+      expect(res.status, path).toBe(404);
+    }
+
+    const headers = new Headers({ cookie });
+    await expect(
+      auth.api.createOAuthClient({ headers, body: { ...body, client_uri: 'javascript:alert(1)' } }),
+    ).rejects.toMatchObject({ body: { error: 'invalid_client_metadata' } });
+    const created = await auth.api.createOAuthClient({ headers, body });
+    await expect(
+      auth.api.updateOAuthClient({ headers, body: { client_id: created.client_id, update: { policy_uri: 'javascript:alert(1)' } } }),
+    ).rejects.toMatchObject({ body: { error: 'invalid_client_metadata' } });
+    expect((await stored(created.client_id)).policy).toBeNull();
   });
 
   it('cleans up dynamic clients with no live token for 30 days, and nothing else', async () => {

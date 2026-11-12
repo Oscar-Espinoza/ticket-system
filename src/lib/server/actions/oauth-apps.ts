@@ -26,6 +26,8 @@ import {
 import { sessionUserId } from '@/lib/session';
 import {
   APP_NAME_MAX,
+  CLIENT_URI_MAX,
+  httpsUrl,
   OAUTH_APP_SCOPES,
   REDIRECT_URIS_MAX,
   type OAuthAppView,
@@ -47,19 +49,13 @@ function authErrorMessage(err: unknown, fallback: string): string {
   return fallback;
 }
 
-function optionalUrl(raw: unknown, field: Field, label: string, httpsOnly: boolean): Result<{ url?: string }> {
+/** Logo / homepage: the rule every client write path shares (httpsUrl in oauth-model.ts). */
+function optionalUrl(raw: unknown, field: Field, label: string): Result<{ url?: string }> {
   const value = typeof raw === 'string' ? raw.trim() : '';
   if (!value) return { ok: true };
-  if (value.length > URL_MAX) return fail(`${label} is too long.`, field);
-  try {
-    const url = new URL(value);
-    if (url.protocol !== 'https:' && (httpsOnly || url.protocol !== 'http:')) {
-      return fail(`${label} must use https.`, field);
-    }
-    return { ok: true, url: url.toString() };
-  } catch {
-    return fail(`${label} must be a valid URL.`, field);
-  }
+  if (value.length > CLIENT_URI_MAX) return fail(`${label} is too long.`, field);
+  const url = httpsUrl(value);
+  return url ? { ok: true, url } : fail(`${label} must be an https URL.`, field);
 }
 
 function parseRedirectUris(raw: unknown): Result<{ uris: string[] }> {
@@ -109,9 +105,9 @@ export async function createOAuthApp(input: {
   if (isFail(name)) return name;
   const redirects = parseRedirectUris(input.redirectUris);
   if (!redirects.ok) return redirects;
-  const logo = optionalUrl(input.logoUrl, 'logoUrl', 'Logo URL', true);
+  const logo = optionalUrl(input.logoUrl, 'logoUrl', 'Logo URL');
   if (!logo.ok) return logo;
-  const homepage = optionalUrl(input.homepageUrl, 'homepageUrl', 'Homepage', false);
+  const homepage = optionalUrl(input.homepageUrl, 'homepageUrl', 'Homepage');
   if (!homepage.ok) return homepage;
   const isPublic = input.kind === 'public';
 

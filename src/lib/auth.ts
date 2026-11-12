@@ -31,6 +31,7 @@ import { oauthProvider } from '@better-auth/oauth-provider';
 import { scim } from '@better-auth/scim';
 import { sso } from '@better-auth/sso';
 import { MIN_PASSWORD_LENGTH } from '@/lib/auth-rules';
+import { invalidClientUri } from '@/lib/oauth-model';
 import { authDb } from '@/lib/db';
 import { recordUserSecurityEvent } from '@/lib/audit';
 import { checkDynamicRegistration, markDynamicClient } from '@/lib/server/mcp/register';
@@ -81,6 +82,15 @@ const authSchema = {
   oauthRefreshToken: oauthRefreshTokens,
   oauthConsent: oauthConsents,
 };
+
+// Better Auth's OAuth client writes besides /oauth2/register (the DCR policy
+// covers that one): Settings → OAuth apps calls the first two through auth.api.
+const CLIENT_WRITE_PATHS = new Set([
+  '/oauth2/create-client',
+  '/oauth2/update-client',
+  '/admin/oauth2/create-client',
+  '/admin/oauth2/update-client',
+]);
 
 export const auth = betterAuth({
   database: drizzleAdapter(authDb, {
@@ -171,6 +181,10 @@ export const auth = betterAuth({
     '/scim/list-provider-connections',
     '/scim/get-provider-connection',
     '/scim/delete-provider-connection',
+    // OAuth apps are created in Settings (server action → auth.api, which
+    // these don't block); over HTTP they'd skip the action's checks.
+    '/oauth2/create-client',
+    '/oauth2/update-client',
   ],
   hooks: {
     before: createAuthMiddleware(async (ctx) => {
@@ -180,6 +194,18 @@ export const auth = betterAuth({
           throw new APIError('BAD_REQUEST', { error: verdict.error, error_description: verdict.description });
         }
         return { context: { body: verdict.body } };
+      }
+      // Client URLs are rendered as links and images (Settings, consent page).
+      if (CLIENT_WRITE_PATHS.has(ctx.path)) {
+        const fields = ctx.path.endsWith('/update-client') ? ctx.body?.update : ctx.body;
+        const bad = invalidClientUri(fields);
+        if (bad) {
+          throw new APIError('BAD_REQUEST', {
+            error: 'invalid_client_metadata',
+            error_description: `${bad} must be an absolute https URL.`,
+          });
+        }
+        return;
       }
       // "Enforce SSO": password sign-in / sign-up is refused for the domain.
       if (ctx.path === '/sign-in/email' || ctx.path === '/sign-up/email') {

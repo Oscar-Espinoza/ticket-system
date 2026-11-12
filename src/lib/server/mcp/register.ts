@@ -6,7 +6,10 @@
 //     Claude Code / MCP Inspector, MCP_EXTRA_REDIRECT_URIS);
 //   - public clients only (`token_endpoint_auth_method: none`, PKCE);
 //   - authorization code + refresh token grants only;
-//   - scopes within the provider's list, client names capped.
+//   - scopes within the provider's list, client names capped;
+//   - homepage / logo / terms / policy URLs absolute https or absent
+//     (invalidClientUri, the rule every client write path shares), and no
+//     post-logout redirects.
 // After registration the client is marked `metadata.registration = 'dynamic'`,
 // which the consent screen flags and the daily cleanup
 // (src/lib/cron/jobs/oauth-dcr-cleanup.ts) keys on. No imports of auth.ts
@@ -16,7 +19,7 @@ import { eq } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import { oauthClients } from '@/db/schema';
-import { OAUTH_APP_SCOPES } from '@/lib/oauth-model';
+import { invalidClientUri, OAUTH_APP_SCOPES } from '@/lib/oauth-model';
 
 export const CLIENT_NAME_MAX = 100;
 const REDIRECT_URIS_MAX = 10;
@@ -115,6 +118,12 @@ export function checkDynamicRegistration(input: unknown): RegistrationVerdict {
   const name = body.client_name;
   if (name !== undefined && (typeof name !== 'string' || name.length > CLIENT_NAME_MAX)) {
     return reject('invalid_client_metadata', `client_name must be at most ${CLIENT_NAME_MAX} characters.`);
+  }
+
+  const badUri = invalidClientUri(body);
+  if (badUri) return reject('invalid_client_metadata', `${badUri} must be an absolute https URL.`);
+  if (body.post_logout_redirect_uris !== undefined) {
+    return reject('invalid_client_metadata', 'post_logout_redirect_uris is not allowed for dynamic registration.');
   }
 
   return { ok: true, body: { ...body, token_endpoint_auth_method: 'none' } };
