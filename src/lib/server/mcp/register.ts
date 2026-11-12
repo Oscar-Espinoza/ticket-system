@@ -43,15 +43,21 @@ function extraRedirects(): Set<string> {
   );
 }
 
-/** Whether a dynamically registered client may use this redirect URI. */
+/**
+ * Whether a dynamically registered client may use this redirect URI. It must
+ * be in canonical form first (what the URL parser prints back), so the string
+ * we match is the URL a browser would follow: `http://localhost\@evil/cb`
+ * and similar parser tricks are refused before any pattern runs.
+ */
 export function isAllowedRedirect(uri: string): boolean {
-  if (FIXED_REDIRECTS.has(uri) || CHATGPT_CALLBACK.test(uri) || extraRedirects().has(uri)) return true;
   let url: URL;
   try {
     url = new URL(uri);
   } catch {
     return false;
   }
+  if (url.href !== uri) return false;
+  if (FIXED_REDIRECTS.has(uri) || CHATGPT_CALLBACK.test(uri) || extraRedirects().has(uri)) return true;
   // Loopback: any port and path, plain http, no credentials or fragment.
   return (
     url.protocol === 'http:' &&

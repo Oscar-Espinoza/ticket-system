@@ -53,6 +53,10 @@ describe.skipIf(!localDb)('MCP dynamic client registration', () => {
     'http://localhost.evil.example/callback',
     'https://localhost:3000/callback',
     'http://user@localhost:3000/callback',
+    // Not in canonical form: the string matched isn't the URL a browser follows.
+    'http://localhost\\@evil.com/cb',
+    'HTTP://localhost:3000/callback',
+    'http://localhost:3000/a/../callback',
   ])('refuses the redirect %s', async (redirect) => {
     const res = await register(publicClient(redirect));
     expect(res.status).toBe(400);
