@@ -1,7 +1,7 @@
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { and, eq, inArray, isNotNull } from 'drizzle-orm';
+import { and, eq, inArray, isNotNull, like, sql } from 'drizzle-orm';
 
 // No after-response fan-out: the sweep and the readers are called directly.
 vi.mock('@/lib/kit/request', async (orig) => ({
@@ -41,9 +41,9 @@ afterAll(() => new Promise<void>((resolve) => server.close(() => resolve())));
 
 const later = () => new Date(Date.now() + 10 * 60_000);
 
-async function auditExport(viewerId: string, projectId: string): Promise<string> {
+async function auditExport(viewerId: string, projectId: string, extra = ''): Promise<string> {
   const event = {
-    url: new URL(`http://localhost/api/audit?scope=project&id=${projectId}&format=json`),
+    url: new URL(`http://localhost/api/audit?scope=project&id=${projectId}&format=json${extra}`),
     locals: { user: { id: viewerId } },
   } as unknown as Parameters<typeof exportAudit>[0];
   const res = await exportAudit(event);
@@ -220,6 +220,29 @@ describe.skipIf(!localDb)('issue.moved does not reveal the other project (gap D 
     expect(aOnlyTimeline).toContain('Open title'); // what happened in A stays
     expect(leaks(await auditListText(a, aOnly))).toEqual([]);
     expect(leaks(await auditExport(aOnly, a))).toEqual([]);
+
+    // Filters select rows by what they say: a row collapsed for this viewer
+    // must not match one at all (it would tell who did what kind of thing in
+    // B, or that the issue was HVB-n there).
+    const [old] = await db
+      .select({ key: sql<string>`${activities.data} ->> 'key'` })
+      .from(activities)
+      .where(and(eq(activities.ticketId, id), like(sql`${activities.data} ->> 'key'`, `${bRow.key}-%`)))
+      .limit(1);
+    expect(old?.key).toBeTruthy();
+    const filteredRows = async (viewer: string, query: Record<string, string>) => {
+      const scope = await resolveAuditScope('project', a, viewer);
+      return (await loadAuditLogView(scope!, query, '/audit')).rows;
+    };
+    expect(await filteredRows(aOnly, { issue: old.key })).toEqual([]);
+    for (const query of [{ actor: both }, { category: 'issues' }] as Record<string, string>[]) {
+      const rows = await filteredRows(aOnly, query);
+      expect(rows.length).toBeGreaterThan(0); // what happened in A still matches
+      expect(rows.filter((row) => row.type === 'issue.activity_elsewhere')).toEqual([]);
+      expect(leaks(JSON.stringify(rows))).toEqual([]);
+    }
+    expect(await auditExport(aOnly, a, `&issue=${old.key}`)).toContain('"count":0');
+    expect((await filteredRows(both, { issue: old.key })).length).toBeGreaterThan(0);
     // A member of both sees everything.
     const bothTimeline = await timelineText(a, id, both);
     expect(leaks(bothTimeline)).toEqual([bRow.key, b, secretTitle, secretState, secretLabel]);
