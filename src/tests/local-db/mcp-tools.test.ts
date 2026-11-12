@@ -53,7 +53,7 @@ import {
 import { generateApiKey } from '@/lib/api-auth';
 import { createIssue } from '@/lib/issue-service';
 import { createHash } from 'node:crypto';
-import { handleMcpPost } from '@/lib/server/mcp/http';
+import { handleMcpPost, MCP_RATE_LIMIT_DEFAULT } from '@/lib/server/mcp/http';
 import { localDb, makeProject, makeUser } from './fixtures';
 
 const uid = () => crypto.randomUUID();
@@ -601,6 +601,19 @@ describe.skipIf(!localDb)('MCP tools over /mcp', () => {
       expect(limited.headers.get('access-control-allow-origin')).toBe('*');
       expect(JSON.parse(limited.body as string).error.code).toBe(-32000);
       expect((await rpc(dave, 'tools/list')).status).toBe(200);
+
+      // initialize counts like any call.
+      vi.stubEnv('MCP_RATE_LIMIT_PER_MINUTE', '1');
+      const erin = await apiKeyFor(await makeUser('erin'));
+      const init = { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'vitest', version: '1' } };
+      expect((await rpc(erin, 'initialize', init)).status).toBe(200);
+      expect((await rpc(erin, 'initialize', init)).status).toBe(429);
+
+      // 0 turns the limit off: more calls than the default allowance all pass.
+      vi.stubEnv('MCP_RATE_LIMIT_PER_MINUTE', '0');
+      const statuses = new Set<number>();
+      for (let i = 0; i <= MCP_RATE_LIMIT_DEFAULT; i++) statuses.add((await rpc(erin, 'ping')).status);
+      expect([...statuses]).toEqual([200]);
     } finally {
       vi.unstubAllEnvs();
     }

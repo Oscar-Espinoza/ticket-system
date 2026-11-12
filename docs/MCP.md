@@ -206,7 +206,8 @@ that passes, then requests flow at two a second. Over it, `/mcp` answers HTTP
 429 with `Retry-After` and a JSON-RPC error. Set `MCP_RATE_LIMIT_PER_MINUTE` to
 change it (`0` turns it off). Like the registration limit, the counter is in
 memory, so it is per instance (each Vercel function instance or Docker replica
-counts on its own).
+counts on its own). It is per connection, not per person: someone with several
+API keys or assistants gets the allowance once for each.
 
 ## Troubleshooting
 
