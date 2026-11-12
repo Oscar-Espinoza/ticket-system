@@ -29,7 +29,16 @@ Connect an AI assistant**.
 Nothing else: no deleting, archiving, moving, bulk edits, members, roles,
 settings or integrations. Every write is recorded in the audit log as
 `mcp.tool_call` with the assistant's name (workspace or team → Audit log,
-category Integrations). The assistant acts with your own permissions: it sees
+category Integrations), and so is every refused or failed write attempt, e.g.
+"tried to update WEB-12 through Claude (MCP), denied: their role has no write
+access". `data.outcome` is `success`, `denied` (no write permission on the
+connection, a role without write access, not a member of the team, AI
+connectors blocked), `invalid` (input that didn't resolve or that the issue
+service refused) or `failed` (server error), with a `reason` code. The rows hold
+the tool, the client and the issue key, never the issue content the call sent.
+An attempt at a team or issue that doesn't exist has nowhere to be recorded.
+Inputs that don't match a tool's schema are refused by the MCP library before
+the tool runs and aren't audited. The assistant acts with your own permissions: it sees
 only projects you are a member of, and a guest can still only read and comment.
 
 **Waiting on and follow-up.** `create_issue` and `update_issue` take

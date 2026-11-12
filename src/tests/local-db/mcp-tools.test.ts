@@ -121,6 +121,18 @@ async function call(token: string, name: string, args: Record<string, unknown> =
 
 const text = (r: ToolResult) => r.content.map((c) => c.text).join('\n');
 
+type AuditData = { tool: string; outcome: string; reason?: string; key?: string; issueId?: string; summary: string };
+
+/** The `mcp.tool_call` rows on a project, oldest first. */
+async function mcpAudit(projectId: string) {
+  const rows = await db
+    .select({ data: activities.data, actorId: activities.actorId, createdAt: activities.createdAt })
+    .from(activities)
+    .where(and(eq(activities.projectId, projectId), eq(activities.type, 'mcp.tool_call')))
+    .orderBy(activities.createdAt);
+  return rows.map((r) => ({ ...(r.data as AuditData), actorId: r.actorId }));
+}
+
 describe.skipIf(!localDb)('MCP tools over /mcp', () => {
   let alice: string;
   let bob: string;
@@ -348,13 +360,12 @@ describe.skipIf(!localDb)('MCP tools over /mcp', () => {
     expect(text(comment)).toContain(`\`\`\`\`user-content\n${body}\n\`\`\`\``);
     expect((comment.structuredContent!.issue as { comments: { body: string }[] }).comments.at(-1)!.body).toBe(body);
 
-    const audited = await db
-      .select({ data: activities.data })
-      .from(activities)
-      .where(and(eq(activities.projectId, project), eq(activities.type, 'mcp.tool_call')));
-    const tools = audited.map((a) => (a.data as { tool: string; key: string }).tool).sort();
-    expect(tools).toEqual(['add_comment', 'create_issue', 'update_issue']);
-    expect(audited.every((a) => (a.data as { key: string }).key === detail.key)).toBe(true);
+    const audited = (await mcpAudit(project)).filter((a) => a.key === detail.key);
+    expect(audited.filter((a) => a.outcome === 'success').map((a) => a.tool).sort()).toEqual(['add_comment', 'create_issue', 'update_issue']);
+    // The refused state change is audited as invalid input, without the value it was given.
+    const invalid = audited.filter((a) => a.outcome === 'invalid');
+    expect(invalid).toMatchObject([{ tool: 'update_issue', reason: 'invalid_input' }]);
+    expect(JSON.stringify(invalid)).not.toContain('Shipped');
   });
 
   it('sets, reads, filters and clears waiting on and the follow-up date', async () => {
@@ -442,6 +453,11 @@ describe.skipIf(!localDb)('MCP tools over /mcp', () => {
       expect(result.isError, name).toBe(true);
       expect(text(result)).toBe('This requires write access to the project.');
     }
+    const denied = (await mcpAudit(project)).filter((a) => a.actorId === guest && a.outcome === 'denied');
+    expect(denied.map((a) => [a.tool, a.reason])).toEqual([
+      ['create_issue', 'forbidden_role'],
+      ['update_issue', 'forbidden_role'],
+    ]);
   });
 
   it('returns the same issue when create_issue is retried with its request_id', async () => {
@@ -482,6 +498,8 @@ describe.skipIf(!localDb)('MCP tools over /mcp', () => {
       const result = await call(aliceKey, 'add_comment', { key: issueKey, body: 'Audit outage comment' });
       expect(result.isError).toBeUndefined();
       expect(text(result)).toContain('Audit outage comment');
+      const refusedCall = await call(guestKey, 'update_issue', { key: issueKey, title: 'Guest edit' });
+      expect(text(refusedCall)).toBe('This requires write access to the project.');
     } finally {
       auditOutage.on = false;
     }
@@ -505,6 +523,9 @@ describe.skipIf(!localDb)('MCP tools over /mcp', () => {
     expect(challenge).toContain('error="insufficient_scope"');
     expect(challenge).toContain('scope="write"');
     expect((await call(readOnly, 'get_issue', { key: issueKey })).isError).toBeUndefined();
+    const denied = (await mcpAudit(project)).filter((a) => a.reason === 'insufficient_scope');
+    expect(denied).toMatchObject([{ tool: 'create_issue', outcome: 'denied', clientName: 'Test Assistant' }]);
+    expect(denied[0].summary).toBe('tried to create an issue through Test Assistant (MCP), denied: the connection has no write permission');
   });
 
   it("never shows another user's project, by key, id or search", async () => {
@@ -525,6 +546,15 @@ describe.skipIf(!localDb)('MCP tools over /mcp', () => {
     }
     await notFound('update_issue', { key: issueKey, title: 'Hacked' });
     await notFound('add_comment', { key: issueKey, body: 'Hi' });
+    // Admins see the attempts; the rows hold no content from them.
+    const attempts = (await mcpAudit(project)).filter((a) => a.actorId === bob);
+    expect(attempts.map((a) => [a.tool, a.outcome, a.reason])).toEqual([
+      ['create_issue', 'denied', 'not_member'],
+      ['create_issue', 'denied', 'not_member'],
+      ['update_issue', 'denied', 'not_member'],
+      ['add_comment', 'denied', 'not_member'],
+    ]);
+    expect(JSON.stringify(attempts)).not.toMatch(/Intrusion|Hacked/);
 
     const search = await call(bobKey, 'search_issues', { query: secretWord });
     expect(search.structuredContent!.issues).toEqual([]);
@@ -538,6 +568,7 @@ describe.skipIf(!localDb)('MCP tools over /mcp', () => {
     expect(hiddenIssue.isError).toBe(true);
     expect((await call(aliceKey, 'list_issues', { project: blockedKey })).isError).toBe(true);
     expect((await call(aliceKey, 'create_issue', { project: blockedProject, title: 'x' })).isError).toBe(true);
+    expect(await mcpAudit(blockedProject)).toMatchObject([{ tool: 'create_issue', outcome: 'denied', reason: 'connectors_blocked' }]);
     const search = await call(aliceKey, 'search_issues', { query: secretWord });
     expect((search.structuredContent!.issues as { key: string }[]).map((i) => i.key)).toEqual([issueKey]);
     const listed = (await call(aliceKey, 'list_projects')).structuredContent!.projects as { key: string }[];

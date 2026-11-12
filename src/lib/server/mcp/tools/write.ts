@@ -4,6 +4,10 @@
 // audited as `mcp.tool_call` with the OAuth client. The issue and comment
 // services re-validate every id against the project.
 //
+// Refused and failed calls are audited too (../audit.ts, from
+// ./common.ts): access failures are tagged with why (`denied`); any other tool
+// error is invalid input.
+//
 // The audit row is written after the change, outside its transaction (the
 // services commit their own batch; the row needs the final key and diff). If
 // that insert fails the write still happened, so the failure is logged and the
@@ -15,11 +19,11 @@
 
 import { z } from 'zod';
 
-import { recordProjectEvent } from '@/lib/audit';
 import { createCommentAs } from '@/lib/comments';
 import { createIssue, updateIssueFields } from '@/lib/issue-service';
 import type { CreateIssueInput, IssuePatch, IssueRow, Priority } from '@/lib/issue-model';
 import { mcpIssue, mcpProject } from '../access';
+import { auditWrite as audit, refused } from '../audit';
 import type { IssueDetailView, McpCredential } from '../contracts';
 import { toolError, toolResult } from '../format';
 import {
@@ -36,31 +40,9 @@ import { issueDetail, issueDetailMarkdown } from './detail';
 import { issueKeyArg } from './issues';
 import { projectArg } from './projects';
 
-async function audit(
-  credential: McpCredential,
-  tool: string,
-  issue: { id: string; key: string; projectId: string },
-  verb: string,
-) {
-  const client = credential.clientName ?? (credential.via === 'api_key' ? 'an API key' : 'an AI assistant');
-  try {
-    await recordProjectEvent(issue.projectId, {
-      actorId: credential.userId,
-      type: 'mcp.tool_call',
-      summary: `${verb} ${issue.key} through ${client} (MCP)`,
-      data: {
-        tool,
-        via: credential.via,
-        clientId: credential.clientId,
-        clientName: credential.clientName,
-        issueId: issue.id,
-        key: issue.key,
-      },
-    });
-  } catch (err) {
-    console.error(`[mcp] audit failed after a successful ${tool} on ${issue.key}`, err);
-  }
-}
+/** An access failure from ../access.ts, tagged for the audit row: hidden (not found) or a role without the right. */
+const deny = (access: { error: string; notFound: boolean }) =>
+  refused(access.error, { outcome: 'denied', reason: access.notFound ? 'not_found' : 'forbidden_role' });
 
 const dateArg = z
   .string()
@@ -160,7 +142,7 @@ export const createIssueTool = defineTool({
   async run(args, credential) {
     const { userId } = credential;
     const access = await mcpProject(userId, args.project, 'write');
-    if (!access.ok) return toolError(access.error);
+    if (!access.ok) return deny(access);
     const { project } = access;
     const meta = await loadProjectMetadata(project.id);
     const fields = toPatch(meta, userId, args);
@@ -240,7 +222,7 @@ export const updateIssueTool = defineTool({
   async run(args, credential) {
     const { userId } = credential;
     const found = await mcpIssue(userId, args.key, 'write');
-    if (!found.ok) return toolError(found.error);
+    if (!found.ok) return deny(found);
     const { issue: before, project } = found;
     if (before.deletedAt) return toolError(`${before.key} is in the trash; restore it in the app first.`);
     if (args.labels && (args.add_labels || args.remove_labels)) {
@@ -294,9 +276,9 @@ export const addCommentTool = defineTool({
   async run({ key, body, reply_to }, credential) {
     const { userId } = credential;
     const found = await mcpIssue(userId, key, 'comment');
-    if (!found.ok) return toolError(found.error);
+    if (!found.ok) return deny(found);
     const { issue, project } = found;
-    if (issue.deletedAt) return toolError(`Issue "${key}" not found. Issue keys look like WEB-123.`);
+    if (issue.deletedAt) return deny({ error: `Issue "${key}" not found. Issue keys look like WEB-123.`, notFound: true });
 
     const result = await createCommentAs({ userId }, project.id, {
       ticketId: issue.id,
