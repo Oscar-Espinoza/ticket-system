@@ -2,7 +2,9 @@
 //
 // - Issue alerts (`event_alert`) open one triage issue per Sentry issue: the
 //   Sentry issue URL is stored as a link attachment, and that attachment is the
-//   dedupe key (a user linking a Sentry issue by URL counts too). With the
+//   dedupe key (a user linking a Sentry issue by URL counts too). The issue and
+//   its link commit together, and the issue's id is derived from the Sentry
+//   issue, so two alerts at once (or a retry) create it once. With the
 //   integration's optional auth token the issue's short id and event / user
 //   counts are read from Sentry's API (the alert payload doesn't carry them).
 //   New-issue webhooks (`issue` created) are ignored on purpose: alert rules
@@ -18,9 +20,9 @@ import { db } from '@/lib/db';
 import { attachments, projects, tickets } from '@/db/schema';
 import { projectStatesQuery } from '@/lib/workflow-server';
 import { emitIssueEvent, ISSUE_EVENT } from '@/lib/events';
-import { createIssue, DESCRIPTION_MAX, SYSTEM_ACTOR, TITLE_MAX } from '@/lib/issue-service';
+import { createIssue, DESCRIPTION_MAX, ISSUE_ID_IN_USE, SYSTEM_ACTOR, TITLE_MAX } from '@/lib/issue-service';
 import { defaultNewIssueState, firstStateOfType } from '@/lib/workflow';
-import { verifyHmac } from '@/lib/server/secrets';
+import { derivedUuid, verifyHmac } from '@/lib/server/secrets';
 import type { StateType } from '@/lib/issue-model';
 import { guardedRequest } from '@/lib/integrations/url-guard';
 import { WEBHOOK_TIMEOUT_MS } from '@/lib/integrations/timeouts';
@@ -147,6 +149,18 @@ function description(info: SentryIssueInfo): string {
   return lines.join('\n').slice(0, DESCRIPTION_MAX);
 }
 
+/**
+ * The triage issue's id for Sentry issue `sentryId` in a project (same for
+ * every alert). `generation` > 0: the next id to use once the previous one
+ * belongs to an issue that was trashed or moved away.
+ */
+export function triageIssueId(projectId: string, sentryId: string, generation = 0): string {
+  return derivedUuid(`sentry:${projectId}:${sentryId}${generation ? `:${generation}` : ''}`, 'Sentry triage issues');
+}
+
+/** Trashed / moved-away predecessors skipped before giving up (bad data guard). */
+const MAX_TRIAGE_GENERATIONS = 50;
+
 async function openTriageIssue(projectId: string, info: SentryIssueInfo) {
   if ((await linkedIssues(projectId, info.id)).length) return;
 
@@ -159,28 +173,34 @@ async function openTriageIssue(projectId: string, info: SentryIssueInfo) {
     (project.triageEnabled ? firstStateOfType(states, 'triage' as StateType) : undefined) ??
     defaultNewIssueState(states);
 
-  // Narrow the race with a concurrent delivery for the same Sentry issue.
-  if ((await linkedIssues(projectId, info.id)).length) return;
-  const created = await createIssue(SYSTEM_ACTOR, projectId, {
-    title: info.title,
-    description: description(info),
-    stateId: state?.id,
-  });
-  if (!created.ok) {
-    console.error(`[sentry] could not create an issue for ${info.id}: ${created.error}`);
-    return;
+  const input = { title: info.title, description: description(info), stateId: state?.id };
+  const withRows = (ticketId: string) => [
+    db.insert(attachments).values({
+      id: crypto.randomUUID(),
+      ticketId,
+      uploaderId: null,
+      kind: 'link',
+      title: `Sentry: ${info.shortId ?? info.title}`.slice(0, 200),
+      url: info.url,
+      contentType: null,
+      size: null,
+      createdAt: new Date(),
+    }),
+  ];
+  // A concurrent alert that won the create returns its issue (a replay). An
+  // id taken by an issue that no longer answers for this project — trashed,
+  // or moved away with its link — moves on to the next derived id, so two
+  // alerts racing past such a predecessor still open ONE fresh issue.
+  for (let generation = 0; generation < MAX_TRIAGE_GENERATIONS; generation++) {
+    const id = triageIssueId(projectId, info.id, generation);
+    const created = await createIssue(SYSTEM_ACTOR, projectId, input, { id, withRows });
+    if (created.ok && !created.issue.deletedAt) return;
+    if (!created.ok && created.error !== ISSUE_ID_IN_USE) {
+      console.error(`[sentry] could not create an issue for ${info.id}: ${created.error}`);
+      return;
+    }
   }
-  await db.insert(attachments).values({
-    id: crypto.randomUUID(),
-    ticketId: created.issue.id,
-    uploaderId: null,
-    kind: 'link',
-    title: `Sentry: ${info.shortId ?? info.title}`.slice(0, 200),
-    url: info.url,
-    contentType: null,
-    size: null,
-    createdAt: new Date(),
-  });
+  console.error(`[sentry] could not create an issue for ${info.id}: no free triage id`);
 }
 
 async function recordResolved(projectId: string, ticketKey: string, info: SentryIssueInfo) {

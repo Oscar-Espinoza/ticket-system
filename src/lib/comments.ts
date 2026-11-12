@@ -31,6 +31,7 @@ import {
   type TimelineComment,
 } from '@/lib/timeline';
 import { formatIssueKey } from '@/lib/tickets';
+import { redactActivityFor } from '@/lib/moved-events';
 
 export const COMMENT_EVENT = {
   created: ISSUE_EVENT.commentCreated,
@@ -124,12 +125,23 @@ async function projectMemberIds(projectId: string, ids: string[]): Promise<strin
 export async function readIssueTimeline(
   projectId: string,
   ticketId: unknown,
+  viewerId: string,
 ): Promise<CommentResult<{ timeline: IssueTimeline }>> {
   if (typeof ticketId !== 'string' || !ticketId) return { ok: false, error: 'Issue not found.' };
-  return { ok: true, timeline: await loadIssueTimeline(projectId, ticketId) };
+  return { ok: true, timeline: await loadIssueTimeline(projectId, ticketId, viewerId) };
 }
 
-export async function loadIssueTimeline(projectId: string, ticketId: string): Promise<IssueTimeline> {
+/**
+ * The issue's activity and comments as `viewerId` (a member of `projectId`)
+ * may see them: rows recorded while the issue was in a project the viewer is
+ * not a member of are collapsed, and moves name another project only when the
+ * viewer belongs to it (moved-events.ts).
+ */
+export async function loadIssueTimeline(
+  projectId: string,
+  ticketId: string,
+  viewerId: string,
+): Promise<IssueTimeline> {
   const onTicket = and(eq(comments.ticketId, ticketId), eq(tickets.projectId, projectId));
   const [activityRows, commentRows, reactionRows] = await db.batch([
     db
@@ -138,6 +150,8 @@ export async function loadIssueTimeline(projectId: string, ticketId: string): Pr
         type: activities.type,
         data: activities.data,
         createdAt: activities.createdAt,
+        ticketId: activities.ticketId,
+        projectId: activities.projectId,
         actorId: users.id,
         actorName: users.name,
         actorImage: users.image,
@@ -198,8 +212,12 @@ export async function loadIssueTimeline(projectId: string, ticketId: string): Pr
     });
   };
 
+  const visibleActivity = await redactActivityFor(
+    activityRows.map((row) => ({ ...row, data: row.data ?? {} })),
+    viewerId,
+  );
   return {
-    activities: activityRows.reverse().map((row) => ({
+    activities: visibleActivity.reverse().map((row) => ({
       id: row.id,
       type: row.type,
       data: row.data ?? {},

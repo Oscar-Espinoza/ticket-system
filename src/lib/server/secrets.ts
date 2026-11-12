@@ -50,3 +50,15 @@ export function requiredAppSecret(purpose: string): string {
   if (!secret) throw new Error(`BETTER_AUTH_SECRET is required for ${purpose}.`);
   return secret;
 }
+
+/**
+ * A UUID that is the same for every call with the same `input`, and keyed with
+ * the server secret so nobody can predict it (a client-chosen create id equal
+ * to it would otherwise take its place). For idempotent creates: recurring
+ * occurrences, Sentry triage issues. RFC 9562 layout, version 8, variant 10.
+ */
+export function derivedUuid(input: string, purpose: string): string {
+  const hex = hmacHex(input, requiredAppSecret(purpose));
+  const variant = ((parseInt(hex[16], 16) & 0x3) | 0x8).toString(16);
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-8${hex.slice(13, 16)}-${variant}${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
+}

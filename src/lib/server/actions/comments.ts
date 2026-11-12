@@ -20,7 +20,7 @@ export async function getIssueTimeline(input: {
 }): Promise<CommentResult<{ timeline: IssueTimeline }>> {
   const authz = await authorizeProjectAction(input?.projectId, 'read');
   if (!authz.ok) return authz;
-  return readIssueTimeline(input.projectId, input.ticketId);
+  return readIssueTimeline(input.projectId, input.ticketId, authz.userId);
 }
 
 export async function createComment(input: {

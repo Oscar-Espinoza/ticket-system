@@ -625,7 +625,16 @@ export interface CreateIssueOptions {
    * duplicate the issue.
    */
   id?: string;
+  /**
+   * Rows that belong to the new issue (e.g. the link a Sentry alert dedupes
+   * on), written in the create's own transaction so the issue never exists
+   * without them. Called with the issue id; not run on a replay.
+   */
+  withRows?: (issueId: string) => BatchItem<'pg'>[];
 }
+
+/** createIssue's error when `opts.id` belongs to an issue it cannot replay (another project or creator). */
+export const ISSUE_ID_IN_USE = 'This issue id is already in use.';
 
 /** The issue an earlier attempt with the same client id created, or why it can't be reused. */
 async function existingCreate(
@@ -640,10 +649,10 @@ async function existingCreate(
     .limit(1);
   if (!row) return null;
   if (row.projectId !== projectId || row.creatorId !== actor.userId) {
-    return fail('This issue id is already in use.');
+    return fail(ISSUE_ID_IN_USE);
   }
   const [issue] = await queryIssues(and(eq(tickets.id, id), eq(tickets.projectId, projectId)));
-  return issue ? { ok: true, issue, replayed: true } : fail('This issue id is already in use.');
+  return issue ? { ok: true, issue, replayed: true } : fail(ISSUE_ID_IN_USE);
 }
 
 /** moveIssue's guard statement divides by zero when the tree changed under it. */
@@ -781,6 +790,7 @@ export async function createIssue(
       ...(labelList.length
         ? [db.insert(issueLabels).values(labelList.map((l) => ({ ticketId: id, labelId: l.id })))]
         : []),
+      ...(opts?.withRows?.(id) ?? []),
       activityInsert,
     ];
     const results = await db.batch(items as [BatchItem<'pg'>, ...BatchItem<'pg'>[]]);
@@ -1211,7 +1221,7 @@ export async function purge(actor: IssueActor, projectId: string, id: string): P
 // Move to another project
 // ---------------------------------------------------------------------------
 
-export const ISSUE_MOVED_EVENT = 'issue.moved';
+export const ISSUE_MOVED_EVENT = ISSUE_EVENT.moved;
 
 export type MoveIssueResult =
   | {

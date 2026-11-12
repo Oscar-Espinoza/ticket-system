@@ -679,6 +679,12 @@ export const githubPullRequests = pgTable(
     /** 'pending' | 'success' | 'failure' | null — combined CI status. */
     checksState: text('checks_state'),
     mergedAt: timestamp('merged_at'),
+    /**
+     * The provider's own "last updated" time of the snapshot stored here
+     * (null = unknown). A delivery whose snapshot is older is not applied:
+     * retried deliveries can arrive out of order (vcs/automation.ts).
+     */
+    providerUpdatedAt: timestamp('provider_updated_at'),
     createdAt: timestamp('created_at').notNull(),
     updatedAt: timestamp('updated_at').notNull(),
   },
@@ -1258,6 +1264,44 @@ export const webhookDeliveries = pgTable(
   (table) => [
     index('webhook_delivery_next_idx').on(table.nextAttemptAt),
     uniqueIndex('webhook_delivery_event_hook_uq').on(table.eventId, table.webhookId),
+  ],
+);
+
+/**
+ * Verified GitHub / GitLab / Bitbucket webhook deliveries, one row per
+ * delivery and project, written before the route answers 202 (GitHub never
+ * redelivers on its own, so a delivery whose processing failed after the
+ * response would otherwise be lost). Processed right after the response;
+ * failed or unfinished rows are retried by a lazy sweep and the daily cron
+ * (src/lib/vcs/inbound.ts).
+ */
+export const vcsWebhookDeliveries = pgTable(
+  'vcs_webhook_delivery',
+  {
+    id: text('id').primaryKey(),
+    /** 'github' | 'gitlab' | 'bitbucket' */
+    provider: text('provider').notNull(),
+    /** The provider's delivery id (a random one when it sends none). */
+    deliveryId: text('delivery_id').notNull(),
+    projectId: text('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    /** GitLab / Bitbucket: the connection the delivery was verified against (reloaded per attempt). */
+    integrationId: text('integration_id').references(() => projectIntegrations.id, { onDelete: 'cascade' }),
+    event: text('event').notNull(),
+    payload: jsonb('payload').$type<unknown>().notNull(),
+    attempts: integer('attempts').notNull().default(0),
+    /** When a runner may (re)claim it; null = finished (processed or gave up). */
+    nextAttemptAt: timestamp('next_attempt_at'),
+    processedAt: timestamp('processed_at'),
+    error: text('error'),
+    createdAt: timestamp('created_at').notNull(),
+  },
+  (table) => [
+    uniqueIndex('vcs_webhook_delivery_uq').on(table.provider, table.deliveryId, table.projectId),
+    index('vcs_webhook_delivery_due_idx')
+      .on(table.nextAttemptAt)
+      .where(sql`next_attempt_at is not null`),
   ],
 );
 
