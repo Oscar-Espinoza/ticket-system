@@ -15,6 +15,7 @@ const PAGE_MAX = 100;
 
 export const listInboxTool = defineTool({
   name: 'list_inbox',
+  view: true,
   title: 'List inbox',
   description: 'List your inbox notifications (assignments, mentions, comments, status changes), newest first.',
   scope: 'read',
@@ -49,7 +50,14 @@ export const listInboxTool = defineTool({
       issue: n.ticketId && n.data.key ? { id: n.ticketId, key: n.data.key, title: n.data.title ?? '' } : null,
       url: `${appUrl()}${notificationPath(n.projectId, n.data)}`,
     }));
-    const view: InboxView = { view: 'issue-list', title: 'Inbox', notifications: rows, unread, nextCursor };
+    const view: InboxView = {
+      view: 'issue-list',
+      title: 'Inbox',
+      notifications: rows,
+      unread,
+      nextCursor,
+      source: { tool: 'list_inbox', arguments: { ...(unread_only && { unread_only }), ...(limit && { limit }) } },
+    };
     const text = rows.length
       ? [
           `Inbox (${unread} unread${nextCursor ? ', more available' : ''}):`,

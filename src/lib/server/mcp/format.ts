@@ -18,6 +18,7 @@ import type {
   McpStructuredContent,
   ProjectRef,
   StateRef,
+  UserRef,
 } from './contracts';
 
 const EXCERPT_MAX = 200;
@@ -79,6 +80,24 @@ export function projectUrl(projectId: string): string {
   return `${appUrl()}/dashboard/projects/${projectId}`;
 }
 
+/**
+ * A person as the views see them: id and name, plus the avatar when it lives
+ * on the app's origin (the view's CSP allows images from that origin only).
+ */
+export function userRef(user: { id: string; name: string; image?: string | null }): UserRef {
+  const image = user.image && sameOriginImage(user.image);
+  return image ? { id: user.id, name: user.name, image } : { id: user.id, name: user.name };
+}
+
+function sameOriginImage(url: string): string | null {
+  try {
+    const parsed = new URL(url, `${appUrl()}/`);
+    return parsed.origin === new URL(appUrl()).origin && /^https?:$/.test(parsed.protocol) ? parsed.href : null;
+  } catch {
+    return null;
+  }
+}
+
 export function stateRef(state: { id: string; name: string; type: string; color: string }): StateRef {
   return { id: state.id, name: state.name, type: state.type, color: state.color };
 }
@@ -91,8 +110,8 @@ export function summarizeIssue(issue: IssueRow, project: ProjectRef, snippet?: s
     project,
     state: stateRef(issue.state),
     priority: issue.priority,
-    assignee: issue.assignee ? { id: issue.assignee.id, name: issue.assignee.name } : null,
-    waitingOn: issue.waitingOn ? { id: issue.waitingOn.id, name: issue.waitingOn.name } : null,
+    assignee: issue.assignee ? userRef(issue.assignee) : null,
+    waitingOn: issue.waitingOn ? userRef(issue.waitingOn) : null,
     labels: issue.labels.map((l) => ({ id: l.id, name: l.name, color: l.color })),
     estimate: issue.estimate,
     dueDate: issue.dueDate,
@@ -108,7 +127,7 @@ export function commentView(comment: TimelineComment): CommentView {
   return {
     id: comment.id,
     parentId: comment.parentId,
-    author: comment.author ? { id: comment.author.id, name: comment.author.name } : null,
+    author: comment.author ? userRef(comment.author) : null,
     body: truncate(comment.body, COMMENT_MAX) ?? '',
     createdAt: comment.createdAt.toISOString(),
   };

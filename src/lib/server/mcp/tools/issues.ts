@@ -41,6 +41,7 @@ export const issueKeyArg = z.string().min(3).max(30).describe('Issue key, e.g. "
 
 export const searchIssuesTool = defineTool({
   name: 'search_issues',
+  view: true,
   title: 'Search issues',
   description:
     'Full-text search over issue titles, descriptions and comments, with optional filters in the query: assignee:me, label:bug, priority:high, state:started, is:open, is:archived. A query that is only filters lists the matches, newest activity first.',
@@ -80,6 +81,7 @@ export const searchIssuesTool = defineTool({
 
 export const listIssuesTool = defineTool({
   name: 'list_issues',
+  view: true,
   title: 'List issues',
   description:
     'List the issues of one project, newest first, with optional filters (state, assignee, waiting on, follow-up date, label, updated since) and paging. Can group the result by state.',
@@ -148,7 +150,15 @@ export const listIssuesTool = defineTool({
       issues = [...issues].sort((a, b) => rank(a.state.type) - rank(b.state.type) || a.state.name.localeCompare(b.state.name));
     }
     const title = `${project.name} issues`;
-    const view: IssueListView = { view: 'issue-list', title, issues, nextCursor: result.nextCursor, groupBy: args.group_by ?? null };
+    const { cursor: _cursor, ...pageArgs } = args;
+    const view: IssueListView = {
+      view: 'issue-list',
+      title,
+      issues,
+      nextCursor: result.nextCursor,
+      groupBy: args.group_by ?? null,
+      source: { tool: 'list_issues', arguments: pageArgs },
+    };
     let text: string;
     if (args.group_by === 'state' && issues.length) {
       const groups = new Map<string, IssueSummary[]>();
@@ -172,6 +182,7 @@ const priorityRank = sql`case ${tickets.priority} ${sql.join(
 
 export const myWorkTool = defineTool({
   name: 'my_work',
+  view: true,
   title: 'My work',
   description: 'List the open issues assigned to you across all your projects, most urgent first, then by due date.',
   scope: 'read',
@@ -201,13 +212,21 @@ export const myWorkTool = defineTool({
       : [];
     const nextCursor = rows.length > pageSize ? encodeOffset(offset + pageSize) : null;
     const issues = rows.slice(0, pageSize).map((i) => summarizeIssue(i, refs.get(i.projectId)!));
-    const view: IssueListView = { view: 'issue-list', title: 'My work', issues, nextCursor, groupBy: 'priority' };
+    const view: IssueListView = {
+      view: 'issue-list',
+      title: 'My work',
+      issues,
+      nextCursor,
+      groupBy: 'priority',
+      source: { tool: 'my_work', arguments: limit ? { limit } : {} },
+    };
     return toolResult(issueListMarkdown('Your open issues', issues, nextCursor), view);
   },
 });
 
 export const getIssueTool = defineTool({
   name: 'get_issue',
+  view: true,
   title: 'Get issue',
   description: 'Get one issue by key: all fields, description, recent comments, sub-issues and relations.',
   scope: 'read',

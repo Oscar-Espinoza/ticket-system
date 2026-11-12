@@ -1,13 +1,13 @@
 // One McpServer per request (stateless, docs/mcp/PLAN.md D1), built for the
 // caller the request authenticated as: every tool closes over that credential.
-// v1 has no resources: the MCP Apps views (D7, `ui://` resource and
-// `_meta.ui.resourceUri`) come in a follow-up PR, so nothing here points at a
-// resource that doesn't exist.
+// The one resource is the MCP Apps view bundle (./ui.ts, D7); the tools that
+// have a view point at it with `_meta.ui.resourceUri`.
 
 import { McpServer } from '@modelcontextprotocol/server';
 
 import type { McpCredential } from './contracts';
 import { registerMcpTool, type McpTool } from './tools/common';
+import { registerMcpUi } from './ui';
 import { getCycle } from './tools/cycles';
 import { listInboxTool } from './tools/inbox';
 import { getIssueTool, listIssuesTool, myWorkTool, searchIssuesTool } from './tools/issues';
@@ -44,5 +44,6 @@ export const MCP_TOOLS: McpTool[] = [
 export function createMcpServer(credential: McpCredential): McpServer {
   const server = new McpServer(SERVER_INFO, { instructions: INSTRUCTIONS, capabilities: { tools: {} } });
   for (const tool of MCP_TOOLS) registerMcpTool(server, credential, tool);
+  registerMcpUi(server);
   return server;
 }

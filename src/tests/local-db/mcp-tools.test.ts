@@ -293,13 +293,83 @@ describe.skipIf(!localDb)('MCP tools over /mcp', () => {
       expect(tool.annotations.openWorldHint).toBe(false);
       expect(tool._meta.securitySchemes).toBeDefined();
       expect(String(tool._meta['openai/toolInvocation/invoking']).length).toBeLessThanOrEqual(64);
-      expect(tool._meta['ui/resourceUri']).toBeUndefined();
+      // Views (docs/mcp/PLAN.md → Tool catalogue): every tool but get_project_metadata has one,
+      // and the same resource serves them all (current and legacy metadata keys agree).
+      const ui = (tool._meta.ui as { resourceUri?: string } | undefined)?.resourceUri;
+      if (tool.name === 'get_project_metadata') {
+        expect(ui).toBeUndefined();
+        expect(tool._meta['ui/resourceUri']).toBeUndefined();
+      } else {
+        expect(ui, tool.name).toMatch(/^ui:\/\/ticket-system\/app\.[0-9a-f]{12}\.html$/);
+        expect(tool._meta['ui/resourceUri']).toBe(ui);
+      }
     }
     // D6: exactly three writes; update_issue overwrites, so hosts confirm it.
     const writes = tools.filter((t) => t.annotations.readOnlyHint === false).map((t) => t.name).sort();
     expect(writes).toEqual(['add_comment', 'create_issue', 'update_issue']);
     const destructive = tools.filter((t) => t.annotations.destructiveHint === true).map((t) => t.name);
     expect(destructive).toEqual(['update_issue']);
+  });
+
+  it('serves the view bundle as a sandboxed MCP App with no connect domains', async () => {
+    const list = await rpc(aliceKey, 'tools/list');
+    const uris = new Set(
+      (list.body.result.tools as { _meta: { ui?: { resourceUri: string } } }[]).flatMap((t) => (t._meta.ui ? [t._meta.ui.resourceUri] : [])),
+    );
+    expect(uris.size).toBe(1);
+    const [uri] = [...uris];
+
+    // The tools' resourceUri is a listed resource and can be read.
+    const resources = await rpc(aliceKey, 'resources/list');
+    expect(resources.body.result.resources).toEqual([expect.objectContaining({ uri, mimeType: 'text/html;profile=mcp-app' })]);
+    const read = await rpc(aliceKey, 'resources/read', { uri });
+    expect(read.status).toBe(200);
+    const [content] = read.body.result.contents as {
+      uri: string;
+      mimeType: string;
+      text: string;
+      _meta: { ui: { csp: { connectDomains: string[]; resourceDomains: string[]; frameDomains?: string[] } } };
+    }[];
+    expect(content.uri).toBe(uri);
+    expect(content.mimeType).toBe('text/html;profile=mcp-app');
+    expect(content.text.trimStart().toLowerCase()).toMatch(/^<!doctype html/);
+    // CSP: nothing to connect to; images only from the app's own origin.
+    expect(content._meta.ui.csp.connectDomains).toEqual([]);
+    expect(content._meta.ui.csp.resourceDomains).toEqual([new URL(ORIGIN).origin]);
+    expect(content._meta.ui.csp.frameDomains).toBeUndefined();
+
+    // Reading needs a token like every other method, and an unknown URI is an error.
+    expect((await rpc(null, 'resources/read', { uri })).status).toBe(401);
+    const unknown = await rpc(aliceKey, 'resources/read', { uri: 'ui://ticket-system/app.000000000000.html' });
+    expect(unknown.body.error).toBeDefined();
+  });
+
+  it('changes the resource URI when the bundle changes', async () => {
+    const { uiResourceUri } = await import('@/lib/server/mcp/ui');
+    expect(uiResourceUri('<p>a</p>')).toBe(uiResourceUri('<p>a</p>'));
+    expect(uiResourceUri('<p>a</p>')).not.toBe(uiResourceUri('<p>b</p>'));
+  });
+
+  it('tells the views where a paged list continues, and which avatar to show', async () => {
+    const first = await call(aliceKey, 'list_issues', { project: projectKey, limit: 1, group_by: 'state' });
+    expect(first.structuredContent!.source).toEqual({ tool: 'list_issues', arguments: { project: projectKey, limit: 1, group_by: 'state' } });
+    const mine = await call(aliceKey, 'my_work', { limit: 5 });
+    expect(mine.structuredContent!.source).toEqual({ tool: 'my_work', arguments: { limit: 5 } });
+    const inbox = await call(aliceKey, 'list_inbox', { unread_only: true });
+    expect(inbox.structuredContent!.source).toEqual({ tool: 'list_inbox', arguments: { unread_only: true } });
+
+    // Only a same-origin avatar reaches the view (its CSP allows no other image host).
+    await db.update(users).set({ image: `${ORIGIN}/api/uploads/avatar.png` }).where(eq(users.id, alice));
+    const detail = await call(aliceKey, 'get_issue', { key: issueKey });
+    expect((detail.structuredContent!.issue as { assignee: unknown }).assignee).toEqual({
+      id: alice,
+      name: 'alice',
+      image: `${ORIGIN}/api/uploads/avatar.png`,
+    });
+    await db.update(users).set({ image: 'https://avatars.githubusercontent.com/u/1' }).where(eq(users.id, alice));
+    const external = await call(aliceKey, 'get_issue', { key: issueKey });
+    expect((external.structuredContent!.issue as { assignee: unknown }).assignee).toEqual({ id: alice, name: 'alice' });
+    await db.update(users).set({ image: null }).where(eq(users.id, alice));
   });
 
   it('serves every read tool for a member', async () => {

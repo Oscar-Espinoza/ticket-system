@@ -146,6 +146,7 @@ async function committed(
 
 export const createIssueTool = defineTool({
   name: 'create_issue',
+  view: true,
   title: 'Create issue',
   description:
     'Create an issue in a project. Only the title is required; the other fields take human values (state and label names, "me" as assignee or waiting on).',
@@ -243,6 +244,7 @@ export function describeChanges(before: IssueRow, after: IssueRow, emailOf: (use
 
 export const updateIssueTool = defineTool({
   name: 'update_issue',
+  view: true,
   title: 'Update issue',
   description:
     'Change fields of an existing issue: title, description, state, priority, assignee, waiting on, labels, estimate, due date, follow-up date, cycle or epic. Fields you leave out stay as they are; null clears a field. This overwrites the previous values.',
@@ -304,6 +306,7 @@ export const updateIssueTool = defineTool({
 
 export const addCommentTool = defineTool({
   name: 'add_comment',
+  view: true,
   title: 'Add comment',
   description: 'Add a comment (Markdown) to an issue, optionally as a reply to another comment.',
   scope: 'write',
