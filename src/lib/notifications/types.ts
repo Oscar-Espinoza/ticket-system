@@ -14,6 +14,7 @@ export const NOTIFICATION_TYPES = [
   'github',
   // Created by cron jobs and the recurring runner, not by dispatch.
   'sla_breached',
+  'follow_up',
   'recurring_created',
   'pulse',
 ] as const;
@@ -29,6 +30,7 @@ export const NOTIFICATION_PREFS: { type: NotificationType; label: string; descri
   { type: 'completed', label: 'Completed', description: 'An issue you subscribe to is completed or canceled.' },
   { type: 'github', label: 'Pull requests', description: 'A pull request linked to a subscribed issue is merged.' },
   { type: 'sla_breached', label: 'SLA breaches', description: 'An issue you follow misses its SLA deadline.' },
+  { type: 'follow_up', label: 'Follow-ups', description: 'The follow-up date of an issue assigned to you arrives.' },
   { type: 'pulse', label: 'Pulse', description: 'A weekly summary of activity in your projects.' },
 ];
 
@@ -94,6 +96,8 @@ export function describeNotification(
       return data.summary ? `${capitalize(data.summary)}` : 'Pull request merged';
     case 'sla_breached':
       return data.summary ? capitalize(data.summary) : 'SLA breached';
+    case 'follow_up':
+      return data.summary ? capitalize(data.summary) : 'Follow-up date reached';
     case 'recurring_created':
       return data.summary ? capitalize(data.summary) : 'Created from a recurring schedule';
     case 'pulse':

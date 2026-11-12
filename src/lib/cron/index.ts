@@ -5,6 +5,7 @@
 import { run as automations } from './jobs/automations';
 import { run as recurring } from './jobs/recurring';
 import { run as sla } from './jobs/sla';
+import { run as followUps } from './jobs/follow-ups';
 import { run as digests } from './jobs/digests';
 import { run as pulse } from './jobs/pulse';
 import { run as webhookRetries } from './jobs/webhook-retries';
@@ -16,6 +17,7 @@ const JOBS: Record<string, (now: Date) => Promise<string>> = {
   automations,
   recurring,
   sla,
+  followUps,
   digests,
   pulse,
   webhookRetries,

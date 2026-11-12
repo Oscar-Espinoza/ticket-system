@@ -11,6 +11,7 @@
 <script lang="ts">
   import Activity from '@lucide/svelte/icons/activity';
   import AlarmClock from '@lucide/svelte/icons/alarm-clock';
+  import CalendarClock from '@lucide/svelte/icons/calendar-clock';
   import GitMerge from '@lucide/svelte/icons/git-merge';
   import Repeat from '@lucide/svelte/icons/repeat';
   import TimerOff from '@lucide/svelte/icons/timer-off';
@@ -23,14 +24,17 @@
     reminder: AlarmClock,
     github: GitMerge,
     sla_breached: TimerOff,
+    follow_up: CalendarClock,
     recurring_created: Repeat,
     pulse: Activity,
   };
 
   let { notification, size = 24 }: { notification: InboxNotification; size?: 20 | 24 } = $props();
 
-  // SLA breaches and reminders are about the issue, not whoever last touched it.
-  const system = $derived(notification.type === 'reminder' || notification.type === 'sla_breached');
+  // SLA breaches, follow-ups and reminders are about the issue, not whoever last touched it.
+  const system = $derived(
+    notification.type === 'reminder' || notification.type === 'sla_breached' || notification.type === 'follow_up',
+  );
   const Icon = $derived(SYSTEM_ICONS[notification.type] ?? Zap);
 </script>
 
