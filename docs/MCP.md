@@ -46,7 +46,8 @@ values and code as REST `GET /api/v1/projects/:id/issues` ([API.md](API.md)).
 Hosts ask before `update_issue` runs (it is marked as overwriting data).
 `create_issue` takes an optional `request_id` (a UUID the assistant picks): a
 retry with the same one returns the issue already created instead of a second
-copy. If the audit row can't be written after a successful change, the change
+copy, and only the call that created it is audited (also when two calls with
+the same id race: the issue service reports which one replayed). If the audit row can't be written after a successful change, the change
 stands and the failure is logged (an error would make the assistant retry and
 duplicate it).
 

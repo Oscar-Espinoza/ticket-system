@@ -10,14 +10,14 @@
 // tool answers with the result: an error would make the model retry and
 // duplicate the issue or comment. create_issue also takes an optional
 // `request_id` (the issue service's client-chosen id) so a retry after a lost
-// response returns the issue it already created.
+// response returns the issue it already created; the service says when it
+// replayed one, and only the call that created the issue is audited.
 
 import { z } from 'zod';
 
 import { recordProjectEvent } from '@/lib/audit';
 import { createCommentAs } from '@/lib/comments';
 import { createIssue, updateIssueFields } from '@/lib/issue-service';
-import { getTicketById } from '@/lib/tickets';
 import type { CreateIssueInput, IssuePatch, IssueRow, Priority } from '@/lib/issue-model';
 import { mcpIssue, mcpProject } from '../access';
 import type { IssueDetailView, McpCredential } from '../contracts';
@@ -180,9 +180,11 @@ export const createIssueTool = defineTool({
     }
 
     const requestId = args.request_id?.toLowerCase();
-    const replay = requestId ? !!(await getTicketById(project.id, requestId)) : false;
     const result = await createIssue({ userId }, project.id, input, requestId ? { id: requestId } : undefined);
     if (!result.ok) return toolError(result.error);
+    // A replay (the same request_id again, including a concurrent duplicate
+    // that lost the insert) changed nothing, so only the creating call is audited.
+    const replay = result.replayed;
     if (!replay) await audit(credential, 'create_issue', result.issue, 'created');
     const detail = await issueDetail(result.issue, project);
     const view: IssueDetailView = { view: 'issue-detail', issue: detail, changes: [replay ? 'already created' : 'created'] };

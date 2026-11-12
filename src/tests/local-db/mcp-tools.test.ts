@@ -436,6 +436,21 @@ describe.skipIf(!localDb)('MCP tools over /mcp', () => {
     expect(audited.filter((a) => (a.data as { issueId: string }).issueId === requestId)).toHaveLength(1);
   });
 
+  it('audits one create when concurrent calls share a request_id', async () => {
+    for (let round = 0; round < 3; round++) {
+      const requestId = crypto.randomUUID();
+      const args = { project: projectKey, title: `Concurrent create ${round}`, request_id: requestId };
+      const results = await Promise.all([call(aliceKey, 'create_issue', args), call(aliceKey, 'create_issue', args)]);
+      expect(results.every((r) => r.isError === undefined)).toBe(true);
+      expect(await db.select({ id: tickets.id }).from(tickets).where(eq(tickets.id, requestId))).toHaveLength(1);
+      const audited = await db
+        .select({ data: activities.data })
+        .from(activities)
+        .where(and(eq(activities.projectId, project), eq(activities.type, 'mcp.tool_call')));
+      expect(audited.filter((a) => (a.data as { issueId: string }).issueId === requestId)).toHaveLength(1);
+    }
+  });
+
   it('answers a write that succeeded even when its audit row fails', async () => {
     auditOutage.on = true;
     try {
