@@ -7,16 +7,24 @@
 // carries a hash of the HTML because ChatGPT caches a resource by URI for up
 // to an hour: a new bundle gets a new URI. The CSP lists no connect domains
 // (the view makes no network request; every call goes through the host, which
-// holds the token) and one resource domain, the app's own origin, for uploaded
-// avatars; any other image falls back to initials.
+// holds the token) and no resource domain: the view loads no image, font or
+// script (avatars are initials).
 
 import { createHash } from 'node:crypto';
 
-import { RESOURCE_MIME_TYPE, RESOURCE_URI_META_KEY, registerAppResource } from '@modelcontextprotocol/ext-apps/server';
 import type { McpServer } from '@modelcontextprotocol/server';
 
-import { appUrl } from '@/lib/integrations/app-url';
 import viewHtml from './ui/app.html?raw';
+
+// Two constants of the MCP Apps spec (2026-01-26) and the one-line
+// `registerResource` call of `registerAppResource`, copied from
+// @modelcontextprotocol/ext-apps 2.0.4 instead of depending on it at runtime:
+// the package pulls in the MCP client, eventsource and pkce-challenge for
+// them. It stays a devDependency so src/tests/mcp-ui-model.test.ts can fail
+// when a newer version changes either value.
+/** The legacy flat tool-metadata key hosts that predate `_meta.ui` read. */
+export const RESOURCE_URI_META_KEY = 'ui/resourceUri';
+export const RESOURCE_MIME_TYPE = 'text/html;profile=mcp-app';
 
 /** `ui://ticket-system/app.<hash of the HTML>.html` */
 export function uiResourceUri(html: string): string {
@@ -39,8 +47,7 @@ export function uiResourceMeta() {
       csp: {
         // The view calls no network API: no fetch, XHR or WebSocket target is allowed.
         connectDomains: [] as string[],
-        // Uploaded avatars are served from the app's own origin.
-        resourceDomains: [new URL(appUrl()).origin],
+        resourceDomains: [] as string[],
       },
       // The host draws the card border; the view paints only its own content.
       prefersBorder: true,
@@ -49,11 +56,11 @@ export function uiResourceMeta() {
 }
 
 export function registerMcpUi(server: McpServer) {
-  registerAppResource(
-    server,
+  server.registerResource(
     'Ticket System views',
     UI_RESOURCE_URI,
     {
+      mimeType: RESOURCE_MIME_TYPE,
       description: 'Interactive issue lists, issue details, project overviews and cycle burndowns for Ticket System.',
       _meta: uiResourceMeta(),
     },

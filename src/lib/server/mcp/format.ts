@@ -81,21 +81,12 @@ export function projectUrl(projectId: string): string {
 }
 
 /**
- * A person as the views see them: id and name, plus the avatar when it lives
- * on the app's origin (the view's CSP allows images from that origin only).
+ * A person as the views see them: id and name. No avatar: the view draws
+ * initials (an image URL is typed by the user, and the view's CSP allows no
+ * image source, so none could load).
  */
-export function userRef(user: { id: string; name: string; image?: string | null }): UserRef {
-  const image = user.image && sameOriginImage(user.image);
-  return image ? { id: user.id, name: user.name, image } : { id: user.id, name: user.name };
-}
-
-function sameOriginImage(url: string): string | null {
-  try {
-    const parsed = new URL(url, `${appUrl()}/`);
-    return parsed.origin === new URL(appUrl()).origin && /^https?:$/.test(parsed.protocol) ? parsed.href : null;
-  } catch {
-    return null;
-  }
+export function userRef(user: { id: string; name: string }): UserRef {
+  return { id: user.id, name: user.name };
 }
 
 export function stateRef(state: { id: string; name: string; type: string; color: string }): StateRef {

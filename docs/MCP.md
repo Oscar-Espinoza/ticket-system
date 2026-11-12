@@ -56,10 +56,13 @@ filters with `waiting_on` (same values) and `follow_up` (`overdue`, `today`,
 values and code as REST `GET /api/v1/projects/:id/issues` ([API.md](API.md)).
 
 Hosts ask before `update_issue` runs (it is marked as overwriting data).
-`create_issue` takes an optional `request_id` (a UUID the assistant picks): a
-retry with the same one returns the issue already created instead of a second
-copy, and only the call that created it is audited (also when two calls with
-the same id race: the issue service reports which one replayed). If the audit row can't be written after a successful change, the change
+`create_issue` and `add_comment` take an optional `request_id` (a UUID the
+assistant or the view picks): a retry with the same one returns the issue or
+comment already created instead of a second copy, and only the call that
+created it is audited (also when two calls with the same id race: the service
+reports which one replayed). An id used by another user, or for another
+issue, is refused ("already in use"). The comment view sends one per draft, so
+resending a draft after a timeout is safe. If the audit row can't be written after a successful change, the change
 stands and the failure is logged (an error would make the assistant retry and
 duplicate it).
 
@@ -89,14 +92,19 @@ answer as text and never see a card.
 
 Each card has **Open in Ticket System**, which opens the page in your browser
 through the assistant's app (the card itself never navigates). Descriptions and
-comments are shown as Markdown without raw HTML; links open only if they are
-`http(s)` or `mailto`, images aren't loaded (their alt text shows), and bare
-URLs aren't turned into links. `get_project_metadata` has no card.
+comments are shown as Markdown; HTML written in them shows as literal text,
+links open only if they are `http(s)` (through the assistant's app, never by
+the card navigating; other schemes, `mailto:` included, show as plain text),
+images aren't loaded (their alt text shows), and bare URLs aren't turned into
+links. `get_project_metadata` has no card.
 
 The cards make no network requests of their own: every read and write goes
-through the assistant's connection, so no token is ever inside the card. Their
-only allowed image source is this server's own origin (uploaded avatars);
-anyone else's avatar shows as initials.
+through the assistant's connection, so no token is ever inside the card. They
+load no image, font or script from anywhere (people show as initials). Writes
+from a card (state, assignee, comment) need an assistant app that forwards tool
+calls; without that the controls are not shown. A comment sent from a card
+carries a `request_id`, so if the app doesn't answer in time the card checks
+whether the comment was posted before it allows sending again.
 
 ## Connect
 

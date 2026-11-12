@@ -7,6 +7,7 @@
 import { and, asc, desc, eq, inArray, notInArray } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
+import { isUniqueViolation } from '@/lib/db-errors';
 import {
   activities,
   commentReactions,
@@ -240,15 +241,68 @@ export async function loadIssueTimeline(
 // Comment writes
 // ---------------------------------------------------------------------------
 
+/** createCommentAs's error when `input.id` belongs to a comment it cannot replay (another issue or author). */
+export const COMMENT_ID_IN_USE = 'This comment id is already in use.';
+
+/**
+ * The comment an earlier attempt with the same client id created, or why the
+ * id can't be reused. Same rule as an issue's client id (issue-service
+ * `existingCreate`): the same author on the same issue replays.
+ */
+async function existingComment(
+  actor: CommentActor,
+  ticketId: string,
+  id: string,
+): Promise<CommentResult<{ comment: TimelineComment; replayed: true }> | null> {
+  const [row] = await db
+    .select({
+      id: comments.id,
+      ticketId: comments.ticketId,
+      authorId: comments.authorId,
+      parentId: comments.parentId,
+      body: comments.body,
+      createdAt: comments.createdAt,
+      editedAt: comments.editedAt,
+      authorName: users.name,
+      authorImage: users.image,
+    })
+    .from(comments)
+    .leftJoin(users, eq(users.id, comments.authorId))
+    .where(eq(comments.id, id))
+    .limit(1);
+  if (!row) return null;
+  if (row.ticketId !== ticketId || row.authorId !== actor.userId) return { ok: false, error: COMMENT_ID_IN_USE };
+  return {
+    ok: true,
+    replayed: true,
+    comment: {
+      id: row.id,
+      parentId: row.parentId,
+      body: row.body,
+      author: toUser({ id: row.authorId, name: row.authorName, image: row.authorImage }),
+      createdAt: row.createdAt,
+      editedAt: row.editedAt,
+      reactions: [],
+    },
+  };
+}
+
+/**
+ * Adds a comment. `input.id` is an optional client-chosen UUID that makes the
+ * create idempotent: the same author on the same issue with the same id gets
+ * the existing comment back (`replayed: true`, no second row, activity or
+ * notification); any other use of the id is refused.
+ */
 export async function createCommentAs(
   actor: CommentActor,
   projectId: string,
-  input: { ticketId: unknown; body: unknown; parentId?: unknown },
-): Promise<CommentResult<{ comment: TimelineComment }>> {
+  input: { ticketId: unknown; body: unknown; parentId?: unknown; id?: string },
+): Promise<CommentResult<{ comment: TimelineComment; replayed: boolean }>> {
   const body = validBody(input?.body);
   if (!body) return invalidBody;
   const parentInput = input.parentId ?? null;
   if (parentInput !== null && typeof parentInput !== 'string') return NOT_FOUND;
+  const requestedId = input.id?.toLowerCase();
 
   const [issue, parent, mentions, [author]] = await Promise.all([
     findIssue(projectId, input.ticketId),
@@ -268,11 +322,15 @@ export async function createCommentAs(
       .limit(1),
   ]);
   if (!issue) return ISSUE_NOT_FOUND;
+  if (requestedId) {
+    const replay = await existingComment(actor, issue.id, requestedId);
+    if (replay) return replay;
+  }
   if (parentInput && !parent) return { ok: false, error: 'The comment you replied to was deleted.' };
 
   const now = new Date();
   const comment = {
-    id: crypto.randomUUID(),
+    id: requestedId ?? crypto.randomUUID(),
     ticketId: issue.id,
     authorId: actor.userId,
     // One level of threading: a reply to a reply joins the root's thread.
@@ -300,12 +358,23 @@ export async function createCommentAs(
       },
     },
   ]);
-  await db.batch([db.insert(comments).values(comment), insert]);
+  try {
+    await db.batch([db.insert(comments).values(comment), insert]);
+  } catch (err) {
+    // A concurrent attempt with the same client id won the insert (the batch,
+    // activity included, rolled back): answer with that comment.
+    if (requestedId && isUniqueViolation(err)) {
+      const replay = await existingComment(actor, issue.id, requestedId);
+      if (replay) return replay;
+    }
+    throw err;
+  }
   publishIssueEvents(stored);
   await ensureSubscribed(issue.id, [actor.userId, ...mentions]);
 
   return {
     ok: true,
+    replayed: false,
     comment: {
       id: comment.id,
       parentId: comment.parentId,

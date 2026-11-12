@@ -37,6 +37,7 @@ import { db } from '@/lib/db';
 import {
   activities,
   apiKeys,
+  comments,
   cycles,
   labels,
   notifications,
@@ -333,9 +334,9 @@ describe.skipIf(!localDb)('MCP tools over /mcp', () => {
     expect(content.uri).toBe(uri);
     expect(content.mimeType).toBe('text/html;profile=mcp-app');
     expect(content.text.trimStart().toLowerCase()).toMatch(/^<!doctype html/);
-    // CSP: nothing to connect to; images only from the app's own origin.
+    // CSP: nothing to connect to and nothing to load.
     expect(content._meta.ui.csp.connectDomains).toEqual([]);
-    expect(content._meta.ui.csp.resourceDomains).toEqual([new URL(ORIGIN).origin]);
+    expect(content._meta.ui.csp.resourceDomains).toEqual([]);
     expect(content._meta.ui.csp.frameDomains).toBeUndefined();
 
     // Reading needs a token like every other method, and an unknown URI is an error.
@@ -350,7 +351,7 @@ describe.skipIf(!localDb)('MCP tools over /mcp', () => {
     expect(uiResourceUri('<p>a</p>')).not.toBe(uiResourceUri('<p>b</p>'));
   });
 
-  it('tells the views where a paged list continues, and which avatar to show', async () => {
+  it('tells the views where a paged list continues, and sends people without an avatar URL', async () => {
     const first = await call(aliceKey, 'list_issues', { project: projectKey, limit: 1, group_by: 'state' });
     expect(first.structuredContent!.source).toEqual({ tool: 'list_issues', arguments: { project: projectKey, limit: 1, group_by: 'state' } });
     const mine = await call(aliceKey, 'my_work', { limit: 5 });
@@ -358,17 +359,10 @@ describe.skipIf(!localDb)('MCP tools over /mcp', () => {
     const inbox = await call(aliceKey, 'list_inbox', { unread_only: true });
     expect(inbox.structuredContent!.source).toEqual({ tool: 'list_inbox', arguments: { unread_only: true } });
 
-    // Only a same-origin avatar reaches the view (its CSP allows no other image host).
+    // A user's image URL (typed by the user) never reaches the view: it draws initials.
     await db.update(users).set({ image: `${ORIGIN}/api/uploads/avatar.png` }).where(eq(users.id, alice));
     const detail = await call(aliceKey, 'get_issue', { key: issueKey });
-    expect((detail.structuredContent!.issue as { assignee: unknown }).assignee).toEqual({
-      id: alice,
-      name: 'alice',
-      image: `${ORIGIN}/api/uploads/avatar.png`,
-    });
-    await db.update(users).set({ image: 'https://avatars.githubusercontent.com/u/1' }).where(eq(users.id, alice));
-    const external = await call(aliceKey, 'get_issue', { key: issueKey });
-    expect((external.structuredContent!.issue as { assignee: unknown }).assignee).toEqual({ id: alice, name: 'alice' });
+    expect((detail.structuredContent!.issue as { assignee: unknown }).assignee).toEqual({ id: alice, name: 'alice' });
     await db.update(users).set({ image: null }).where(eq(users.id, alice));
   });
 
@@ -634,6 +628,66 @@ describe.skipIf(!localDb)('MCP tools over /mcp', () => {
         .where(and(eq(activities.projectId, project), eq(activities.type, 'mcp.tool_call')));
       expect(audited.filter((a) => (a.data as { issueId: string }).issueId === requestId)).toHaveLength(1);
     }
+  });
+
+  describe('add_comment with a request_id', () => {
+    const commentsOn = (ticketId: string) => db.select({ id: comments.id }).from(comments).where(eq(comments.ticketId, ticketId));
+    const commentAudits = async (issue: string) =>
+      (await mcpAudit(project)).filter((a) => a.tool === 'add_comment' && a.key === issue && a.outcome === 'success');
+    const idsOf = (r: ToolResult) => (r.structuredContent!.issue as { comments: { id: string }[] }).comments.map((c) => c.id);
+
+    it('returns the comment already posted when the same draft is sent again, audited once', async () => {
+      const requestId = crypto.randomUUID();
+      const args = { key: issueKey, body: 'Retried comment', request_id: requestId };
+      const before = (await commentAudits(issueKey)).length;
+      const first = await call(aliceKey, 'add_comment', args);
+      const second = await call(aliceKey, 'add_comment', args);
+      expect(first.isError).toBeUndefined();
+      expect(second.isError).toBeUndefined();
+      expect(text(second)).toMatch(/already added/);
+      expect(idsOf(first)).toContain(requestId);
+      expect(idsOf(second)).toContain(requestId);
+      expect(await db.select({ id: comments.id }).from(comments).where(eq(comments.id, requestId))).toHaveLength(1);
+      expect((await commentAudits(issueKey)).length - before).toBe(1);
+    });
+
+    it('refuses an id used by another user or on another issue, and creates nothing', async () => {
+      const requestId = crypto.randomUUID();
+      const posted = await call(aliceKey, 'add_comment', { key: issueKey, body: 'Alice owns this id', request_id: requestId });
+      expect(posted.isError).toBeUndefined();
+
+      const byGuest = await call(guestKey, 'add_comment', { key: issueKey, body: 'Same id, other user', request_id: requestId });
+      expect(byGuest.isError).toBe(true);
+      expect(text(byGuest)).toMatch(/already in use/);
+
+      const other = await createIssue({ userId: alice }, project, { title: 'Another issue' });
+      if (!other.ok) throw new Error(other.error);
+      const elsewhere = await call(aliceKey, 'add_comment', { key: other.issue.key, body: 'Same id, other issue', request_id: requestId });
+      expect(elsewhere.isError).toBe(true);
+      expect(text(elsewhere)).toMatch(/already in use/);
+      expect(await commentsOn(other.issue.id)).toHaveLength(0);
+      expect(await db.select({ body: comments.body }).from(comments).where(eq(comments.id, requestId))).toEqual([{ body: 'Alice owns this id' }]);
+    });
+
+    it('creates one comment and one audit row when two calls with the same request_id race', async () => {
+      for (let round = 0; round < 3; round++) {
+        const requestId = crypto.randomUUID();
+        const args = { key: issueKey, body: `Concurrent comment ${round}`, request_id: requestId };
+        const before = (await commentAudits(issueKey)).length;
+        const results = await Promise.all([call(aliceKey, 'add_comment', args), call(aliceKey, 'add_comment', args)]);
+        expect(results.every((r) => r.isError === undefined)).toBe(true);
+        expect(await db.select({ id: comments.id }).from(comments).where(eq(comments.id, requestId))).toHaveLength(1);
+        expect((await commentAudits(issueKey)).length - before).toBe(1);
+      }
+    });
+
+    it('still posts a comment without a request_id each time', async () => {
+      const body = `No id, twice ${crypto.randomUUID()}`;
+      const args = { key: issueKey, body };
+      const [a, b] = [await call(aliceKey, 'add_comment', args), await call(aliceKey, 'add_comment', args)];
+      expect(a.isError ?? b.isError).toBeUndefined();
+      expect(await db.select({ id: comments.id }).from(comments).where(eq(comments.body, body))).toHaveLength(2);
+    });
   });
 
   it('answers a write that succeeded even when its audit row fails', async () => {

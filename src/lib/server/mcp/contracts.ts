@@ -25,12 +25,6 @@ export type ViewName = 'issue-list' | 'issue-detail' | 'project-overview' | 'pro
 export interface UserRef {
   id: string;
   name: string;
-  /**
-   * Avatar URL, only when it is on the app's own origin (the one origin the
-   * view's CSP lets it load images from, ../ui.ts); absent otherwise, and the
-   * view shows initials.
-   */
-  image?: string;
 }
 
 /**
