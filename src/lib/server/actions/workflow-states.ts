@@ -16,7 +16,7 @@ import { projects, tickets, workflowStates } from '@/db/schema';
 import { projectStatesQuery } from '@/lib/workflow-server';
 import { authorizeProjectAction } from '@/lib/action-auth';
 import { isUniqueViolation } from '@/lib/db-errors';
-import { emitIssueEvent, prepareIssueEvents, publishIssueEvents } from '@/lib/events';
+import { commitWithEvents, prepareIssueEvents, publishIssueEvents } from '@/lib/events';
 import {
   descriptionOrNull,
   fail,
@@ -84,29 +84,32 @@ export async function createWorkflowState(input: {
   const id = crypto.randomUUID();
   const position = sameType.reduce((max, s) => Math.max(max, s.position), -1) + 1;
   try {
-    await db.insert(workflowStates).values({
-      id,
-      projectId: input.projectId,
-      name,
-      type: input.type,
-      color,
-      description,
-      position,
-      createdAt: new Date(),
-    });
+    await commitWithEvents(
+      [
+        db.insert(workflowStates).values({
+          id,
+          projectId: input.projectId,
+          name,
+          type: input.type,
+          color,
+          description,
+          position,
+          createdAt: new Date(),
+        }),
+      ],
+      [
+        activity(input.projectId, authz.userId, 'workflow_state.created', {
+          stateId: id,
+          name,
+          stateType: input.type,
+          summary: `added the ${STATE_TYPE_LABEL[input.type].toLowerCase()} state “${name}”`,
+        }),
+      ],
+    );
   } catch (err) {
     if (isUniqueViolation(err)) return DUPLICATE;
     throw err;
   }
-
-  await emitIssueEvent(
-    activity(input.projectId, authz.userId, 'workflow_state.created', {
-      stateId: id,
-      name,
-      stateType: input.type,
-      summary: `added the ${STATE_TYPE_LABEL[input.type].toLowerCase()} state “${name}”`,
-    }),
-  );
   refreshesData();
   return { ok: true, id };
 }
@@ -146,27 +149,28 @@ export async function updateWorkflowState(input: {
   if (Object.keys(changes).length === 0) return { ok: true, id: current.id };
 
   try {
-    await db
-      .update(workflowStates)
-      .set(changes)
-      .where(
-        and(eq(workflowStates.id, current.id), eq(workflowStates.projectId, input.projectId)),
-      );
+    await commitWithEvents(
+      [
+        db
+          .update(workflowStates)
+          .set(changes)
+          .where(and(eq(workflowStates.id, current.id), eq(workflowStates.projectId, input.projectId))),
+      ],
+      [
+        activity(input.projectId, authz.userId, 'workflow_state.updated', {
+          stateId: current.id,
+          name: changes.name ?? current.name,
+          changes: Object.keys(changes),
+          summary: changes.name
+            ? `renamed the state “${current.name}” to “${changes.name}”`
+            : `updated the state “${current.name}”`,
+        }),
+      ],
+    );
   } catch (err) {
     if (isUniqueViolation(err)) return DUPLICATE;
     throw err;
   }
-
-  await emitIssueEvent(
-    activity(input.projectId, authz.userId, 'workflow_state.updated', {
-      stateId: current.id,
-      name: changes.name ?? current.name,
-      changes: Object.keys(changes),
-      summary: changes.name
-        ? `renamed the state “${current.name}” to “${changes.name}”`
-        : `updated the state “${current.name}”`,
-    }),
-  );
   refreshesData();
   return { ok: true, id: current.id };
 }

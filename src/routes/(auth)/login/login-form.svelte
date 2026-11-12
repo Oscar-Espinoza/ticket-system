@@ -38,11 +38,14 @@
 
   let {
     redirectTo,
+    githubEnabled = false,
     initialError = null,
     initialSso = false,
     googleEnabled = false,
   }: {
     redirectTo: string;
+    /** GITHUB_CLIENT_ID/SECRET are set on the server; without them the button is hidden. */
+    githubEnabled?: boolean;
     /** Friendly copy for an `?error=` coming back from GitHub / an IdP. */
     initialError?: string | null;
     /** Open in SSO mode (`?sso=1`, e.g. from the sign-up page). */
@@ -212,14 +215,21 @@
       </form>
     {:else}
       <!-- GitHub OAuth (AUTH-02). Redirects the browser to GitHub on click. -->
-      <Button type="button" variant="default" class="w-full" onclick={handleGitHubSignIn}>
-        <GitBranchIcon />
-        Continue with GitHub
-      </Button>
+      {#if githubEnabled}
+        <Button type="button" variant="default" class="w-full" onclick={handleGitHubSignIn}>
+          <GitBranchIcon />
+          Continue with GitHub
+        </Button>
+      {/if}
       {#if googleEnabled}
         <GoogleSignInButton {redirectTo} onerror={(message) => (formError = message)} />
       {/if}
-      <Button type="button" variant="outline" class="w-full" onclick={() => switchMode('sso')}>
+      <Button
+        type="button"
+        variant={githubEnabled || googleEnabled ? 'outline' : 'default'}
+        class="w-full"
+        onclick={() => switchMode('sso')}
+      >
         <KeyRoundIcon />
         Continue with SSO
       </Button>

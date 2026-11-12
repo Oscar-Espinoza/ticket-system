@@ -11,7 +11,7 @@ import { db } from '@/lib/db';
 import { projects, tickets, users, workflowStates } from '@/db/schema';
 import { authorizeProjectAction } from '@/lib/action-auth';
 import { PR_EVENT } from '@/lib/event-names';
-import { emitIssueEvent } from '@/lib/events';
+import { commitWithEvents } from '@/lib/events';
 import { getTicketById } from '@/lib/tickets';
 import {
   describeGithubError,
@@ -155,33 +155,40 @@ export async function createBranch(input: {
       existed = true;
     }
 
-    if (!issue.githubBranch) {
-      await db
-        .update(tickets)
-        .set({ githubBranch: branch })
-        .where(
-          and(
-            eq(tickets.id, issue.id),
-            eq(tickets.projectId, input.projectId),
-            isNull(tickets.githubBranch),
-          ),
-        );
-    }
-    if (!existed) {
-      await emitIssueEvent({
-        projectId: input.projectId,
-        ticketId: issue.id,
-        actorId: authz.userId,
-        type: PR_EVENT.branchCreated,
-        data: {
-          key: issue.key,
-          title: issue.title,
-          summary: `created branch ${branch}`,
-          branch,
-          repo: project.repo,
-        },
-      });
-    }
+    // The stored branch name and the branch_created line commit together.
+    await commitWithEvents(
+      issue.githubBranch
+        ? []
+        : [
+            db
+              .update(tickets)
+              .set({ githubBranch: branch })
+              .where(
+                and(
+                  eq(tickets.id, issue.id),
+                  eq(tickets.projectId, input.projectId),
+                  isNull(tickets.githubBranch),
+                ),
+              ),
+          ],
+      existed
+        ? []
+        : [
+            {
+              projectId: input.projectId,
+              ticketId: issue.id,
+              actorId: authz.userId,
+              type: PR_EVENT.branchCreated,
+              data: {
+                key: issue.key,
+                title: issue.title,
+                summary: `created branch ${branch}`,
+                branch,
+                repo: project.repo,
+              },
+            },
+          ],
+    );
     refreshesData();
     return {
       ok: true,

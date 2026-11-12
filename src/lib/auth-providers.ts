@@ -14,6 +14,8 @@
 // and the session.create backstop in auth.ts refuses every non-SSO OAuth
 // callback (`/callback/:id`, `/sign-in/social`) for an enforced domain.
 
+import { githubOAuthConfigured } from '@/lib/github/oauth-config';
+
 type Env = Record<string, string | undefined>;
 
 export interface GoogleSignInConfig {
@@ -33,6 +35,15 @@ export function googleSignInConfig(env: Env = process.env): GoogleSignInConfig |
 
 /** What the login / sign-up pages read to show "Continue with Google". */
 export const googleSignInEnabled = (env: Env = process.env) => googleSignInConfig(env) !== null;
+
+/**
+ * The one answer the login / sign-up pages pass to the UI: which sign-in
+ * buttons to show. Each is on only when its provider is configured (GitHub's
+ * rule is owned by src/lib/github/oauth-config.ts).
+ */
+export function signInProviders(env: Env = process.env) {
+  return { githubEnabled: githubOAuthConfigured(env), googleEnabled: googleSignInEnabled(env) };
+}
 
 /** Better Auth `socialProviders` option: GitHub always (existing behaviour), Google when configured. */
 export function socialProviderOptions(env: Env = process.env) {

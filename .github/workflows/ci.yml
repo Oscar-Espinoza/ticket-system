@@ -1,0 +1,82 @@
+# CI: type-check, lint, build and tests on every push and pull request.
+#
+# No repository secrets are used and nothing here can reach a hosted database:
+# every value below is a dummy or points at the throwaway Postgres service
+# container, and the first step fails the job if DATABASE_URL is not local.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # The build needs BETTER_AUTH_SECRET and BETTER_AUTH_URL (the auth module
+  # reads both at import time while prerendering); PUBLIC_APP_URL is inlined
+  # into the browser bundle. All dummy values.
+  BETTER_AUTH_SECRET: ci-only-dummy-secret-not-used-anywhere
+  BETTER_AUTH_URL: http://localhost:3000
+  PUBLIC_APP_URL: http://localhost:3000
+  # The older unit tests (auth, db, membership, projects, tickets,
+  # github-account) use whatever DATABASE_URL is set; the local-db suite reads
+  # TEST_DATABASE_URL. Both point at the service container below.
+  DATABASE_DRIVER: pg
+  DATABASE_URL: postgres://postgres:postgres@localhost:5432/ci
+  TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/ci
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Refuse to run against a non-local database
+        run: |
+          for var in DATABASE_URL TEST_DATABASE_URL; do
+            host="$(node -e 'console.log(new URL(process.env[process.argv[1]]).hostname)' "$var")"
+            case "$host" in
+              localhost|127.0.0.1) ;;
+              *) echo "::error::$var host is '$host', not localhost/127.0.0.1"; exit 1 ;;
+            esac
+          done
+
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24 # the Dockerfile and the Vercel runtime (nodejs24.x)
+          cache: npm
+
+      - run: npm ci --no-audit --no-fund
+
+      - run: npm run check
+      - run: npm run lint
+      - run: npm run build
+
+      - name: Migrate the service database
+        run: node scripts/migrate.mjs
+
+      - name: Unit tests
+        run: npx vitest run src/tests/*.test.ts
+
+      - name: Local-database tests
+        run: npm run test:db

@@ -6,7 +6,7 @@
 
 import { redirect } from '@sveltejs/kit';
 
-import { googleSignInEnabled } from '@/lib/auth-providers';
+import { signInProviders } from '@/lib/auth-providers';
 import { safeRedirect } from '@/lib/safe-redirect';
 import type { PageServerLoad } from './$types';
 
@@ -42,7 +42,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 
   return {
     redirectTo,
-    googleEnabled: googleSignInEnabled(),
+    ...signInProviders(),
     initialError: error,
     initialSso: url.searchParams.get('sso') === '1' || error === SSO_REQUIRED_COPY,
   };

@@ -7,7 +7,7 @@ import { callbackOAuth } from 'better-auth/api';
 import { memoryAdapter } from 'better-auth/adapters/memory';
 import { describe, expect, it } from 'vitest';
 
-import { googleSignInEnabled, socialProviderOptions } from '@/lib/auth-providers';
+import { googleSignInEnabled, signInProviders, socialProviderOptions } from '@/lib/auth-providers';
 import { isNonSsoSignIn } from '@/lib/sso';
 
 const GITHUB = { GITHUB_CLIENT_ID: 'gh-id', GITHUB_CLIENT_SECRET: 'gh-secret' };
@@ -33,6 +33,14 @@ describe('socialProviderOptions / googleSignInEnabled', () => {
     expect(options.github).toEqual({ clientId: 'gh-id', clientSecret: 'gh-secret', scope: ['read:user', 'user:email'] });
     expect(options.google).toMatchObject({ clientId: GOOGLE.GOOGLE_CLIENT_ID, clientSecret: 'g-secret' });
     expect(googleSignInEnabled(env)).toBe(true);
+  });
+});
+
+describe('signInProviders (what the login / sign-up pages show)', () => {
+  it('turns each button on only when its own provider is configured', () => {
+    expect(signInProviders({})).toEqual({ githubEnabled: false, googleEnabled: false });
+    expect(signInProviders({ ...GOOGLE })).toEqual({ githubEnabled: false, googleEnabled: true });
+    expect(signInProviders({ ...GITHUB })).toEqual({ githubEnabled: true, googleEnabled: false });
   });
 });
 
