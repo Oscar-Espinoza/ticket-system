@@ -14,6 +14,14 @@ export function appUrl(): string {
   return url.replace(/\/+$/, '');
 }
 
+/**
+ * Better Auth's base URL (its issuer; what the SSO / SCIM / OAuth plugins
+ * build their URLs from): BETTER_AUTH_URL, else the app URL, plus /api/auth.
+ */
+export function authBaseUrl(): string {
+  return `${(process.env.BETTER_AUTH_URL || appUrl()).replace(/\/+$/, '')}/api/auth`;
+}
+
 export function absoluteIssueUrl(projectId: string, key: string): string {
   return `${appUrl()}${issuePath(projectId, key)}`;
 }

@@ -4,11 +4,17 @@
 // by the SDK's web-standard Streamable HTTP transport; 2026-07-28 clients by
 // the SDK's per-request handler. Bearer tokens only (./auth.ts), never the
 // session cookie, which is what makes CORS `*` safe here.
+//
+// One JSON-RPC message per POST: batches (a JSON array) were dropped from the
+// protocol in 2025-06-18 and none of the clients we serve send them, so an
+// array is refused before any tool runs instead of fanning out into many
+// tool calls under one request.
 
 import {
   createMcpHandler,
   isJsonContentType,
   isLegacyRequest,
+  readRequestBody,
   WebStandardStreamableHTTPServerTransport,
   type AuthInfo,
 } from '@modelcontextprotocol/server';
@@ -16,6 +22,10 @@ import {
 import type { McpCredential } from './contracts';
 import { authenticateMcpRequest } from './auth';
 import { createMcpServer } from './server';
+import { mcpConfig } from './urls';
+
+/** Tool inputs are at most a few tens of KB; the SDK's own default is 4 MiB. */
+const MAX_BODY_BYTES = 1024 * 1024;
 
 const CORS_HEADERS: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
@@ -49,7 +59,7 @@ const modern = createMcpHandler(
   { legacy: 'reject', onerror: (err) => console.error('[mcp]', err) },
 );
 
-async function serveLegacy(request: Request, credential: McpCredential): Promise<Response> {
+async function serveLegacy(request: Request, credential: McpCredential, parsedBody: unknown): Promise<Response> {
   const server = createMcpServer(credential);
   const transport = new WebStandardStreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
@@ -57,29 +67,50 @@ async function serveLegacy(request: Request, credential: McpCredential): Promise
   });
   await server.connect(transport);
   try {
-    return await transport.handleRequest(request);
+    return await transport.handleRequest(request, { parsedBody });
   } finally {
     await transport.close().catch(() => undefined);
     await server.close().catch(() => undefined);
   }
 }
 
+/** The body as one JSON-RPC message, or the error response to send instead. */
+async function readMessage(request: Request): Promise<{ ok: true; body: unknown } | { ok: false; response: Response }> {
+  const read = await readRequestBody(request, MAX_BODY_BYTES);
+  if (read.tooLarge) return { ok: false, response: jsonRpcError(413, -32000, 'Request body too large.') };
+  let body: unknown;
+  try {
+    body = JSON.parse(read.text);
+  } catch {
+    return { ok: false, response: jsonRpcError(400, -32700, 'Parse error: invalid JSON.') };
+  }
+  if (Array.isArray(body)) {
+    return { ok: false, response: jsonRpcError(400, -32600, 'Batch requests are not supported: send one JSON-RPC message per request.') };
+  }
+  return { ok: true, body };
+}
+
 export async function handleMcpPost(request: Request): Promise<Response> {
   try {
+    const config = mcpConfig();
+    if (!config.ok) return withCors(jsonRpcError(500, -32603, config.error));
     const auth = await authenticateMcpRequest(request);
     if (!auth.ok) return withCors(auth.response);
     if (!isJsonContentType(request.headers.get('content-type'))) {
       return withCors(jsonRpcError(415, -32000, 'Content-Type must be application/json.'));
     }
+    const message = await readMessage(request);
+    if (!message.ok) return withCors(message.response);
+    const parsedBody = message.body;
     const { credential } = auth;
-    if (await isLegacyRequest(request)) return withCors(await serveLegacy(request, credential));
+    if (await isLegacyRequest(request, parsedBody)) return withCors(await serveLegacy(request, credential, parsedBody));
     const authInfo: WithCredential = {
       token: '',
       clientId: credential.clientId ?? 'api_key',
       scopes: [...credential.scopes],
       extra: { credential },
     };
-    return withCors(await modern.fetch(request, { authInfo }));
+    return withCors(await modern.fetch(request, { authInfo, parsedBody }));
   } catch (err) {
     console.error('[mcp] request failed', err);
     return withCors(jsonRpcError(500, -32603, 'Internal server error.'));
