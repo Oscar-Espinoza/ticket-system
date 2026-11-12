@@ -21,6 +21,14 @@ any Postgres self-hosted), Better Auth, Tailwind v4 with bits-ui primitives
   `npm run dev:local` points it at a local Postgres on :5433 instead). Deploy on
   Vercel with the same variables (adapter-vercel is picked automatically there);
   `vercel.json` schedules the daily cron.
+- **MCP views**: the cards Claude and ChatGPT show for the `/mcp` tools are a
+  separate Svelte bundle in `src/mcp-ui/`, built to one HTML file
+  (`src/lib/server/mcp/ui/app.html`, generated, not committed) by
+  `npm run build:mcp-ui`. `npm run dev`, `dev:local` and `build` run it first
+  (`predev`, `predev:local`, `prebuild`; the Docker build goes through
+  `npm run build`), so you only call it yourself after editing `src/mcp-ui/` while
+  a dev server is running. Without the file, tests and `vite dev` serve a
+  placeholder page and `vite build` refuses to continue.
 - **Checks**: `npm run check` (svelte-check), `npm run lint`, `npm run build`.
   A clean checkout needs `BETTER_AUTH_SECRET` and `BETTER_AUTH_URL` (any dummy
   values; the build prerenders the auth module) to build; `PUBLIC_APP_URL` is
