@@ -228,7 +228,11 @@ describe.skipIf(!localDb)('durable webhook dispatch (review finding #9)', () => 
     ).toMatchObject({ ok: true });
 
     const posts: string[] = [];
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (_url, init) => {
+    // Only Slack posts are captured; the Neon HTTP driver also uses fetch, and
+    // its queries (postToSlack reads the project) must reach the database.
+    const realFetch = globalThis.fetch;
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      if (!String(input instanceof Request ? input.url : input).startsWith(SLACK_URL_PREFIX)) return realFetch(input, init);
       posts.push(String(init?.body));
       return new Response(null, { status: 200 });
     });
