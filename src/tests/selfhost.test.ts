@@ -48,6 +48,9 @@ describe('local-db test guard', () => {
       { DATABASE_URL: 'postgres://u:p@localhost/main?host=/var/run/postgresql' },
       { DATABASE_URL: 'postgresql://u:p@ep-x.us-east-1.aws.neon.tech/neondb?sslmode=require' },
       { DATABASE_URL: 'postgres://u:p@db.localtest.me:5432/main', NEON_PROXY_HOST: 'proxy.example.com:4444' },
+      // db.localtest.me is a third party's DNS name: trusted only through a local Neon proxy.
+      { DATABASE_URL: 'postgres://u:p@db.localtest.me:5432/main' },
+      { DATABASE_URL: 'postgres://u:p@db.localtest.me:5432/main', NEON_PROXY_HOST: 'localhost:4444', DATABASE_DRIVER: 'pg' },
       { DATABASE_URL: 'postgres://u:p@localhost.example.com/main' },
       { DATABASE_URL: '' },
       {},

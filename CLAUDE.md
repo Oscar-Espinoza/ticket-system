@@ -50,7 +50,7 @@ A zero-cost, full-stack Linear-style ticket management system for small teams. U
 ### Development Tools
 | Tool | Purpose | Notes |
 |------|---------|-------|
-| drizzle-kit | Schema migrations | `drizzle-kit generate` creates SQL migration files; `drizzle-kit push` applies them to Neon directly (good for dev); `drizzle-kit migrate` for prod |
+| drizzle-kit | Schema migrations | `drizzle-kit generate` creates SQL migration files; never run `push`/`migrate`/`studio` against the hosted database (drizzle.config.ts refuses non-local URLs unless `DRIZZLE_ALLOW_REMOTE=1` is set in the shell); for dev use `DATABASE_URL=postgres://postgres:postgres@localhost:5433/<db> npx drizzle-kit push`, and `npm run db:migrate` for real deployments |
 | ESLint + TypeScript-ESLint | Linting | Included in `create-next-app` scaffold |
 | Prettier | Formatting | Add manually; shadcn/ui CLI does not configure it |
 ## Detailed Rationale per Stack Decision
