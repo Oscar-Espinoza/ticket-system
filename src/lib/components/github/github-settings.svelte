@@ -23,7 +23,11 @@
       Only project owners and admins can change the GitHub connection.
     </p>
   {/if}
-  <GithubAccountSection account={props.account} linkError={props.linkError} />
+  <GithubAccountSection
+    account={props.account}
+    linkError={props.linkError}
+    oauthConfigured={props.oauthConfigured}
+  />
   <Separator class="my-10" />
   <GithubRepositorySection {...props} accountReady={ready} />
   <Separator class="my-10" />

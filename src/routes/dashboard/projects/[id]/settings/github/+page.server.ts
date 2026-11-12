@@ -5,6 +5,7 @@
 import { error } from '@sveltejs/kit';
 
 import { getGithubAccount, githubMessage, type GithubAccountStatus } from '@/lib/github/client';
+import { githubOAuthConfigured } from '@/lib/github/oauth-config';
 import { webhookUrl } from '@/lib/github/webhooks';
 import { getGithubSettings } from '@/lib/project-settings-read';
 import { isUnreachableUrl } from '@/lib/vcs/webhook-url';
@@ -40,6 +41,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
     projectId: id,
     canEdit: roleAllows(membership.role, 'admin'),
     account,
+    oauthConfigured: githubOAuthConfigured(),
     linkError: errorCode
       ? (LINK_ERRORS[errorCode] ?? `GitHub linking failed (${errorCode}).`)
       : null,
