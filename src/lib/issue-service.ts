@@ -631,6 +631,9 @@ export interface CreateIssueOptions {
   withRows?: (issueId: string) => BatchItem<'pg'>[];
 }
 
+/** createIssue's error when `opts.id` belongs to an issue it cannot replay (another project or creator). */
+export const ISSUE_ID_IN_USE = 'This issue id is already in use.';
+
 /** The issue an earlier attempt with the same client id created, or why it can't be reused. */
 async function existingCreate(
   actor: IssueActor,
@@ -644,10 +647,10 @@ async function existingCreate(
     .limit(1);
   if (!row) return null;
   if (row.projectId !== projectId || row.creatorId !== actor.userId) {
-    return fail('This issue id is already in use.');
+    return fail(ISSUE_ID_IN_USE);
   }
   const [issue] = await queryIssues(and(eq(tickets.id, id), eq(tickets.projectId, projectId)));
-  return issue ? { ok: true, issue } : fail('This issue id is already in use.');
+  return issue ? { ok: true, issue } : fail(ISSUE_ID_IN_USE);
 }
 
 /** moveIssue's guard statement divides by zero when the tree changed under it. */

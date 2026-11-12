@@ -85,5 +85,12 @@ describe.skipIf(!localDb)('Sentry triage opens one issue per Sentry issue (gap D
     await db.update(tickets).set({ deletedAt: new Date() }).where(and(eq(tickets.projectId, project.id)));
     await handleSentryWebhook(project, 'event_alert', alert(sentryId), null);
     expect(await triage()).toEqual({ issues: 2, links: 2 });
+    // Trashed again, then two alerts at once: still one fresh issue.
+    await db.update(tickets).set({ deletedAt: new Date() }).where(and(eq(tickets.projectId, project.id)));
+    await Promise.all([
+      handleSentryWebhook(project, 'event_alert', alert(sentryId), null),
+      handleSentryWebhook(project, 'event_alert', alert(sentryId), null),
+    ]);
+    expect(await triage()).toEqual({ issues: 3, links: 3 });
   });
 });
