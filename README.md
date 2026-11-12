@@ -22,6 +22,11 @@ any Postgres self-hosted), Better Auth, Tailwind v4 with bits-ui primitives
   Vercel with the same variables (adapter-vercel is picked automatically there);
   `vercel.json` schedules the daily cron.
 - **Checks**: `npm run check` (svelte-check), `npm run lint`, `npm run build`.
+  A clean checkout needs `BETTER_AUTH_SECRET` and `BETTER_AUTH_URL` (any dummy
+  values; the build prerenders the auth module) to build; `PUBLIC_APP_URL` is
+  inlined into the bundle. No `DATABASE_URL` is needed to build. CI
+  (`.github/workflows/ci.yml`) runs all of this plus the tests against a
+  throwaway Postgres service and never uses secrets.
 - **Server actions** live in `src/lib/server/actions/`; after adding or changing
   an exported action run `npm run gen:actions` to regenerate the remote-function
   wrappers the UI calls (`src/lib/remote`, `src/lib/actions`).
@@ -30,6 +35,11 @@ any Postgres self-hosted), Better Auth, Tailwind v4 with bits-ui primitives
   see [docs/SELF_HOSTING.md](docs/SELF_HOSTING.md).
 
 API reference: [docs/API.md](docs/API.md).
+
+**AI assistants (MCP):** Claude, ChatGPT and Claude Code connect to
+`<your host>/mcp` (OAuth sign-in, or an `lc_…` API key) to read issues and
+create, update and comment on them; see [docs/MCP.md](docs/MCP.md). For
+claude.ai and ChatGPT the instance must be reachable over public HTTPS.
 
 ## Tests
 
@@ -48,5 +58,6 @@ Run `npm run db:migrate` against the database before deploying new code.
 Migration 0009 (durable webhook dispatch, description source) comes with
 the 2026-11 security and reliability fixes; see
 `docs/reports/2026-09-25-architecture-security-review.md` for what they fix.
-Migration 0010 adds the issue fields `waiting_on_id` and `follow_up` (plus
-`follow_up_notified_on`, used by the daily follow-up job).
+Migration 0010 adds the workspace switch for AI connectors (MCP, see
+`docs/MCP.md`). Migration 0011 adds the issue fields `waiting_on_id` and
+`follow_up` (plus `follow_up_notified_on`, used by the daily follow-up job).

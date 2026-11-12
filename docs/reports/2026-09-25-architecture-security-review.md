@@ -143,3 +143,30 @@ the new code.
   moved into a private project, and was then edited there, can carry the
   issue's new title or assignee to the source project's receivers. Scope that
   lookup to the event's project. This predates these fixes.
+
+#### Resolution of the follow-ups (2026-11-12)
+
+Both are fixed on branch `fix/event-followups`. Each new guard was checked by
+removing it and confirming that a test fails.
+
+- **Payload leak.** `loadEventContext` loads issues only from the events'
+  projects, and `issueOf` / `commentBodyOf` answer for an event only while its
+  issue is still in the event's project (`activity.project_id`, or
+  `webhook_pending_project_id` for swept events). Otherwise a webhook payload
+  carries `issue: null`, the shape receivers already get for a purged issue,
+  and keeps `data.key` / `data.title` as recorded when the event happened; Slack
+  falls back to the same recorded values and to `data.excerpt` for comments.
+  Notifications already checked the issue's project. Redelivery resends the
+  stored payload, which is built by the same code. Test:
+  `webhook-durability.test.ts` (an event in A, the issue moved to private B,
+  retitled and reassigned, then swept).
+- **Events lost on a crash.** Every producer now writes its activity rows in
+  the same transaction as its mutation: `commitWithEvents` (one `db.batch`) for
+  epics, epic labels and relations, members, workflow states, customer requests,
+  branch creation, PR sync and the SLA policy; the issue service's
+  `extraEvents` option for events that explain an issue update (auto-close,
+  triage decline, closing commits); one SQL statement for the SLA breach job
+  (claim + event) and for applying an SLA policy (recompute + event with its
+  count). Kept standalone, because the event is the whole action: description
+  mentions and Sentry "resolved" lines. Security audit rows (`audit.ts`) are
+  never delivered and stay best-effort. Tests: `event-durability.test.ts`.

@@ -137,6 +137,11 @@ export const workspaces = pgTable('workspace', {
   ownerId: text('owner_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
+  /**
+   * "AI assistant connectors" (MCP, docs/MCP.md): when false, MCP tools treat
+   * the workspace's projects as nonexistent (src/lib/server/mcp/access.ts).
+   */
+  aiConnectorsAllowed: boolean('ai_connectors_allowed').notNull().default(true),
   createdAt: timestamp('created_at').notNull(),
   updatedAt: timestamp('updated_at').notNull(),
 });

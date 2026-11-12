@@ -38,6 +38,8 @@ const SNIPPET = `${HEADLINE}, MaxWords=24, MinWords=8, MaxFragments=2, FragmentD
 
 export interface SearchOptions {
   projectId?: string | null;
+  /** Narrows the viewer's projects to these (callers with their own visibility rule, e.g. MCP's D8). */
+  projectIds?: string[];
   includeArchived?: boolean;
 }
 
@@ -251,12 +253,14 @@ export async function searchIssues(
   const parsed = parseSearchQuery(rawQuery.trim().slice(0, MAX_QUERY));
   const q = parsed.text.trim();
   if (!q && parsed.terms.length === 0) return [];
+  if (options.projectIds && options.projectIds.length === 0) return [];
 
   // Shared scope: the viewer's projects, never trashed, archived only on
   // request (the toggle or `is:archived`), plus the query's filter terms.
   const scope: SQL[] = [memberOfIssueProject(userId), isNull(tickets.deletedAt)];
   if (!options.includeArchived && !wantsArchived(parsed.terms)) scope.push(isNull(tickets.archivedAt));
   if (options.projectId) scope.push(eq(tickets.projectId, options.projectId));
+  if (options.projectIds) scope.push(inArray(tickets.projectId, options.projectIds));
   scope.push(...searchTermConditions(parsed.terms, userId));
 
   // Filters only (`assignee:me is:open`): list the matches, recently updated first.

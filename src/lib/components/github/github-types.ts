@@ -14,6 +14,8 @@ export interface GithubSettingsProps {
   projectId: string;
   canEdit: boolean;
   account: GithubAccountProp;
+  /** GITHUB_CLIENT_ID/SECRET are set on the server; without them nothing can be connected. */
+  oauthConfigured: boolean;
   linkError: string | null;
   repo: string | null;
   webhookRegistered: boolean;

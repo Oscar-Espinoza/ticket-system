@@ -1,8 +1,13 @@
-// Workspace → Security: SAML / OIDC single sign-on (+ "Require SSO") and SCIM provisioning. Owners
+// Workspace → Security: SAML / OIDC single sign-on (+ "Require SSO"), SCIM provisioning and the
+// AI assistant connectors switch (docs/MCP.md). Owners
 // and admins manage it; other members get a short note, non-members a 404
 // (slugs can't be probed). Every action re-checks the role.
 
 import { error } from '@sveltejs/kit';
+import { eq } from 'drizzle-orm';
+
+import { db } from '@/lib/db';
+import { workspaces } from '@/db/schema';
 
 import { getWorkspaceMembership } from '@/lib/workspace-access';
 import { workspaceRoleAllows } from '@/lib/workspace-types';
@@ -28,7 +33,14 @@ export const load: PageServerLoad = async ({ params }) => {
   if (!workspaceRoleAllows(membership.role, 'admin')) return { workspace, security: null };
 
   const workspaceId = membership.workspaceId;
-  const view = await getWorkspaceSso(workspaceId);
+  const [view, [connectors]] = await Promise.all([
+    getWorkspaceSso(workspaceId),
+    db
+      .select({ allowed: workspaces.aiConnectorsAllowed })
+      .from(workspaces)
+      .where(eq(workspaces.id, workspaceId))
+      .limit(1),
+  ]);
   const urls = workspaceSsoUrls(workspaceId);
   const ownDomain = emailDomain(user.email);
 
@@ -58,6 +70,7 @@ export const load: PageServerLoad = async ({ params }) => {
       txtRecord: { label: DOMAIN_TXT_LABEL, value: domainVerificationValue(workspaceId) },
       proofOptional: domainProofOptional(),
       suggestedDomain: isFreeMailDomain(ownDomain) ? '' : ownDomain,
+      aiConnectorsAllowed: connectors?.allowed ?? true,
     },
   };
 };

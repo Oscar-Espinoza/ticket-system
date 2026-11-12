@@ -1,5 +1,5 @@
 {
-  "id": "58104916-61e0-4666-a6cd-04f6c0dfbecc",
+  "id": "71343ed8-690a-40cc-8fbb-bed01d69cc80",
   "prevId": "93d060cb-8475-4f02-a789-d6a851ac73e0",
   "version": "7",
   "dialect": "postgresql",
@@ -5149,24 +5149,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "waiting_on_id": {
-          "name": "waiting_on_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "follow_up": {
-          "name": "follow_up",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "follow_up_notified_on": {
-          "name": "follow_up_notified_on",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": false
-        },
         "parent_id": {
           "name": "parent_id",
           "type": "text",
@@ -5293,37 +5275,6 @@
           "method": "btree",
           "with": {}
         },
-        "ticket_waiting_on_idx": {
-          "name": "ticket_waiting_on_idx",
-          "columns": [
-            {
-              "expression": "waiting_on_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "ticket_follow_up_pending_idx": {
-          "name": "ticket_follow_up_pending_idx",
-          "columns": [
-            {
-              "expression": "follow_up",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "where": "follow_up is not null and follow_up_notified_on is distinct from follow_up and deleted_at is null and archived_at is null",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
         "ticket_cycle_idx": {
           "name": "ticket_cycle_idx",
           "columns": [
@@ -5401,19 +5352,6 @@
           "tableTo": "user",
           "columnsFrom": [
             "creator_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "ticket_waiting_on_id_user_id_fk": {
-          "name": "ticket_waiting_on_id_user_id_fk",
-          "tableFrom": "ticket",
-          "tableTo": "user",
-          "columnsFrom": [
-            "waiting_on_id"
           ],
           "columnsTo": [
             "id"
@@ -6487,6 +6425,13 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "ai_connectors_allowed": {
+          "name": "ai_connectors_allowed",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
         },
         "created_at": {
           "name": "created_at",

@@ -37,7 +37,7 @@ import {
   workspaceSso,
   workspaces,
 } from '@/db/schema';
-import { appUrl } from '@/lib/integrations/app-url';
+import { authBaseUrl } from '@/lib/integrations/app-url';
 import { appSecret, hmacHex, safeEqual } from '@/lib/server/secrets';
 import { recordWorkspaceEvent } from '@/lib/audit';
 import { workspaceRoleAllows } from '@/lib/workspace-types';
@@ -56,11 +56,6 @@ const isSsoProviderId = (id: unknown): id is string =>
   typeof id === 'string' && id.startsWith(SSO_PREFIX) && id.length <= 128;
 const isScimProviderId = (id: unknown): id is string =>
   typeof id === 'string' && id.startsWith(SCIM_PREFIX) && id.length <= 128;
-
-/** Better Auth's base URL (what the plugins build ACS / callback URLs from). */
-export function authBaseUrl(): string {
-  return `${(process.env.BETTER_AUTH_URL || appUrl()).replace(/\/+$/, '')}/api/auth`;
-}
 
 export function workspaceSsoUrls(workspaceId: string) {
   const base = authBaseUrl();

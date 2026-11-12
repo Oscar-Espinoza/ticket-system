@@ -11,7 +11,7 @@ import { and, eq, ne } from 'drizzle-orm';
 
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { scimProviders, sessions, ssoProviders, users, workspaceSso } from '@/db/schema';
+import { scimProviders, sessions, ssoProviders, users, workspaceSso, workspaces } from '@/db/schema';
 import { getSession } from '@/lib/session';
 import type { WorkspaceMembership } from '@/lib/workspace-access';
 import {
@@ -442,6 +442,39 @@ export async function setSsoEnforced(input: {
       : `stopped requiring SSO for @${view.provider.domain}`,
     data: { domain: view.provider.domain },
   });
+  refreshesData();
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// AI assistant connectors (MCP, docs/MCP.md)
+// ---------------------------------------------------------------------------
+
+/**
+ * Allow or block AI assistant connectors (Claude, ChatGPT, … through /mcp) for
+ * the workspace. Blocked: MCP tools treat its projects as nonexistent
+ * (src/lib/server/mcp/access.ts), effective on the next tool call.
+ */
+export async function setAiConnectorsAllowed(input: {
+  workspaceId: string;
+  allowed: boolean;
+}): Promise<SecurityResult> {
+  const authz = await authorizeWorkspaceAdmin(input?.workspaceId);
+  if (!authz.ok) return authz;
+  const workspaceId = authz.membership.workspaceId;
+  const allowed = input.allowed === true;
+  const [updated] = await db
+    .update(workspaces)
+    .set({ aiConnectorsAllowed: allowed, updatedAt: new Date() })
+    .where(and(eq(workspaces.id, workspaceId), ne(workspaces.aiConnectorsAllowed, allowed)))
+    .returning({ id: workspaces.id });
+  if (updated) {
+    await recordWorkspaceEvent(workspaceId, {
+      actorId: authz.userId,
+      type: allowed ? 'security.ai_connectors_allowed' : 'security.ai_connectors_blocked',
+      summary: allowed ? 'allowed AI assistant connectors' : 'blocked AI assistant connectors',
+    });
+  }
   refreshesData();
   return { ok: true };
 }

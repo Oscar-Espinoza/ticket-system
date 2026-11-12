@@ -33,6 +33,14 @@ Open `APP_URL`, sign up, create a workspace and invite people.
   port and set `APP_URL` to the `https://` address. Rebuild after changing
   `APP_URL` (`docker compose up -d --build`): it is baked into the browser bundle
   and is the origin the server accepts form and remote-function posts from.
+- **Client IP behind the proxy**: sign-in and OAuth client registration are
+  rate-limited per client IP, read from the connection by default. Behind a
+  reverse proxy every request comes from the proxy, so all users share one
+  limit: set `ADDRESS_HEADER=X-Forwarded-For` and `XFF_DEPTH` to the number of
+  proxies in front of the app (1 for one proxy that appends the client
+  address, as Caddy, Traefik and nginx's `proxy_add_x_forwarded_for` do). Only
+  set them when every request reaches the app through those proxies: the app
+  trusts that header.
 - **Uploads**: the image sets `BODY_SIZE_LIMIT=6M` (attachments and uploads are
   capped at 4 MB, webhooks at 5 MB). Raise it in the environment if you need more.
 - **Updates**: `git pull && docker compose up -d --build`. The new container
@@ -65,12 +73,60 @@ migrations are exempt.
 
 Every integration switches off cleanly when its variables are empty
 (`docker/selfhost.env.example` lists them): GitHub sign-in and PR automation
-(`GITHUB_*`), email (`RESEND_*`), web push (`*VAPID*`), Slack (`SLACK_*`).
+(`GITHUB_*`), Google sign-in (`GOOGLE_*`), email (`RESEND_*`), web push
+(`*VAPID*`), Slack (`SLACK_*`).
+
+### Google sign-in
+
+Adds "Continue with Google" to the sign-in and sign-up pages (and so to invite
+links, which go through them). With `GOOGLE_CLIENT_ID` or `GOOGLE_CLIENT_SECRET`
+empty the button does not appear and nothing is registered. Google is identity
+only: the app asks for `openid`, `email` and `profile`, nothing else, and never
+reads or uses a Google token (GitHub branch creation still needs GitHub).
+
+1. In the [Google Cloud Console](https://console.cloud.google.com/) pick or
+   create a project (use one owned by the company Google Workspace).
+2. **APIs & Services → OAuth consent screen** (called **Google Auth Platform →
+   Branding / Audience** in the newer console). Choose the user type:
+   - **Internal** if everyone who signs in has an account in your Google
+     Workspace. Only people in that Workspace can sign in; this is the right
+     choice for a company tool and needs no Google review.
+   - **External** only if people outside a Workspace (personal Gmail) must sign
+     in. It starts in "Testing" (test users only, tokens expire) and needs
+     publishing; this is not a way to limit sign-in to your company.
+   Fill in the app name and support email; the scopes stay `openid`, `email`,
+   `profile` (the defaults, no sensitive scopes, so no verification).
+3. **APIs & Services → Credentials → Create credentials → OAuth client ID**,
+   application type **Web application**.
+   - **Authorized JavaScript origins**: your `APP_URL`, e.g.
+     `https://tickets.example.com` (local dev: `http://localhost:3000`).
+   - **Authorized redirect URIs**: `<APP_URL>/api/auth/callback/google`, e.g.
+     `https://tickets.example.com/api/auth/callback/google` (local dev:
+     `http://localhost:3000/api/auth/callback/google`). It must match exactly,
+     including `http`/`https` and any port. Add one entry per origin you use.
+4. Copy the client ID and secret into `.env` (`GOOGLE_CLIENT_ID`,
+   `GOOGLE_CLIENT_SECRET`) and restart the app (`docker compose up -d`). They are
+   read at runtime; no rebuild is needed.
+
+Rules that apply to Google like they do to GitHub: an existing account is linked
+only when Google reports the email as verified and the account's email is
+verified in this app (otherwise the person signs in the way they did before);
+a domain with "Enforce SSO" turned on cannot use Google to get around it.
 
 **SSO (SAML/OIDC) and SCIM** work self-hosted. A workspace admin proves the
 company domain with a DNS TXT record (`_ticket-system.<domain>`), shown in
 workspace settings → Security. The record must stay published: the app re-checks
 it and stops trusting the IdP for that domain if it disappears.
+
+**AI assistants (MCP)** work self-hosted with Claude Code out of the box (it
+connects from each user's machine). claude.ai, Claude Desktop/mobile and
+ChatGPT connect from the vendors' clouds, so `/mcp`, the `/.well-known/oauth-*`
+documents and `/api/auth/oauth2/{register,token}` + `/api/auth/jwks` must be on
+public HTTPS, and `APP_URL` must be that public URL; sign-in and consent can
+stay on the VPN. A reverse proxy exposing only those paths, or a
+`cloudflared` tunnel for a test, is enough. Extra OAuth redirect URIs for other
+MCP clients go in `MCP_EXTRA_REDIRECT_URIS`. Set `ADDRESS_HEADER` / `XFF_DEPTH`
+(above) so client registration is limited per caller. Details: [MCP.md](MCP.md).
 
 ## Database tests
 

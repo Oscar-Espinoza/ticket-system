@@ -7,6 +7,7 @@
   import { Button } from '@/lib/components/ui/button';
   import { Separator } from '@/lib/components/ui/separator';
   import { EmptyState } from '@/lib/components/ui-icons';
+  import AiConnectorsSettings from '@/lib/components/security/ai-connectors-settings.svelte';
   import ScimSettings from '@/lib/components/security/scim-settings.svelte';
   import WorkspaceSsoSettings from '@/lib/components/security/workspace-sso-settings.svelte';
   import type { PageProps } from './$types';
@@ -33,7 +34,7 @@
     <div class="min-w-0 flex-1">
       <h1 class="text-xl font-medium">Security</h1>
       <p class="mt-0.5 text-sm text-muted-foreground">
-        Single sign-on and user provisioning for {workspace.name}.
+        Single sign-on, user provisioning and AI assistant access for {workspace.name}.
       </p>
     </div>
     {#if workspaceRoleAllows(workspace.role, 'admin')}
@@ -50,7 +51,7 @@
     {@render header()}
     <EmptyState
       title="Admins only"
-      description="Workspace owners and admins manage single sign-on and provisioning."
+      description="Workspace owners and admins manage single sign-on, provisioning and AI assistant access."
     >
       {#snippet icon()}<ShieldCheckIcon />{/snippet}
     </EmptyState>
@@ -95,6 +96,22 @@
         workspaceId={security.workspaceId}
         configured={security.scimConfigured}
         baseUrl={security.scimBaseUrl}
+      />
+    </section>
+
+    <Separator />
+
+    <section class="flex flex-col gap-3">
+      <div>
+        <h2 class="text-base font-medium">AI assistants</h2>
+        <p class="mt-0.5 text-sm text-muted-foreground">
+          Whether members may use Claude, ChatGPT and other AI assistants with this workspace’s
+          issues (through the MCP connector, see Settings → OAuth apps).
+        </p>
+      </div>
+      <AiConnectorsSettings
+        workspaceId={security.workspaceId}
+        allowed={security.aiConnectorsAllowed}
       />
     </section>
   </div>

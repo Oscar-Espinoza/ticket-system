@@ -23,7 +23,7 @@
 
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { createAuthMiddleware, isAPIError } from 'better-auth/api';
+import { APIError, createAuthMiddleware, isAPIError } from 'better-auth/api';
 import { getRequestEvent } from '$app/server';
 import { sveltekitCookies } from 'better-auth/svelte-kit';
 import { jwt, twoFactor } from 'better-auth/plugins';
@@ -31,8 +31,12 @@ import { oauthProvider } from '@better-auth/oauth-provider';
 import { scim } from '@better-auth/scim';
 import { sso } from '@better-auth/sso';
 import { MIN_PASSWORD_LENGTH } from '@/lib/auth-rules';
+import { socialProviderOptions } from '@/lib/auth-providers';
+import { invalidClientUri } from '@/lib/oauth-model';
 import { authDb } from '@/lib/db';
 import { recordUserSecurityEvent } from '@/lib/audit';
+import { checkDynamicRegistration, markDynamicClient } from '@/lib/server/mcp/register';
+import { mcpUrl } from '@/lib/server/mcp/urls';
 import {
   assertIdentityDomain,
   assertPasswordSignInAllowed,
@@ -80,6 +84,22 @@ const authSchema = {
   oauthConsent: oauthConsents,
 };
 
+/**
+ * The header Better Auth reads the client IP from (rate limits, session IP).
+ * src/hooks.server.ts sets it on every /api/auth request; never trust it from
+ * anywhere else.
+ */
+export const CLIENT_IP_HEADER = 'x-ticket-system-client-ip';
+
+// Better Auth's OAuth client writes besides /oauth2/register (the DCR policy
+// covers that one): Settings → OAuth apps calls the first two through auth.api.
+const CLIENT_WRITE_PATHS = new Set([
+  '/oauth2/create-client',
+  '/oauth2/update-client',
+  '/admin/oauth2/create-client',
+  '/admin/oauth2/update-client',
+]);
+
 export const auth = betterAuth({
   database: drizzleAdapter(authDb, {
     provider: 'pg',
@@ -93,19 +113,20 @@ export const auth = betterAuth({
   // below only restates them (least privilege at sign-in). Tokens are read
   // exclusively through getGitHubToken() in src/lib/github-token.ts, which
   // decrypts them (see `account`).
-  socialProviders: {
-    github: {
-      clientId: process.env.GITHUB_CLIENT_ID!,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET!,
-      scope: ['read:user', 'user:email'],
-    },
-  },
+  // Google is registered only when GOOGLE_CLIENT_ID/SECRET are set (identity
+  // only: openid/email/profile). See src/lib/auth-providers.ts.
+  socialProviders: socialProviderOptions(),
   // Signed session snapshot in a cookie saves a DB lookup per request. Trade-off:
   // a revoked session stays valid up to maxAge; project membership is still
   // checked against the DB on every request.
   session: {
     cookieCache: { enabled: true, maxAge: 5 * 60 },
   },
+  // Rate limits (production only) count per client IP. src/hooks.server.ts
+  // overwrites this header on every /api/auth request with the address
+  // SvelteKit resolved (the socket peer, or ADDRESS_HEADER / XFF_DEPTH behind
+  // a proxy; Vercel's edge on Vercel), so a caller can't pick its own bucket.
+  advanced: { ipAddress: { ipAddressHeaders: [CLIENT_IP_HEADER] } },
   account: {
     // AES-256-GCM at rest, since linked tokens can carry `repo` scope. Rows
     // written before this stay plaintext and still read fine.
@@ -129,6 +150,13 @@ export const auth = betterAuth({
       scopes: ['openid', 'profile', 'email', 'offline_access', 'read', 'write'],
       // Discovery is served by src/routes/[x+2e]well-known/oauth-authorization-server/api/auth/+server.ts.
       silenceWarnings: { oauthAuthServerConfig: true },
+      // MCP connectors (docs/mcp/PLAN.md D3/D4): Claude and ChatGPT register
+      // themselves (policy: src/lib/server/mcp/register.ts, via hooks below)
+      // and ask for `resource=<origin>/mcp`, which gets a JWT for that audience.
+      allowDynamicClientRegistration: true,
+      allowUnauthenticatedClientRegistration: true,
+      validAudiences: [mcpUrl()],
+      rateLimit: { register: { window: 60, max: 5 } },
     }),
     // Providers are written only by workspace admins through
     // src/lib/server/actions/security.ts (domain proven, see src/lib/sso.ts), so the
@@ -162,9 +190,32 @@ export const auth = betterAuth({
     '/scim/list-provider-connections',
     '/scim/get-provider-connection',
     '/scim/delete-provider-connection',
+    // OAuth apps are created in Settings (server action → auth.api, which
+    // these don't block); over HTTP they'd skip the action's checks.
+    '/oauth2/create-client',
+    '/oauth2/update-client',
   ],
   hooks: {
     before: createAuthMiddleware(async (ctx) => {
+      if (ctx.path === '/oauth2/register') {
+        const verdict = checkDynamicRegistration(ctx.body);
+        if (!verdict.ok) {
+          throw new APIError('BAD_REQUEST', { error: verdict.error, error_description: verdict.description });
+        }
+        return { context: { body: verdict.body } };
+      }
+      // Client URLs are rendered as links and images (Settings, consent page).
+      if (CLIENT_WRITE_PATHS.has(ctx.path)) {
+        const fields = ctx.path.endsWith('/update-client') ? ctx.body?.update : ctx.body;
+        const bad = invalidClientUri(fields);
+        if (bad) {
+          throw new APIError('BAD_REQUEST', {
+            error: 'invalid_client_metadata',
+            error_description: `${bad} must be an absolute https URL.`,
+          });
+        }
+        return;
+      }
       // "Enforce SSO": password sign-in / sign-up is refused for the domain.
       if (ctx.path === '/sign-in/email' || ctx.path === '/sign-up/email') {
         await assertPasswordSignInAllowed(ctx.body?.email);
@@ -188,6 +239,10 @@ export const auth = betterAuth({
       if (override) return { context: { context: override } };
     }),
     after: createAuthMiddleware(async (ctx) => {
+      if (ctx.path === '/oauth2/register' && ctx.context.returned && !isAPIError(ctx.context.returned)) {
+        await markDynamicClient((ctx.context.returned as { client_id?: unknown }).client_id);
+        return;
+      }
       const userId = ctx.context.session?.user.id;
       if (
         ctx.path === '/two-factor/generate-backup-codes' &&

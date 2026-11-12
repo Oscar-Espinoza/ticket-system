@@ -7,7 +7,7 @@ import { eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { projects } from '@/db/schema';
 import { authorizeProjectAction } from '@/lib/action-auth';
-import { emitIssueEvent } from '@/lib/events';
+import { commitWithEvents } from '@/lib/events';
 import { normalizeSlaPolicy, type SlaPolicy, type TimeInState } from '@/lib/sla';
 import { readTimeInStatus } from '@/lib/time-in-status';
 import { applyPolicyToOpenIssues } from '@/lib/sla-server';
@@ -22,17 +22,18 @@ export async function updateSlaPolicy(input: {
   const policy = normalizeSlaPolicy(input.policy);
   if (!policy) return fail('SLA targets must be whole hours between 1 and 8760.');
 
-  await db
-    .update(projects)
-    .set({ slaPolicy: policy, updatedAt: new Date() })
-    .where(eq(projects.id, input.projectId));
-  await emitIssueEvent({
-    projectId: input.projectId,
-    ticketId: null,
-    actorId: authz.userId,
-    type: 'project.sla_policy_updated',
-    data: { summary: 'updated the SLA policy', policy },
-  });
+  await commitWithEvents(
+    [db.update(projects).set({ slaPolicy: policy, updatedAt: new Date() }).where(eq(projects.id, input.projectId))],
+    [
+      {
+        projectId: input.projectId,
+        ticketId: null,
+        actorId: authz.userId,
+        type: 'project.sla_policy_updated',
+        data: { summary: 'updated the SLA policy', policy },
+      },
+    ],
+  );
   refreshesData();
   return { ok: true, policy };
 }
@@ -45,19 +46,9 @@ export async function applySlaPolicyToOpenIssues(input: {
   if (!authz.ok) return authz;
   const { projectId } = input;
 
-  const updated = await applyPolicyToOpenIssues(projectId);
+  // Writes its project.sla_policy_applied line in the same statement.
+  const updated = await applyPolicyToOpenIssues(projectId, authz.userId);
   if (updated === null) return fail('Project not found.');
-
-  await emitIssueEvent({
-    projectId,
-    ticketId: null,
-    actorId: authz.userId,
-    type: 'project.sla_policy_applied',
-    data: {
-      summary: `applied the SLA policy to ${updated} open ${updated === 1 ? 'issue' : 'issues'}`,
-      count: updated,
-    },
-  });
   refreshesData();
   return { ok: true, updated };
 }
