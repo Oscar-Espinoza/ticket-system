@@ -98,6 +98,7 @@ async function syncMergeRequest(project: VcsProject, config: GitlabConfig, hook:
       author: action === 'open' ? (hook.user?.username ?? null) : null,
       mergedAt: state === 'merged' ? new Date(mr.merged_at ?? mr.updated_at ?? Date.now()) : null,
       updatedAt: providerTime(mr.updated_at),
+      reopened: action === 'reopen',
       reviewDecision: reviewOf(hook),
     },
     triggerOf(hook),

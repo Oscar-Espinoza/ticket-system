@@ -19,7 +19,7 @@
 // what was done. Failed rows back off like outgoing webhooks and give up after
 // MAX_ATTEMPTS.
 
-import { and, eq, inArray, isNotNull, isNull, lt, lte, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNotNull, isNull, lt, lte, or, sql } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import { projects, vcsWebhookDeliveries } from '@/db/schema';
@@ -102,6 +102,19 @@ async function processRow(row: Row): Promise<void> {
   }
 }
 
+/**
+ * The row while this runner still holds the lease it took: same attempt count
+ * and lease end. A run that outlived its lease was superseded by a later claim
+ * (or a restart), and its final write must change nothing.
+ */
+const stillHeld = (row: Row) =>
+  and(
+    eq(vcsWebhookDeliveries.id, row.id),
+    eq(vcsWebhookDeliveries.attempts, row.attempts),
+    row.nextAttemptAt ? eq(vcsWebhookDeliveries.nextAttemptAt, row.nextAttemptAt) : undefined,
+    isNull(vcsWebhookDeliveries.processedAt),
+  );
+
 /** Process rows this runner holds (claimed or just recorded). Never throws. */
 async function processRows(rows: Row[]): Promise<void> {
   for (const row of rows) {
@@ -111,16 +124,16 @@ async function processRows(rows: Row[]): Promise<void> {
       await processRow(row);
       await db
         .update(vcsWebhookDeliveries)
-        .set({ attempts, processedAt: new Date(), nextAttemptAt: null, error: null })
-        .where(eq(vcsWebhookDeliveries.id, row.id));
+        .set({ processedAt: new Date(), nextAttemptAt: null, error: null })
+        .where(stillHeld(row));
     } catch (err) {
       console.error(`[vcs-inbound] ${row.provider} ${row.event} delivery ${row.deliveryId} failed (attempt ${attempts})`, err);
       const message = (err instanceof Error ? err.message : String(err)).slice(0, ERROR_MAX);
       try {
         await db
           .update(vcsWebhookDeliveries)
-          .set({ attempts, error: message, nextAttemptAt: nextRetryAt(attempts) })
-          .where(eq(vcsWebhookDeliveries.id, row.id));
+          .set({ error: message, nextAttemptAt: nextRetryAt(attempts) })
+          .where(stillHeld(row));
       } catch (markErr) {
         // The lease still expires: the row is retried after it.
         console.error('[vcs-inbound] could not record the failure', markErr);
@@ -142,6 +155,13 @@ export interface InboundDelivery {
 /** Stored rows that gave up: never processed, out of attempts. */
 const gaveUp = () =>
   and(isNull(vcsWebhookDeliveries.processedAt), sql`${vcsWebhookDeliveries.attempts} >= ${MAX_ATTEMPTS}`);
+
+/** Given up and not leased: its last attempt is not still running. */
+const gaveUpIdle = (now: Date) =>
+  and(
+    gaveUp(),
+    or(isNull(vcsWebhookDeliveries.nextAttemptAt), lte(vcsWebhookDeliveries.nextAttemptAt, now)),
+  );
 
 /**
  * Store a verified delivery (leased to the caller: its first attempt) and
@@ -179,7 +199,9 @@ export async function recordInbound(delivery: InboundDelivery): Promise<Row[]> {
         nextAttemptAt: new Date(now.getTime() + LEASE_MS),
         error: null,
       },
-      setWhere: gaveUp(),
+      // Not while its last attempt still runs: that run and this one would
+      // process the delivery at once.
+      setWhere: gaveUpIdle(now),
     })
     .returning();
 }

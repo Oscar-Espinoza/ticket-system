@@ -58,6 +58,11 @@ export interface VcsPullRequest {
   updatedAt: Date | null;
   /** null = not in this delivery (keeps the stored decision). */
   reviewDecision?: ReviewDecision | null;
+  /**
+   * The delivery is an explicit reopen (GitHub `reopened`, GitLab `reopen`).
+   * Only such a delivery replaces a closed link carrying the same timestamp.
+   */
+  reopened?: boolean;
 }
 
 /** A provider timestamp from a payload; null when missing or unparseable. */
@@ -169,13 +174,18 @@ export async function syncPullRequest(project: VcsProject, pr: VcsPullRequest, t
   // after a newer one. A link moves only forward: never away from `merged`
   // (terminal on every provider), and never to a snapshot older than the
   // stored one when both carry the provider's timestamp. A stale snapshot
-  // writes no event and moves no issue either.
+  // writes no event and moves no issue either. Provider times have one-second
+  // resolution, so a close and an older open can carry the same time: on a
+  // tie, an open snapshot replaces a closed link only when the delivery is the
+  // reopen itself (a reopen is always later than the close it undoes).
   const providerAt = pr.updatedAt?.toISOString() ?? null;
   const mergedAt = pr.mergedAt?.toISOString() ?? null;
   const stale = sql`(
     (${githubPullRequests.state} = 'merged' and ${pr.state}::text <> 'merged')
     or (${githubPullRequests.providerUpdatedAt} is not null and ${providerAt}::timestamp is not null
         and ${githubPullRequests.providerUpdatedAt} > ${providerAt}::timestamp)
+    or (${githubPullRequests.state} = 'closed' and ${pr.state}::text = 'open' and not ${!!pr.reopened}::boolean
+        and ${githubPullRequests.providerUpdatedAt} = ${providerAt}::timestamp)
   )`;
   const update = db
     .update(githubPullRequests)
@@ -194,7 +204,8 @@ export async function syncPullRequest(project: VcsProject, pr: VcsPullRequest, t
       providerUpdatedAt: sql`coalesce(${providerAt}::timestamp, ${githubPullRequests.providerUpdatedAt})`,
       updatedAt: now,
     })
-    .where(and(thisPr, inArray(githubPullRequests.ticketId, linked.map((issue) => issue.id)), sql`not ${stale}`));
+    .where(and(thisPr, inArray(githubPullRequests.ticketId, linked.map((issue) => issue.id)), sql`not ${stale}`))
+    .returning({ ticketId: githubPullRequests.ticketId });
   const inserts = linked.map(
     (issue) => db.execute(sql`
       insert into ${githubPullRequests}
@@ -206,6 +217,7 @@ export async function syncPullRequest(project: VcsProject, pr: VcsPullRequest, t
         ${now.toISOString()}::timestamp, ${now.toISOString()}::timestamp
       where not ${linkOf(issue.id)}
       on conflict do nothing
+      returning ticket_id
     `),
   );
 
@@ -238,26 +250,30 @@ export async function syncPullRequest(project: VcsProject, pr: VcsPullRequest, t
     }
   }
   const stored = toStored(planned.map((p) => p.event));
-  await db.batch([
+  const results = await db.batch([
     lock,
     ...stored.map((event, i) => insertEventIf(event, planned[i].when)),
     update,
     ...inserts,
+  ]);
+  // The links THIS delivery wrote (updated or created). Both drivers return
+  // each statement's result: rows for a builder's returning(), { rows } for a
+  // raw statement (db.ts).
+  const updatedRows = results[1 + stored.length] as { ticketId: string }[];
+  const insertedRows = results.slice(2 + stored.length) as unknown as { rows: { ticket_id: string }[] }[];
+  const wroteLink = new Set([
+    ...updatedRows.map((row) => row.ticketId),
+    ...insertedRows.flatMap((result) => result.rows.map((row) => row.ticket_id)),
   ]);
   const written = await publishWrittenEvents(stored);
   const wrote = (type: string) => new Set(written.filter((e) => e.type === type).map((e) => e.ticketId));
   const linkedNow = wrote(PR_EVENT.prLinked);
   const mergedNow = wrote(PR_EVENT.prMerged);
 
-  if (!autoIssues.length) return;
-  // Only issues whose link now holds THIS snapshot's state: a stale one (not
-  // applied above) must not move an issue backwards.
-  const current = await db
-    .select({ ticketId: githubPullRequests.ticketId, state: githubPullRequests.state })
-    .from(githubPullRequests)
-    .where(and(thisPr, inArray(githubPullRequests.ticketId, autoIssues.map((issue) => issue.id))));
-  const applied = new Set(current.filter((row) => row.state === pr.state).map((row) => row.ticketId));
-  autoIssues = autoIssues.filter((issue) => applied.has(issue.id));
+  // Only issues whose link THIS delivery wrote: a stale snapshot (not applied
+  // above) must not move an issue, even when the link already holds the same
+  // state from a newer delivery.
+  autoIssues = autoIssues.filter((issue) => wroteLink.has(issue.id));
   if (!autoIssues.length) return;
   const states = await projectStatesQuery(project.id);
   if (pr.state === 'merged') {

@@ -140,6 +140,7 @@ export async function syncPullRequest(project: SyncProject, payload: PullRequest
       mergedAt: pr.merged_at ? new Date(pr.merged_at) : null,
       updatedAt: providerTime(pr.updated_at),
       reviewDecision,
+      reopened: payload.action === 'reopened',
     },
     triggerOf(payload.action),
   );
