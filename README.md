@@ -45,12 +45,26 @@ claude.ai and ChatGPT the instance must be reachable over public HTTPS.
 
 Run targeted files, e.g. `npx vitest run src/tests/url-guard.test.ts`.
 
+The test setup refuses to start when `DATABASE_URL` (shell or `.env.local`) is
+not a local host, so a hosted `.env.local` can never be written to by a test.
+Put a local one in front: `DATABASE_URL=postgres://postgres:postgres@localhost:5433/main
+DATABASE_DRIVER=pg npx vitest run <file>`.
+
 - `src/tests/*.test.ts` — unit tests. A few older ones (auth, db, membership,
-  projects, tickets, github-account) talk to the database in `.env.local`.
+  projects, tickets, github-account) write to whatever local `DATABASE_URL` is set.
 - `src/tests/local-db/` — the issue service against a throwaway local Postgres
   (`npm run test:db` on the standard driver, `npm run test:db:neon` through the
-  Neon driver; setup in docs/SELF_HOSTING.md). Skipped unless `LOCAL_DB_TESTS=1`
-  and `DATABASE_URL` is a local host, so they never touch Neon.
+  Neon driver; setup in docs/SELF_HOSTING.md). Skipped unless `LOCAL_DB_TESTS=1`;
+  with it set, a `DATABASE_URL` that is not a local host is an error, so they
+  never touch Neon and never skip silently. CI also fails if any of them skip.
+
+## Database tooling
+
+`drizzle-kit generate` needs no database. `push`, `migrate` and `studio` refuse
+a non-local `DATABASE_URL` (including the one in `.env.local`) unless
+`DRIZZLE_ALLOW_REMOTE=1` is set in the shell. For dev use a local database:
+`DATABASE_URL=postgres://postgres:postgres@localhost:5433/<db> npx drizzle-kit push`.
+Real deployments migrate with `npm run db:migrate`.
 
 ## Upgrading an existing deployment
 
