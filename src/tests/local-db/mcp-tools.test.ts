@@ -357,6 +357,55 @@ describe.skipIf(!localDb)('MCP tools over /mcp', () => {
     expect(audited.every((a) => (a.data as { key: string }).key === detail.key)).toBe(true);
   });
 
+  it('sets, reads, filters and clears waiting on and the follow-up date', async () => {
+    const created = await call(aliceKey, 'create_issue', {
+      project: projectKey,
+      title: 'Waiting for the guest',
+      waiting_on: 'GUEST',
+      follow_up: '2026-01-05',
+    });
+    expect(created.isError).toBeUndefined();
+    const key = (created.structuredContent!.issue as { key: string }).key;
+    expect(created.structuredContent!.issue).toMatchObject({ waitingOn: { id: guest, name: 'guest' }, followUp: '2026-01-05' });
+
+    const read = await call(aliceKey, 'get_issue', { key });
+    expect(read.structuredContent!.issue).toMatchObject({ waitingOn: { id: guest }, followUp: '2026-01-05' });
+    expect(text(read)).toContain('Waiting on: guest');
+    expect(text(read)).toContain('Follow-up: 2026-01-05 (due)');
+
+    const keysOf = (r: ToolResult) => (r.structuredContent!.issues as { key: string }[]).map((i) => i.key);
+    const waiting = await call(aliceKey, 'list_issues', { project: projectKey, waiting_on: 'guest', follow_up: 'overdue' });
+    expect(keysOf(waiting)).toEqual([key]);
+    expect(text(waiting)).toContain('waiting on guest · follow-up due 2026-01-05');
+    expect(keysOf(await call(aliceKey, 'list_issues', { project: projectKey, waiting_on: 'me' }))).not.toContain(key);
+    expect(keysOf(await call(aliceKey, 'list_issues', { project: projectKey, follow_up: '>2026-01-05' }))).not.toContain(key);
+    const badFilter = await call(aliceKey, 'list_issues', { project: projectKey, follow_up: 'someday' });
+    expect(badFilter.isError).toBe(true);
+
+    const updated = await call(aliceKey, 'update_issue', { key, waiting_on: 'none', follow_up: null });
+    expect(updated.structuredContent!.changes).toEqual(['waiting on: guest → none', 'follow-up: 2026-01-05 → none']);
+    expect(updated.structuredContent!.issue).toMatchObject({ waitingOn: null, followUp: null });
+    expect(keysOf(await call(aliceKey, 'list_issues', { project: projectKey, waiting_on: 'none' }))).toContain(key);
+  });
+
+  it('refuses waiting on someone outside the project', async () => {
+    const before = await call(aliceKey, 'get_issue', { key: issueKey });
+    for (const outsider of [bob, 'bob']) {
+      for (const [name, args] of [
+        ['create_issue', { project: projectKey, title: 'Waiting on an outsider', waiting_on: outsider }],
+        ['update_issue', { key: issueKey, waiting_on: outsider }],
+      ] as const) {
+        const result = await call(aliceKey, name, args);
+        expect(result.isError, `${name} ${outsider}`).toBe(true);
+        expect(text(result)).toContain(`"${outsider}" is not a member of this project.`);
+      }
+    }
+    const after = await call(aliceKey, 'get_issue', { key: issueKey });
+    expect(after.structuredContent!.issue).toMatchObject({ waitingOn: null, updatedAt: (before.structuredContent!.issue as { updatedAt: string }).updatedAt });
+    const titled = await db.select({ id: tickets.id }).from(tickets).where(and(eq(tickets.projectId, project), eq(tickets.title, 'Waiting on an outsider')));
+    expect(titled).toEqual([]);
+  });
+
   it('lets a guest comment but not create or update, like REST', async () => {
     const comment = await call(guestKey, 'add_comment', { key: issueKey, body: 'Guest note' });
     expect(comment.isError).toBeUndefined();

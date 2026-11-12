@@ -74,8 +74,15 @@ const fieldArgs = {
   state: z.string().max(100).optional().describe('Workflow state name, id or type.'),
   priority: z.enum(['none', 'urgent', 'high', 'medium', 'low']).optional(),
   assignee: z.string().max(200).nullable().optional().describe('"me", "none", or a member name, email or id.'),
+  waiting_on: z
+    .string()
+    .max(200)
+    .nullable()
+    .optional()
+    .describe('Who the issue is waiting on: "me", "none", or a member name, email or id.'),
   estimate: z.number().min(0).max(1000).nullable().optional().describe('Points. null clears it.'),
   due_date: dateArg.nullable().optional(),
+  follow_up: dateArg.nullable().optional().describe('Date to follow up (the assignee is notified that day), YYYY-MM-DD. null clears it.'),
   cycle: z.string().max(100).nullable().optional().describe('Cycle number, name, id, "current", "next" or "none".'),
   epic: z.string().max(200).nullable().optional().describe('Epic name or id, or "none".'),
 };
@@ -85,8 +92,10 @@ type FieldArgs = {
   state?: string;
   priority?: Priority;
   assignee?: string | null;
+  waiting_on?: string | null;
   estimate?: number | null;
   due_date?: string | null;
+  follow_up?: string | null;
   cycle?: string | null;
   epic?: string | null;
 };
@@ -106,8 +115,15 @@ function toPatch(meta: ProjectMetadata, viewerId: string, args: FieldArgs): { ok
     if (!r.ok) return r;
     patch.assigneeId = r.value;
   }
+  if (args.waiting_on !== undefined) {
+    // Same members, same "me" / "none" and the same error as the assignee.
+    const r = resolveAssignee(meta, viewerId, args.waiting_on);
+    if (!r.ok) return r;
+    patch.waitingOnId = r.value;
+  }
   if (args.estimate !== undefined) patch.estimate = args.estimate;
   if (args.due_date !== undefined) patch.dueDate = args.due_date;
+  if (args.follow_up !== undefined) patch.followUp = args.follow_up;
   if (args.cycle !== undefined) {
     const r = resolveCycle(meta, args.cycle);
     if (!r.ok) return r;
@@ -124,7 +140,8 @@ function toPatch(meta: ProjectMetadata, viewerId: string, args: FieldArgs): { ok
 export const createIssueTool = defineTool({
   name: 'create_issue',
   title: 'Create issue',
-  description: 'Create an issue in a project. Only the title is required; the other fields take human values (state and label names, "me" as assignee).',
+  description:
+    'Create an issue in a project. Only the title is required; the other fields take human values (state and label names, "me" as assignee or waiting on).',
   scope: 'write',
   destructive: false,
   input: z.object({
@@ -188,8 +205,10 @@ export function describeChanges(before: IssueRow, after: IssueRow): string[] {
   field('state', before.state.name, after.state.name);
   field('priority', before.priority, after.priority);
   field('assignee', before.assignee?.name, after.assignee?.name);
+  field('waiting on', before.waitingOn?.name, after.waitingOn?.name);
   field('estimate', before.estimate, after.estimate);
   field('due date', before.dueDate, after.dueDate);
+  field('follow-up', before.followUp, after.followUp);
   if (before.cycleId !== after.cycleId) changes.push(after.cycleId ? 'cycle set' : 'cycle cleared');
   if (before.epicId !== after.epicId) changes.push(after.epicId ? 'epic set' : 'epic cleared');
   const beforeLabels = before.labels.map((l) => l.name);
@@ -202,7 +221,7 @@ export const updateIssueTool = defineTool({
   name: 'update_issue',
   title: 'Update issue',
   description:
-    'Change fields of an existing issue: title, description, state, priority, assignee, labels, estimate, due date, cycle or epic. Fields you leave out stay as they are; null clears a field. This overwrites the previous values.',
+    'Change fields of an existing issue: title, description, state, priority, assignee, waiting on, labels, estimate, due date, follow-up date, cycle or epic. Fields you leave out stay as they are; null clears a field. This overwrites the previous values.',
   scope: 'write',
   destructive: true,
   idempotent: true,

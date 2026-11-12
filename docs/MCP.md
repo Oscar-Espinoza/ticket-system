@@ -14,8 +14,8 @@ Connect an AI assistant**.
 | Tool | Needs | What it does |
 |---|---|---|
 | `list_projects` | read | Projects you can reach, with key and open issue count |
-| `search_issues` | read | Full-text search with filters (`assignee:me label:bug priority:high state:started is:open`) |
-| `list_issues` | read | One project's issues: state, assignee, label, updated since, paging, group by state |
+| `search_issues` | read | Full-text search with filters (`assignee:me waiting:me followup:overdue label:bug priority:high state:started is:open`) |
+| `list_issues` | read | One project's issues: state, assignee, waiting on, follow-up date, label, updated since, paging, group by state |
 | `my_work` | read | Your open issues across projects, most urgent first |
 | `get_issue` | read | One issue with recent comments, sub-issues and relations |
 | `get_project_overview` | read | Counts by state, current cycle progress and burndown, recent issues |
@@ -23,7 +23,7 @@ Connect an AI assistant**.
 | `get_project_metadata` | read | Valid states, labels, members, cycles and epics |
 | `list_inbox` | read | Your notifications |
 | `create_issue` | write | Create an issue |
-| `update_issue` | write | Change title, description, state, priority, assignee, labels, estimate, due date, cycle, epic |
+| `update_issue` | write | Change title, description, state, priority, assignee, waiting on, labels, estimate, due date, follow-up date, cycle, epic |
 | `add_comment` | write | Comment on an issue |
 
 Nothing else: no deleting, archiving, moving, bulk edits, members, roles,
@@ -31,6 +31,17 @@ settings or integrations. Every write is recorded in the audit log as
 `mcp.tool_call` with the assistant's name (workspace or team → Audit log,
 category Integrations). The assistant acts with your own permissions: it sees
 only projects you are a member of, and a guest can still only read and comment.
+
+**Waiting on and follow-up.** `create_issue` and `update_issue` take
+`waiting_on` (`me`, `none`, or a member's name, email or id, like `assignee`;
+someone outside the project is refused with the list of members) and
+`follow_up` (`YYYY-MM-DD`, `null` clears it). Issues in every result carry
+`waitingOn` and `followUp`; list lines show "waiting on Grace" and "follow up
+2026-11-20", or "follow-up due 2026-11-10" once the date has arrived (server
+date), which is how `my_work` shows follow-ups that are due. `list_issues`
+filters with `waiting_on` (same values) and `follow_up` (`overdue`, `today`,
+`week`, `next-week`, `none`, or a date with `<`, `<=`, `>`, `>=`), the same
+values and code as REST `GET /api/v1/projects/:id/issues` ([API.md](API.md)).
 
 Hosts ask before `update_issue` runs (it is marked as overwriting data).
 `create_issue` takes an optional `request_id` (a UUID the assistant picks): a

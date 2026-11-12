@@ -54,9 +54,13 @@ export interface IssueSummary {
   state: StateRef;
   priority: string;
   assignee: UserRef | null;
+  /** The project member the issue is waiting on; null = no one. */
+  waitingOn: UserRef | null;
   labels: LabelRef[];
   estimate: number | null;
   dueDate: string | null;
+  /** When to follow up, YYYY-MM-DD (a calendar date, like dueDate). */
+  followUp: string | null;
   updatedAt: string;
   url: string;
   /** Start of the description (list rows carry a truncated copy). */
