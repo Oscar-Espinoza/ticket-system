@@ -13,7 +13,7 @@ import { listIssueRelations } from '@/lib/relations';
 import { getTicketById, queryIssues } from '@/lib/tickets';
 import type { McpProject } from '../access';
 import type { IssueDetail } from '../contracts';
-import { commentView, descriptionText, isFollowUpDue, projectRef, stateRef, summarizeIssue, truncate, userContentBlock, userContentInline } from '../format';
+import { commentView, descriptionText, isFollowUpDue, projectRef, stateRef, summarizeIssue, truncate, userContentBlock, userContentInline, userRef } from '../format';
 
 export const COMMENTS_DEFAULT = 5;
 export const COMMENTS_MAX = 20;
@@ -54,7 +54,7 @@ export async function issueDetail(
   return {
     ...summarizeIssue(issue, projectRef(project)),
     description: descriptionText(issue.description),
-    creator: issue.creator ? { id: issue.creator.id, name: issue.creator.name } : null,
+    creator: issue.creator ? userRef(issue.creator) : null,
     cycle: cycleRow[0] ?? null,
     epic: epicRow[0] ?? null,
     parent: parent && !parent.deletedAt ? { id: parent.id, key: parent.key, title: parent.title } : null,

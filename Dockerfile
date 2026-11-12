@@ -22,10 +22,13 @@ ENV PUBLIC_APP_URL=$PUBLIC_APP_URL PUBLIC_VAPID_PUBLIC_KEY=$PUBLIC_VAPID_PUBLIC_
 # Modules read these at import time; real values come from the runtime env.
 # (Prerendering /offline and the manifest loads the auth module, whose OAuth
 # provider plugin needs a base URL.)
+# `npm run build` first builds the MCP Apps view bundle (prebuild →
+# build:mcp-ui, src/mcp-ui) that the server inlines; a bare `vite build` would
+# stop at the missing bundle.
 RUN DATABASE_URL=postgres://build:build@localhost:5432/build \
     BETTER_AUTH_SECRET=build-only-placeholder-secret-value \
     BETTER_AUTH_URL=$PUBLIC_APP_URL \
-    npx vite build
+    npm run build
 # adapter-node bundles devDependencies and keeps `dependencies` external.
 RUN npm prune --omit=dev --no-audit --no-fund
 

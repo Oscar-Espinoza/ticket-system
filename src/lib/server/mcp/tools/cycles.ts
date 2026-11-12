@@ -10,6 +10,7 @@ import { cycleText, overviewFor, projectArg } from './projects';
 
 export const getCycle = defineTool({
   name: 'get_cycle',
+  view: true,
   title: 'Get cycle',
   description:
     'Show a cycle (sprint) of a project: dates, scope, completed and in-progress counts, daily burndown and its open issues. Defaults to the current cycle.',

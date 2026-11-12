@@ -23,6 +23,7 @@ export const projectArg = z
 
 export const listProjects = defineTool({
   name: 'list_projects',
+  view: true,
   title: 'List projects',
   description: 'List the projects (teams) you can access, with their issue key prefix and open issue count.',
   scope: 'read',
@@ -184,6 +185,7 @@ export async function overviewFor(project: McpProject, cycle: CycleRow | null, m
 
 export const getProjectOverview = defineTool({
   name: 'get_project_overview',
+  view: true,
   title: 'Get project overview',
   description:
     'Summarize a project: issue counts by state type, progress of the current cycle and its burndown, and recently updated issues.',

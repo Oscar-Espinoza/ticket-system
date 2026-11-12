@@ -54,3 +54,6 @@ next-env.d.ts
 
 # smoke-test evidence (screenshots, logs)
 .smoke/
+
+# MCP Apps view bundle (npm run build:mcp-ui; src/mcp-ui)
+/src/lib/server/mcp/ui/app.html

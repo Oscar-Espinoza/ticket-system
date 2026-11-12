@@ -56,10 +56,13 @@ filters with `waiting_on` (same values) and `follow_up` (`overdue`, `today`,
 values and code as REST `GET /api/v1/projects/:id/issues` ([API.md](API.md)).
 
 Hosts ask before `update_issue` runs (it is marked as overwriting data).
-`create_issue` takes an optional `request_id` (a UUID the assistant picks): a
-retry with the same one returns the issue already created instead of a second
-copy, and only the call that created it is audited (also when two calls with
-the same id race: the issue service reports which one replayed). If the audit row can't be written after a successful change, the change
+`create_issue` and `add_comment` take an optional `request_id` (a UUID the
+assistant or the view picks): a retry with the same one returns the issue or
+comment already created instead of a second copy, and only the call that
+created it is audited (also when two calls with the same id race: the service
+reports which one replayed). An id used by another user, or for another
+issue, is refused ("already in use"). The comment view sends one per draft, so
+resending a draft after a timeout is safe. If the audit row can't be written after a successful change, the change
 stands and the failure is logged (an error would make the assistant retry and
 duplicate it).
 
@@ -71,6 +74,37 @@ inline code span when they contain Markdown (plain text is left as it is, to
 keep lists compact; `structuredContent` is never altered), and the write
 limits above apply regardless. One JSON-RPC message per request: batches
 (arrays) are refused with HTTP 400.
+
+## Cards in the chat
+
+In Claude (claude.ai, Desktop, mobile) and ChatGPT, the answers to these tools
+appear as an interactive card under the assistant's message, in the host's
+light or dark theme. Claude Code and other text-only clients get the same
+answer as text and never see a card.
+
+| Tool | Card |
+|---|---|
+| `list_issues`, `search_issues`, `my_work` | Issue list: priority, key, title, state (in its colour), assignee, labels, due date, waiting on, follow-up. `my_work` groups by priority and `list_issues` by state when asked. **Load more** fetches the next page; clicking a row opens the issue inline; **Show full screen** on long lists |
+| `list_inbox` | The same list for notifications (unread dot, who did what); a row with an issue opens it inline |
+| `get_issue`, `create_issue`, `update_issue`, `add_comment` | Issue detail: all fields, the description as Markdown, sub-issues, relations and the last 5 comments. **State** (pick a state), **Assign to me** / **Unassign** and a comment box act as you, through the same tools and checks as the assistant's own calls; the card shows what changed and tells the assistant |
+| `get_project_overview`, `get_cycle` | Project overview: cycle progress, burndown chart, issues by state, recent (or the cycle's open) issues |
+| `list_projects` | Project cards with key, name and open issue count |
+
+Each card has **Open in Ticket System**, which opens the page in your browser
+through the assistant's app (the card itself never navigates). Descriptions and
+comments are shown as Markdown; HTML written in them shows as literal text,
+links open only if they are `http(s)` (through the assistant's app, never by
+the card navigating; other schemes, `mailto:` included, show as plain text),
+images aren't loaded (their alt text shows), and bare URLs aren't turned into
+links. `get_project_metadata` has no card.
+
+The cards make no network requests of their own: every read and write goes
+through the assistant's connection, so no token is ever inside the card. They
+load no image, font or script from anywhere (people show as initials). Writes
+from a card (state, assignee, comment) need an assistant app that forwards tool
+calls; without that the controls are not shown. A comment sent from a card
+carries a `request_id`, so if the app doesn't answer in time the card checks
+whether the comment was posted before it allows sending again.
 
 ## Connect
 
@@ -218,8 +252,30 @@ API keys or assistants gets the allowance once for each.
   header, and that URL must return JSON whose `resource` is exactly the pasted URL.
 - **A project is missing**: you aren't a member, or its workspace blocks AI
   connectors.
+- **Text instead of a card**: the host didn't render the view. Check that the
+  host supports MCP Apps (claude.ai and ChatGPT do; Claude Code and MCP
+  Inspector show text), that the build includes the bundle (`npm run build`
+  runs `build:mcp-ui`; `resources/read` on `ui://ticket-system/app.<hash>.html`
+  should return `text/html;profile=mcp-app`), and that the connector was
+  re-added or refreshed after a deploy (hosts cache tool lists).
 - **"This connection can't make changes"**: the assistant was granted read-only
   access. Disconnect and connect again, allowing write access.
+
+## The view bundle (for admins and developers)
+
+The cards are one HTML file built from `src/mcp-ui/` by `npm run build:mcp-ui`
+(about 255 KB; run for you by `npm run dev` and `npm run build`, and by the
+Docker build). It is embedded in the server build, so it needs no files at
+runtime on Vercel or in the image. The resource URI contains a hash of the file
+(`ui://ticket-system/app.<hash>.html`): ChatGPT caches a resource by URI for up
+to an hour, so a new build gets a new URI and shows up at once. Claude and
+ChatGPT show a card only for tools whose `_meta.ui.resourceUri` points at it;
+text clients ignore that field.
+
+To look at a card without Claude or ChatGPT, use a minimal MCP Apps host such as
+the `examples/basic-host` of
+[modelcontextprotocol/ext-apps](https://github.com/modelcontextprotocol/ext-apps)
+(clone it outside this repository) pointed at a local `/mcp` with an API key.
 
 ## Testing it for real (Oscar)
 
@@ -244,6 +300,12 @@ tools; the vendors' clients need a public URL and real accounts:
 5. Claude Code on your machine:
    `claude mcp add --transport http ticket-system <url>/mcp`, then `/mcp` to
    sign in; and once with `--header "Authorization: Bearer lc_…"`.
-6. Check the audit log (Integrations) shows the three writes with the client
+6. Cards: in Claude and ChatGPT the answers to "What's assigned to me?" and
+   "Show WEB-12" should appear as cards, not only text (if you only see text,
+   see Troubleshooting). Click a row to expand it, **Load more**, change a
+   state from the card, **Assign to me**, add a comment, **Open in Ticket
+   System** (opens a browser tab), and the full-screen button on a long list.
+   In Claude Code the same prompts show text only.
+7. Check the audit log (Integrations) shows the writes with the client
    names, then revoke Claude in Settings → OAuth apps and confirm its next call
    fails.

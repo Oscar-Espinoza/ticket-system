@@ -1,9 +1,9 @@
 # MCP server: Claude and ChatGPT connectors
 
-Status: phase 1 built without views (2026-11-12, branch `feat/mcp-server`): the `/mcp`
-endpoint, sign-in (DCR, JWT / opaque / API-key tokens), every read tool, the three writes, the
-D8 workspace switch, the settings section and [docs/MCP.md](../MCP.md). Not built yet: the MCP
-Apps views (D7, lane C) and phase 2. Differences from this plan: "As built" at the end.
+Status: phase 1 built (2026-11-12): the `/mcp` endpoint, sign-in (DCR, JWT / opaque /
+API-key tokens), every read tool, the three writes, the D8 workspace switch, the settings
+section and [docs/MCP.md](../MCP.md), then the MCP Apps views (D7, lane C, branch
+`feat/mcp-views`). Not built yet: phase 2. Differences from this plan: "As built" at the end.
 
 ## Goal
 
@@ -123,7 +123,7 @@ Claude and ChatGPT both use DCR, and Better Auth 1.6.33 supports it. Enable `all
 - The bundle is inlined into the server build with a `?raw` import, so it needs no filesystem access at runtime (Vercel and Docker).
 - The resource URI is content-hashed, `ui://ticket-system/app.<hash>.html`, because ChatGPT caches the same URI for up to an hour.
 - The view makes no network requests (`connectDomains: []`). All data goes through tool calls, so the token never enters the iframe.
-- `resourceDomains: [<origin>]` covers uploaded avatars. Anything else falls back to initials.
+- `resourceDomains: []`: the view loads no image, font or script. Avatars are initials (review round 1 removed the same-origin image path: `user.image` is typed by the user, and the one allowed origin only serves `/api/uploads/*`, which need auth the iframe doesn't have).
 - No `ui.domain` in v1. It is only needed for fixed-origin features or a directory listing.
 
 **D8. Workspace admin switch**
@@ -529,5 +529,108 @@ Closes the open notes of PR #4's focused re-review and its follow-up list.
 - **Loopback redirects** may leave out the path (`http://localhost:1234`); the
   exception applies to the loopback rule only.
 - Still open: database-backed limiters, the audit row inside the write's
-  transaction, client logo hosts / CSP, MCP Apps views.
+  transaction, client logo hosts / CSP (MCP Apps views: built, see below).
 
+
+### Views (2026-11-12, branch `feat/mcp-views`)
+
+Lane C: `src/mcp-ui` (Svelte 5 + Tailwind 4), `vite.mcp-ui.config.ts`,
+`src/lib/server/mcp/ui.ts`, the `resourceUri` on eleven tools. Checked against the
+installed packages; where they differ from the plan, the plan's intent was kept.
+
+- **Packages.** `@modelcontextprotocol/ext-apps@2.0.4` exists as planned (peers
+  `core|client|server` ^2, React optional) and `vite-plugin-singlefile@2.3.4`
+  supports the installed Vite 8.0.16 (rolldown). The server uses ext-apps'
+  `/server` entry (`registerAppResource`, `RESOURCE_MIME_TYPE`,
+  `RESOURCE_URI_META_KEY`; a few hundred bytes). The view does **not** import
+  its `App` class: `App` pulls the MCP client, core and zod into the page
+  (~290 KB for an empty view, over the whole budget; the package's own
+  `app-with-deps` build is 540 KB, and the bundler can't tree-shake it).
+  `src/mcp-ui/lib/host.ts` is a small JSON-RPC-over-postMessage client for the
+  same protocol (spec 2026-01-26): `ui/initialize`, `ui/notifications/{initialized,
+  tool-result,tool-cancelled,host-context-changed,size-changed}`, `tools/call`,
+  `ui/open-link`, `ui/update-model-context`, `ui/request-display-mode`,
+  `ui/resource-teardown` and `ping`, auto-resize with a `ResizeObserver`, and
+  `availableDisplayModes: ['inline','fullscreen']`. It was exercised against the
+  SDK's own `AppBridge` as host (see Tests). `src/mcp-ui/lib/theme.ts`
+  reimplements `applyDocumentTheme` / `applyHostStyleVariables` / `applyHostFonts`
+  (host variable names are limited to `--color|font|border|shadow-*`) and adds
+  safe-area insets.
+- **Tool metadata.** `registerAppTool` isn't used: `registerMcpTool` sets
+  `_meta.ui.resourceUri` and the legacy `_meta["ui/resourceUri"]` itself (what
+  `registerAppTool` does) for tools declared with `view: true`: all but
+  `get_project_metadata`. `visibility` stays the default `["model","app"]`: the
+  view calls `get_issue`, `get_project_metadata`, `update_issue`, `add_comment` and
+  the list tools itself.
+- **Resource.** One resource, `ui://ticket-system/app.<first 12 hex of sha256 of
+  the HTML>.html`, MIME `text/html;profile=mcp-app`, from a `?raw` import. CSP in
+  the content item and the `resources/list` entry: `connectDomains: []`
+  (explicit), `resourceDomains: []` (explicit), `prefersBorder: true`; no
+  `frameDomains`, no `ui.domain`. Avatars: none; the view draws initials and
+  `UserRef` is `{ id, name }` (`userRef` in `format.ts`).
+- **Contract additions** (`contracts.ts`): `PageSource` /
+  `source` on the list and inbox views, the tool and arguments (without `cursor`)
+  that produced the page. The view repeats them with `cursor` for "Load more"
+  instead of relying on the host's `toolInfo`. Text results are unchanged.
+- **Build.** `npm run build:mcp-ui` = `svelte-kit sync && vite build -c
+  vite.mcp-ui.config.ts` (the sync is needed: the Vite transform of
+  `src/lib/dates.ts` / `issue-model.ts`, which the view imports as the owners of
+  the date, state-type and priority rules, reads the root `tsconfig.json`, which
+  extends `$app/tsconfig`, present only after a sync). `predev`, `predev:local`
+  and `prebuild` run it; the Dockerfile's `npx vite build` is now `npm run
+  build`. `build.modulePreload` is off (its polyfill is a `fetch` call).
+  Output ~261 KB raw, ~85 KB gzip (after review round 1).
+- **Fresh clone.** Instead of mocking the `?raw` import, `vite.config.ts` has a
+  plugin that resolves `./ui/app.html?raw` to a placeholder page when the
+  generated file is missing (tests, `vite dev`) and fails `vite build` with "run
+  `npm run build:mcp-ui`". `npm run check` needs nothing (the `?raw` types come
+  from vite/client), `npm run lint` ignores it, CI's build step produces the file
+  before the tests run. The bundle scan test runs only when the file exists.
+- **Markdown.** `svelte-exmarkdown`. Raw HTML in the source shows as literal
+  text (`remarkLiteralHtml`: inline → text, block → code block); `rehypeSafe`
+  drops any `raw` node, URL attribute that isn't `http(s)`, `on*` and `style`.
+  Links are `<button class="link-text">` that call `ui/open-link` (no `href`, so
+  middle-click and the context menu can't navigate); `mailto:` is plain text,
+  one rule (`safeHref`) shared with `Host.openLink`. Images render as
+  `[image: alt]`. GitHub-flavoured Markdown is a
+  subset (`lib/gfm-lite.ts`: tables, strikethrough, task lists, built from the
+  `micromark-extension-gfm-*` / `mdast-util-gfm-*` packages `remark-gfm` bundles,
+  now direct devDependencies): without bare-URL autolinks and footnotes, which
+  cost 32 KB. The Markdown stack (unified, micromark, character entities,
+  mdast-to-hast) is ~140 KB of the bundle; the rest (Svelte runtime, views,
+  Tailwind CSS) ~115 KB.
+- **Views.** `issue-list` (also the inbox: `InboxView` carries `notifications`,
+  whose rows with an issue expand inline too), `issue-detail`,
+  `project-overview` (also cycle mode) and `project-list`, chosen by
+  `structuredContent.view`; `project-metadata` and results without a view show
+  the result text. State changes load the project's states through
+  `get_project_metadata` (cached per project). "Assign to me" is always offered
+  (the view doesn't know the viewer's id) plus "Unassign". Rows grouped by state
+  leave out the per-row state chip. The full-screen button shows when the host
+  lists `fullscreen` and the list has more than 6 rows.
+- **Tests.** `src/tests/local-db/mcp-tools.test.ts` (tools carry the same
+  `resourceUri`, `resources/list` and `resources/read`, CSP, hash, `source`,
+  same-origin avatars); `src/tests/mcp-ui-model.test.ts` (grouping, colours,
+  dates, burndown geometry, Markdown link rules, and a scan that keeps the view's
+  sources and the built bundle free of fetch / XHR / WebSocket / `{@html}` /
+  `innerHTML`). Rendered for real with the SDK's `AppBridge` as host against a
+  local server (screenshots in the PR description); claude.ai and ChatGPT need a
+  public URL and an account, so those renderings are still for Oscar to check
+  (docs/MCP.md, "Testing it for real").
+
+### Review round 1 (2026-11-12)
+
+- Writes: `add_comment` takes `request_id` (the comment's id; same user and
+  issue replays, anything else is "already in use"); the issue view sends one
+  per draft. A write the host never answers (60 s) is "unconfirmed": the view
+  reads the issue (`get_issue`) and looks for the comment id or the new value
+  before it allows another send (`lib/write.svelte.ts`). A committed write
+  whose details could not be loaded (success, text only) is shown as saved.
+- Message client: unknown host requests get -32601, malformed notifications are
+  ignored, controls that call tools are hidden when `serverTools` is missing,
+  `ui/update-model-context` carries a running summary of the changes.
+- `@modelcontextprotocol/ext-apps` is a devDependency: the server copies its two
+  constants and the `registerResource` call (a test checks them against it).
+- The issue-detail card has no activity timeline (the contract carries comments
+  only), so the "activity in another project" entry from `redactActivityFor`
+  never reaches it.

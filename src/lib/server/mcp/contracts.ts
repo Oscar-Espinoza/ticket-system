@@ -1,5 +1,5 @@
-// Shapes shared by the MCP tools and (in a follow-up PR) the MCP Apps views in
-// src/mcp-ui (docs/mcp/PLAN.md D7). Every tool result's `structuredContent`
+// Shapes shared by the MCP tools and the MCP Apps views in src/mcp-ui
+// (docs/mcp/PLAN.md D7). Every tool result's `structuredContent`
 // is one of the `*View` types below, picked by `view`; text-only hosts read
 // the Markdown `content` instead. Type-only: no runtime imports, so the view
 // bundle can import it.
@@ -25,6 +25,17 @@ export type ViewName = 'issue-list' | 'issue-detail' | 'project-overview' | 'pro
 export interface UserRef {
   id: string;
   name: string;
+}
+
+/**
+ * The call that produced one page of a list. The view repeats it with
+ * `cursor` set to `nextCursor` for "Load more", so it doesn't depend on the
+ * host telling it which tool ran.
+ */
+export interface PageSource {
+  tool: 'list_issues' | 'my_work' | 'list_inbox';
+  /** The tool's arguments, without `cursor`. */
+  arguments: Record<string, unknown>;
 }
 
 export interface StateRef {
@@ -103,6 +114,8 @@ export interface IssueListView {
   nextCursor: string | null;
   /** Set when rows are grouped (e.g. by state). */
   groupBy?: 'state' | 'priority' | null;
+  /** Present on paged lists; null/absent for search results. */
+  source?: PageSource | null;
 }
 
 export interface NotificationRow {
@@ -122,6 +135,7 @@ export interface InboxView {
   notifications: NotificationRow[];
   unread: number;
   nextCursor: string | null;
+  source?: PageSource | null;
 }
 
 export interface IssueDetailView {

@@ -1,11 +1,12 @@
 // SvelteKit 3 app + Vitest config (SvelteKit 3 reads its options from here;
 // there is no svelte.config.js).
+import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import adapterNode from '@sveltejs/adapter-node';
 import adapterVercel from '@sveltejs/adapter-vercel';
 import { sveltekit } from '@sveltejs/kit/vite';
 import tailwindcss from '@tailwindcss/vite';
-import { loadEnv } from 'vite';
+import { loadEnv, type Plugin } from 'vite';
 import { defineConfig } from 'vitest/config';
 
 const pkgFile = (path: string) => fileURLToPath(new URL(`./node_modules/${path}`, import.meta.url));
@@ -20,7 +21,33 @@ function bareOrigin(url: string | undefined): `http://${string}` | `https://${st
   }
 }
 
-export default defineConfig(async ({ mode }) => {
+/**
+ * `import html from './ui/app.html?raw'` (src/lib/server/mcp/ui.ts) reads the
+ * MCP Apps view bundle that `npm run build:mcp-ui` generates (gitignored). On a
+ * fresh checkout, tests and `vite dev` get a placeholder page instead of a
+ * resolve error; a production build refuses to continue without the bundle
+ * (`prebuild` builds it first).
+ */
+function mcpUiBundle(command: 'build' | 'serve'): Plugin {
+  const bundle = fileURLToPath(new URL('./src/lib/server/mcp/ui/app.html', import.meta.url));
+  const placeholder = '\0mcp-ui-bundle-placeholder';
+  return {
+    name: 'mcp-ui-bundle',
+    enforce: 'pre',
+    resolveId(source) {
+      if (!/(^|\/)ui\/app\.html\?raw$/.test(source) || existsSync(bundle)) return null;
+      if (command === 'build') this.error('src/lib/server/mcp/ui/app.html is missing: run `npm run build:mcp-ui` first.');
+      return placeholder;
+    },
+    load(id) {
+      if (id !== placeholder) return null;
+      const html = '<!doctype html><title>Ticket System</title><p>The MCP view bundle has not been built (npm run build:mcp-ui).</p>';
+      return `export default ${JSON.stringify(html)};`;
+    },
+  };
+}
+
+export default defineConfig(async ({ mode, command }) => {
   // Vite and SvelteKit don't put .env / .env.local into process.env, and the
   // server code reads process.env. Real environment variables win over files.
   Object.assign(process.env, { ...loadEnv(mode, process.cwd(), ''), ...process.env });
@@ -31,6 +58,7 @@ export default defineConfig(async ({ mode }) => {
 
   return {
     plugins: [
+      mcpUiBundle(command),
       tailwindcss(),
       await sveltekit({
         adapter: process.env.VERCEL ? adapterVercel({ runtime: 'nodejs24.x' }) : adapterNode(),

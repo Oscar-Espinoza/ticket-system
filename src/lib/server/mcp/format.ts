@@ -18,6 +18,7 @@ import type {
   McpStructuredContent,
   ProjectRef,
   StateRef,
+  UserRef,
 } from './contracts';
 
 const EXCERPT_MAX = 200;
@@ -79,6 +80,15 @@ export function projectUrl(projectId: string): string {
   return `${appUrl()}/dashboard/projects/${projectId}`;
 }
 
+/**
+ * A person as the views see them: id and name. No avatar: the view draws
+ * initials (an image URL is typed by the user, and the view's CSP allows no
+ * image source, so none could load).
+ */
+export function userRef(user: { id: string; name: string }): UserRef {
+  return { id: user.id, name: user.name };
+}
+
 export function stateRef(state: { id: string; name: string; type: string; color: string }): StateRef {
   return { id: state.id, name: state.name, type: state.type, color: state.color };
 }
@@ -91,8 +101,8 @@ export function summarizeIssue(issue: IssueRow, project: ProjectRef, snippet?: s
     project,
     state: stateRef(issue.state),
     priority: issue.priority,
-    assignee: issue.assignee ? { id: issue.assignee.id, name: issue.assignee.name } : null,
-    waitingOn: issue.waitingOn ? { id: issue.waitingOn.id, name: issue.waitingOn.name } : null,
+    assignee: issue.assignee ? userRef(issue.assignee) : null,
+    waitingOn: issue.waitingOn ? userRef(issue.waitingOn) : null,
     labels: issue.labels.map((l) => ({ id: l.id, name: l.name, color: l.color })),
     estimate: issue.estimate,
     dueDate: issue.dueDate,
@@ -108,7 +118,7 @@ export function commentView(comment: TimelineComment): CommentView {
   return {
     id: comment.id,
     parentId: comment.parentId,
-    author: comment.author ? { id: comment.author.id, name: comment.author.name } : null,
+    author: comment.author ? userRef(comment.author) : null,
     body: truncate(comment.body, COMMENT_MAX) ?? '',
     createdAt: comment.createdAt.toISOString(),
   };

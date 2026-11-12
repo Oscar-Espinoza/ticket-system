@@ -12,10 +12,10 @@
 // services commit their own batch; the row needs the final key and diff). If
 // that insert fails the write still happened, so the failure is logged and the
 // tool answers with the result: an error would make the model retry and
-// duplicate the issue or comment. create_issue also takes an optional
-// `request_id` (the issue service's client-chosen id) so a retry after a lost
-// response returns the issue it already created; the service says when it
-// replayed one, and only the call that created the issue is audited.
+// duplicate the issue or comment. create_issue and add_comment also take an
+// optional `request_id` (the services' client-chosen id) so a retry after a
+// lost response returns the issue or comment it already created; the service
+// says when it replayed one, and only the call that created it is audited.
 
 import type { CallToolResult } from '@modelcontextprotocol/server';
 import { z } from 'zod';
@@ -146,6 +146,7 @@ async function committed(
 
 export const createIssueTool = defineTool({
   name: 'create_issue',
+  view: true,
   title: 'Create issue',
   description:
     'Create an issue in a project. Only the title is required; the other fields take human values (state and label names, "me" as assignee or waiting on).',
@@ -243,6 +244,7 @@ export function describeChanges(before: IssueRow, after: IssueRow, emailOf: (use
 
 export const updateIssueTool = defineTool({
   name: 'update_issue',
+  view: true,
   title: 'Update issue',
   description:
     'Change fields of an existing issue: title, description, state, priority, assignee, waiting on, labels, estimate, due date, follow-up date, cycle or epic. Fields you leave out stay as they are; null clears a field. This overwrites the previous values.',
@@ -304,6 +306,7 @@ export const updateIssueTool = defineTool({
 
 export const addCommentTool = defineTool({
   name: 'add_comment',
+  view: true,
   title: 'Add comment',
   description: 'Add a comment (Markdown) to an issue, optionally as a reply to another comment.',
   scope: 'write',
@@ -312,10 +315,14 @@ export const addCommentTool = defineTool({
     key: issueKeyArg,
     body: z.string().min(1).max(10_000).describe('Comment text in Markdown.'),
     reply_to: z.string().max(100).optional().describe('Id of the comment to reply to.'),
+    request_id: z
+      .uuid()
+      .optional()
+      .describe('Optional UUID you generate. Send the same one when retrying: the retry returns the comment already posted instead of a duplicate.'),
   }),
   invoking: 'Posting the comment…',
   invoked: 'Posted the comment',
-  async run({ key, body, reply_to }, credential) {
+  async run({ key, body, reply_to, request_id }, credential) {
     const { userId } = credential;
     const found = await mcpIssue(userId, key, 'comment');
     if (!found.ok) return deny(found);
@@ -326,14 +333,19 @@ export const addCommentTool = defineTool({
       ticketId: issue.id,
       body,
       parentId: reply_to ?? null,
+      id: request_id,
     });
     if (!result.ok) return toolError(result.error);
-    await audit(credential, 'add_comment', issue, 'commented on');
-    return committed('add_comment', issue, `Comment added to ${issue.key}`, async () => {
+    // A replay (the same request_id again, including a concurrent duplicate
+    // that lost the insert) changed nothing, so only the posting call is audited.
+    const replay = result.replayed;
+    if (!replay) await audit(credential, 'add_comment', issue, 'commented on');
+    const lead = replay ? `A comment was already added to ${issue.key} with this request_id` : `Comment added to ${issue.key}`;
+    return committed('add_comment', issue, lead, async () => {
       const detail = await issueDetail(issue, project, userId);
       return {
-        view: { view: 'issue-detail', issue: detail, changes: ['comment added'] },
-        text: () => `Comment added to ${issue.key}.\n\n${issueDetailMarkdown(detail)}`,
+        view: { view: 'issue-detail', issue: detail, changes: [replay ? 'comment already added' : 'comment added'] },
+        text: () => `${lead}.\n\n${issueDetailMarkdown(detail)}`,
       };
     });
   },

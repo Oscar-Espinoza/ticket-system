@@ -4,8 +4,12 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "predev": "npm run build:mcp-ui",
     "dev": "vite dev",
+    "predev:local": "npm run build:mcp-ui",
     "dev:local": "DATABASE_URL=${LOCAL_DATABASE_URL:-postgres://postgres:postgres@localhost:5433/main} BETTER_AUTH_URL=http://localhost:3000 PUBLIC_APP_URL=http://localhost:3000 vite dev",
+    "build:mcp-ui": "svelte-kit sync && vite build -c vite.mcp-ui.config.ts",
+    "prebuild": "npm run build:mcp-ui",
     "build": "vite build",
     "preview": "vite preview",
     "start": "node build",
@@ -75,6 +79,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@modelcontextprotocol/ext-apps": "^2.0.4",
     "@sveltejs/adapter-node": "^6.0.1",
     "@sveltejs/adapter-vercel": "^7.0.2",
     "@sveltejs/kit": "^3.1.1",
@@ -91,6 +96,13 @@
     "eslint-plugin-svelte": "^3.24.0",
     "globals": "^17.14.0",
     "kysely": "^0.28.17",
+    "mdast-util-gfm-strikethrough": "^2.0.1",
+    "mdast-util-gfm-table": "^2.0.1",
+    "mdast-util-gfm-task-list-item": "^2.0.1",
+    "micromark-extension-gfm-strikethrough": "^2.1.0",
+    "micromark-extension-gfm-table": "^2.1.2",
+    "micromark-extension-gfm-task-list-item": "^2.1.0",
+    "micromark-util-combine-extensions": "^2.0.1",
     "pg-connection-string": "^2.14.1",
     "shadcn-svelte": "^1.8.0",
     "svelte": "^5.57.3",
@@ -98,6 +110,7 @@
     "tailwindcss": "^4",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.72.1",
+    "vite-plugin-singlefile": "^2.3.4",
     "vitest": "^4.1.8"
   },
   "overrides": {

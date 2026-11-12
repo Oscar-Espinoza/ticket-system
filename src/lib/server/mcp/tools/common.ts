@@ -14,6 +14,7 @@ import type { ApiScope } from '@/lib/api-auth';
 import type { McpCredential } from '../contracts';
 import { auditRefusal, refusalOf, type Refusal } from '../audit';
 import { toolError } from '../format';
+import { UI_TOOL_META } from '../ui';
 import { protectedResourceMetadataUrl } from '../urls';
 
 export interface McpTool<S extends z.ZodObject = z.ZodObject> {
@@ -26,6 +27,8 @@ export interface McpTool<S extends z.ZodObject = z.ZodObject> {
   /** Same arguments, same effect (only meaningful for writes). */
   idempotent?: boolean;
   input: S;
+  /** True when the result has an MCP Apps view (src/mcp-ui): the tool points at the view resource. */
+  view?: boolean;
   /** ChatGPT status lines, ≤ 64 characters. */
   invoking: string;
   invoked: string;
@@ -62,6 +65,7 @@ export function registerMcpTool(server: McpServer, credential: McpCredential, to
         securitySchemes: [{ type: 'oauth2', scopes: [tool.scope] }],
         'openai/toolInvocation/invoking': tool.invoking,
         'openai/toolInvocation/invoked': tool.invoked,
+        ...(tool.view && UI_TOOL_META),
       },
     },
     async (args: unknown) => {
