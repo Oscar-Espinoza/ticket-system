@@ -4,7 +4,11 @@
 //   - never used: registered more than a day ago with no consent and no token
 //     at all (an abandoned or junk registration);
 //   - gone stale: registered more than 30 days ago, no unexpired access or
-//     refresh token, and no token issued in the last 30 days.
+//     refresh token, and no token issued in the last 30 days. A consent does
+//     not keep it (PLAN D3: "no live token for 30 days"): the consent goes
+//     with the client, so that user sees the consent screen again when they
+//     reconnect, which they must do anyway once their refresh token has
+//     expired.
 // Consents and tokens cascade (each token and consent table has an index on
 // client_id for it). Clients created in Settings → OAuth apps are never
 // touched (only `metadata.registration = 'dynamic'` rows qualify). Deletes run

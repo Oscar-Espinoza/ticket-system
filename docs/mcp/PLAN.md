@@ -94,7 +94,8 @@ Claude and ChatGPT both use DCR, and Better Auth 1.6.33 supports it. Enable `all
   - anything in `MCP_EXTRA_REDIRECT_URIS`
 - **Public clients only**: `token_endpoint_auth_method` must be `none`. Scopes are capped at `openid profile email offline_access read write`. Client names are capped at 100 characters.
 - **Rate limit** `/api/auth/oauth2/register` with a Better Auth `rateLimit.customRules` entry.
-- **Cleanup**: the daily cron deletes DCR clients that have had no live token for 30 days.
+- **Cleanup**: the daily cron deletes DCR clients that have had no live token for 30 days, with
+  their consents (a user's consent doesn't keep a client; they consent again on reconnecting).
 - **Consent page**: show the redirect host next to the self-asserted client name, for example "Claude · claude.ai". Flag dynamically registered clients.
 - CIMD is what both vendors prefer, but it needs Better Auth 1.7 or later (1.7.18 has `client_id_metadata_document_supported`). That is follow-up F1, not v1.
 
