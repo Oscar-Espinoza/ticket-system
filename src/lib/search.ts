@@ -5,7 +5,7 @@
 // Snippets come from ts_headline wrapped in private-use sentinels (never HTML);
 // the client splits on them and renders <mark> elements itself.
 //
-// Queries may carry filter syntax (label:bug assignee:me …, parsed by
+// Queries may carry filter syntax (label:bug assignee:me waiting:me followup:overdue …, parsed by
 // lib/issue-filtering); the terms become SQL inside the same membership scope.
 
 import { and, desc, eq, exists, gt, gte, inArray, isNotNull, isNull, lt, lte, or, sql, type SQL } from 'drizzle-orm';
@@ -19,6 +19,8 @@ import {
   decodeSearchValue,
   parseSearchQuery,
   wantsArchived,
+  type DateBounds,
+  type DueFilter,
   type SearchTerm,
   type SearchValue,
 } from '@/lib/issue-filtering';
@@ -70,7 +72,43 @@ function stateWhere(where: SQL): SQL {
 
 const openState = () => stateWhere(openStateType());
 
-function userWhere(column: AnyPgColumn, decoded: Extract<SearchValue, { key: 'assignee' | 'creator' }>, userId: string): SQL {
+/**
+ * A due-date / follow-up word or explicit bounds on a date column. "Today" is
+ * the server's calendar date; `overdue` = before today and open. Shared with
+ * the REST / GraphQL issue list (lib/issue-list).
+ */
+export function dateWhere(column: AnyPgColumn, due: DueFilter | DateBounds | null, now: Date): SQL {
+  if (due === null) return FALSE;
+  if (typeof due === 'object') {
+    return and(
+      isNotNull(column),
+      due.from === undefined ? undefined : gte(column, due.from),
+      due.to === undefined ? undefined : lte(column, due.to),
+    )!;
+  }
+  const today = toDateString(now);
+  switch (due) {
+    case 'none':
+      return isNull(column);
+    case 'overdue':
+      return and(lt(column, today), openState())!;
+    case 'today':
+      return eq(column, today);
+    case 'thisWeek':
+    case 'nextWeek': {
+      const [start, end] = weekRange(today, due === 'thisWeek' ? 0 : 1);
+      return and(gte(column, start), lte(column, end))!;
+    }
+    default:
+      return FALSE;
+  }
+}
+
+function userWhere(
+  column: AnyPgColumn,
+  decoded: Extract<SearchValue, { key: 'assignee' | 'creator' | 'waiting' }>,
+  userId: string,
+): SQL {
   if (decoded.value === 'me') return eq(column, userId);
   if (decoded.value === 'none') return isNull(column);
   const value = decoded.raw;
@@ -102,6 +140,8 @@ function valueCondition(decoded: SearchValue, userId: string, now: Date): SQL {
       return userWhere(tickets.assigneeId, decoded, userId);
     case 'creator':
       return userWhere(tickets.creatorId, decoded, userId);
+    case 'waiting':
+      return userWhere(tickets.waitingOnId, decoded, userId);
     case 'priority': {
       const priority = decoded.value;
       return priority ? eq(tickets.priority, priority) : FALSE;
@@ -151,25 +191,10 @@ function valueCondition(decoded: SearchValue, userId: string, now: Date): SQL {
           .from(epics)
           .where(and(eq(epics.id, tickets.epicId), contains(epics.name, decoded.raw))),
       );
-    case 'due': {
-      const due = decoded.value;
-      const today = toDateString(now);
-      switch (due) {
-        case 'none':
-          return isNull(tickets.dueDate);
-        case 'overdue':
-          return and(lt(tickets.dueDate, today), openState())!;
-        case 'today':
-          return eq(tickets.dueDate, today);
-        case 'thisWeek':
-        case 'nextWeek': {
-          const [start, end] = weekRange(today, due === 'thisWeek' ? 0 : 1);
-          return and(gte(tickets.dueDate, start), lte(tickets.dueDate, end))!;
-        }
-        default:
-          return FALSE;
-      }
-    }
+    case 'due':
+      return dateWhere(tickets.dueDate, decoded.value, now);
+    case 'followup':
+      return dateWhere(tickets.followUp, decoded.value, now);
     case 'created':
     case 'updated': {
       const range = decoded.value;

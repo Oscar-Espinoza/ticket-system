@@ -2,7 +2,7 @@
 // (`?state=…&assignee=…`) and saved views, plus the pure matcher every issue
 // view runs on the client. Client-safe.
 
-import { toDateString, weekRange } from '@/lib/dates';
+import { addDays, fromDateString, isDateString, toDateString, weekRange } from '@/lib/dates';
 import {
   PRIORITY_ORDER,
   STATE_TYPE_ORDER,
@@ -32,6 +32,14 @@ export const DUE_FILTER_LABEL: Record<DueFilter, string> = {
   nextWeek: 'Due next week',
   none: 'No due date',
 };
+/** The follow-up date filters reuse the due-date vocabulary. */
+export const FOLLOW_UP_FILTER_LABEL: Record<DueFilter, string> = {
+  overdue: 'Follow-up overdue',
+  today: 'Follow up today',
+  thisWeek: 'Follow up this week',
+  nextWeek: 'Follow up next week',
+  none: 'No follow-up date',
+};
 export const RELATIVE_RANGES: RelativeRange[] = ['1d', '7d', '30d', '90d'];
 export const RELATIVE_RANGE_LABEL: Record<RelativeRange, string> = {
   '1d': 'Last 24 hours',
@@ -60,6 +68,8 @@ export interface IssueFilters {
   assigneeIds: string[];
   /** User ids or ME. */
   creatorIds: string[];
+  /** Waiting-on user ids, NONE ("not waiting on anyone") or ME. */
+  waitingOnIds: string[];
   priorities: Priority[];
   /** Label ids or NONE — any-of. */
   labelIds: string[];
@@ -68,6 +78,7 @@ export interface IssueFilters {
   /** Epic ids or NONE. */
   epicIds: string[];
   due: DueFilter[];
+  followUp: DueFilter[];
   created: RelativeRange | null;
   updated: RelativeRange | null;
   hierarchy: HierarchyFilter[];
@@ -79,11 +90,13 @@ export const EMPTY_FILTERS: IssueFilters = {
   stateTypes: [],
   assigneeIds: [],
   creatorIds: [],
+  waitingOnIds: [],
   priorities: [],
   labelIds: [],
   cycleIds: [],
   epicIds: [],
   due: [],
+  followUp: [],
   created: null,
   updated: null,
   hierarchy: [],
@@ -105,11 +118,13 @@ const LIST_PARAMS: Record<ListKey, string> = {
   stateTypes: 'stateType',
   assigneeIds: 'assignee',
   creatorIds: 'creator',
+  waitingOnIds: 'waitingOn',
   priorities: 'priority',
   labelIds: 'label',
   cycleIds: 'cycle',
   epicIds: 'epic',
   due: 'due',
+  followUp: 'followUp',
   hierarchy: 'hierarchy',
 };
 
@@ -127,6 +142,7 @@ const LIST_GUARD: Partial<Record<ListKey, (value: string) => boolean>> = {
   stateTypes: oneOf(STATE_TYPE_ORDER),
   priorities: oneOf(PRIORITY_ORDER),
   due: oneOf(DUE_FILTERS),
+  followUp: oneOf(DUE_FILTERS),
   hierarchy: oneOf(HIERARCHY_FILTERS),
 };
 const isRange = oneOf(RELATIVE_RANGES);
@@ -234,8 +250,17 @@ export interface FilterContext {
   projects?: { id: string; name: string; ticketKey: string }[];
 }
 
-function matchesDue(issue: IssueRow, due: DueFilter, today: string): boolean {
-  const date = issue.dueDate;
+/** Inclusive YYYY-MM-DD bounds (`followup:<=2026-12-01`). */
+export interface DateBounds {
+  from?: string;
+  to?: string;
+}
+
+/** A due-date or follow-up filter (or explicit bounds) against one calendar date. */
+function matchesDate(issue: IssueRow, date: string | null, due: DueFilter | DateBounds, today: string): boolean {
+  if (typeof due === 'object') {
+    return date !== null && (due.from === undefined || date >= due.from) && (due.to === undefined || date <= due.to);
+  }
   if (due === 'none') return date === null;
   if (date === null) return false;
   switch (due) {
@@ -265,6 +290,7 @@ export function issueMatcher(
   const resolveMe = (ids: string[]) => ids.map((id) => (id === ME ? viewer : id));
   const assignees = new Set(resolveMe(f.assigneeIds));
   const creators = new Set(resolveMe(f.creatorIds));
+  const waitingOn = new Set(resolveMe(f.waitingOnIds));
   const stateIds = new Set(f.stateIds);
   const stateTypes = new Set<string>(f.stateTypes);
   const labels = new Set(f.labelIds);
@@ -303,6 +329,7 @@ export function issueMatcher(
       if (!(id === null ? assignees.has(UNASSIGNED) : assignees.has(id))) return false;
     }
     if (creators.size && !(issue.creator && creators.has(issue.creator.id))) return false;
+    if (waitingOn.size && !waitingOn.has(issue.waitingOn?.id ?? NONE)) return false;
     if (f.priorities.length && !f.priorities.includes(issue.priority)) return false;
     if (labels.size) {
       const hit =
@@ -311,7 +338,8 @@ export function issueMatcher(
     }
     if (f.cycleIds.length && !f.cycleIds.includes(issue.cycleId ?? NONE)) return false;
     if (f.epicIds.length && !f.epicIds.includes(issue.epicId ?? NONE)) return false;
-    if (f.due.length && !f.due.some((due) => matchesDue(issue, due, today))) return false;
+    if (f.due.length && !f.due.some((due) => matchesDate(issue, issue.dueDate, due, today))) return false;
+    if (f.followUp.length && !f.followUp.some((due) => matchesDate(issue, issue.followUp, due, today))) return false;
     if (f.created && !withinRange(issue.createdAt, f.created, now)) return false;
     if (f.updated && !withinRange(issue.updatedAt, f.updated, now)) return false;
     if (f.hierarchy.length) {
@@ -353,12 +381,14 @@ export type SearchKey =
   | 'type'
   | 'assignee'
   | 'creator'
+  | 'waiting'
   | 'priority'
   | 'label'
   | 'project'
   | 'cycle'
   | 'epic'
   | 'due'
+  | 'followup'
   | 'created'
   | 'updated'
   | 'sla';
@@ -372,6 +402,10 @@ const SEARCH_KEY_ALIASES: Record<string, SearchKey> = {
   assigned: 'assignee',
   creator: 'creator',
   author: 'creator',
+  waiting: 'waiting',
+  waitingon: 'waiting',
+  followup: 'followup',
+  follow: 'followup',
   priority: 'priority',
   label: 'label',
   labels: 'label',
@@ -530,6 +564,31 @@ export function searchDue(value: string): DueFilter | null {
   return DUE_WORDS[value.toLowerCase()] ?? null;
 }
 
+/**
+ * `followup:` values: the due-date words, or a day with an optional
+ * comparison (`2026-12-01`, `<=2026-12-01`, `>2026-11-30`) as inclusive bounds.
+ */
+export function searchFollowUp(value: string): DueFilter | DateBounds | null {
+  const word = searchDue(value);
+  if (word) return word;
+  const match = /^(<=|>=|<|>)?(\d{4}-\d{2}-\d{2})$/.exec(value);
+  if (!match || !isDateString(match[2])) return null;
+  const day = match[2];
+  const shift = (days: number) => toDateString(addDays(fromDateString(day), days));
+  switch (match[1]) {
+    case '>':
+      return { from: shift(1) };
+    case '>=':
+      return { from: day };
+    case '<':
+      return { to: shift(-1) };
+    case '<=':
+      return { to: day };
+    default:
+      return { from: day, to: day };
+  }
+}
+
 export type IsValue = 'open' | 'closed' | 'archived' | 'completed' | 'canceled';
 const IS_WORDS: Record<string, IsValue> = {
   open: 'open',
@@ -625,9 +684,10 @@ export type SearchValue =
   | { key: 'priority'; value: Priority | null }
   | { key: 'cycle'; value: CycleWord | number | null }
   | { key: 'due'; value: DueFilter | null }
+  | { key: 'followup'; value: DueFilter | DateBounds | null }
   | { key: 'created' | 'updated'; value: ReturnType<typeof searchTimeRange> }
   | { key: 'sla'; value: SlaValue | null }
-  | { key: 'assignee' | 'creator'; value: 'me' | 'none' | 'user'; raw: string; normalized: string }
+  | { key: 'assignee' | 'creator' | 'waiting'; value: 'me' | 'none' | 'user'; raw: string; normalized: string }
   | { key: 'status' | 'label' | 'project' | 'epic'; value: string; raw: string };
 
 export function decodeSearchValue(key: SearchKey, raw: string, now: number): SearchValue {
@@ -643,6 +703,8 @@ export function decodeSearchValue(key: SearchKey, raw: string, now: number): Sea
       return { key, value: searchCycle(value) };
     case 'due':
       return { key, value: searchDue(value) };
+    case 'followup':
+      return { key, value: searchFollowUp(value) };
     case 'created':
     case 'updated':
       return { key, value: searchTimeRange(value, now) };
@@ -650,6 +712,7 @@ export function decodeSearchValue(key: SearchKey, raw: string, now: number): Sea
       return { key, value: searchSla(value) };
     case 'assignee':
     case 'creator':
+    case 'waiting':
       return {
         key,
         value: value === 'me' ? 'me' : value === 'none' || value === 'unassigned' ? 'none' : 'user',
@@ -712,8 +775,10 @@ function termPredicate(term: SearchTerm, ctx: Resolved): ((issue: IssueRow) => b
         return (i) => i.state.type === type;
       }
       case 'assignee':
-      case 'creator': {
-        const pick = (i: IssueRow) => (decoded.key === 'assignee' ? i.assignee : i.creator);
+      case 'creator':
+      case 'waiting': {
+        const pick = (i: IssueRow) =>
+          decoded.key === 'assignee' ? i.assignee : decoded.key === 'waiting' ? i.waitingOn : i.creator;
         if (decoded.value === 'me') return (i) => ctx.viewerId !== null && pick(i)?.id === ctx.viewerId;
         if (decoded.value === 'none') return (i) => pick(i) === null;
         return (i) => {
@@ -752,7 +817,11 @@ function termPredicate(term: SearchTerm, ctx: Resolved): ((issue: IssueRow) => b
       }
       case 'due': {
         const due = decoded.value;
-        return (i) => due !== null && matchesDue(i, due, ctx.today);
+        return (i) => due !== null && matchesDate(i, i.dueDate, due, ctx.today);
+      }
+      case 'followup': {
+        const due = decoded.value;
+        return (i) => due !== null && matchesDate(i, i.followUp, due, ctx.today);
       }
       case 'created':
       case 'updated': {
@@ -877,6 +946,9 @@ export function resolveSearchTerms(
         case 'creator':
           done = add('creatorIds', all(person));
           break;
+        case 'waiting':
+          done = add('waitingOnIds', all((v) => (['none', 'unassigned'].includes(v.toLowerCase()) ? NONE : person(v))));
+          break;
         case 'priority':
           done = add('priorities', all(searchPriority));
           break;
@@ -893,6 +965,10 @@ export function resolveSearchTerms(
           break;
         case 'due':
           done = add('due', all(searchDue));
+          break;
+        case 'followup':
+          // Only the words become chips; date bounds stay as query text.
+          done = add('followUp', all(searchDue));
           break;
         case 'created':
         case 'updated': {
@@ -918,12 +994,18 @@ export const SEARCH_SYNTAX_HELP: { key: string; description: string; examples: s
   { key: 'type', description: 'State category', examples: ['type:started', 'type:todo'] },
   { key: 'assignee', description: 'me, none or a name', examples: ['assignee:me', 'assignee:none'] },
   { key: 'creator', description: 'Who created it', examples: ['creator:me'] },
+  { key: 'waiting', description: 'Who it is waiting on: me, none or a name', examples: ['waiting:me', 'waiting:none'] },
   { key: 'priority', description: 'urgent, high, medium, low, none', examples: ['priority:urgent,high'] },
   { key: 'label', description: 'Repeat to require several; - excludes', examples: ['label:bug', '-label:wontfix'] },
   { key: 'project', description: 'Project key', examples: ['project:ENG'] },
   { key: 'cycle', description: 'current, next, previous, none or a number', examples: ['cycle:current'] },
   { key: 'epic', description: 'Epic name or none', examples: ['epic:"Mobile app"'] },
   { key: 'due', description: 'overdue, today, week, next-week, none', examples: ['due:overdue', 'due:week'] },
+  {
+    key: 'followup',
+    description: 'Like due, or a date: 2026-12-01, <=2026-12-01, >2026-11-30',
+    examples: ['followup:overdue', 'followup:today', 'followup:<=2026-12-01'],
+  },
   { key: 'created', description: '> older than, < within; h d w m, or a date', examples: ['created:<7d', 'created:>30d'] },
   { key: 'updated', description: 'Same as created', examples: ['updated:<1d'] },
   { key: 'sla', description: 'breached, risk, none', examples: ['sla:breached'] },
