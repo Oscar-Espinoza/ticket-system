@@ -228,11 +228,18 @@ describe.skipIf(!localDb)('durable webhook dispatch (review finding #9)', () => 
     ).toMatchObject({ ok: true });
 
     const posts: string[] = [];
-    // Only Slack posts are captured; the Neon HTTP driver also uses fetch, and
-    // its queries (postToSlack reads the project) must reach the database.
+    // Only Slack posts are captured. The Neon HTTP driver also uses fetch, and
+    // its queries (postToSlack reads the project) must reach the database: let
+    // through only the local Neon proxy (NEON_PROXY_HOST), and throw on any
+    // other URL so nothing here can reach the real network.
     const realFetch = globalThis.fetch;
+    const proxyHost = process.env.NEON_PROXY_HOST;
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
-      if (!String(input instanceof Request ? input.url : input).startsWith(SLACK_URL_PREFIX)) return realFetch(input, init);
+      const url = String(input instanceof Request ? input.url : input);
+      if (!url.startsWith(SLACK_URL_PREFIX)) {
+        if (proxyHost && new URL(url).host === proxyHost) return realFetch(input, init);
+        throw new Error(`unexpected network call in a test: ${url}`);
+      }
       posts.push(String(init?.body));
       return new Response(null, { status: 200 });
     });

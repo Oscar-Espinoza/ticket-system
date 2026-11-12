@@ -36,7 +36,7 @@ jobs:
     timeout-minutes: 20
     services:
       postgres:
-        image: postgres:17-alpine
+        image: postgres:17-alpine@sha256:e5d2edd28b1f8d40a0a6c0c9cdc545b19b56a0d5d88f94bc11a97d970d4700d0
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -59,9 +59,9 @@ jobs:
             esac
           done
 
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: 24 # the Dockerfile and the Vercel runtime (nodejs24.x)
           cache: npm
@@ -81,8 +81,14 @@ jobs:
       - name: Unit tests
         run: npx vitest run src/tests/*.test.ts
 
+      # The suites skip themselves unless the database guard
+      # (src/tests/local-db/guard.ts) says "local". A guard that went false
+      # would otherwise leave this step green with everything skipped, so the
+      # report is checked: only seed-dev (needs SEED_DEV=1) may skip here.
       - name: Local-database tests (local-db + mcp)
-        run: npm run test:db
+        run: |
+          npm run test:db -- --reporter=default --reporter=json --outputFile.json="$RUNNER_TEMP/vitest-db.json"
+          node scripts/assert-no-skips.mjs "$RUNNER_TEMP/vitest-db.json" seed-dev
 
       # Fails when src/db/schema.ts and the committed migrations drift apart:
       # generate must report no changes and write no file.
@@ -107,7 +113,7 @@ jobs:
       NEON_PROXY_HOST: localhost:4444
     services:
       postgres:
-        image: postgres:17-alpine
+        image: postgres:17-alpine@sha256:e5d2edd28b1f8d40a0a6c0c9cdc545b19b56a0d5d88f94bc11a97d970d4700d0
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -130,9 +136,9 @@ jobs:
             esac
           done
 
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: 24
           cache: npm
@@ -155,5 +161,8 @@ jobs:
           docker logs neon-proxy
           echo "::error::the Neon proxy did not start"; exit 1
 
+      # Same skip check as the pg job; pg-batch is for node-postgres only.
       - name: Database tests through the Neon driver
-        run: npm run test:db:neon
+        run: |
+          npm run test:db:neon -- --reporter=default --reporter=json --outputFile.json="$RUNNER_TEMP/vitest-db.json"
+          node scripts/assert-no-skips.mjs "$RUNNER_TEMP/vitest-db.json" seed-dev pg-batch

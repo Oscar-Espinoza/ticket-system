@@ -14,8 +14,8 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:db": "LOCAL_DB_TESTS=1 DATABASE_DRIVER=pg DATABASE_URL=${TEST_DATABASE_URL:-postgres://postgres:postgres@localhost:5433/main} vitest run src/tests/local-db src/tests/mcp",
-    "test:db:neon": "LOCAL_DB_TESTS=1 DATABASE_DRIVER=neon NEON_PROXY_HOST=${NEON_PROXY_HOST:-localhost:4444} DATABASE_URL=${TEST_DATABASE_URL:-postgres://postgres:postgres@db.localtest.me:5432/main} vitest run --testTimeout 120000 --hookTimeout 120000 src/tests/local-db src/tests/mcp",
+    "test:db": "LOCAL_DB_TESTS=1 DATABASE_DRIVER=pg DATABASE_URL=${TEST_DATABASE_URL:-postgres://postgres:postgres@localhost:5433/main} vitest run src/tests/local-db/ src/tests/mcp/",
+    "test:db:neon": "LOCAL_DB_TESTS=1 DATABASE_DRIVER=neon NEON_PROXY_HOST=${NEON_PROXY_HOST:-localhost:4444} DATABASE_URL=${TEST_DATABASE_URL:-postgres://postgres:postgres@db.localtest.me:5432/main} vitest run --testTimeout 120000 --hookTimeout 120000 src/tests/local-db/ src/tests/mcp/",
     "db:migrate": "node scripts/migrate.mjs",
     "gen:actions": "node scripts/gen-remote-actions.mjs"
   },
