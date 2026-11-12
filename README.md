@@ -39,8 +39,10 @@ any Postgres self-hosted), Better Auth, Tailwind v4 with bits-ui primitives
 works only while signed in to that account, and a verified address is what lets
 "Continue with Google/GitHub" link to an existing password account. "Forgot
 password?" emails a one-hour, single-use reset link; a reset verifies the address
-and signs out every session (on an unverified account it also removes what a
-previous holder set up). `REQUIRE_EMAIL_VERIFICATION=true` (off by default,
+and signs out every session (on an unverified account it also removes two-factor,
+API keys, connected apps and more, after the page lists them and the person
+confirms; a first SSO sign-in does the same, so ask people to verify before
+rolling SSO out). `REQUIRE_EMAIL_VERIFICATION=true` (off by default,
 ignored without email) also blocks password sign-in until the address is
 verified. Details, the steps for existing users and the admin fallback without
 email: [docs/SELF_HOSTING.md](docs/SELF_HOSTING.md#email-verification).
