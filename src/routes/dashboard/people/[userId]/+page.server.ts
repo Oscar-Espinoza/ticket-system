@@ -7,7 +7,7 @@
 import { error } from '@sveltejs/kit';
 import { getAssignedOpenIssues } from '@/lib/issue-lists-read';
 import { getPerson, getRecentActivity } from '@/lib/people-read';
-import { redactMovedEventsFor } from '@/lib/moved-events';
+import { redactActivityFor } from '@/lib/moved-events';
 import { getSharedProjects } from '@/lib/project-access';
 import { activitySummary } from '@/lib/components/people/activity-summary';
 import { requireUser } from '@/lib/session';
@@ -39,7 +39,7 @@ export const load: PageServerLoad = async ({ params }) => {
 
   const [person, recent, assigned] = await Promise.all([
     getPerson(userId),
-    sharedIds.length === 0 ? [] : getRecentActivity(userId, sharedIds).then((rows) => redactMovedEventsFor(rows, viewerId)),
+    sharedIds.length === 0 ? [] : getRecentActivity(userId, sharedIds).then((rows) => redactActivityFor(rows, viewerId)),
     getAssignedOpenIssues(userId, viewerId),
   ]);
   if (!person) error(404, 'Profile not found');

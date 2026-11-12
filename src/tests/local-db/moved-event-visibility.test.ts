@@ -1,7 +1,7 @@
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, isNotNull } from 'drizzle-orm';
 
 // No after-response fan-out: the sweep and the readers are called directly.
 vi.mock('@/lib/kit/request', async (orig) => ({
@@ -14,9 +14,12 @@ vi.mock('@/lib/events', async (orig) => ({
 }));
 
 import { db } from '@/lib/db';
-import { activities, projectMembers, projects, webhookDeliveries, webhooks } from '@/db/schema';
+import { activities, labels, projectMembers, projects, webhookDeliveries, webhooks, workflowStates } from '@/db/schema';
 import * as issues from '@/lib/issue-service';
 import { loadIssueTimeline } from '@/lib/comments';
+import { resolveAuditScope } from '@/lib/audit';
+import { recordedIn } from '@/lib/moved-events';
+import { loadAuditLogView } from '@/lib/components/audit/audit-log-view.server';
 import { sweepPendingEvents } from '@/lib/integrations/outgoing-webhooks';
 import { postToSlack } from '@/lib/integrations/slack';
 import { SLACK_URL_PREFIX } from '@/lib/integrations/event-types';
@@ -100,7 +103,9 @@ describe.skipIf(!localDb)('issue.moved does not reveal the other project (gap D 
     // Timeline: a member of A only sees "another project"; a member of both sees B.
     const forSourceOnly = await loadIssueTimeline(a, created.issue.id, sourceOnly);
     const movedLines = forSourceOnly.activities.filter((row) => row.type === 'issue.moved');
-    expect(movedLines.length).toBe(2);
+    // The first move's target-side row was recorded in B: collapsed.
+    expect(movedLines.length).toBe(1);
+    expect(forSourceOnly.activities.some((row) => row.type === 'issue.activity_elsewhere')).toBe(true);
     hidden(JSON.stringify(forSourceOnly.activities));
     expect(movedLines.map((row) => row.data.summary)).toContain('moved from another project');
     const forBoth = await loadIssueTimeline(a, created.issue.id, both);
@@ -114,7 +119,17 @@ describe.skipIf(!localDb)('issue.moved does not reveal the other project (gap D 
 
     // Webhooks: A's receiver gets nothing naming B (the source-side row is not
     // delivered; the history rows are A's own); B's receiver never gets A.
-    await sweepPendingEvents({ now: later(), limit: 100 });
+    // Sweep until none of this test's events is pending: rows other suites left
+    // pending come first (oldest first) and must not starve it. Bounded.
+    const pendingHere = () =>
+      db
+        .select({ id: activities.id })
+        .from(activities)
+        .where(and(isNotNull(activities.webhookPendingProjectId), inArray(activities.projectId, [a, b])));
+    for (let round = 0; round < 50 && (await pendingHere()).length > 0; round++) {
+      await sweepPendingEvents({ now: later(), limit: 100 });
+    }
+    expect(await pendingHere()).toEqual([]);
     const hooks = await db.select().from(webhooks).where(inArray(webhooks.projectId, [a, b]));
     const hookOf = (projectId: string) => hooks.find((h) => h.projectId === projectId)!.id;
     const deliveries = await db.select().from(webhookDeliveries).where(inArray(webhookDeliveries.webhookId, [hookOf(a), hookOf(b)]));
@@ -146,5 +161,89 @@ describe.skipIf(!localDb)('issue.moved does not reveal the other project (gap D 
       fetchSpy.mockRestore();
     }
     hidden(posts.join('\n'));
+  });
+
+  it('history recorded in a project the viewer is not a member of is collapsed, both ways', async () => {
+    const owner = await makeUser('mv2-owner');
+    const aOnly = await makeUser('mv2-a-only');
+    const bOnly = await makeUser('mv2-b-only');
+    const both = await makeUser('mv2-both');
+    const a = await makeProject(owner, 'HVA', [aOnly, both]);
+    const b = await makeProject(owner, 'HVB', [bOnly, both]);
+    // Audit readers are admins; aOnly is not a member of B (an admin of A only).
+    await db
+      .update(projectMembers)
+      .set({ role: 'admin' })
+      .where(inArray(projectMembers.userId, [aOnly, bOnly, both]));
+    const [aRow] = await db.select({ key: projects.ticketKey }).from(projects).where(eq(projects.id, a));
+    const [bRow] = await db.select({ key: projects.ticketKey }).from(projects).where(eq(projects.id, b));
+    const secretState = 'Quarantine-' + crypto.randomUUID().slice(0, 8);
+    const secretLabel = 'embargoed-' + crypto.randomUUID().slice(0, 8);
+    const secretTitle = 'Codename-' + crypto.randomUUID().slice(0, 8);
+    const [state] = await db
+      .insert(workflowStates)
+      .values({ id: crypto.randomUUID(), projectId: b, name: secretState, type: 'started', color: '#888888', position: 9, createdAt: new Date() })
+      .returning({ id: workflowStates.id });
+    const [label] = await db
+      .insert(labels)
+      .values({ id: crypto.randomUUID(), projectId: b, name: secretLabel, color: '#888888', createdAt: new Date() })
+      .returning({ id: labels.id });
+
+    const timelineText = async (projectId: string, issueId: string, viewer: string) =>
+      JSON.stringify((await loadIssueTimeline(projectId, issueId, viewer)).activities);
+    const auditListText = async (projectId: string, viewer: string) => {
+      const scope = await resolveAuditScope('project', projectId, viewer);
+      expect(scope).not.toBeNull();
+      return JSON.stringify((await loadAuditLogView(scope!, {}, '/audit')).rows);
+    };
+
+    // (i) A → B, edited in B (title, state, label), → A.
+    const created = await issues.createIssue({ userId: owner }, a, { title: 'Open title' });
+    if (!created.ok) throw new Error(created.error);
+    const id = created.issue.id;
+    expect((await issues.moveIssue({ userId: owner }, a, id, b)).ok).toBe(true);
+    const edited = await issues.updateIssueFields({ userId: both }, b, id, {
+      title: secretTitle,
+      stateId: state.id,
+      addLabelIds: [label.id],
+    });
+    expect(edited.ok).toBe(true);
+    // The title it carries back is its current one; the secret one was only B's.
+    expect((await issues.updateIssueFields({ userId: both }, b, id, { title: 'Final title' })).ok).toBe(true);
+    expect((await issues.moveIssue({ userId: both }, b, id, a)).ok).toBe(true);
+
+    const leaks = (text: string) =>
+      [bRow.key, b, secretTitle, secretState, secretLabel].filter((needle) => text.includes(needle));
+    const aOnlyTimeline = await timelineText(a, id, aOnly);
+    expect(leaks(aOnlyTimeline)).toEqual([]);
+    expect(aOnlyTimeline).toContain('activity in another project');
+    expect(aOnlyTimeline).toContain('Open title'); // what happened in A stays
+    expect(leaks(await auditListText(a, aOnly))).toEqual([]);
+    expect(leaks(await auditExport(aOnly, a))).toEqual([]);
+    // A member of both sees everything.
+    const bothTimeline = await timelineText(a, id, both);
+    expect(leaks(bothTimeline)).toEqual([bRow.key, b, secretTitle, secretState, secretLabel]);
+    expect(bothTimeline).not.toContain('activity in another project');
+    expect(leaks(await auditExport(both, a)).length).toBeGreaterThan(0);
+
+    // (ii) A single move A → B, read from B by a member of B only.
+    const second = await issues.createIssue({ userId: owner }, a, { title: 'Second' });
+    if (!second.ok) throw new Error(second.error);
+    expect((await issues.updateIssueFields({ userId: owner }, a, second.issue.id, { title: 'Retitled in A' })).ok).toBe(true);
+    expect((await issues.updateIssueFields({ userId: owner }, a, second.issue.id, { title: 'Carried title' })).ok).toBe(true);
+    expect((await issues.moveIssue({ userId: owner }, a, second.issue.id, b)).ok).toBe(true);
+    const fromA = (text: string) => [`${aRow.key}-`, a, 'Retitled in A'].filter((needle) => text.includes(needle));
+    const bOnlyTimeline = await timelineText(b, second.issue.id, bOnly);
+    expect(fromA(bOnlyTimeline)).toEqual([]);
+    expect(bOnlyTimeline).toContain('moved from another project');
+    expect(fromA(await auditListText(b, bOnly))).toEqual([]);
+    expect(fromA(await auditExport(bOnly, b))).toEqual([]);
+    expect(fromA(await timelineText(b, second.issue.id, both)).length).toBeGreaterThan(0);
+
+    // A row stamped at the exact instant of a move may belong to either side:
+    // it needs both (fail closed).
+    const at = new Date('2026-11-12T12:00:00Z');
+    const move = { id: 'm1', at: at.getTime(), from: 'P', to: 'Q' };
+    expect(recordedIn({ id: 'r', createdAt: at, ticketId: 't', projectId: 'Q' }, [move]).sort()).toEqual(['P', 'Q']);
   });
 });

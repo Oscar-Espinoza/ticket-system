@@ -31,7 +31,7 @@ import {
   type TimelineComment,
 } from '@/lib/timeline';
 import { formatIssueKey } from '@/lib/tickets';
-import { redactMovedEventsFor } from '@/lib/moved-events';
+import { redactActivityFor } from '@/lib/moved-events';
 
 export const COMMENT_EVENT = {
   created: ISSUE_EVENT.commentCreated,
@@ -133,8 +133,9 @@ export async function readIssueTimeline(
 
 /**
  * The issue's activity and comments as `viewerId` (a member of `projectId`)
- * may see them: moves name another project only when the viewer belongs to it
- * (moved-events.ts).
+ * may see them: rows recorded while the issue was in a project the viewer is
+ * not a member of are collapsed, and moves name another project only when the
+ * viewer belongs to it (moved-events.ts).
  */
 export async function loadIssueTimeline(
   projectId: string,
@@ -149,6 +150,8 @@ export async function loadIssueTimeline(
         type: activities.type,
         data: activities.data,
         createdAt: activities.createdAt,
+        ticketId: activities.ticketId,
+        projectId: activities.projectId,
         actorId: users.id,
         actorName: users.name,
         actorImage: users.image,
@@ -209,7 +212,7 @@ export async function loadIssueTimeline(
     });
   };
 
-  const visibleActivity = await redactMovedEventsFor(
+  const visibleActivity = await redactActivityFor(
     activityRows.map((row) => ({ ...row, data: row.data ?? {} })),
     viewerId,
   );
@@ -217,7 +220,7 @@ export async function loadIssueTimeline(
     activities: visibleActivity.reverse().map((row) => ({
       id: row.id,
       type: row.type,
-      data: row.data,
+      data: row.data ?? {},
       createdAt: row.createdAt,
       actor: toUser({ id: row.actorId, name: row.actorName, image: row.actorImage }),
     })),

@@ -43,7 +43,7 @@ import {
   workspaces,
 } from '@/db/schema';
 import { formatIssueKey } from '@/lib/tickets';
-import { redactMovedEventsFor } from '@/lib/moved-events';
+import { redactActivityFor } from '@/lib/moved-events';
 
 // ---------------------------------------------------------------------------
 // Categories
@@ -353,7 +353,7 @@ export function decodeAuditCursor(value: unknown): AuditCursor | null {
 
 /**
  * Newest first; `before` continues after the last row of the previous page.
- * Moves are redacted for `viewerId` (moved-events.ts).
+ * Activity recorded in another project is redacted for `viewerId` (moved-events.ts).
  */
 export async function queryAuditRows(
   where: SQL | undefined,
@@ -373,6 +373,7 @@ export async function queryAuditRows(
       createdAt: activities.createdAt,
       type: activities.type,
       data: activities.data,
+      ticketId: activities.ticketId,
       actorId: users.id,
       actorName: users.name,
       actorEmail: users.email,
@@ -393,7 +394,7 @@ export async function queryAuditRows(
     .where(and(where, cursor))
     .orderBy(desc(activities.createdAt), desc(activities.id))
     .limit(limit);
-  const rows = await redactMovedEventsFor(raw, viewerId);
+  const rows = await redactActivityFor(raw, viewerId);
 
   return rows.map((row) => {
     const data = row.data ?? {};
