@@ -43,6 +43,7 @@ import {
   workspaces,
 } from '@/db/schema';
 import { formatIssueKey } from '@/lib/tickets';
+import { redactMovedEventsFor } from '@/lib/moved-events';
 
 // ---------------------------------------------------------------------------
 // Categories
@@ -164,7 +165,7 @@ export function auditFilterParams(filters: AuditFilters): Record<string, string>
 // Scope + authorization
 // ---------------------------------------------------------------------------
 
-export type AuditScope =
+export type AuditScope = (
   | {
       kind: 'project';
       id: string;
@@ -179,7 +180,11 @@ export type AuditScope =
       name: string;
       /** Projects of the workspace the viewer administers (their issue events are included). */
       adminProjectIds: string[];
-    };
+    }
+) & {
+  /** Who reads the log: moves name another project only when they belong to it. */
+  viewerId: string;
+};
 
 /**
  * The audit scope when `userId` may read it, else null (callers 404):
@@ -202,6 +207,7 @@ export async function resolveAuditScope(
       name: row.name,
       ticketKey: row.ticketKey,
       workspaceId: row.workspaceId,
+      viewerId: userId,
     };
   }
 
@@ -237,6 +243,7 @@ export async function resolveAuditScope(
       slug: row.slug,
       name: row.name,
       adminProjectIds: adminProjects.map((p) => p.id),
+      viewerId: userId,
     };
   }
 
@@ -344,10 +351,13 @@ export function decodeAuditCursor(value: unknown): AuditCursor | null {
   return { createdAt: new Date(Number(match[1])), id: match[2] };
 }
 
-/** Newest first; `before` continues after the last row of the previous page. */
+/**
+ * Newest first; `before` continues after the last row of the previous page.
+ * Moves are redacted for `viewerId` (moved-events.ts).
+ */
 export async function queryAuditRows(
   where: SQL | undefined,
-  { before, limit }: { before?: AuditCursor | null; limit: number },
+  { before, limit, viewerId }: { before?: AuditCursor | null; limit: number; viewerId: string },
 ): Promise<AuditRow[]> {
   const cursor = before
     ? or(
@@ -357,7 +367,7 @@ export async function queryAuditRows(
     : undefined;
 
   const ticketProject = alias(projects, 'ticket_project');
-  const rows = await db
+  const raw = await db
     .select({
       id: activities.id,
       createdAt: activities.createdAt,
@@ -383,6 +393,7 @@ export async function queryAuditRows(
     .where(and(where, cursor))
     .orderBy(desc(activities.createdAt), desc(activities.id))
     .limit(limit);
+  const rows = await redactMovedEventsFor(raw, viewerId);
 
   return rows.map((row) => {
     const data = row.data ?? {};

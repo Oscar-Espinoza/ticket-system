@@ -82,7 +82,7 @@ export const GET: RequestHandler = async ({ url, locals }) => {
           return;
         }
         const limit = Math.min(CHUNK, MAX_ROWS - sent);
-        const rows = limit > 0 ? await queryAuditRows(where, { before: cursor, limit }) : [];
+        const rows = limit > 0 ? await queryAuditRows(where, { before: cursor, limit, viewerId: user.id }) : [];
         if (rows.length > 0) {
           const records = rows.map(auditExportRecord);
           const chunk =

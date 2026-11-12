@@ -167,7 +167,7 @@ export const createIssueTool = defineTool({
     const result = await createIssue({ userId }, project.id, input, requestId ? { id: requestId } : undefined);
     if (!result.ok) return toolError(result.error);
     if (!replay) await audit(credential, 'create_issue', result.issue, 'created');
-    const detail = await issueDetail(result.issue, project);
+    const detail = await issueDetail(result.issue, project, userId);
     const view: IssueDetailView = { view: 'issue-detail', issue: detail, changes: [replay ? 'already created' : 'created'] };
     const lead = replay ? `${detail.key} was already created with this request_id.` : `Created ${detail.key}.`;
     return toolResult(`${lead}\n\n${issueDetailMarkdown(detail)}`, view);
@@ -248,7 +248,7 @@ export const updateIssueTool = defineTool({
     if (!result.ok) return toolError(result.error);
     const changes = describeChanges(before, result.issue);
     if (changes.length) await audit(credential, 'update_issue', result.issue, 'updated');
-    const detail = await issueDetail(result.issue, project);
+    const detail = await issueDetail(result.issue, project, userId);
     const view: IssueDetailView = { view: 'issue-detail', issue: detail, changes };
     return toolResult(
       changes.length ? issueDetailMarkdown(detail, changes) : `No changes: ${detail.key} already had those values.`,
@@ -284,7 +284,7 @@ export const addCommentTool = defineTool({
     });
     if (!result.ok) return toolError(result.error);
     await audit(credential, 'add_comment', issue, 'commented on');
-    const detail = await issueDetail(issue, project);
+    const detail = await issueDetail(issue, project, userId);
     const view: IssueDetailView = { view: 'issue-detail', issue: detail, changes: ['comment added'] };
     return toolResult(`Comment added to ${issue.key}.\n\n${issueDetailMarkdown(detail)}`, view);
   },

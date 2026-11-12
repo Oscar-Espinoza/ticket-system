@@ -68,7 +68,7 @@ export async function loadAuditLogView(
   const before = decodeAuditCursor(rawBefore);
   const where = await auditConditions(scope, filters);
   const [rows, actors] = await Promise.all([
-    queryAuditRows(where, { before, limit: PAGE_SIZE + 1 }),
+    queryAuditRows(where, { before, limit: PAGE_SIZE + 1, viewerId: scope.viewerId }),
     auditActorOptions(scope),
   ]);
   const page = rows.slice(0, PAGE_SIZE);

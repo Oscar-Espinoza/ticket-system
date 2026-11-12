@@ -1209,7 +1209,7 @@ export async function purge(actor: IssueActor, projectId: string, id: string): P
 // Move to another project
 // ---------------------------------------------------------------------------
 
-export const ISSUE_MOVED_EVENT = 'issue.moved';
+export const ISSUE_MOVED_EVENT = ISSUE_EVENT.moved;
 
 export type MoveIssueResult =
   | {
