@@ -33,8 +33,17 @@ category Integrations). The assistant acts with your own permissions: it sees
 only projects you are a member of, and a guest can still only read and comment.
 
 Hosts ask before `update_issue` runs (it is marked as overwriting data).
+`create_issue` takes an optional `request_id` (a UUID the assistant picks): a
+retry with the same one returns the issue already created instead of a second
+copy. If the audit row can't be written after a successful change, the change
+stands and the failure is logged (an error would make the assistant retry and
+duplicate it).
+
 Issue text is written by people and may contain instructions; the server tells
-the model to treat it as data, and the write limits above apply regardless.
+the model to treat it as data, text results put descriptions and comment
+bodies in fenced `user-content` blocks the text can't close, and the write
+limits above apply regardless. One JSON-RPC message per request: batches
+(arrays) are refused with HTTP 400.
 
 ## Connect
 
@@ -94,6 +103,13 @@ tools behave as if the workspace's teams don't exist, for every member and
 every connected assistant, from the next call on. People's projects outside
 the workspace are not affected. The change is audited.
 
+This switch covers the MCP connector only; it is not a data boundary. The same
+person's API key, or an opaque OAuth token (one issued without the `/mcp`
+resource, which `/mcp` also accepts), still reads and writes that workspace
+through `/api/v1` and `/api/graphql`. To cut an app or
+agent off completely, revoke it (Settings → OAuth apps) or delete the key;
+to keep data out of AI tools entirely, that has to be a policy people follow.
+
 **Public reachability.** claude.ai, Claude Desktop/mobile and ChatGPT call the
 server from the vendors' clouds, so these paths must be reachable over public
 HTTPS (Claude's egress range is `160.79.104.0/21`):
@@ -109,22 +125,43 @@ run in the user's own browser, so they can stay on a VPN. An instance only on
 the office network works with Claude Code (it connects from the user's machine)
 but not with claude.ai or ChatGPT. Options: the Vercel deployment, a reverse
 proxy that exposes only the paths above, or a tunnel (`cloudflared`) for
-testing. `PUBLIC_APP_URL` / `BETTER_AUTH_URL` must be that public URL: the
-token audience and the metadata are built from it.
+testing. `PUBLIC_APP_URL` / `BETTER_AUTH_URL` must both be that public URL:
+the token audience, the metadata and the token issuer are built from them. If
+they differ, the server logs `[mcp] MCP is misconfigured: …` once and `/mcp`
+and the protected-resource documents answer 500 with the same message.
 
 **Client registration.** Claude and ChatGPT register themselves (OAuth dynamic
 client registration). Only public clients (PKCE, no secret) with these redirect
-URIs may register:
+URIs (exactly as written: the URI must already be in canonical form) may
+register:
 
 - `https://claude.ai/api/mcp/auth_callback`
 - `https://chatgpt.com/connector_platform_oauth_redirect` and `https://chatgpt.com/connector/oauth/<id>`
 - `http://localhost:<port>/…` and `http://127.0.0.1:<port>/…` (Claude Code, MCP Inspector)
 - anything listed in `MCP_EXTRA_REDIRECT_URIS` (comma- or space-separated, exact match)
 
-Registration is rate-limited (5 per minute per IP; Better Auth applies rate
-limits when `NODE_ENV=production`, which the Docker image and Vercel set).
-Self-registered clients are flagged on the consent screen ("This app registered
-itself"), and the daily job deletes those with no live token for 30 days.
+Homepage, logo, terms and privacy URLs (`client_uri`, `logo_uri`, `tos_uri`,
+`policy_uri`) must be absolute `https:` URLs or absent, and
+`post_logout_redirect_uris` is refused; the same URL rule applies to apps
+created in Settings → OAuth apps (Better Auth's own `/oauth2/create-client`
+and `/oauth2/update-client` HTTP endpoints are switched off). Self-registered
+clients are flagged on the consent screen ("This app registered itself"). The
+daily job deletes self-registered clients nobody used (no consent, no token)
+after a day, and used ones with no live token for 30 days.
+
+Registration is rate-limited: 5 per minute per client IP, counted in memory
+(Better Auth applies rate limits when `NODE_ENV=production`, which the Docker
+image and Vercel set). The client IP is the one SvelteKit resolves, never a
+header the caller sends:
+
+- **Docker / Node, no proxy**: the connection's address; nothing to set.
+- **Behind a reverse proxy**: set `ADDRESS_HEADER=X-Forwarded-For` and
+  `XFF_DEPTH` to the number of proxies (see
+  [SELF_HOSTING.md](SELF_HOSTING.md)). Without them every caller shares the
+  proxy's single limit (strict, not open).
+- **Vercel**: the address Vercel's edge puts in `X-Forwarded-For`; nothing to
+  set. The counter lives in each function instance's memory, so the limit is
+  per instance: a speed bump against floods, not a guarantee.
 
 ## Troubleshooting
 
