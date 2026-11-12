@@ -3,12 +3,21 @@
 // touches members, roles, settings or integrations. Every successful call is
 // audited as `mcp.tool_call` with the OAuth client. The issue and comment
 // services re-validate every id against the project.
+//
+// The audit row is written after the change, outside its transaction (the
+// services commit their own batch; the row needs the final key and diff). If
+// that insert fails the write still happened, so the failure is logged and the
+// tool answers with the result: an error would make the model retry and
+// duplicate the issue or comment. create_issue also takes an optional
+// `request_id` (the issue service's client-chosen id) so a retry after a lost
+// response returns the issue it already created.
 
 import { z } from 'zod';
 
 import { recordProjectEvent } from '@/lib/audit';
 import { createCommentAs } from '@/lib/comments';
 import { createIssue, updateIssueFields } from '@/lib/issue-service';
+import { getTicketById } from '@/lib/tickets';
 import type { CreateIssueInput, IssuePatch, IssueRow, Priority } from '@/lib/issue-model';
 import { mcpIssue, mcpProject } from '../access';
 import type { IssueDetailView, McpCredential } from '../contracts';
@@ -34,19 +43,23 @@ async function audit(
   verb: string,
 ) {
   const client = credential.clientName ?? (credential.via === 'api_key' ? 'an API key' : 'an AI assistant');
-  await recordProjectEvent(issue.projectId, {
-    actorId: credential.userId,
-    type: 'mcp.tool_call',
-    summary: `${verb} ${issue.key} through ${client} (MCP)`,
-    data: {
-      tool,
-      via: credential.via,
-      clientId: credential.clientId,
-      clientName: credential.clientName,
-      issueId: issue.id,
-      key: issue.key,
-    },
-  });
+  try {
+    await recordProjectEvent(issue.projectId, {
+      actorId: credential.userId,
+      type: 'mcp.tool_call',
+      summary: `${verb} ${issue.key} through ${client} (MCP)`,
+      data: {
+        tool,
+        via: credential.via,
+        clientId: credential.clientId,
+        clientName: credential.clientName,
+        issueId: issue.id,
+        key: issue.key,
+      },
+    });
+  } catch (err) {
+    console.error(`[mcp] audit failed after a successful ${tool} on ${issue.key}`, err);
+  }
 }
 
 const dateArg = z
@@ -120,6 +133,10 @@ export const createIssueTool = defineTool({
     ...fieldArgs,
     labels: labelList.optional().describe('Label names or ids.'),
     parent: issueKeyArg.optional().describe('Key of the parent issue (same project), to create a sub-issue.'),
+    request_id: z
+      .uuid()
+      .optional()
+      .describe('Optional UUID you generate. Send the same one when retrying: the retry returns the issue already created instead of a duplicate.'),
   }),
   invoking: 'Creating the issue…',
   invoked: 'Created the issue',
@@ -145,12 +162,15 @@ export const createIssueTool = defineTool({
       input.parentId = parent.issue.id;
     }
 
-    const result = await createIssue({ userId }, project.id, input);
+    const requestId = args.request_id?.toLowerCase();
+    const replay = requestId ? !!(await getTicketById(project.id, requestId)) : false;
+    const result = await createIssue({ userId }, project.id, input, requestId ? { id: requestId } : undefined);
     if (!result.ok) return toolError(result.error);
-    await audit(credential, 'create_issue', result.issue, 'created');
+    if (!replay) await audit(credential, 'create_issue', result.issue, 'created');
     const detail = await issueDetail(result.issue, project);
-    const view: IssueDetailView = { view: 'issue-detail', issue: detail, changes: ['created'] };
-    return toolResult(`Created ${detail.key}.\n\n${issueDetailMarkdown(detail)}`, view);
+    const view: IssueDetailView = { view: 'issue-detail', issue: detail, changes: [replay ? 'already created' : 'created'] };
+    const lead = replay ? `${detail.key} was already created with this request_id.` : `Created ${detail.key}.`;
+    return toolResult(`${lead}\n\n${issueDetailMarkdown(detail)}`, view);
   },
 });
 

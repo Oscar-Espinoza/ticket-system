@@ -13,7 +13,7 @@ import { listIssueRelations } from '@/lib/relations';
 import { getTicketById, queryIssues } from '@/lib/tickets';
 import type { McpProject } from '../access';
 import type { IssueDetail } from '../contracts';
-import { commentView, descriptionText, projectRef, stateRef, summarizeIssue, truncate } from '../format';
+import { commentView, descriptionText, projectRef, stateRef, summarizeIssue, truncate, userContentBlock } from '../format';
 
 export const COMMENTS_DEFAULT = 5;
 export const COMMENTS_MAX = 20;
@@ -93,7 +93,7 @@ export function issueDetailMarkdown(detail: IssueDetail, changes?: string[]): st
   if (detail.archivedAt) facts.push('Archived');
   if (detail.deletedAt) facts.push('In trash');
   lines.push(facts.join(' · '), `Project: ${detail.project.name} (${detail.project.key}) · ${detail.url}`);
-  lines.push('', detail.description?.trim() ? detail.description : '_No description._');
+  lines.push('', detail.description?.trim() ? `Description:\n${userContentBlock(detail.description)}` : '_No description._');
   if (detail.subIssues.length) {
     lines.push('', '## Sub-issues', ...detail.subIssues.map((s) => `- **${s.key}** ${s.title} — ${s.state.name}`));
   }
@@ -108,7 +108,7 @@ export function issueDetailMarkdown(detail: IssueDetail, changes?: string[]): st
     const shown = detail.comments.length;
     lines.push('', `## Comments (${shown === detail.commentCount ? shown : `last ${shown} of ${detail.commentCount}`})`);
     for (const c of detail.comments) {
-      lines.push(`- **${c.author?.name ?? 'Deleted user'}** (${c.createdAt.slice(0, 10)}): ${truncate(c.body.replace(/\s+/g, ' '), 600)}`);
+      lines.push(`**${c.author?.name ?? 'Deleted user'}** (${c.createdAt.slice(0, 10)}):`, userContentBlock(truncate(c.body, 600) ?? ''));
     }
   }
   return lines.join('\n');

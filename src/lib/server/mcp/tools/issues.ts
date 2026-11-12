@@ -10,7 +10,7 @@ import { searchIssues } from '@/lib/search';
 import { MARK_END, MARK_START } from '@/lib/search-marks';
 import { activeIssue, queryIssues } from '@/lib/tickets';
 import { openStateType } from '@/lib/workflow-server';
-import { mcpIssue, mcpProject, mcpProjects } from '../access';
+import { mcpIssue, mcpProject, mcpProjects, type McpProject } from '../access';
 import type { IssueDetailView, IssueListView, IssueSummary } from '../contracts';
 import {
   decodeOffset,
@@ -54,18 +54,21 @@ export const searchIssuesTool = defineTool({
   invoking: 'Searching issues…',
   invoked: 'Searched issues',
   async run({ query, project: ref, include_archived, limit }, { userId }) {
-    let projectId: string | null = null;
+    // The reachable projects (membership + D8, from ./access.ts) go into the
+    // query itself, so blocked workspaces can't take up the 50 result slots.
+    let projects: McpProject[];
     if (ref) {
       const access = await mcpProject(userId, ref, 'read');
       if (!access.ok) return toolError(access.error);
-      projectId = access.project.id;
+      projects = [access.project];
+    } else {
+      projects = await mcpProjects(userId);
     }
-    const [results, projects] = await Promise.all([
-      searchIssues(userId, query, { projectId, includeArchived: include_archived === true }),
-      mcpProjects(userId),
-    ]);
-    // searchIssues scopes to the user's memberships; D8 drops blocked workspaces.
     const reachable = new Map(projects.map((p) => [p.id, projectRef(p)]));
+    const results = await searchIssues(userId, query, {
+      projectIds: [...reachable.keys()],
+      includeArchived: include_archived === true,
+    });
     const issues: IssueSummary[] = results
       .filter((r) => reachable.has(r.issue.projectId))
       .slice(0, limit ?? LIST_DEFAULT)

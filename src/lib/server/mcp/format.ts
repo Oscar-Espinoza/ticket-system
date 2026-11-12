@@ -89,6 +89,17 @@ export function issueLine(issue: IssueSummary): string {
   return line;
 }
 
+/**
+ * User-written text (descriptions, comment bodies) as a fenced block the text
+ * can't close or escape: the fence is longer than any backtick run inside it,
+ * so the model can tell where the data ends and our output resumes.
+ */
+export function userContentBlock(text: string): string {
+  const longest = Math.max(0, ...(text.match(/`+/g) ?? []).map((run) => run.length));
+  const fence = '`'.repeat(Math.max(3, longest + 1));
+  return `${fence}user-content\n${text}\n${fence}`;
+}
+
 export function issueListMarkdown(title: string, issues: IssueSummary[], nextCursor: string | null): string {
   if (issues.length === 0) return `${title}: no issues.`;
   const lines = [`${title} (${issues.length}${nextCursor ? ', more available' : ''}):`, ...issues.map(issueLine)];
