@@ -7,7 +7,7 @@
 import { redirect } from '@sveltejs/kit';
 
 import { signInProviders } from '@/lib/auth-providers';
-import { emailVerificationAvailable } from '@/lib/email-verification';
+import { emailVerificationAvailable, passwordResetAvailable } from '@/lib/email-verification';
 import { safeRedirect } from '@/lib/safe-redirect';
 import type { PageServerLoad } from './$types';
 
@@ -18,8 +18,10 @@ const normalizeCode = (value: string) => value.toLowerCase().replace(/\s+/g, '_'
 /**
  * account_not_linked: Better Auth found an account with that address but
  * links only when both sides are verified (auth.ts accountLinking). With
- * verification available the form lists the steps under this headline and
- * offers "Email me a verification link".
+ * verification available the form lists the steps under this headline (sign
+ * in, verify from the banner, continue with Google/GitHub) and offers
+ * "Forgot password?" to someone who never set that password. No verification
+ * email can be requested from here while signed out.
  */
 function accountNotLinkedCopy(verificationAvailable: boolean): string {
   const headline =
@@ -64,9 +66,9 @@ export const load: PageServerLoad = async ({ url, locals }) => {
     redirectTo,
     ...signInProviders(),
     initialError: error,
-    // Offer "send verification email" next to the account_not_linked copy.
+    // Show the account_not_linked steps under the headline.
     offerVerification: verificationAvailable && !!errorParam && normalizeCode(errorParam).includes('account_not_linked'),
-    emailVerificationAvailable: verificationAvailable,
+    passwordResetAvailable: passwordResetAvailable(),
     initialSso: url.searchParams.get('sso') === '1' || error === SSO_REQUIRED_COPY,
   };
 };

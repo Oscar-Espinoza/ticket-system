@@ -18,8 +18,12 @@
   could be read.
 
   Unverified email: `account_not_linked` (?error=) shows the three steps that
-  fix it, and EMAIL_NOT_VERIFIED (REQUIRE_EMAIL_VERIFICATION on) explains
-  itself; both offer "send verification email" when the server can send it.
+  fix it (sign in with the password, verify from the banner, continue with
+  Google/GitHub) and, for someone who never set that password, "Forgot
+  password?". EMAIL_NOT_VERIFIED (REQUIRE_EMAIL_VERIFICATION on) says a fresh
+  link was emailed (the server sends one for a correct password). Nothing here
+  sends a verification email signed out: only the account's signed-in holder
+  can (banner, Settings), so this page can't be used to mail other people.
 
   Redirect races: a password sign-in can answer `twoFactorRedirect` (the
   twoFactorClient plugin sends the browser to /login/two-factor) or, mid
@@ -43,7 +47,6 @@
   import { Separator } from '@/lib/components/ui/separator';
   import { authHref } from '@/lib/safe-redirect';
   import GoogleSignInButton from '@/lib/components/auth/google-sign-in-button.svelte';
-  import ResendVerificationButton from '@/lib/components/auth/resend-verification-button.svelte';
 
   const SSO_REQUIRED = 'SSO_REQUIRED';
   const EMAIL_NOT_VERIFIED = 'EMAIL_NOT_VERIFIED';
@@ -58,7 +61,7 @@
     initialSso = false,
     googleEnabled = false,
     initialOfferVerification = false,
-    emailVerificationAvailable = false,
+    passwordResetAvailable = false,
   }: {
     redirectTo: string;
     /** GITHUB_CLIENT_ID/SECRET are set on the server; without them the button is hidden. */
@@ -71,8 +74,8 @@
     googleEnabled?: boolean;
     /** `?error=account_not_linked` and verification emails can be sent: show the steps instead of `initialError`. */
     initialOfferVerification?: boolean;
-    /** The server can send verification emails (RESEND_API_KEY + EMAIL_FROM). */
-    emailVerificationAvailable?: boolean;
+    /** "Forgot password?" works (reset emails can be sent). */
+    passwordResetAvailable?: boolean;
   } = $props();
 
   // useState initial values: read once, like React.
@@ -84,8 +87,6 @@
   // account_not_linked help: not cleared by typing (step 1 is to type your password).
   let linkHelp = $state<string | null>(untrack(() => (initialOfferVerification ? initialError : null)));
   let formError = $state<string | null>(untrack(() => (initialOfferVerification ? null : initialError)));
-  // The last sign-in failed with EMAIL_NOT_VERIFIED: offer a new link.
-  let notVerified = $state(false);
   let loading = $state(false);
 
   async function handleGitHubSignIn() {
@@ -106,7 +107,6 @@
     mode = next;
     formError = null;
     linkHelp = null;
-    notVerified = false;
     emailError = null;
     passwordError = null;
   }
@@ -124,7 +124,7 @@
     const { error } = await authClient.signIn.sso({
       email,
       callbackURL: redirectTo,
-      errorCallbackURL: '/login',
+      errorCallbackURL: authHref('/login', redirectTo),
     });
     if (error) {
       loading = false;
@@ -140,7 +140,6 @@
     emailError = null;
     passwordError = null;
     formError = null;
-    notVerified = false;
 
     if (!email) {
       emailError = 'Email is required.';
@@ -164,10 +163,10 @@
         mode = 'sso';
         formError = 'Your workspace requires single sign-on. Continue with SSO below.';
       } else if (error.code === EMAIL_NOT_VERIFIED) {
-        // REQUIRE_EMAIL_VERIFICATION is on and the password was right.
-        notVerified = true;
+        // REQUIRE_EMAIL_VERIFICATION is on and the password was right: the
+        // server has emailed a fresh link (at most one a minute).
         formError =
-          'Verify your email address before signing in: open the link we emailed you, then sign in again.';
+          'Verify your email address before signing in. We emailed you a link: open it and sign in on the page it opens.';
       } else if (error.status === 401) {
         // Better Auth returns 401 for invalid credentials.
         formError = 'Invalid email or password.';
@@ -191,7 +190,6 @@
     if (!isUserEdit(e)) return;
     if (emailError) emailError = null;
     if (formError) formError = null;
-    notVerified = false;
   }
 
   function onPasswordInput(e: Event) {
@@ -234,7 +232,7 @@
     {#if mode === 'sso'}
       <form onsubmit={handleSsoSubmit} class="flex flex-col gap-4" novalidate>
         {@render emailField()}
-        {#if formError}<p class="text-destructive text-sm">{formError}</p>{/if}
+        {#if formError}<p role="alert" class="text-destructive text-sm">{formError}</p>{/if}
         <Button type="submit" class="w-full" disabled={loading}>
           {#if loading}<Loader2Icon class="animate-spin" />{:else}<KeyRoundIcon />{/if}
           {loading ? 'Redirecting…' : 'Continue with SSO'}
@@ -256,12 +254,16 @@
           <p class="text-destructive">{linkHelp}</p>
           <ol class="flex list-decimal flex-col gap-1.5 pl-5 text-muted-foreground">
             <li>Sign in below with your email and password.</li>
-            <li>
-              Verify your email with the link we send you. No email?
-              <ResendVerificationButton {email} {redirectTo} label="Email me a verification link" class="mt-1.5" />
-            </li>
-            <li>Continue with Google or GitHub again: it opens the same account.</li>
+            <li>Verify your email from the banner at the top of the dashboard (it emails you a link; open it while signed in).</li>
+            <li>Sign out and continue with Google or GitHub again: it opens the same account.</li>
           </ol>
+          {#if passwordResetAvailable}
+            <p class="text-xs text-muted-foreground">
+              Never set a password here? Someone may have signed up with your address.
+              <a href="/forgot-password" class="underline underline-offset-4">Reset the password</a> to take the account
+              back: it proves the address is yours, signs everyone else out and removes what they set up.
+            </p>
+          {/if}
           <p class="text-xs text-muted-foreground">
             Using single sign-on? Ask your admin to add an email_verified attribute in the identity provider.
           </p>
@@ -297,7 +299,14 @@
         {@render emailField()}
 
         <div class="flex flex-col gap-2">
-          <Label for="password">Password</Label>
+          <div class="flex items-center justify-between gap-2">
+            <Label for="password">Password</Label>
+            {#if passwordResetAvailable}
+              <a href="/forgot-password" class="text-sm text-muted-foreground underline-offset-4 hover:underline">
+                Forgot password?
+              </a>
+            {/if}
+          </div>
           <Input
             id="password"
             type="password"
@@ -314,10 +323,7 @@
           {/if}
         </div>
 
-        {#if formError}<p class="text-destructive text-sm" data-form-error>{formError}</p>{/if}
-        {#if notVerified && emailVerificationAvailable}
-          <ResendVerificationButton {email} {redirectTo} label="Send a new verification link" />
-        {/if}
+        {#if formError}<p role="alert" class="text-destructive text-sm" data-form-error>{formError}</p>{/if}
 
         <Button type="submit" class="w-full" disabled={loading}>
           {#if loading}<Loader2Icon class="animate-spin" />{/if}

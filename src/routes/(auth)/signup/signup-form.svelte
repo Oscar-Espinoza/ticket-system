@@ -133,8 +133,9 @@
   <CardHeader>
     <CardTitle>Check your email</CardTitle>
     <CardDescription>
-      We sent a link to <span class="font-medium break-all">{checkInbox}</span> to verify the address. Open it,
-      then sign in. Already have an account with this email? Just sign in.
+      We sent a link to <span class="font-medium break-all">{checkInbox}</span> to verify the address. Open it
+      and sign in on the page it opens with the password you just chose. Already have an account with this email?
+      Just sign in.
     </CardDescription>
   </CardHeader>
   <CardContent>

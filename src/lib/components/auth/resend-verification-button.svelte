@@ -1,12 +1,11 @@
 <!--
   "Send verification email": asks Better Auth (/send-verification-email) to
-  email `email` a fresh link that lands on /email-verification and then goes to
-  `redirectTo`. Used by the dashboard banner, Settings → Profile, the landing
-  page and the sign-in form. Render it only when the server reports
-  verification as available (emailVerificationAvailable). Better Auth answers
-  "sent" for unknown or already-verified addresses when signed out, and the
-  server sends at most one email a minute per account, so the copy promises
-  no more than that.
+  email the signed-in user's own address a fresh link. Used by the dashboard
+  banner, Settings → Profile and the landing page, only for a signed-in,
+  unverified user and only when the server reports verification as available
+  (emailVerificationAvailable). The server refuses signed-out callers, always
+  lands the link on /email-verification → /dashboard, and sends at most one
+  email a minute per account, so the copy promises no more than that.
 -->
 <script lang="ts">
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
@@ -17,15 +16,13 @@
 
   let {
     email,
-    redirectTo = '/dashboard',
     label = 'Send verification email',
     variant = 'outline',
     size = 'sm',
     class: className = '',
   }: {
-    /** The address to verify; the button is disabled while it's empty. */
+    /** The signed-in user's address. */
     email: string;
-    redirectTo?: string;
     label?: string;
     variant?: ButtonVariant;
     size?: ButtonSize;
@@ -36,21 +33,19 @@
   let status = $state<{ ok: boolean; text: string } | null>(null);
 
   async function send() {
-    if (!email.includes('@')) {
-      status = { ok: false, text: 'Enter your email address first.' };
-      return;
-    }
     sending = true;
     status = null;
-    const { error } = await authClient.sendVerificationEmail({ email, callbackURL: redirectTo });
+    const { error } = await authClient.sendVerificationEmail({ email });
     sending = false;
     if (!error) {
       status = {
         ok: true,
-        text: `If ${email} needs verifying, a link is on its way. Check your inbox and spam folder; you can ask for a new link once a minute.`,
+        text: `A link is on its way to ${email}. Check your inbox and spam folder; you can ask for a new link once a minute. Open it while signed in to this account.`,
       };
     } else if (error.code === 'EMAIL_ALREADY_VERIFIED') {
       status = { ok: true, text: 'This address is already verified. Reload the page.' };
+    } else if (error.status === 401) {
+      status = { ok: false, text: 'You were signed out. Sign in again to send a link.' };
     } else if (error.status === 429) {
       status = { ok: false, text: 'Too many requests. Wait a minute and try again.' };
     } else if (error.code === 'VERIFICATION_EMAIL_NOT_ENABLED') {

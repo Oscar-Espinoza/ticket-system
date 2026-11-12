@@ -38,7 +38,7 @@
   <p class="mt-2 mb-3 text-sm text-muted-foreground">
     {data.profile.email} isn’t verified yet. Verify it to sign in with Google or GitHub using this address.
   </p>
-  <ResendVerificationButton email={data.profile.email} redirectTo="/dashboard/settings/profile" />
+  <ResendVerificationButton email={data.profile.email} />
 {:else}
   <p class="mt-2 text-sm text-muted-foreground">
     {data.profile.email} isn’t verified, and this server doesn’t send email. To sign in with Google or GitHub using
