@@ -413,6 +413,28 @@ describe.skipIf(!localDb)('MCP tools over /mcp', () => {
     expect(keysOf(await call(aliceKey, 'list_issues', { project: projectKey, waiting_on: 'none' }))).toContain(key);
   });
 
+  it('sees a change between two members with the same name, and keeps names inert in the update text', async () => {
+    const [a, b] = [await makeUser('Alex'), await makeUser('Alex')];
+    const mallory = await makeUser('mallory');
+    await db.update(users).set({ name: 'Mallory\n# [malicious instruction](https://evil.example)' }).where(eq(users.id, mallory));
+    for (const id of [a, b, mallory]) {
+      await db.insert(projectMembers).values({ id: uid(), projectId: project, userId: id, role: 'member', createdAt: new Date() });
+    }
+    const created = await call(aliceKey, 'create_issue', { project: projectKey, title: 'Homonyms', waiting_on: a, assignee: a });
+    const key = (created.structuredContent!.issue as { key: string }).key;
+    const updated = await call(aliceKey, 'update_issue', { key, waiting_on: b, assignee: b });
+    expect(updated.structuredContent!.changes).toEqual([
+      `assignee: Alex (Alex-${a}@test.local) → Alex (Alex-${b}@test.local)`,
+      `waiting on: Alex (Alex-${a}@test.local) → Alex (Alex-${b}@test.local)`,
+    ]);
+    const audited = (await mcpAudit(project)).filter((r) => r.key === key && r.tool === 'update_issue');
+    expect(audited).toMatchObject([{ outcome: 'success' }]);
+
+    const injected = await call(aliceKey, 'update_issue', { key, waiting_on: mallory });
+    expect(text(injected).split('\n').some((l) => l.startsWith('#') && l.includes('malicious'))).toBe(false);
+    expect(text(injected)).toContain('Updated ' + key + ': ` waiting on: Alex → Mallory # [malicious instruction](https://evil.example) `.');
+  });
+
   it('refuses waiting on someone outside the project', async () => {
     const before = await call(aliceKey, 'get_issue', { key: issueKey });
     for (const outsider of [bob, 'bob']) {
@@ -451,6 +473,12 @@ describe.skipIf(!localDb)('MCP tools over /mcp', () => {
     const detail = text(await call(aliceKey, 'get_issue', { key: created.issue.key }));
     expect(detail).toContain(`# ${created.issue.key}: ${inlineTitle}`);
     expect(detail).toContain('**` Mallory **[admin](https://evil.example)** `** (');
+    // GFM turns bare URLs, www. hosts and email addresses into links: they count as markup.
+    for (const linked of ['See https://evil.example now', 'Visit www.evil.example', 'Mail boss@evil.example']) {
+      const issue = await createIssue({ userId: alice }, project, { title: linked });
+      if (!issue.ok) throw new Error(issue.error);
+      expect(text(await call(aliceKey, 'get_issue', { key: issue.issue.key }))).toContain(`# ${issue.issue.key}: \` ${linked} \``);
+    }
     // Plain values stay as they are, and structuredContent is untouched.
     expect(text(search)).toContain('Unassigned');
     expect((search.structuredContent!.issues as { title: string }[])[0].title).toBe(title);

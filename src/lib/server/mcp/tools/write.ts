@@ -22,7 +22,7 @@ import { z } from 'zod';
 
 import { createCommentAs } from '@/lib/comments';
 import { createIssue, updateIssueFields } from '@/lib/issue-service';
-import type { CreateIssueInput, IssuePatch, IssueRow, Priority } from '@/lib/issue-model';
+import type { CreateIssueInput, IssuePatch, IssueRow, IssueUser, Priority } from '@/lib/issue-model';
 import { mcpIssue, mcpProject } from '../access';
 import { auditWrite as audit, refused } from '../audit';
 import type { IssueDetailView } from '../contracts';
@@ -206,8 +206,13 @@ export const createIssueTool = defineTool({
 
 const sameSet = (a: string[], b: string[]) => a.length === b.length && a.every((x) => b.includes(x));
 
-/** Human-readable list of what changed between two versions of an issue. */
-export function describeChanges(before: IssueRow, after: IssueRow): string[] {
+/**
+ * Human-readable list of what changed between two versions of an issue. People
+ * are compared by id; when the old and new person share a name, each is shown
+ * with their email (`emailOf`, from the project's members; the id when they
+ * have left), the only place an email tells duplicates apart.
+ */
+export function describeChanges(before: IssueRow, after: IssueRow, emailOf: (userId: string) => string | undefined = () => undefined): string[] {
   const changes: string[] = [];
   const show = (v: unknown) => (v === null || v === undefined || v === '' ? 'none' : String(v));
   const field = (name: string, a: unknown, b: unknown) => {
@@ -217,8 +222,14 @@ export function describeChanges(before: IssueRow, after: IssueRow): string[] {
   if ((before.description ?? '') !== (after.description ?? '')) changes.push('description updated');
   field('state', before.state.name, after.state.name);
   field('priority', before.priority, after.priority);
-  field('assignee', before.assignee?.name, after.assignee?.name);
-  field('waiting on', before.waitingOn?.name, after.waitingOn?.name);
+  const person = (name: string, a: IssueUser | null, b: IssueUser | null) => {
+    if ((a?.id ?? null) === (b?.id ?? null)) return;
+    const label = (user: IssueUser | null, other: IssueUser | null) =>
+      !user ? 'none' : other?.name === user.name ? `${user.name} (${emailOf(user.id) ?? user.id})` : user.name;
+    changes.push(`${name}: ${label(a, b)} → ${label(b, a)}`);
+  };
+  person('assignee', before.assignee, after.assignee);
+  person('waiting on', before.waitingOn, after.waitingOn);
   field('estimate', before.estimate, after.estimate);
   field('due date', before.dueDate, after.dueDate);
   field('follow-up', before.followUp, after.followUp);
@@ -278,7 +289,7 @@ export const updateIssueTool = defineTool({
 
     const result = await updateIssueFields({ userId }, project.id, before.id, patch);
     if (!result.ok) return toolError(result.error);
-    const changes = describeChanges(before, result.issue);
+    const changes = describeChanges(before, result.issue, (id) => meta.members.find((m) => m.id === id)?.email);
     if (changes.length) await audit(credential, 'update_issue', result.issue, 'updated');
     const done = changes.length ? `Updated ${result.issue.key}` : `No changes: ${result.issue.key} already had those values`;
     return committed('update_issue', result.issue, done, async () => {

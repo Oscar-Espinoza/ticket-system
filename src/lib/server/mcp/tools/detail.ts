@@ -77,7 +77,8 @@ const RELATION_TEXT: Record<string, string> = {
 
 export function issueDetailMarkdown(detail: IssueDetail, changes?: string[]): string {
   const lines: string[] = [];
-  if (changes?.length) lines.push(`Updated ${detail.key}: ${changes.join('; ')}.`, '');
+  // Change strings carry titles and names: each is kept inert like any user text.
+  if (changes?.length) lines.push(`Updated ${detail.key}: ${changes.map(userContentInline).join('; ')}.`, '');
   lines.push(`# ${detail.key}: ${userContentInline(detail.title)}`);
   const facts = [
     `State: ${detail.state.name}`,
