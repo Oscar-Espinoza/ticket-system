@@ -1,5 +1,5 @@
 {
-  "id": "95424367-3943-4552-87d3-4b16f337a4a0",
+  "id": "9555dcde-a74b-4ecf-84d3-be3cab541a34",
   "prevId": "d828bcf1-9a35-436c-99dd-d38a2f141442",
   "version": "7",
   "dialect": "postgresql",
@@ -2037,6 +2037,12 @@
         },
         "merged_at": {
           "name": "merged_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "provider_updated_at": {
+          "name": "provider_updated_at",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": false

@@ -679,6 +679,12 @@ export const githubPullRequests = pgTable(
     /** 'pending' | 'success' | 'failure' | null — combined CI status. */
     checksState: text('checks_state'),
     mergedAt: timestamp('merged_at'),
+    /**
+     * The provider's own "last updated" time of the snapshot stored here
+     * (null = unknown). A delivery whose snapshot is older is not applied:
+     * retried deliveries can arrive out of order (vcs/automation.ts).
+     */
+    providerUpdatedAt: timestamp('provider_updated_at'),
     createdAt: timestamp('created_at').notNull(),
     updatedAt: timestamp('updated_at').notNull(),
   },

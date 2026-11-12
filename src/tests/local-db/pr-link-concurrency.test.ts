@@ -41,6 +41,7 @@ const pullRequest = (key: string, number: number, extra: Partial<VcsPullRequest>
   branch: null,
   author: 'octocat',
   mergedAt: null,
+  updatedAt: null,
   ...extra,
 });
 

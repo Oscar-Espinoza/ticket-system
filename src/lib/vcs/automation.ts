@@ -51,8 +51,20 @@ export interface VcsPullRequest {
   /** null = unknown in this delivery (keeps the stored author). */
   author: string | null;
   mergedAt: Date | null;
+  /**
+   * The provider's "last updated" time of this snapshot; null = the payload
+   * has none. A snapshot older than the stored one is not applied.
+   */
+  updatedAt: Date | null;
   /** null = not in this delivery (keeps the stored decision). */
   reviewDecision?: ReviewDecision | null;
+}
+
+/** A provider timestamp from a payload; null when missing or unparseable. */
+export function providerTime(value: string | null | undefined): Date | null {
+  if (!value) return null;
+  const at = new Date(value);
+  return Number.isNaN(at.getTime()) ? null : at;
 }
 
 /**
@@ -134,7 +146,7 @@ export async function syncPullRequest(project: VcsProject, pr: VcsPullRequest, t
   const linked = [...referenced, ...stillLinked];
   if (!linked.length) return;
 
-  const autoIssues = referenced.filter(
+  let autoIssues = referenced.filter(
     (issue) => auto.has(issue.number) || (!!pr.branch && issue.githubBranch === pr.branch),
   );
 
@@ -153,6 +165,18 @@ export async function syncPullRequest(project: VcsProject, pr: VcsPullRequest, t
     sql`select pg_advisory_xact_lock(hashtextextended(${`pr:${project.id}:${pr.provider}:${pr.repo.toLowerCase()}:${pr.number}`}, 0))`,
   );
   const title = pr.title.slice(0, 500);
+  // Deliveries are retried (vcs/inbound.ts), so an older snapshot can arrive
+  // after a newer one. A link moves only forward: never away from `merged`
+  // (terminal on every provider), and never to a snapshot older than the
+  // stored one when both carry the provider's timestamp. A stale snapshot
+  // writes no event and moves no issue either.
+  const providerAt = pr.updatedAt?.toISOString() ?? null;
+  const mergedAt = pr.mergedAt?.toISOString() ?? null;
+  const stale = sql`(
+    (${githubPullRequests.state} = 'merged' and ${pr.state}::text <> 'merged')
+    or (${githubPullRequests.providerUpdatedAt} is not null and ${providerAt}::timestamp is not null
+        and ${githubPullRequests.providerUpdatedAt} > ${providerAt}::timestamp)
+  )`;
   const update = db
     .update(githubPullRequests)
     .set({
@@ -164,18 +188,21 @@ export async function syncPullRequest(project: VcsProject, pr: VcsPullRequest, t
       branch: pr.branch,
       authorLogin: sql`coalesce(${pr.author}, ${githubPullRequests.authorLogin})`,
       reviewDecision: sql`coalesce(${pr.reviewDecision ?? null}, ${githubPullRequests.reviewDecision})`,
-      mergedAt: pr.mergedAt,
+      // A merged link keeps its first merge time (Bitbucket sends none of its own).
+      mergedAt: sql`case when ${githubPullRequests.state} = 'merged'
+        then coalesce(${githubPullRequests.mergedAt}, ${mergedAt}::timestamp) else ${mergedAt}::timestamp end`,
+      providerUpdatedAt: sql`coalesce(${providerAt}::timestamp, ${githubPullRequests.providerUpdatedAt})`,
       updatedAt: now,
     })
-    .where(and(thisPr, inArray(githubPullRequests.ticketId, linked.map((issue) => issue.id))));
+    .where(and(thisPr, inArray(githubPullRequests.ticketId, linked.map((issue) => issue.id)), sql`not ${stale}`));
   const inserts = linked.map(
     (issue) => db.execute(sql`
       insert into ${githubPullRequests}
         (id, project_id, ticket_id, provider, repo, number, title, url, state, draft, branch,
-         author_login, review_decision, merged_at, created_at, updated_at)
+         author_login, review_decision, merged_at, provider_updated_at, created_at, updated_at)
       select ${crypto.randomUUID()}, ${project.id}, ${issue.id}, ${pr.provider}, ${pr.repo}, ${pr.number}::int,
         ${title}, ${pr.url}, ${pr.state}, ${pr.draft}::boolean, ${pr.branch}, ${pr.author},
-        ${pr.reviewDecision ?? null}, ${pr.mergedAt?.toISOString() ?? null}::timestamp,
+        ${pr.reviewDecision ?? null}, ${mergedAt}::timestamp, ${providerAt}::timestamp,
         ${now.toISOString()}::timestamp, ${now.toISOString()}::timestamp
       where not ${linkOf(issue.id)}
       on conflict do nothing
@@ -201,12 +228,12 @@ export async function syncPullRequest(project: VcsProject, pr: VcsPullRequest, t
     if (pr.state === 'merged') {
       planned.push({
         event: { ...common, type: PR_EVENT.prMerged, data: { ...about, summary: `merged ${label}` } },
-        when: sql`not ${linkOf(issue.id, eq(githubPullRequests.state, 'merged'))}`,
+        when: sql`not ${linkOf(issue.id, eq(githubPullRequests.state, 'merged'))} and not ${linkOf(issue.id, stale)}`,
       });
     } else if (pr.state === 'closed') {
       planned.push({
         event: { ...common, type: PR_EVENT.prClosed, data: { ...about, summary: `closed ${label} without merging` } },
-        when: sql`not ${linkOf(issue.id, eq(githubPullRequests.state, 'closed'))}`,
+        when: sql`not ${linkOf(issue.id, eq(githubPullRequests.state, 'closed'))} and not ${linkOf(issue.id, stale)}`,
       });
     }
   }
@@ -222,6 +249,15 @@ export async function syncPullRequest(project: VcsProject, pr: VcsPullRequest, t
   const linkedNow = wrote(PR_EVENT.prLinked);
   const mergedNow = wrote(PR_EVENT.prMerged);
 
+  if (!autoIssues.length) return;
+  // Only issues whose link now holds THIS snapshot's state: a stale one (not
+  // applied above) must not move an issue backwards.
+  const current = await db
+    .select({ ticketId: githubPullRequests.ticketId, state: githubPullRequests.state })
+    .from(githubPullRequests)
+    .where(and(thisPr, inArray(githubPullRequests.ticketId, autoIssues.map((issue) => issue.id))));
+  const applied = new Set(current.filter((row) => row.state === pr.state).map((row) => row.ticketId));
+  autoIssues = autoIssues.filter((issue) => applied.has(issue.id));
   if (!autoIssues.length) return;
   const states = await projectStatesQuery(project.id);
   if (pr.state === 'merged') {

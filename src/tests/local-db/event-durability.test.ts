@@ -79,6 +79,7 @@ describe.skipIf(!localDb)('events commit with their mutation (review follow-up, 
       branch: null,
       author: null,
       mergedAt: null,
+      updatedAt: null,
     };
     // The event cannot be written (a trigger refuses it, for this issue only):
     // the PR row must not stay behind, or the redelivery would find nothing
