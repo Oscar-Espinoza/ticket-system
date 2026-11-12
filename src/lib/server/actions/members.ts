@@ -12,7 +12,7 @@ import { and, eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { projectMembers, projects, users } from '@/db/schema';
 import { authorizeProjectAction } from '@/lib/action-auth';
-import { emitIssueEvent, prepareIssueEvents, publishIssueEvents } from '@/lib/events';
+import { commitWithEvents, prepareIssueEvents, publishIssueEvents } from '@/lib/events';
 import {
   fail,
   FORBIDDEN,
@@ -72,17 +72,18 @@ export async function removeMember(
     return { errors: { server: 'Forbidden' } };
   }
 
-  await db
-    .delete(projectMembers)
-    .where(and(eq(projectMembers.id, memberId), eq(projectMembers.projectId, projectId)));
-
-  await emitIssueEvent({
-    projectId,
-    ticketId: null,
-    actorId: authz.userId,
-    type: 'member.removed',
-    data: { userId: target.userId, name: target.name, summary: `removed ${target.name}` },
-  });
+  await commitWithEvents(
+    [db.delete(projectMembers).where(and(eq(projectMembers.id, memberId), eq(projectMembers.projectId, projectId)))],
+    [
+      {
+        projectId,
+        ticketId: null,
+        actorId: authz.userId,
+        type: 'member.removed',
+        data: { userId: target.userId, name: target.name, summary: `removed ${target.name}` },
+      },
+    ],
+  );
 
   refreshesData();
   return { success: true };
@@ -106,26 +107,29 @@ export async function updateMemberRole(input: {
     return FORBIDDEN;
   }
 
-  await db
-    .update(projectMembers)
-    .set({ role: input.role })
-    .where(
-      and(eq(projectMembers.id, target.id), eq(projectMembers.projectId, input.projectId)),
-    );
-
-  await emitIssueEvent({
-    projectId: input.projectId,
-    ticketId: null,
-    actorId: authz.userId,
-    type: 'member.role_changed',
-    data: {
-      userId: target.userId,
-      name: target.name,
-      from: target.role,
-      to: input.role,
-      summary: `changed ${target.name}'s role to ${PROJECT_ROLE_LABEL[input.role]}`,
-    },
-  });
+  await commitWithEvents(
+    [
+      db
+        .update(projectMembers)
+        .set({ role: input.role })
+        .where(and(eq(projectMembers.id, target.id), eq(projectMembers.projectId, input.projectId))),
+    ],
+    [
+      {
+        projectId: input.projectId,
+        ticketId: null,
+        actorId: authz.userId,
+        type: 'member.role_changed',
+        data: {
+          userId: target.userId,
+          name: target.name,
+          from: target.role,
+          to: input.role,
+          summary: `changed ${target.name}'s role to ${PROJECT_ROLE_LABEL[input.role]}`,
+        },
+      },
+    ],
+  );
 
   refreshesData();
   return { ok: true };
