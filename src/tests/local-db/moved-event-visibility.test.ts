@@ -1,9 +1,9 @@
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { and, eq, inArray, isNotNull, like, sql } from 'drizzle-orm';
+import { and, eq, inArray, like, sql } from 'drizzle-orm';
 
-// No after-response fan-out: the sweep and the readers are called directly.
+// No after-response fan-out: webhook delivery and the readers are called directly.
 vi.mock('@/lib/kit/request', async (orig) => ({
   ...(await orig<typeof import('@/lib/kit/request')>()),
   after: () => undefined,
@@ -20,7 +20,7 @@ import { loadIssueTimeline } from '@/lib/comments';
 import { resolveAuditScope } from '@/lib/audit';
 import { recordedIn } from '@/lib/moved-events';
 import { loadAuditLogView } from '@/lib/components/audit/audit-log-view.server';
-import { sweepPendingEvents } from '@/lib/integrations/outgoing-webhooks';
+import { deliverWebhooks } from '@/lib/integrations/outgoing-webhooks';
 import { postToSlack } from '@/lib/integrations/slack';
 import { SLACK_URL_PREFIX } from '@/lib/integrations/event-types';
 import type { StoredIssueEvent } from '@/lib/events';
@@ -38,8 +38,6 @@ beforeAll(async () => {
   url = `http://127.0.0.1:${(server.address() as AddressInfo).port}/hook`;
 });
 afterAll(() => new Promise<void>((resolve) => server.close(() => resolve())));
-
-const later = () => new Date(Date.now() + 10 * 60_000);
 
 async function auditExport(viewerId: string, projectId: string, extra = ''): Promise<string> {
   const event = {
@@ -119,16 +117,22 @@ describe.skipIf(!localDb)('issue.moved does not reveal the other project (gap D 
 
     // Webhooks: A's receiver gets nothing naming B (the source-side row is not
     // delivered; the history rows are A's own); B's receiver never gets A.
-    // Sweep until none of this test's events is pending: rows other suites left
-    // pending come first (oldest first) and must not starve it. Bounded.
+    // Delivered directly, only this test's own pending events: a global sweep
+    // "in the future" would also deliver other suites' fresh events early.
     const pendingHere = () =>
       db
-        .select({ id: activities.id })
+        .select({
+          id: activities.id,
+          projectId: activities.webhookPendingProjectId,
+          ticketId: activities.ticketId,
+          actorId: activities.actorId,
+          type: activities.type,
+          data: activities.data,
+          createdAt: activities.createdAt,
+        })
         .from(activities)
-        .where(and(isNotNull(activities.webhookPendingProjectId), inArray(activities.projectId, [a, b])));
-    for (let round = 0; round < 50 && (await pendingHere()).length > 0; round++) {
-      await sweepPendingEvents({ now: later(), limit: 100 });
-    }
+        .where(inArray(activities.webhookPendingProjectId, [a, b]));
+    await deliverWebhooks((await pendingHere()).map((row) => ({ ...row, data: row.data ?? {} }) as StoredIssueEvent));
     expect(await pendingHere()).toEqual([]);
     const hooks = await db.select().from(webhooks).where(inArray(webhooks.projectId, [a, b]));
     const hookOf = (projectId: string) => hooks.find((h) => h.projectId === projectId)!.id;
