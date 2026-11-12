@@ -17,7 +17,7 @@ import { db } from '@/lib/db';
 import { githubPullRequests, tickets } from '@/db/schema';
 import { projectStatesQuery } from '@/lib/workflow-server';
 import { PR_EVENT } from '@/lib/event-names';
-import { emitIssueEvent, type IssueEventInput } from '@/lib/events';
+import { commitWithEvents, type IssueEventInput } from '@/lib/events';
 import { SYSTEM_ACTOR, updateIssueFields } from '@/lib/issue-service';
 import type { IssueRow, WorkflowState } from '@/lib/issue-model';
 import { queryIssues } from '@/lib/tickets';
@@ -77,17 +77,25 @@ async function moveIssues(
   issues: IssueRow[],
   target: WorkflowState | null,
   states: WorkflowState[],
-  eventData?: (issue: IssueRow) => Record<string, unknown> | undefined,
+  opts: {
+    eventData?: (issue: IssueRow) => Record<string, unknown> | undefined;
+    /** Events about the move, committed with it (e.g. github.commit_closed). */
+    extraEvents?: (issue: IssueRow) => IssueEventInput[];
+  } = {},
 ) {
   if (!target) return;
   for (const issue of issues) {
     if (!shouldAdvance(issue.state, target, states)) continue;
+    const extra = opts.extraEvents;
     const result = await updateIssueFields(
       SYSTEM_ACTOR,
       project.id,
       issue.id,
       { stateId: target.id },
-      { eventData: eventData?.(issue) },
+      {
+        eventData: opts.eventData?.(issue),
+        ...(extra ? { extraEvents: () => extra(issue) } : {}),
+      },
     );
     if (!result.ok) console.error(`[vcs] could not move ${issue.key}: ${result.error}`);
   }
@@ -130,7 +138,7 @@ export async function syncPullRequest(project: VcsProject, pr: VcsPullRequest, t
   );
 
   const now = new Date();
-  await db
+  const upsert = db
     .insert(githubPullRequests)
     .values(
       linked.map((issue) => ({
@@ -168,7 +176,9 @@ export async function syncPullRequest(project: VcsProject, pr: VcsPullRequest, t
       },
     });
 
-  // Events only on transitions, so redeliveries stay idempotent.
+  // Events only on transitions, so redeliveries stay idempotent — which is
+  // why they commit with the upsert: a crash in between would otherwise turn
+  // the redelivery into a no-op and lose them.
   const label = `${prNoun(pr.provider)} ${prNumberLabel(pr.provider, pr.number)}`;
   const events: IssueEventInput[] = [];
   const base = { provider: pr.provider, number: pr.number, url: pr.url, repo: pr.repo, title: pr.title };
@@ -197,7 +207,7 @@ export async function syncPullRequest(project: VcsProject, pr: VcsPullRequest, t
       });
     }
   }
-  if (events.length) await emitIssueEvent(events);
+  await commitWithEvents([upsert], events);
 
   if (!autoIssues.length) return;
   const states = await projectStatesQuery(project.id);
@@ -211,9 +221,9 @@ export async function syncPullRequest(project: VcsProject, pr: VcsPullRequest, t
     // "marked it Done" for the move. Only for merges announced in THIS
     // delivery — a redelivery that re-closes a reopened issue still notifies.
     const via = { provider: pr.provider, number: pr.number, url: pr.url, repo: pr.repo };
-    await moveIssues(project, autoIssues, target, states, (issue) =>
-      mergedNow.has(issue.id) ? { viaPullRequest: via } : undefined,
-    );
+    await moveIssues(project, autoIssues, target, states, {
+      eventData: (issue) => (mergedNow.has(issue.id) ? { viaPullRequest: via } : undefined),
+    });
   } else if (pr.state === 'open' && !pr.draft) {
     // Edits / pushes only move issues this delivery linked for the first time —
     // otherwise every push would undo a manual move back to In Progress.
@@ -255,27 +265,29 @@ export async function syncClosingCommits(
 
   const moved = issues.filter((issue) => shouldAdvance(issue.state, target, states));
   if (!moved.length) return;
-  await emitIssueEvent(
-    moved.map((issue) => {
+  // The "closed by commit" line commits with the state change it explains.
+  await moveIssues(project, moved, target, states, {
+    extraEvents: (issue) => {
       const commit = closedBy.get(issue.number)!;
-      return {
-        projectId: project.id,
-        ticketId: issue.id,
-        actorId: null,
-        type: PR_EVENT.commitClosed,
-        data: {
-          key: issue.key,
-          title: issue.title,
-          summary: `closed by commit ${commit.id.slice(0, 7)}`,
-          provider: input.provider,
-          actorName: VCS_PROVIDER_LABEL[input.provider],
-          commit: { sha: commit.id, url: commit.url },
-          repo: input.repo,
+      return [
+        {
+          projectId: project.id,
+          ticketId: issue.id,
+          actorId: null,
+          type: PR_EVENT.commitClosed,
+          data: {
+            key: issue.key,
+            title: issue.title,
+            summary: `closed by commit ${commit.id.slice(0, 7)}`,
+            provider: input.provider,
+            actorName: VCS_PROVIDER_LABEL[input.provider],
+            commit: { sha: commit.id, url: commit.url },
+            repo: input.repo,
+          },
         },
-      };
-    }),
-  );
-  await moveIssues(project, moved, target, states);
+      ];
+    },
+  });
 }
 
 /**

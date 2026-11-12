@@ -15,24 +15,31 @@ vi.mock('@/lib/events', async (orig) => ({
 }));
 
 import { db } from '@/lib/db';
-import { activities, webhookDeliveries, webhooks } from '@/db/schema';
+import { activities, projects, webhookDeliveries, webhooks } from '@/db/schema';
 import * as issues from '@/lib/issue-service';
 import { sweepPendingEvents } from '@/lib/integrations/outgoing-webhooks';
-import { createCommentAs } from '@/lib/comments';
+import { createCommentAs, updateCommentAs } from '@/lib/comments';
+import { postToSlack } from '@/lib/integrations/slack';
+import { SLACK_URL_PREFIX } from '@/lib/integrations/event-types';
 import { localDb, makeProject, makeUser } from './fixtures';
+import type { WebhookPayload } from '@/lib/integrations/outgoing-webhooks';
 
 let server: Server;
 let url = '';
-const received: { event: string; delivery: string }[] = [];
+const received: { event: string; delivery: string; body: string }[] = [];
 
 beforeAll(async () => {
   server = createServer((req, res) => {
-    received.push({
-      event: String(req.headers['x-webhook-event']),
-      delivery: String(req.headers['x-webhook-delivery']),
+    const chunks: Buffer[] = [];
+    req.on('data', (chunk: Buffer) => chunks.push(chunk));
+    req.on('end', () => {
+      received.push({
+        event: String(req.headers['x-webhook-event']),
+        delivery: String(req.headers['x-webhook-delivery']),
+        body: Buffer.concat(chunks).toString('utf8'),
+      });
+      res.writeHead(204).end();
     });
-    req.resume();
-    req.on('end', () => res.writeHead(204).end());
   });
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
   url = `http://127.0.0.1:${(server.address() as AddressInfo).port}/hook`;
@@ -127,6 +134,113 @@ describe.skipIf(!localDb)('durable webhook dispatch (review finding #9)', () => 
     await sweepPendingEvents({ now: later() });
     const rows = await db.select().from(webhookDeliveries).where(eq(webhookDeliveries.webhookId, hookId));
     expect(rows.map((r) => r.eventType)).toEqual(['issue.created']);
+  });
+
+  it('an event swept after its issue moved to a private project carries nothing of the issue’s new life (follow-up 2026-11-12)', async () => {
+    const owner = await makeUser('leak-owner');
+    // Member of the private target project only.
+    const insider = await makeUser('secret-assignee-name');
+    const src = await makeProject(owner, 'LKA');
+    const dst = await makeProject(owner, 'LKB', [insider]);
+    // Both projects have a receiver, so one sweep mixes A's and B's events and
+    // loads B's issue into the shared context — the case a real sweep hits.
+    const hookA = crypto.randomUUID();
+    const hookB = crypto.randomUUID();
+    await db.insert(webhooks).values(
+      [hookA, hookB].map((id, i) => ({
+        id,
+        projectId: i === 0 ? src : dst,
+        url,
+        secret: 'shh',
+        events: [],
+        createdAt: new Date(),
+      })),
+    );
+
+    const created = await issues.createIssue({ userId: owner }, src, { title: 'Public title' });
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+    const moved = await issues.moveIssue({ userId: owner }, src, created.issue.id, dst);
+    expect(moved.ok).toBe(true);
+    if (!moved.ok) return;
+    const edited = await issues.updateIssueFields({ userId: owner }, dst, created.issue.id, {
+      title: 'Secret private title',
+      assigneeId: insider,
+    });
+    expect(edited.ok).toBe(true);
+
+    // The pending events of both projects are swept only now, in one sweep.
+    await sweepPendingEvents({ now: later() });
+    const deliveries = (hookId: string) =>
+      db.select().from(webhookDeliveries).where(eq(webhookDeliveries.webhookId, hookId));
+    const rowsA = await deliveries(hookA);
+    expect(rowsA.map((r) => r.eventType)).toEqual(['issue.created']);
+    const createdA = rowsA[0].payload as unknown as WebhookPayload;
+    // What the event recorded when it happened stays; the issue's current row is not used.
+    expect(createdA.issue).toBeNull();
+    expect(createdA.data).toMatchObject({ key: created.issue.key, title: 'Public title' });
+
+    const sentA = received.filter((r) => rowsA.some((row) => row.eventId === r.delivery));
+    expect(sentA.length).toBe(1);
+    for (const text of [...rowsA.map((r) => JSON.stringify(r.payload)), ...sentA.map((r) => r.body)]) {
+      expect(text).not.toContain('Secret private title');
+      expect(text).not.toContain('secret-assignee-name');
+      expect(text).not.toContain(insider);
+    }
+
+    // B's own receiver gets the issue as it is now.
+    const rowsB = await deliveries(hookB);
+    const updatedB = rowsB.find((r) => r.eventType === 'issue.updated');
+    expect(updatedB).toBeDefined();
+    expect(updatedB!.payload as unknown as WebhookPayload).toMatchObject({
+      issue: { id: created.issue.id, title: 'Secret private title', assignee: { id: insider, name: 'secret-assignee-name' } },
+    });
+  });
+
+  it('Slack for the source project posts what a comment recorded, not the issue’s later life in a private project', async () => {
+    const owner = await makeUser('slack-owner');
+    const src = await makeProject(owner, 'SLA');
+    const dst = await makeProject(owner, 'SLB');
+    await db
+      .update(projects)
+      .set({ slackWebhookUrl: `${SLACK_URL_PREFIX}services/T0/B0/x`, slackEvents: ['commented'] })
+      .where(eq(projects.id, src));
+
+    const created = await issues.createIssue({ userId: owner }, src, { title: 'Public title' });
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+    const commented = await createCommentAs({ userId: owner }, src, {
+      ticketId: created.issue.id,
+      body: 'Public comment',
+    });
+    expect(commented.ok).toBe(true);
+    if (!commented.ok) return;
+    const [event] = await db
+      .select()
+      .from(activities)
+      .where(and(eq(activities.ticketId, created.issue.id), eq(activities.type, 'comment.created')));
+
+    const moved = await issues.moveIssue({ userId: owner }, src, created.issue.id, dst);
+    expect(moved.ok).toBe(true);
+    expect(await issues.updateIssueFields({ userId: owner }, dst, created.issue.id, { title: 'Secret private title' })).toMatchObject({ ok: true });
+    expect(
+      await updateCommentAs({ userId: owner }, dst, { commentId: commented.comment.id, body: 'Secret private comment' }),
+    ).toMatchObject({ ok: true });
+
+    const posts: string[] = [];
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (_url, init) => {
+      posts.push(String(init?.body));
+      return new Response(null, { status: 200 });
+    });
+    try {
+      await postToSlack([{ ...event, projectId: src }]);
+    } finally {
+      fetchSpy.mockRestore();
+    }
+    expect(posts.length).toBe(1);
+    expect(posts[0]).toContain('Public comment');
+    expect(posts[0]).toContain('Public title');
+    expect(posts[0]).not.toContain('Secret private');
   });
 
   it('a comment and its comment.created event commit together (Astra review #4)', async () => {

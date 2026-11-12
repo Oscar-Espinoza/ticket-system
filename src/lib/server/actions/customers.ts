@@ -4,11 +4,12 @@
 // are validated against the project before anything is written.
 
 import { and, arrayOverlaps, eq, ne } from 'drizzle-orm';
+import type { BatchItem } from 'drizzle-orm/batch';
 
 import { db } from '@/lib/db';
 import { customerRequests, customers, projects, tickets } from '@/db/schema';
 import { authorizeProjectAction } from '@/lib/action-auth';
-import { emitIssueEvent } from '@/lib/events';
+import { commitWithEvents } from '@/lib/events';
 import { getMemberProject } from '@/lib/project-access';
 import {
   fail,
@@ -319,6 +320,7 @@ export async function addCustomerRequest(input: {
   }
 
   const now = new Date();
+  const writes: BatchItem<'pg'>[] = [];
   let customer: { id: string; name: string } | null = null;
   if (input.customerId) {
     customer = await loadCustomer(projectId, input.customerId);
@@ -327,43 +329,50 @@ export async function addCustomerRequest(input: {
     const name = requiredText(input.newCustomerName, 'name', CUSTOMER_NAME_MAX);
     if (isFail(name)) return name;
     customer = { id: crypto.randomUUID(), name };
-    await db.insert(customers).values({
-      id: customer.id,
-      projectId,
-      name,
-      createdAt: now,
-      updatedAt: now,
-    });
+    writes.push(
+      db.insert(customers).values({
+        id: customer.id,
+        projectId,
+        name,
+        createdAt: now,
+        updatedAt: now,
+      }),
+    );
   }
 
   const id = crypto.randomUUID();
-  await db.insert(customerRequests).values({
-    id,
-    projectId,
-    ticketId: ticket.id,
-    customerId: customer.id,
-    importance: input.importance ?? null,
-    source: 'manual',
-    body,
-    createdAt: now,
-  });
-
-  await emitIssueEvent({
-    projectId,
-    ticketId: ticket.id,
-    actorId: gate.userId,
-    type: 'customer.request_added',
-    data: {
-      key: ticket.key,
-      title: ticket.title,
-      summary: `added a customer request from ${customer.name}${
-        input.importance ? ` (${IMPORTANCE_LABEL[input.importance].toLowerCase()} importance)` : ''
-      }`,
+  writes.push(
+    db.insert(customerRequests).values({
+      id,
+      projectId,
+      ticketId: ticket.id,
       customerId: customer.id,
-      customerName: customer.name,
-      requestId: id,
+      importance: input.importance ?? null,
+      source: 'manual',
+      body,
+      createdAt: now,
+    }),
+  );
+
+  // New customer, request and its activity line: one transaction.
+  await commitWithEvents(writes, [
+    {
+      projectId,
+      ticketId: ticket.id,
+      actorId: gate.userId,
+      type: 'customer.request_added',
+      data: {
+        key: ticket.key,
+        title: ticket.title,
+        summary: `added a customer request from ${customer.name}${
+          input.importance ? ` (${IMPORTANCE_LABEL[input.importance].toLowerCase()} importance)` : ''
+        }`,
+        customerId: customer.id,
+        customerName: customer.name,
+        requestId: id,
+      },
     },
-  });
+  ]);
   refreshesData();
   return { ok: true, id, customerId: customer.id };
 }
@@ -437,29 +446,33 @@ export async function removeCustomerRequest(input: {
     eq(customerRequests.id, request.id),
     eq(customerRequests.projectId, input.projectId),
   );
-  if (request.source === 'intake' || request.source === 'slack') {
-    await db.update(customerRequests).set({ ticketId: null }).where(scope);
-  } else {
-    await db.delete(customerRequests).where(scope);
-  }
-
   const ticket = request.ticketId ? await loadTicket(input.projectId, request.ticketId) : null;
-  if (ticket) {
-    await emitIssueEvent({
-      projectId: input.projectId,
-      ticketId: ticket.id,
-      actorId: gate.userId,
-      type: 'customer.request_removed',
-      data: {
-        key: ticket.key,
-        title: ticket.title,
-        summary: request.customerName
-          ? `removed a customer request from ${request.customerName}`
-          : 'removed a customer request',
-        requestId: request.id,
-      },
-    });
-  }
+  // The removal and its activity line (on the issue, if it is still here): one transaction.
+  await commitWithEvents(
+    [
+      request.source === 'intake' || request.source === 'slack'
+        ? db.update(customerRequests).set({ ticketId: null }).where(scope)
+        : db.delete(customerRequests).where(scope),
+    ],
+    ticket
+      ? [
+          {
+            projectId: input.projectId,
+            ticketId: ticket.id,
+            actorId: gate.userId,
+            type: 'customer.request_removed',
+            data: {
+              key: ticket.key,
+              title: ticket.title,
+              summary: request.customerName
+                ? `removed a customer request from ${request.customerName}`
+                : 'removed a customer request',
+              requestId: request.id,
+            },
+          },
+        ]
+      : [],
+  );
   refreshesData();
   return { ok: true };
 }

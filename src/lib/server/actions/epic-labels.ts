@@ -5,12 +5,13 @@
 // project's own — ids from another project match nothing.
 
 import { and, eq, inArray, ne, sql } from 'drizzle-orm';
+import type { BatchItem } from 'drizzle-orm/batch';
 
 import { db } from '@/lib/db';
 import { epicLabelLinks, epicLabels, epics } from '@/db/schema';
 import { authorizeProjectAction } from '@/lib/action-auth';
 import { isUniqueViolation } from '@/lib/db-errors';
-import { emitIssueEvent } from '@/lib/events';
+import { commitWithEvents } from '@/lib/events';
 import {
   fail,
   hexColor,
@@ -69,20 +70,22 @@ export async function createEpicLabel(input: {
   if (await nameTaken(input.projectId, name)) return DUPLICATE;
   const label: EpicLabelRow = { id: crypto.randomUUID(), name, color };
   try {
-    await db.insert(epicLabels).values({ ...label, projectId: input.projectId, createdAt: new Date() });
+    await commitWithEvents(
+      [db.insert(epicLabels).values({ ...label, projectId: input.projectId, createdAt: new Date() })],
+      [
+        {
+          projectId: input.projectId,
+          ticketId: null,
+          actorId: authz.userId,
+          type: 'epic_label.created',
+          data: { summary: `created epic label ${name}`, labelId: label.id, name },
+        },
+      ],
+    );
   } catch (err) {
     if (isUniqueViolation(err)) return DUPLICATE;
     throw err;
   }
-  await emitIssueEvent([
-    {
-      projectId: input.projectId,
-      ticketId: null,
-      actorId: authz.userId,
-      type: 'epic_label.created',
-      data: { summary: `created epic label ${name}`, labelId: label.id, name },
-    },
-  ]);
   refreshesData();
   return { ok: true, label };
 }
@@ -114,31 +117,35 @@ export async function updateEpicLabel(input: {
   }
   if (Object.keys(changes).length === 0) return { ok: true, label };
 
+  const next = { ...label, ...changes };
   try {
-    await db
-      .update(epicLabels)
-      .set(changes)
-      .where(and(eq(epicLabels.id, label.id), eq(epicLabels.projectId, input.projectId)));
+    await commitWithEvents(
+      [
+        db
+          .update(epicLabels)
+          .set(changes)
+          .where(and(eq(epicLabels.id, label.id), eq(epicLabels.projectId, input.projectId))),
+      ],
+      [
+        {
+          projectId: input.projectId,
+          ticketId: null,
+          actorId: authz.userId,
+          type: 'epic_label.updated',
+          data: {
+            summary: changes.name
+              ? `renamed epic label ${label.name} to ${changes.name}`
+              : `changed the color of epic label ${label.name}`,
+            labelId: label.id,
+            name: next.name,
+          },
+        },
+      ],
+    );
   } catch (err) {
     if (isUniqueViolation(err)) return DUPLICATE;
     throw err;
   }
-  const next = { ...label, ...changes };
-  await emitIssueEvent([
-    {
-      projectId: input.projectId,
-      ticketId: null,
-      actorId: authz.userId,
-      type: 'epic_label.updated',
-      data: {
-        summary: changes.name
-          ? `renamed epic label ${label.name} to ${changes.name}`
-          : `changed the color of epic label ${label.name}`,
-        labelId: label.id,
-        name: next.name,
-      },
-    },
-  ]);
   refreshesData();
   return { ok: true, label: next };
 }
@@ -153,18 +160,18 @@ export async function deleteEpicLabel(input: {
   const label = await loadLabel(input.projectId, input.id);
   if (!label) return fail('Label not found.');
 
-  await db
-    .delete(epicLabels)
-    .where(and(eq(epicLabels.id, label.id), eq(epicLabels.projectId, input.projectId)));
-  await emitIssueEvent([
-    {
-      projectId: input.projectId,
-      ticketId: null,
-      actorId: authz.userId,
-      type: 'epic_label.deleted',
-      data: { summary: `deleted epic label ${label.name}`, labelId: label.id, name: label.name },
-    },
-  ]);
+  await commitWithEvents(
+    [db.delete(epicLabels).where(and(eq(epicLabels.id, label.id), eq(epicLabels.projectId, input.projectId)))],
+    [
+      {
+        projectId: input.projectId,
+        ticketId: null,
+        actorId: authz.userId,
+        type: 'epic_label.deleted',
+        data: { summary: `deleted epic label ${label.name}`, labelId: label.id, name: label.name },
+      },
+    ],
+  );
   refreshesData();
   return { ok: true };
 }
@@ -222,14 +229,9 @@ export async function setEpicLabels(input: {
   const removed = current.filter((l) => !wanted.includes(l.labelId));
   if (added.length === 0 && removed.length === 0) return { ok: true };
 
-  const clear = db.delete(epicLabelLinks).where(eq(epicLabelLinks.epicId, epic.id));
+  const writes: BatchItem<'pg'>[] = [db.delete(epicLabelLinks).where(eq(epicLabelLinks.epicId, epic.id))];
   if (wanted.length) {
-    await db.batch([
-      clear,
-      db.insert(epicLabelLinks).values(wanted.map((labelId) => ({ epicId: epic.id, labelId }))),
-    ]);
-  } else {
-    await clear;
+    writes.push(db.insert(epicLabelLinks).values(wanted.map((labelId) => ({ epicId: epic.id, labelId }))));
   }
 
   const names = (list: { name: string }[]) => list.map((l) => l.name).join(', ');
@@ -239,7 +241,7 @@ export async function setEpicLabels(input: {
       : removed.length && !added.length
         ? `removed ${removed.length > 1 ? 'labels' : 'label'} ${names(removed)} from epic ${epic.name}`
         : `changed the labels of epic ${epic.name}`;
-  await emitIssueEvent([
+  await commitWithEvents(writes, [
     {
       projectId,
       ticketId: null,

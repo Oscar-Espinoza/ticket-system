@@ -18,6 +18,7 @@
   projectId={data.projectId}
   canEdit={data.canEdit}
   account={data.account}
+  oauthConfigured={data.oauthConfigured}
   linkError={data.linkError}
   repo={data.repo}
   webhookRegistered={data.webhookRegistered}

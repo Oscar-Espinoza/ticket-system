@@ -11,7 +11,7 @@ import { authorizeProjectAction, roleAllows } from '@/lib/action-auth';
 import { isHexColor } from '@/lib/colors';
 import { isDateString } from '@/lib/dates';
 import { getCrossProjectEpicOptions } from '@/lib/epics';
-import { emitIssueEvent } from '@/lib/events';
+import { commitWithEvents } from '@/lib/events';
 import { getMemberProject } from '@/lib/project-access';
 import {
   fail,
@@ -409,34 +409,36 @@ export async function postEpicUpdate(input: {
 
   const now = new Date();
   const id = crypto.randomUUID();
-  // One round trip, all-or-nothing: the update and the epic's new health.
-  await db.batch([
-    db.insert(epicUpdates).values({
-      id,
-      epicId: epic.id,
-      authorId: authz.userId,
-      health: input.health,
-      body,
-      createdAt: now,
-    }),
-    db.update(epics).set({ health: input.health, updatedAt: now }).where(eq(epics.id, epic.id)),
-  ]);
-
-  await emitIssueEvent([
-    {
-      projectId: input.projectId,
-      ticketId: null,
-      actorId: authz.userId,
-      type: 'epic.update_posted',
-      data: {
-        summary: `posted an update on ${epic.name} (${HEALTH_LABEL[input.health]})`,
+  // One round trip, all-or-nothing: the update, the epic's new health and the
+  // activity line.
+  await commitWithEvents(
+    [
+      db.insert(epicUpdates).values({
+        id,
         epicId: epic.id,
-        epicName: epic.name,
-        updateId: id,
+        authorId: authz.userId,
         health: input.health,
+        body,
+        createdAt: now,
+      }),
+      db.update(epics).set({ health: input.health, updatedAt: now }).where(eq(epics.id, epic.id)),
+    ],
+    [
+      {
+        projectId: input.projectId,
+        ticketId: null,
+        actorId: authz.userId,
+        type: 'epic.update_posted',
+        data: {
+          summary: `posted an update on ${epic.name} (${HEALTH_LABEL[input.health]})`,
+          epicId: epic.id,
+          epicName: epic.name,
+          updateId: id,
+          health: input.health,
+        },
       },
-    },
-  ]);
+    ],
+  );
   refreshesData();
   return { ok: true, id };
 }

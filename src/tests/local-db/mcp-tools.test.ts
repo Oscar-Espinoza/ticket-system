@@ -1,7 +1,7 @@
 // The MCP endpoint driven in-process (docs/mcp/PLAN.md → Tests): handshake,
 // tools/list rules, every tool against seeded data, and tenant isolation
 // (another user, and a workspace with AI connectors blocked, D8).
-import { describe, expect, it, vi, beforeAll } from 'vitest';
+import { describe, expect, it, vi, afterAll, beforeAll } from 'vitest';
 import { and, eq } from 'drizzle-orm';
 
 vi.mock('@/lib/kit/request', async (orig) => ({
@@ -137,6 +137,15 @@ describe.skipIf(!localDb)('MCP tools over /mcp', () => {
   let blockedIssueKey: string;
   let workspaceId: string;
   const secretWord = `zebracorn${Date.now()}`;
+
+  // The tools' writes leave pending webhook events in this project (no hooks
+  // are registered); clear them so they don't crowd the shared sweep queue
+  // the webhook-durability suite reads.
+  afterAll(async () => {
+    if (project) {
+      await db.update(activities).set({ webhookPendingProjectId: null }).where(eq(activities.projectId, project));
+    }
+  });
 
   beforeAll(async () => {
     alice = await makeUser('alice');

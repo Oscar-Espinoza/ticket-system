@@ -31,6 +31,7 @@ import { oauthProvider } from '@better-auth/oauth-provider';
 import { scim } from '@better-auth/scim';
 import { sso } from '@better-auth/sso';
 import { MIN_PASSWORD_LENGTH } from '@/lib/auth-rules';
+import { socialProviderOptions } from '@/lib/auth-providers';
 import { invalidClientUri } from '@/lib/oauth-model';
 import { authDb } from '@/lib/db';
 import { recordUserSecurityEvent } from '@/lib/audit';
@@ -112,13 +113,9 @@ export const auth = betterAuth({
   // below only restates them (least privilege at sign-in). Tokens are read
   // exclusively through getGitHubToken() in src/lib/github-token.ts, which
   // decrypts them (see `account`).
-  socialProviders: {
-    github: {
-      clientId: process.env.GITHUB_CLIENT_ID!,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET!,
-      scope: ['read:user', 'user:email'],
-    },
-  },
+  // Google is registered only when GOOGLE_CLIENT_ID/SECRET are set (identity
+  // only: openid/email/profile). See src/lib/auth-providers.ts.
+  socialProviders: socialProviderOptions(),
   // Signed session snapshot in a cookie saves a DB lookup per request. Trade-off:
   // a revoked session stays valid up to maxAge; project membership is still
   // checked against the DB on every request.

@@ -31,7 +31,7 @@ import type { BatchItem } from 'drizzle-orm/batch';
 import { db } from '@/lib/db';
 import { activities, webhookDeliveries, webhooks } from '@/db/schema';
 import type { StoredIssueEvent } from '@/lib/events';
-import { issueSummary, loadEventContext } from '@/lib/integrations/event-context';
+import { issueOf, issueSummary, loadEventContext } from '@/lib/integrations/event-context';
 import { isWebhookEventType } from '@/lib/integrations/event-types';
 import { WEBHOOK_TIMEOUT_MS } from '@/lib/integrations/timeouts';
 import { guardedRequest, isDeliverableUrl } from '@/lib/integrations/url-guard';
@@ -240,7 +240,8 @@ async function run(all: StoredIssueEvent[]) {
 
   const ctx = await loadEventContext([...new Set(plan.flatMap((p) => p.events))]);
   const toPayload = (event: StoredIssueEvent): WebhookPayload => {
-    const issue = event.ticketId ? ctx.issues.get(event.ticketId) : undefined;
+    // null once the issue left the event's project (see event-context).
+    const issue = issueOf(ctx, event);
     const actorName = event.actorId ? ctx.actorNames.get(event.actorId) : undefined;
     return {
       id: event.id,

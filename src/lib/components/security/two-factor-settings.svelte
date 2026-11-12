@@ -30,7 +30,7 @@
 
 {#if !hasPassword}
   <div class="rounded-lg border border-border px-4 py-3 text-sm text-muted-foreground">
-    Two-factor authentication protects password sign-in. You sign in with GitHub or single sign-on,
+    Two-factor authentication protects password sign-in. You sign in with GitHub, Google or single sign-on,
     so the two-factor settings of that account apply.
   </div>
 {:else}

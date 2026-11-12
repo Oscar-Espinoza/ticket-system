@@ -32,8 +32,19 @@
   import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/lib/components/ui/card';
   import { Separator } from '@/lib/components/ui/separator';
   import { authHref } from '@/lib/safe-redirect';
+  import GoogleSignInButton from '@/lib/components/auth/google-sign-in-button.svelte';
 
-  let { redirectTo }: { redirectTo: string } = $props();
+  let {
+    redirectTo,
+    githubEnabled = false,
+    googleEnabled = false,
+  }: {
+    redirectTo: string;
+    /** GITHUB_CLIENT_ID/SECRET are set on the server; without them the button is hidden. */
+    githubEnabled?: boolean;
+    /** GOOGLE_CLIENT_ID/SECRET are set on the server. */
+    googleEnabled?: boolean;
+  } = $props();
 
   let email = $state('');
   let password = $state('');
@@ -111,16 +122,23 @@
   </CardHeader>
   <CardContent class="flex flex-col gap-4">
     <!-- GitHub OAuth (AUTH-02). Redirects the browser to GitHub on click. -->
-    <Button type="button" variant="default" class="w-full" onclick={handleGitHubSignIn}>
-      <GitBranchIcon />
-      Continue with GitHub
-    </Button>
+    {#if githubEnabled}
+      <Button type="button" variant="default" class="w-full" onclick={handleGitHubSignIn}>
+        <GitBranchIcon />
+        Continue with GitHub
+      </Button>
+    {/if}
+    {#if googleEnabled}
+      <GoogleSignInButton {redirectTo} onerror={(message) => (formError = message)} />
+    {/if}
 
-    <div class="flex items-center gap-2">
-      <Separator class="flex-1" />
-      <span class="text-xs text-muted-foreground">or</span>
-      <Separator class="flex-1" />
-    </div>
+    {#if githubEnabled || googleEnabled}
+      <div class="flex items-center gap-2">
+        <Separator class="flex-1" />
+        <span class="text-xs text-muted-foreground">or</span>
+        <Separator class="flex-1" />
+      </div>
+    {/if}
 
     <form onsubmit={handleSubmit} class="flex flex-col gap-4" novalidate>
       <div class="flex flex-col gap-2">

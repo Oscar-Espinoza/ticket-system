@@ -13,11 +13,9 @@ import { and, asc, eq, inArray, isNull, lt, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { projects, tickets, workflowStates } from '@/db/schema';
 import { ensureUpcomingCycles, completeEndedCycles } from '@/lib/cycles';
-import { emitIssueEvent } from '@/lib/events';
 import { SYSTEM_ACTOR, archive, bulkUpdate, purge, BULK_MAX } from '@/lib/issue-service';
 import { declineState } from '@/lib/triage';
 import { closedStateType, projectStatesQuery } from '@/lib/workflow-server';
-import { formatIssueKey } from '@/lib/tickets';
 
 export const TRASH_RETENTION_DAYS = 30;
 
@@ -91,10 +89,9 @@ async function autoClose(projectId: string, months: number) {
   if (!target) return;
 
   const rows = await db
-    .select({ id: tickets.id, number: tickets.ticketNumber, title: tickets.title, key: projects.ticketKey })
+    .select({ id: tickets.id })
     .from(tickets)
     .innerJoin(workflowStates, eq(tickets.stateId, workflowStates.id))
-    .innerJoin(projects, eq(tickets.projectId, projects.id))
     .where(
       and(
         eq(tickets.projectId, projectId),
@@ -108,26 +105,25 @@ async function autoClose(projectId: string, months: number) {
     .limit(BULK_MAX);
   if (rows.length === 0) return;
 
+  const summary = `auto-closed after ${months} month${months === 1 ? '' : 's'} of inactivity`;
+  // The auto_closed lines commit with the state change itself.
   const result = await bulkUpdate(
     SYSTEM_ACTOR,
     projectId,
     rows.map((r) => r.id),
     { stateId: target.id },
+    {
+      extraEvents: (changed) =>
+        changed.map((issue) => ({
+          projectId,
+          ticketId: issue.id,
+          actorId: null,
+          type: AUTO_CLOSED_EVENT,
+          data: { key: issue.key, title: issue.title, summary, months },
+        })),
+    },
   );
-  if (!result.ok) {
-    console.error('[automation] auto-close failed', result.error);
-    return;
-  }
-  const summary = `auto-closed after ${months} month${months === 1 ? '' : 's'} of inactivity`;
-  await emitIssueEvent(
-    rows.map((row) => ({
-      projectId,
-      ticketId: row.id,
-      actorId: null,
-      type: AUTO_CLOSED_EVENT,
-      data: { key: formatIssueKey(row.key, row.number), title: row.title, summary, months },
-    })),
-  );
+  if (!result.ok) console.error('[automation] auto-close failed', result.error);
 }
 
 async function purgeTrash(projectId: string) {

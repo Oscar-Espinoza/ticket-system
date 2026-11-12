@@ -1,15 +1,16 @@
-// Issue event bus. Every issue mutation calls emitIssueEvent: it writes the
-// `activity` rows (the audit log / issue history), then fans out after the
-// response via next/server `after()` to notifications, Slack and outgoing
-// webhooks. Emitting never throws — a failed audit write or dispatcher must
-// not fail the mutation that already happened.
+// Issue event bus. Every mutation writes its `activity` rows (the audit log /
+// issue history) IN ITS OWN TRANSACTION — commitWithEvents, or
+// prepareIssueEvents inside the writer's db.batch — then fans out after the
+// response via `after()` to notifications, Slack and outgoing webhooks. A
+// failed dispatcher never fails the mutation that already happened.
 //
 // Webhook delivery is durable: events receivers may need are written with
-// `webhook_pending_project_id` set (atomically with the mutation when the writer uses
-// prepareIssueEvents in its batch). The after-response dispatcher clears it
-// when it has created the delivery rows; if it never runs (crash, timeout, DB
-// blip) the sweep in outgoing-webhooks picks the event up later. Notifications,
-// Slack and push run once with no retry.
+// `webhook_pending_project_id` set, atomically with the mutation. The
+// after-response dispatcher clears it when it has created the delivery rows;
+// if it never runs (crash, timeout, DB blip) the sweep in outgoing-webhooks
+// picks the event up later. Notifications, Slack and push run once with no
+// retry. emitIssueEvent (a standalone write) is only for events that ARE the
+// action, with no other row to commit alongside (a mention, a Sentry resolve).
 //
 // Conventions for `data`:
 //   - issue.* events carry { key, title } so dispatchers can render without a lookup.
@@ -17,6 +18,8 @@
 //     (state/label/user names alongside ids).
 //   - issue.purged has ticketId null (the row is gone) and { ticketId, key, title }.
 //   - comment.created carries { commentId, mentions: userId[] }.
+
+import type { BatchItem } from 'drizzle-orm/batch';
 
 import { after } from '@/lib/kit/request';
 
@@ -40,6 +43,8 @@ export interface IssueEventInput {
   actorId: string | null;
   type: IssueEventType | (string & {});
   data?: Record<string, unknown>;
+  /** Defaults to now. Only for events that must sort at a fixed spot in the timeline. */
+  createdAt?: Date;
 }
 
 export interface StoredIssueEvent {
@@ -107,7 +112,7 @@ export function toStored(list: IssueEventInput[]): StoredIssueEvent[] {
     actorId: event.actorId,
     type: event.type,
     data: event.data ?? {},
-    createdAt: now,
+    createdAt: event.createdAt ?? now,
   }));
 }
 
@@ -120,6 +125,24 @@ export function toStored(list: IssueEventInput[]): StoredIssueEvent[] {
 export function prepareIssueEvents(events: IssueEventInput[]) {
   const stored = toStored(events);
   return { stored, insert: db.insert(activities).values(activityRows(stored)) };
+}
+
+/**
+ * Run `statements` and write `events` in ONE db.batch (one transaction: both
+ * commit or neither does), then schedule the fan-out. Returns the statements'
+ * results (the activity insert's result is dropped). With no events it is a
+ * plain batch.
+ */
+export async function commitWithEvents(
+  statements: BatchItem<'pg'>[],
+  events: IssueEventInput[],
+): Promise<unknown[]> {
+  const prepared = events.length ? prepareIssueEvents(events) : null;
+  const items = prepared ? [...statements, prepared.insert] : statements;
+  if (items.length === 0) return [];
+  const results = await db.batch(items as [BatchItem<'pg'>, ...BatchItem<'pg'>[]]);
+  if (prepared) publishIssueEvents(prepared.stored);
+  return prepared ? results.slice(0, statements.length) : results;
 }
 
 /** Activity rows for stored events, flagged for the durable webhook sweep. */
