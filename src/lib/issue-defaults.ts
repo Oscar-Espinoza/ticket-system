@@ -25,9 +25,11 @@ export const DEFAULT_FIELDS = [
   'stateId',
   'priority',
   'assigneeId',
+  'waitingOnId',
   'labelIds',
   'estimate',
   'dueDate',
+  'followUp',
   'parentId',
   'cycleId',
   'epicId',
@@ -38,7 +40,7 @@ export type DefaultField = (typeof DEFAULT_FIELDS)[number];
 export type IssueDefaults = Pick<IssuePatch, DefaultField>;
 
 /** Template defaults: the properties a template editor offers. */
-export const TEMPLATE_FIELDS = ['stateId', 'priority', 'assigneeId', 'labelIds', 'estimate'] as const;
+export const TEMPLATE_FIELDS = ['stateId', 'priority', 'assigneeId', 'waitingOnId', 'labelIds', 'estimate'] as const;
 
 const NOTHING = sql`false`;
 
@@ -58,6 +60,7 @@ export async function sanitizeIssueDefaults(
 
   const stateId = pick('stateId');
   const assigneeId = pick('assigneeId');
+  const waitingOnId = pick('waitingOnId');
   const parentId = pick('parentId');
   const cycleId = pick('cycleId');
   const epicId = pick('epicId');
@@ -74,10 +77,13 @@ export async function sanitizeIssueDefaults(
   if (isPriority(priority)) out.priority = priority;
   const dueDate = pick('dueDate');
   if (dueDate === null || isDateString(dueDate)) out.dueDate = dueDate;
+  const followUp = pick('followUp');
+  if (followUp === null || isDateString(followUp)) out.followUp = followUp;
   if (labelIds && labelIds.length === 0) out.labelIds = [];
   // null = explicitly "none"; nothing to check.
   for (const [field, value] of [
     ['assigneeId', assigneeId],
+    ['waitingOnId', waitingOnId],
     ['parentId', parentId],
     ['cycleId', cycleId],
     ['epicId', epicId],
@@ -87,8 +93,26 @@ export async function sanitizeIssueDefaults(
   }
 
   const str = (value: unknown) => (typeof value === 'string' && idOrNull(value) ? value : null);
-  const [projectRows, stateRows, labelRows, memberRows, parentRows, cycleRows, epicRows, milestoneRows] =
-    await db.batch([
+  const member = (userId: unknown) =>
+    db
+      .select({ id: projectMembers.userId })
+      .from(projectMembers)
+      .where(
+        str(userId)
+          ? and(eq(projectMembers.projectId, projectId), eq(projectMembers.userId, str(userId)!))
+          : NOTHING,
+      );
+  const [
+    projectRows,
+    stateRows,
+    labelRows,
+    memberRows,
+    waitingOnRows,
+    parentRows,
+    cycleRows,
+    epicRows,
+    milestoneRows,
+  ] = await db.batch([
       db
         .select({ estimateScale: projects.estimateScale })
         .from(projects)
@@ -110,14 +134,8 @@ export async function sanitizeIssueDefaults(
             ? and(eq(labels.projectId, projectId), inArray(labels.id, labelIds))
             : NOTHING,
         ),
-      db
-        .select({ id: projectMembers.userId })
-        .from(projectMembers)
-        .where(
-          str(assigneeId)
-            ? and(eq(projectMembers.projectId, projectId), eq(projectMembers.userId, str(assigneeId)!))
-            : NOTHING,
-        ),
+      member(assigneeId),
+      member(waitingOnId),
       db
         .select({ id: tickets.id })
         .from(tickets)
@@ -159,6 +177,7 @@ export async function sanitizeIssueDefaults(
     out.labelIds = labelIds!.filter((id) => found.has(id));
   }
   if (memberRows[0]) out.assigneeId = memberRows[0].id;
+  if (waitingOnRows[0]) out.waitingOnId = waitingOnRows[0].id;
   if (parentRows[0]) out.parentId = parentRows[0].id;
   if (cycleRows[0]) out.cycleId = cycleRows[0].id;
   if (epicRows[0]) out.epicId = epicRows[0].id;

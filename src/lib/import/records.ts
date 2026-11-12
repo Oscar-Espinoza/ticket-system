@@ -47,6 +47,10 @@ export interface ImportRecord {
   estimate: number | null;
   /** YYYY-MM-DD */
   dueDate: string | null;
+  /** Member email (or exact display name) → waiting on (CSV only). */
+  waitingOn?: string | null;
+  /** YYYY-MM-DD (CSV only). */
+  followUp?: string | null;
   source: ImportSource | null;
   /**
    * The parent's source (Asana subtasks, Shortcut sub-tasks): the issue becomes

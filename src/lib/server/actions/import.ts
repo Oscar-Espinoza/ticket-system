@@ -84,6 +84,8 @@ function readRecord(value: unknown): ImportRecord | null {
     labels: readLabels(raw.labels),
     estimate: typeof raw.estimate === 'number' && Number.isFinite(raw.estimate) ? raw.estimate : null,
     dueDate: isDateString(raw.dueDate) ? raw.dueDate : null,
+    waitingOn: clippedText(raw.waitingOn, 320),
+    followUp: isDateString(raw.followUp) ? raw.followUp : null,
     source: readSource(raw.source),
     parent: readSource(raw.parent),
   };
@@ -240,6 +242,7 @@ export async function importIssues(input: {
       seen.add(marker);
     }
     const who = record.assignee?.toLowerCase();
+    const waiting = record.waitingOn?.toLowerCase();
     const state = resolveState(stateRows, record);
     const parentId = record.parent ? issueByMarker.get(sourceMarker(record.parent)) : undefined;
     try {
@@ -255,6 +258,8 @@ export async function importIssues(input: {
           labelIds: record.labels.flatMap((l) => labelIds.get(l.name.toLowerCase()) ?? []),
           estimate: snapEstimate(project.estimateScale, record.estimate),
           dueDate: record.dueDate,
+          waitingOnId: (waiting && (byEmail.get(waiting) ?? byName.get(waiting))) || null,
+          followUp: record.followUp ?? null,
           ...(parentId ? { parentId } : {}),
         },
         { source: 'import' },

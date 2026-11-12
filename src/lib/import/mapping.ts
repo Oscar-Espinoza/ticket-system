@@ -17,6 +17,8 @@ export type ImportField =
   | 'labels'
   | 'estimate'
   | 'dueDate'
+  | 'waitingOn'
+  | 'followUp'
   | 'id'
   | 'url'
   | 'createdAt';
@@ -31,6 +33,8 @@ export const IMPORT_FIELDS: { value: ImportField; label: string }[] = [
   { value: 'labels', label: 'Labels' },
   { value: 'estimate', label: 'Estimate' },
   { value: 'dueDate', label: 'Due date' },
+  { value: 'waitingOn', label: 'Waiting on (email)' },
+  { value: 'followUp', label: 'Follow-up date' },
   { value: 'id', label: 'Source ID (skip duplicates)' },
   { value: 'url', label: 'Source link' },
   { value: 'createdAt', label: 'Created date' },
@@ -60,6 +64,8 @@ const SYNONYMS: Record<Exclude<ImportField, 'ignore'>, string[]> = {
     'points',
   ],
   dueDate: ['duedate', 'due', 'deadline'],
+  waitingOn: ['waitingonemail', 'waitingon', 'waitingfor'],
+  followUp: ['followupdate', 'followup', 'followupon'],
   id: ['issuekey', 'key', 'id', 'identifier', 'issueid'],
   url: ['url', 'link'],
   createdAt: ['created', 'createdat', 'datecreated'],
@@ -215,6 +221,8 @@ export function buildRecords(
       labels: [...labelNames.values()].map((name) => ({ name })),
       estimate: parseEstimate(one('estimate')),
       dueDate: parseDate(one('dueDate')),
+      waitingOn: one('waitingOn') || null,
+      followUp: parseDate(one('followUp')),
       source: id
         ? {
             kind: preset,

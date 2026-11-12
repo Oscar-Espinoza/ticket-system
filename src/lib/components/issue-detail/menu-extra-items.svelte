@@ -38,6 +38,7 @@
         stateId: issue.stateId,
         priority: issue.priority,
         assigneeId: issue.assignee?.id ?? null,
+        waitingOnId: issue.waitingOn?.id ?? null,
         labelIds: issue.labels.map((l) => l.id),
         estimate: issue.estimate,
       },
