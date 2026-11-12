@@ -130,7 +130,7 @@ MCP clients go in `MCP_EXTRA_REDIRECT_URIS`. Set `ADDRESS_HEADER` / `XFF_DEPTH`
 
 ## Database tests
 
-The tests in `src/tests/local-db` run the issue service against a throwaway
+The tests in `src/tests/local-db` and `src/tests/mcp` run the issue service against a throwaway
 local Postgres, never against Neon: they are skipped unless `LOCAL_DB_TESTS=1`
 and `DATABASE_URL` points at this machine.
 
@@ -146,7 +146,8 @@ retries on its own.
 
 `npm run test:db:neon` runs the same suite through the Neon driver (what
 Vercel uses). It needs the local Neon proxy in front of the same, still running
-Postgres:
+Postgres (CI runs it as the `neon-driver` job; each query is a separate HTTP
+round trip through the proxy, so `test:db:neon` uses a 120 s test timeout):
 
 ```bash
 docker network create ts-test && docker network connect ts-test ts-pg

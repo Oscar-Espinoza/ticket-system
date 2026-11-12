@@ -75,8 +75,85 @@ jobs:
       - name: Migrate the service database
         run: node scripts/migrate.mjs
 
+      # Every test file under src/tests runs exactly once: the top-level files
+      # here, src/tests/local-db and src/tests/mcp in the next step (the MCP
+      # suites skip themselves without LOCAL_DB_TESTS=1, which test:db sets).
       - name: Unit tests
         run: npx vitest run src/tests/*.test.ts
 
-      - name: Local-database tests
+      - name: Local-database tests (local-db + mcp)
         run: npm run test:db
+
+      # Fails when src/db/schema.ts and the committed migrations drift apart:
+      # generate must report no changes and write no file.
+      - name: Schema and migrations agree
+        run: |
+          npx drizzle-kit generate
+          if [ -n "$(git status --porcelain -- src/db/migrations)" ]; then
+            echo "::error::schema.ts differs from the committed migrations; run 'npx drizzle-kit generate' and commit the result"
+            git status --short -- src/db/migrations
+            exit 1
+          fi
+
+  # The same database suites through the Neon driver (HTTP + WebSocket), which
+  # is what Vercel runs. A local Postgres service sits behind the local Neon
+  # proxy; nothing here can reach a hosted database.
+  neon-driver:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/ci
+      TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/ci
+      NEON_PROXY_HOST: localhost:4444
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Refuse to run against a non-local database
+        run: |
+          for var in DATABASE_URL TEST_DATABASE_URL; do
+            host="$(node -e 'console.log(new URL(process.env[process.argv[1]]).hostname)' "$var")"
+            case "$host" in
+              localhost|127.0.0.1) ;;
+              *) echo "::error::$var host is '$host', not localhost/127.0.0.1"; exit 1 ;;
+            esac
+          done
+
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci --no-audit --no-fund
+
+      - name: Migrate the service database
+        run: DATABASE_DRIVER=pg node scripts/migrate.mjs
+
+      - name: Start the local Neon proxy
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f docker/neon-proxy-test-init.sql
+          docker run -d --name neon-proxy --network host \
+            -e PG_CONNECTION_STRING="$DATABASE_URL" \
+            ghcr.io/timowilhelm/local-neon-http-proxy@sha256:cd2ae14edf2feafbc3330492de5c80506f77274c3bd013154cdef697bdeb768a
+          for i in $(seq 1 30); do
+            if curl -s -o /dev/null "http://$NEON_PROXY_HOST/"; then exit 0; fi
+            sleep 1
+          done
+          docker logs neon-proxy
+          echo "::error::the Neon proxy did not start"; exit 1
+
+      - name: Database tests through the Neon driver
+        run: npm run test:db:neon
