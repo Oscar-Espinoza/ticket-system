@@ -1,18 +1,18 @@
 // GitLab project hook receiver. Public endpoint: the URL names one
 // project_integration row and the delivery is trusted only when X-Gitlab-Token
-// matches its secret (timing-safe). Work runs in after() so GitLab gets a fast
-// 202 (it disables hooks that keep timing out).
+// matches its secret (timing-safe). The delivery is stored before the 202
+// (src/lib/vcs/inbound.ts) and the work runs in after() so GitLab gets a fast
+// answer (it disables hooks that keep timing out); unfinished work is retried
+// from the stored row. 500 when it cannot be stored.
 
 import type { RequestHandler } from './$types';
 import { allowOptions } from '../../../_lib/options';
 
 import { after } from '@/lib/kit/request';
-import { syncGitlabHook, type GitlabHook } from '@/lib/vcs/gitlab-sync';
 import { getWebhookIntegration, type GitlabConfig } from '@/lib/vcs/integrations';
+import { handlesEvent, processInbound, recordInbound } from '@/lib/vcs/inbound';
 import { safeEqual } from '@/lib/server/secrets';
 import { readWebhookBody, rejected } from '@/lib/vcs/webhook-request';
-
-const HANDLED = new Set(['Merge Request Hook', 'Push Hook', 'Pipeline Hook']);
 
 export const POST: RequestHandler = async ({ request, params }) => {
   const { integrationId } = params;
@@ -32,16 +32,21 @@ export const POST: RequestHandler = async ({ request, params }) => {
   if (!body.ok) return body.response;
 
   const event = request.headers.get('x-gitlab-event') ?? '';
-  if (HANDLED.has(event)) {
-    const { project, integration } = found;
-    after(async () => {
-      try {
-        await syncGitlabHook(project, integration.config, body.payload as GitlabHook);
-      } catch (err) {
-        console.error(`[gitlab-webhook] ${event} failed`, err);
-      }
+  if (!handlesEvent('gitlab', event)) return Response.json({ ok: true }, { status: 202 });
+  let rows: Awaited<ReturnType<typeof recordInbound>>;
+  try {
+    rows = await recordInbound({
+      provider: 'gitlab',
+      deliveryId: request.headers.get('x-gitlab-event-uuid'),
+      event,
+      payload: body.payload,
+      targets: [{ projectId: found.project.id, integrationId: found.integration.id }],
     });
+  } catch (err) {
+    console.error('[gitlab-webhook] could not store the delivery', err);
+    return Response.json({ error: 'Internal error' }, { status: 500 });
   }
+  after(() => processInbound(rows));
   return Response.json({ ok: true }, { status: 202 });
 };
 

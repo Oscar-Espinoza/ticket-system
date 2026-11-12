@@ -9,6 +9,7 @@ import {
   syncPullRequest,
   updatePullRequestStatus,
   type PrTrigger,
+  providerTime,
 } from '@/lib/vcs/automation';
 import type { VcsProject } from '@/lib/vcs/project';
 import { listCommitStatuses, type BitbucketAuth } from '@/lib/vcs/bitbucket';
@@ -86,6 +87,7 @@ async function syncPr(project: VcsProject, config: BitbucketConfig, event: strin
       branch: pr.source?.branch?.name ?? null,
       author: pr.author?.nickname ?? pr.author?.display_name ?? null,
       mergedAt: state === 'merged' ? new Date(pr.updated_on ?? Date.now()) : null,
+      updatedAt: providerTime(pr.updated_on),
       reviewDecision,
     },
     triggerOf(event),

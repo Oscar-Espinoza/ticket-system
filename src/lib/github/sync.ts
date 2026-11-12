@@ -13,6 +13,7 @@ import {
   syncPullRequest as syncVcsPullRequest,
   updatePullRequestStatus,
   type PrTrigger,
+  providerTime,
 } from '@/lib/vcs/automation';
 import type { VcsProject } from '@/lib/vcs/project';
 import { combineChecks, combineReviews, type ChecksState, type ReviewDecision } from '@/lib/vcs/providers';
@@ -35,6 +36,7 @@ export interface PullRequestPayload {
     draft?: boolean;
     merged?: boolean;
     merged_at: string | null;
+    updated_at?: string | null;
     user: { login: string } | null;
     head: { ref: string; sha?: string };
     requested_reviewers?: unknown[];
@@ -136,7 +138,9 @@ export async function syncPullRequest(project: SyncProject, payload: PullRequest
       branch: pr.head.ref,
       author: pr.user?.login ?? null,
       mergedAt: pr.merged_at ? new Date(pr.merged_at) : null,
+      updatedAt: providerTime(pr.updated_at),
       reviewDecision,
+      reopened: payload.action === 'reopened',
     },
     triggerOf(payload.action),
   );

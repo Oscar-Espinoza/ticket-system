@@ -170,3 +170,66 @@ removing it and confirming that a test fails.
   count). Kept standalone, because the event is the whole action: description
   mentions and Sentry "resolved" lines. Security audit rows (`audit.ts`) are
   never delivered and stay best-effort. Tests: `event-durability.test.ts`.
+
+#### Pre-existing edge cases closed (2026-11-12, branch `fix/event-edge-cases`)
+
+Four defects that the reviews of the fixes above noticed. Each new guard was
+checked by removing it (or restoring `main`'s code) and confirming that a test
+fails.
+
+- **`issue.moved` named a private destination.** The source project's row
+  stores `toProjectId` / `toKey`, the target's rows `fromProjectId` / `fromKey`,
+  and a move back carries the target-side rows into the source's history.
+  `src/lib/moved-events.ts` strips the other project's id and key (and
+  rewrites the summary to "another project") unless the reader is a member
+  there: the issue timeline (UI, MCP, REST), the audit log and its export, and
+  the member profile feed. Webhook payloads never name a project other than
+  the receiver's; Slack and notifications never render moves. Stored rows are
+  unchanged, so older rows are covered too. Webhook deliveries already sent
+  keep the payload they were sent with. Test: `moved-event-visibility.test.ts`.
+- **Duplicate `github.pr_linked` under concurrency.** The PR sync's write batch
+  takes a per-PR advisory lock and writes each event (linked, merged, closed)
+  only if the link it reads after the lock does not already show that
+  transition (`insertEventIf`); links are matched on `lower(repo)` for both
+  the update and the insert, as the lookup already was. No migration: the
+  existing exact-case unique constraint stays as a backstop, and rows that
+  already differ only by case are both updated, never merged or deleted.
+  Test: `pr-link-concurrency.test.ts` (two truly concurrent deliveries).
+- **Sentry triage duplicate.** The triage issue and its link attachment commit
+  in one transaction (`createIssue`'s `withRows`), and the issue id is derived
+  from the Sentry issue (`derivedUuid`, shared with recurring occurrences), so
+  concurrent alerts replay one issue. A trashed or moved triage issue still
+  lets the next alert open a fresh one. Test: `sentry-triage.test.ts`.
+- **Provider webhooks lost on a failed sync.** GitHub, GitLab and Bitbucket
+  deliveries are stored (`vcs_webhook_delivery`, migration `0013`) before the
+  route answers 202, and 500 is answered when that fails. The work runs after
+  the response; failed or unfinished rows are claimed atomically and retried
+  lazily after the next delivery and by the daily cron (`inboundWebhooks`),
+  with the outgoing-webhook backoff. This does not rely on provider retries.
+  Test: `vcs-inbound.test.ts`.
+
+Review round 1 (same day) widened two of them:
+
+- **History recorded in another project.** A move rewrites the project of
+  every activity row of the issue, so updates made while it lived in a
+  private project (that project's key, state / label / cycle names, earlier
+  titles) and the move rows' `droppedLabels` travelled with it. The same owner
+  (`redactActivityFor`) now works out from the issue's target-side move rows
+  which project each row was recorded in, and collapses rows recorded in a
+  project the reader is not a member of into "activity in another project"
+  (no actor, no data). A row stamped at a move's exact instant needs both
+  projects. Comments, the current title and description, and the time-in-status
+  breakdown still come along with the issue (follow-up).
+- **Out-of-order deliveries.** With retries, an older PR snapshot can arrive
+  after a newer one. The PR link update and its merged / closed events skip a
+  stale snapshot: never away from `merged`, never older than the stored
+  provider timestamp (`github_pull_request.provider_updated_at`), and an issue
+  moves only when its link holds that snapshot's state. Every claim of a
+  stored delivery counts as an attempt, so a runner that is cut off every time
+  stops after the last attempt; a provider redelivery of a delivery that gave
+  up starts it over. Stored payloads keep PR text and commit messages for 3
+  days (30 if the delivery gave up): see `docs/SELF_HOSTING.md`.
+
+Deploy: run `npm run db:migrate` (migration `0013_vcs_webhook_deliveries`, renumbered from 0012
+at integration because PR #12's `0012_oauth_client_indexes` merged first)
+before the new code.

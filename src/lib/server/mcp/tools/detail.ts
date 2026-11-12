@@ -22,10 +22,11 @@ const SUB_ISSUES_MAX = 50;
 export async function issueDetail(
   issue: IssueRow,
   project: McpProject,
+  viewerId: string,
   commentLimit = COMMENTS_DEFAULT,
 ): Promise<IssueDetail> {
   const [timeline, relations, subIssues, parent, cycleRow, epicRow] = await Promise.all([
-    loadIssueTimeline(issue.projectId, issue.id),
+    loadIssueTimeline(issue.projectId, issue.id, viewerId),
     listIssueRelations(issue.projectId, issue.id),
     queryIssues(and(eq(tickets.projectId, issue.projectId), eq(tickets.parentId, issue.id), isNull(tickets.deletedAt)), {
       orderBy: [asc(tickets.ticketNumber)],

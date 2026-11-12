@@ -10,7 +10,7 @@ export const GET = apiRoute<Params>(async (_req, { userId }, { key }) => {
   const found = await issueByKey(userId, key, 'read');
   if (!found.ok) return found.response;
 
-  const { comments } = await loadIssueTimeline(found.issue.projectId, found.issue.id);
+  const { comments } = await loadIssueTimeline(found.issue.projectId, found.issue.id, userId);
   return Response.json({ comments });
 });
 
