@@ -134,11 +134,9 @@ body {
   padding: calc(var(--sa-top, env(safe-area-inset-top, 0px)) + 10px) calc(var(--sa-right, env(safe-area-inset-right, 0px)) + 12px)
     calc(var(--sa-bottom, env(safe-area-inset-bottom, 0px)) + 12px) calc(var(--sa-left, env(safe-area-inset-left, 0px)) + 12px);
 }
-button,
-textarea {
-  font: inherit;
-  color: inherit;
-}
+/* No `button, textarea { font: inherit; color: inherit }` here: Tailwind's
+   preflight (a lower layer) already does it, and an unlayered rule would beat
+   every text-* utility on a button. */
 button {
   cursor: pointer;
 }
@@ -234,8 +232,8 @@ button:disabled {
   background: var(--tk-bg-2);
   font-weight: 600;
 }
-.prose-view a,
 .prose-view .link-text {
+  display: inline;
   color: var(--tk-accent);
   text-decoration: underline;
   text-underline-offset: 2px;

@@ -123,7 +123,7 @@ Claude and ChatGPT both use DCR, and Better Auth 1.6.33 supports it. Enable `all
 - The bundle is inlined into the server build with a `?raw` import, so it needs no filesystem access at runtime (Vercel and Docker).
 - The resource URI is content-hashed, `ui://ticket-system/app.<hash>.html`, because ChatGPT caches the same URI for up to an hour.
 - The view makes no network requests (`connectDomains: []`). All data goes through tool calls, so the token never enters the iframe.
-- `resourceDomains: [<origin>]` covers uploaded avatars. Anything else falls back to initials.
+- `resourceDomains: []`: the view loads no image, font or script. Avatars are initials (review round 1 removed the same-origin image path: `user.image` is typed by the user, and the one allowed origin only serves `/api/uploads/*`, which need auth the iframe doesn't have).
 - No `ui.domain` in v1. It is only needed for fixed-origin features or a directory listing.
 
 **D8. Workspace admin switch**
@@ -565,11 +565,10 @@ installed packages; where they differ from the plan, the plan's intent was kept.
 - **Resource.** One resource, `ui://ticket-system/app.<first 12 hex of sha256 of
   the HTML>.html`, MIME `text/html;profile=mcp-app`, from a `?raw` import. CSP in
   the content item and the `resources/list` entry: `connectDomains: []`
-  (explicit), `resourceDomains: [<origin of appUrl()>]`, `prefersBorder: true`; no
-  `frameDomains`, no `ui.domain`. Avatars: `UserRef.image` is set only when the
-  user's image URL is on the app's origin (`userRef` in `format.ts`), so GitHub
-  or other external avatars fall back to initials, as D7 says.
-- **Contract additions** (`contracts.ts`): `UserRef.image?` and `PageSource` /
+  (explicit), `resourceDomains: []` (explicit), `prefersBorder: true`; no
+  `frameDomains`, no `ui.domain`. Avatars: none; the view draws initials and
+  `UserRef` is `{ id, name }` (`userRef` in `format.ts`).
+- **Contract additions** (`contracts.ts`): `PageSource` /
   `source` on the list and inbox views, the tool and arguments (without `cursor`)
   that produced the page. The view repeats them with `cursor` for "Load more"
   instead of relying on the host's `toolInfo`. Text results are unchanged.
@@ -580,17 +579,20 @@ installed packages; where they differ from the plan, the plan's intent was kept.
   extends `$app/tsconfig`, present only after a sync). `predev`, `predev:local`
   and `prebuild` run it; the Dockerfile's `npx vite build` is now `npm run
   build`. `build.modulePreload` is off (its polyfill is a `fetch` call).
-  Output ~257 KB raw, ~91 KB gzip.
+  Output ~261 KB raw, ~85 KB gzip (after review round 1).
 - **Fresh clone.** Instead of mocking the `?raw` import, `vite.config.ts` has a
   plugin that resolves `./ui/app.html?raw` to a placeholder page when the
   generated file is missing (tests, `vite dev`) and fails `vite build` with "run
   `npm run build:mcp-ui`". `npm run check` needs nothing (the `?raw` types come
   from vite/client), `npm run lint` ignores it, CI's build step produces the file
   before the tests run. The bundle scan test runs only when the file exists.
-- **Markdown.** `svelte-exmarkdown`, raw HTML off (the parser drops it, and
-  `rehypeSafe` drops any `raw` node, URL attribute that isn't `http(s)` /
-  `mailto`, `on*` and `style`). Links open through `ui/open-link`, not by
-  navigating; images render as `[image: alt]`. GitHub-flavoured Markdown is a
+- **Markdown.** `svelte-exmarkdown`. Raw HTML in the source shows as literal
+  text (`remarkLiteralHtml`: inline → text, block → code block); `rehypeSafe`
+  drops any `raw` node, URL attribute that isn't `http(s)`, `on*` and `style`.
+  Links are `<button class="link-text">` that call `ui/open-link` (no `href`, so
+  middle-click and the context menu can't navigate); `mailto:` is plain text,
+  one rule (`safeHref`) shared with `Host.openLink`. Images render as
+  `[image: alt]`. GitHub-flavoured Markdown is a
   subset (`lib/gfm-lite.ts`: tables, strikethrough, task lists, built from the
   `micromark-extension-gfm-*` / `mdast-util-gfm-*` packages `remark-gfm` bundles,
   now direct devDependencies): without bare-URL autolinks and footnotes, which
@@ -615,3 +617,20 @@ installed packages; where they differ from the plan, the plan's intent was kept.
   local server (screenshots in the PR description); claude.ai and ChatGPT need a
   public URL and an account, so those renderings are still for Oscar to check
   (docs/MCP.md, "Testing it for real").
+
+### Review round 1 (2026-11-12)
+
+- Writes: `add_comment` takes `request_id` (the comment's id; same user and
+  issue replays, anything else is "already in use"); the issue view sends one
+  per draft. A write the host never answers (60 s) is "unconfirmed": the view
+  reads the issue (`get_issue`) and looks for the comment id or the new value
+  before it allows another send (`lib/write.svelte.ts`). A committed write
+  whose details could not be loaded (success, text only) is shown as saved.
+- Message client: unknown host requests get -32601, malformed notifications are
+  ignored, controls that call tools are hidden when `serverTools` is missing,
+  `ui/update-model-context` carries a running summary of the changes.
+- `@modelcontextprotocol/ext-apps` is a devDependency: the server copies its two
+  constants and the `registerResource` call (a test checks them against it).
+- The issue-detail card has no activity timeline (the contract carries comments
+  only), so the "activity in another project" entry from `redactActivityFor`
+  never reaches it.

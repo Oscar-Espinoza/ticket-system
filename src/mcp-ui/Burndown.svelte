@@ -26,7 +26,7 @@
         {#if geo.actual}
           <path d={geo.actual} fill="none" stroke="var(--tk-accent)" stroke-width="2" stroke-linejoin="round" />
         {/if}
-        <text x={geo.width - 6} y="16" text-anchor="end" fill="var(--tk-fg-3)" font-size="10" font-family="var(--tk-font)">{geo.max} at the start</text>
+        <text x={geo.width - 6} y="16" text-anchor="end" fill="var(--tk-fg-3)" font-size="11" font-family="var(--tk-font)">{geo.max} at the start</text>
       </svg>
     {:else if width > 60}
       <p class="text-fg2">No burndown yet: the cycle has no issues.</p>

@@ -13,7 +13,7 @@
 
 <li class="border-b border-line last:border-b-0">
   <div class="flex items-start gap-1.5 px-1.5 py-2">
-    {#if n.issue}
+    {#if n.issue && host.canCallTools}
       <button type="button" class="flex min-w-0 flex-1 items-start gap-2 rounded-viewsm text-left hover:bg-bg2" aria-expanded={open} aria-controls="n-{n.id}" onclick={() => (open = !open)}>
         <span class="mt-1.5 size-2 shrink-0 rounded-full {n.read ? 'bg-transparent' : 'bg-accent'}" role="img" aria-label={n.read ? 'Read' : 'Unread'}></span>
         <span class="min-w-0 flex-1">

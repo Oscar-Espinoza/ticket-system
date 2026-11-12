@@ -12,11 +12,15 @@
   let error = $state('');
   let loading = $state(true);
 
+  // A derived value only notifies when the key itself changes: the row's issue object is replaced after
+  // every write (a patched summary), and reading the prop directly would reload, and so replace, the detail.
+  const key = $derived(issueKey);
+
   $effect(() => {
     let current = true;
     loading = true;
     error = '';
-    void callTool('get_issue', { key: issueKey }).then((result) => {
+    void callTool('get_issue', { key }).then((result) => {
       if (!current) return;
       loading = false;
       if (result.ok && result.content?.view === 'issue-detail') detail = result.content.issue;

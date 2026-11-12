@@ -1,13 +1,16 @@
 // What the views allow in user-written Markdown (descriptions, comments).
 // Rendering is svelte-exmarkdown with raw HTML off; on top of that:
-// - links keep only http(s) and mailto targets (`javascript:`, `data:`,
-//   `vbscript:`, `file:` … render as plain text), and open through the host
-//   (`ui/open-link`), never by navigating the iframe;
+// - links keep only http(s) targets (`javascript:`, `data:`, `vbscript:`,
+//   `file:`, and `mailto:` — the host would refuse it — render as plain text),
+//   and open through the host (`ui/open-link`), never by navigating the
+//   iframe. `safeHref` is the one rule: host.ts `openLink` applies it too;
+// - raw HTML someone wrote outside backticks ("use the <div> tag") shows as
+//   literal text (`remarkLiteralHtml`), never as markup;
 // - images are not loaded (the CSP only allows the app's own origin, and a
 //   Markdown image is an arbitrary external URL): the alt text shows instead;
 // - any `raw` HTML node that reaches the tree is dropped.
 
-const ALLOWED = /^(?:https?:|mailto:)/i;
+const ALLOWED = /^https?:/i;
 // C0 controls and space, DEL/C1 controls, zero-width and line/paragraph separators.
 // eslint-disable-next-line no-control-regex
 const STRIPPED = /[\u0000-\u0020\u007f-\u009f\u200b-\u200f\u2028\u2029\ufeff]/g;
@@ -20,7 +23,7 @@ export function safeHref(href: string | null | undefined): string | null {
   if (!ALLOWED.test(cleaned)) return null;
   try {
     const url = new URL(cleaned);
-    return url.protocol === 'http:' || url.protocol === 'https:' || url.protocol === 'mailto:' ? cleaned : null;
+    return url.protocol === 'http:' || url.protocol === 'https:' ? cleaned : null;
   } catch {
     return null;
   }
@@ -55,6 +58,36 @@ export function rehypeSafe() {
         }
         visit(child);
       }
+    };
+    visit(tree);
+  };
+}
+
+interface MdNode {
+  type: string;
+  value?: string;
+  children?: MdNode[];
+}
+
+/** Parents whose children are blocks: an HTML block there becomes a code block, anywhere else HTML is inline text. */
+const FLOW_PARENTS = new Set(['root', 'blockquote', 'listItem']);
+
+/**
+ * Remark plugin: HTML in the source (`<div>` in a sentence, or a block of tags)
+ * becomes literal text, so the reader sees what was written instead of a gap.
+ * It runs before the tree becomes elements, where the parser would drop it.
+ */
+export function remarkLiteralHtml() {
+  return (tree: MdNode) => {
+    const visit = (node: MdNode) => {
+      node.children = node.children?.map((child) => {
+        if (child.type === 'html') {
+          const value = child.value ?? '';
+          return FLOW_PARENTS.has(node.type) ? { type: 'code', value: value.replace(/\n+$/, '') } : { type: 'text', value };
+        }
+        visit(child);
+        return child;
+      });
     };
     visit(tree);
   };

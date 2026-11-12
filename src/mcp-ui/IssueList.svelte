@@ -55,7 +55,7 @@
       {#if host.canFullscreen && (fullscreen || count > 6)}
         <button
           type="button"
-          class="rounded-viewsm border border-line p-1.5 text-fg2 hover:bg-bg2 hover:text-fg"
+          class="inline-flex min-h-8 min-w-8 items-center justify-center rounded-viewsm border border-line text-fg2 hover:bg-bg2 hover:text-fg"
           aria-label={fullscreen ? 'Exit full screen' : 'Show full screen'}
           title={fullscreen ? 'Exit full screen' : 'Show full screen'}
           onclick={toggleFullscreen}
@@ -85,11 +85,11 @@
   {#if moreError}
     <ErrorState message={moreError} title="Could not load more" />
   {/if}
-  {#if nextCursor && source}
+  {#if nextCursor && source && host.canCallTools}
     <div class="flex justify-center pt-1">
       <button
         type="button"
-        class="rounded-view border border-line2 px-4 py-1.5 font-medium hover:bg-bg2 disabled:opacity-60"
+        class="min-h-8 rounded-view border border-line2 px-4 font-medium hover:bg-bg2 disabled:opacity-60"
         disabled={loadingMore}
         onclick={loadMore}
       >

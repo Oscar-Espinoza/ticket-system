@@ -21,6 +21,8 @@
   }
   let { issue, showProject = false, hideState = false, onchange }: Props = $props();
 
+  // Expanding loads the issue through the host's tool forwarding; without it the row is just a summary.
+  const expandable = $derived(host.canCallTools);
   let open = $state(false);
   const today = toDateString(new Date());
   const closed = $derived(issue.state.type === 'completed' || issue.state.type === 'canceled');
@@ -30,12 +32,13 @@
 </script>
 
 <li class="border-b border-line last:border-b-0">
-  <button
-    type="button"
-    class="flex w-full items-start gap-2.5 rounded-viewsm px-1.5 py-2 text-left hover:bg-bg2"
-    aria-expanded={open}
-    aria-controls="row-{issue.id}"
-    onclick={() => (open = !open)}
+  <svelte:element
+    this={expandable ? 'button' : 'div'}
+    type={expandable ? 'button' : undefined}
+    class="flex w-full items-start gap-2.5 rounded-viewsm px-1.5 py-2 text-left {expandable ? 'hover:bg-bg2' : ''}"
+    aria-expanded={expandable ? open : undefined}
+    aria-controls={expandable ? `row-${issue.id}` : undefined}
+    onclick={expandable ? () => (open = !open) : undefined}
   >
     <span class="mt-0.5"><PriorityIcon priority={issue.priority} /></span>
     <span class="min-w-0 flex-1">
@@ -54,7 +57,7 @@
         {#if issue.labels.length > 3}<span class="text-fg3">+{issue.labels.length - 3}</span>{/if}
         {#if issue.dueDate}
           {@const tone = closed ? 'later' : dueTone(issue.dueDate, today)}
-          <span class="inline-flex items-center gap-1 {tone === 'overdue' ? 'text-danger' : tone === 'soon' ? 'text-warn' : ''}"><Icon name="calendar" size={12} /><span class="sr-only-text">Due </span>{shortDate(issue.dueDate, locale, today)}</span>
+          <span class="inline-flex items-center gap-1 {tone === 'overdue' ? 'text-danger' : tone === 'soon' ? 'text-warn' : ''}"><Icon name="calendar" size={12} /><span class="sr-only-text">Due </span>{shortDate(issue.dueDate, locale, today)}{#if tone === 'overdue'}<span> · overdue</span>{:else if tone === 'soon'}<span> · due soon</span>{/if}</span>
         {/if}
         {#if issue.followUp}
           <span class="inline-flex items-center gap-1 {followUpDue ? 'text-warn' : ''}"><Icon name="clock" size={12} /><span class="sr-only-text">Follow up </span>{shortDate(issue.followUp, locale, today)}{#if followUpDue}<span> · due</span>{/if}</span>
@@ -67,10 +70,10 @@
         <span class="mt-1 line-clamp-2 text-fg2 [overflow-wrap:anywhere]">{plainText(issue.snippet)}</span>
       {/if}
     </span>
-    <span class="mt-0.5 flex shrink-0 items-center gap-1.5"><Avatar user={issue.assignee} size={20} /><Icon name={open ? 'chevron-down' : 'chevron-right'} size={12} /></span>
-  </button>
+    <span class="mt-0.5 flex shrink-0 items-center gap-1.5"><Avatar user={issue.assignee} size={22} />{#if expandable}<Icon name={open ? 'chevron-down' : 'chevron-right'} size={12} />{/if}</span>
+  </svelte:element>
 
-  {#if open}
+  {#if open && expandable}
     <div id="row-{issue.id}" class="mb-2 ml-7 border-l border-line pl-3">
       <ExpandedIssue issueKey={issue.key} {onchange} />
     </div>

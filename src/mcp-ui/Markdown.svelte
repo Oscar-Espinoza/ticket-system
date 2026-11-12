@@ -1,21 +1,17 @@
 <script lang="ts">
   // User-written Markdown, rendered as a tree of elements (never {@html}):
-  // raw HTML is dropped by the parser and again by rehypeSafe, links keep
-  // http(s)/mailto only and open through the host, images become their alt text.
+  // raw HTML shows as literal text (remarkLiteralHtml) and any that survives
+  // is dropped by rehypeSafe, links keep http(s) only and open through the
+  // host, images become their alt text.
   import Markdown, { type Plugin } from 'svelte-exmarkdown';
 
   import { host } from './lib/app.svelte';
   import { remarkGfmLite } from './lib/gfm-lite';
-  import { rehypeSafe, safeHref } from './lib/markdown';
+  import { rehypeSafe, remarkLiteralHtml, safeHref } from './lib/markdown';
 
   let { source }: { source: string } = $props();
 
-  const plugins: Plugin[] = [{ remarkPlugin: remarkGfmLite }, { rehypePlugin: rehypeSafe }];
-
-  function open(event: Event, href: string) {
-    event.preventDefault();
-    void host.openLink(href);
-  }
+  const plugins: Plugin[] = [{ remarkPlugin: remarkGfmLite }, { remarkPlugin: remarkLiteralHtml }, { rehypePlugin: rehypeSafe }];
 </script>
 
 <div class="prose-view">
@@ -23,7 +19,9 @@
     {#snippet a({ href, children })}
       {@const safe = safeHref(href)}
       {#if safe}
-        <a href={safe} onclick={(e) => open(e, safe)} rel="noreferrer noopener" target="_blank">{@render children?.()}</a>
+        <!-- A button, not an anchor: with no href there is no middle-click, context-menu "open in new tab" or drag
+             that could navigate around the host; every way of opening goes through ui/open-link. -->
+        <button type="button" class="link-text" title={safe} onclick={() => void host.openLink(safe)}>{@render children?.()}</button>
       {:else}
         <span>{@render children?.()}</span>
       {/if}

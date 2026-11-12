@@ -127,11 +127,11 @@ describe('burndownGeometry', () => {
 });
 
 describe('Markdown link rules', () => {
-  it('keeps http, https and mailto and nothing else', () => {
+  it('keeps http and https and nothing else (the host would refuse mailto)', () => {
     expect(safeHref('https://example.com/a?b=1')).toBe('https://example.com/a?b=1');
     expect(safeHref('http://example.com')).toBe('http://example.com');
-    expect(safeHref('mailto:a@example.com')).toBe('mailto:a@example.com');
     for (const bad of [
+      'mailto:a@example.com',
       'javascript:alert(1)',
       'JaVaScRiPt:alert(1)',
       '  javascript:alert(1)',
@@ -188,7 +188,8 @@ describe('view sources and bundle', () => {
   const sources = walk(root).filter((f) => /\.(ts|svelte)$/.test(f));
 
   // The view talks to the host with postMessage only; user text is never HTML.
-  const forbidden = /\bfetch\s*\(|XMLHttpRequest|new\s+WebSocket|EventSource|sendBeacon|\{@html|\.innerHTML|insertAdjacentHTML|document\.write|\beval\s*\(|new\s+Function|localStorage|sessionStorage|document\.cookie/;
+  // Navigation counts too: a link opens through the host (ui/open-link), the iframe never navigates itself.
+  const forbidden = /\bfetch\s*\(|XMLHttpRequest|new\s+WebSocket|EventSource|sendBeacon|\{@html|\.innerHTML|insertAdjacentHTML|document\.write|\beval\s*\(|new\s+Function|localStorage|sessionStorage|document\.cookie|\bwindow\.open\s*\(|\blocation\.(?:assign|replace)\s*\(|\blocation\.href\s*=|\bsrcdoc\b/;
 
   it('uses no network, storage or HTML-injection API', () => {
     for (const file of sources) {
@@ -197,13 +198,24 @@ describe('view sources and bundle', () => {
     }
   });
 
-  it('builds a bundle with no fetch, XHR or WebSocket in it', () => {
+  it('builds a bundle with no network or navigation API in it', () => {
     const bundle = join(__dirname, '..', 'lib', 'server', 'mcp', 'ui', 'app.html');
-    // Built by `npm run build:mcp-ui` (prebuild, so always present in CI); a fresh checkout without it has nothing to scan.
-    if (!existsSync(bundle)) return;
+    // Built by `npm run build:mcp-ui` (prebuild, so CI has it before the tests). A missing bundle is a failure, not a pass:
+    // there would be nothing to scan.
+    expect(existsSync(bundle), 'src/lib/server/mcp/ui/app.html is missing: run `npm run build:mcp-ui` first').toBe(true);
     const html = readFileSync(bundle, 'utf8');
-    expect(html).not.toMatch(/\bfetch\s*\(|XMLHttpRequest|WebSocket|EventSource|sendBeacon|new Function|\beval\s*\(/);
+    expect(html.length).toBeGreaterThan(50_000);
+    expect(html).not.toMatch(/\bfetch\s*\(|XMLHttpRequest|WebSocket|EventSource|sendBeacon|new Function|\beval\s*\(|\bwindow\.open\s*\(|\blocation\.(?:assign|replace)\s*\(|\blocation\.href\s*=|\bsrcdoc\b/);
     // One file: no external script, stylesheet or image.
     expect(html).not.toMatch(/<(?:script|link|img)\b[^>]*\b(?:src|href)=["']?(?:https?:)?\/\//i);
+  });
+});
+
+describe('MCP Apps constants the server copies', () => {
+  it('match @modelcontextprotocol/ext-apps (a devDependency; the server does not import it at runtime)', async () => {
+    const apps = await import('@modelcontextprotocol/ext-apps/server');
+    const { RESOURCE_MIME_TYPE, RESOURCE_URI_META_KEY } = await import('@/lib/server/mcp/ui');
+    expect(RESOURCE_MIME_TYPE).toBe(apps.RESOURCE_MIME_TYPE);
+    expect(RESOURCE_URI_META_KEY).toBe(apps.RESOURCE_URI_META_KEY);
   });
 });

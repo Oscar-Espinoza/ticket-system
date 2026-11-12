@@ -8,6 +8,8 @@
 
 import type { CallToolResult } from '@modelcontextprotocol/server';
 
+import { safeHref } from './markdown';
+
 export type Theme = 'light' | 'dark';
 export type DisplayMode = 'inline' | 'fullscreen' | 'pip';
 
@@ -35,7 +37,21 @@ interface Pending {
 }
 
 export const PROTOCOL_VERSION = '2026-01-26';
-const REQUEST_TIMEOUT_MS = 60_000;
+export const REQUEST_TIMEOUT_MS = 60_000;
+
+/** JSON-RPC "Method not found", the answer to a host request this view doesn't implement. */
+const METHOD_NOT_FOUND = -32601;
+
+/**
+ * No answer from the host in time. The request may still have reached the
+ * server, so a write that ends this way is "may have been saved", not "refused".
+ */
+export class HostTimeoutError extends Error {
+  constructor() {
+    super('The host did not answer in time.');
+    this.name = 'HostTimeoutError';
+  }
+}
 
 export interface HostHandlers {
   onToolResult?: (result: CallToolResult) => void;
@@ -43,13 +59,16 @@ export interface HostHandlers {
   onContext?: (context: HostContext) => void;
 }
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
 type JsonRpcMessage = {
   jsonrpc?: string;
   id?: number | string;
   method?: string;
   params?: unknown;
   result?: unknown;
-  error?: { message?: string };
+  error?: { code?: number; message?: string };
 };
 
 export class Host {
@@ -59,10 +78,13 @@ export class Host {
   private pending = new Map<number | string, Pending>();
   private target: Window;
   private handlers: HostHandlers;
+  private timeoutMs: number;
 
-  constructor(handlers: HostHandlers, target: Window = window.parent) {
+  /** `requestTimeoutMs` is for tests (a real timeout is a minute). */
+  constructor(handlers: HostHandlers, target: Window = window.parent, requestTimeoutMs = REQUEST_TIMEOUT_MS) {
     this.handlers = handlers;
     this.target = target;
+    this.timeoutMs = requestTimeoutMs;
     window.addEventListener('message', (event) => this.receive(event));
   }
 
@@ -88,6 +110,11 @@ export class Host {
     return this.capabilities.updateModelContext !== undefined;
   }
 
+  /** The host forwards `tools/call` to the server: reads, expanding rows and writes all need it. */
+  get canCallTools() {
+    return this.capabilities.serverTools !== undefined;
+  }
+
   get canFullscreen() {
     return this.context.availableDisplayModes?.includes('fullscreen') === true;
   }
@@ -99,9 +126,11 @@ export class Host {
 
   /** Ask the host to open an http(s) URL in the user's browser. Resolves false if it refused. */
   async openLink(url: string): Promise<boolean> {
-    if (!/^https?:\/\//i.test(url)) return false;
+    // The same rule as the Markdown links (markdown.ts `safeHref`), the one owner.
+    const safe = safeHref(url);
+    if (!safe) return false;
     try {
-      const result = (await this.request('ui/open-link', { url })) as { isError?: boolean } | undefined;
+      const result = (await this.request('ui/open-link', { url: safe })) as { isError?: boolean } | undefined;
       return !result?.isError;
     } catch {
       return false;
@@ -140,8 +169,8 @@ export class Host {
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         this.pending.delete(id);
-        reject(new Error('The host did not answer in time.'));
-      }, REQUEST_TIMEOUT_MS);
+        reject(new HostTimeoutError());
+      }, this.timeoutMs);
       this.pending.set(id, { resolve, reject, timer });
       this.post({ id, method, params });
     });
@@ -163,22 +192,35 @@ export class Host {
       return;
     }
 
+    const params = isRecord(message.params) ? message.params : null;
     switch (message.method) {
       case 'ui/notifications/tool-result':
-        this.handlers.onToolResult?.(message.params as CallToolResult);
+        // A result carries `content` and/or `structuredContent`; anything else is not one.
+        if (params && (Array.isArray(params.content) || isRecord(params.structuredContent))) {
+          this.handlers.onToolResult?.(params as unknown as CallToolResult);
+        }
         break;
       case 'ui/notifications/tool-cancelled':
-        this.handlers.onToolCancelled?.((message.params as { reason?: string } | undefined)?.reason);
+        this.handlers.onToolCancelled?.(typeof params?.reason === 'string' ? params.reason : undefined);
         break;
       case 'ui/notifications/host-context-changed':
-        this.context = { ...this.context, ...(message.params as HostContext) };
-        this.handlers.onContext?.(this.context);
+        if (params) {
+          this.context = { ...this.context, ...(params as HostContext) };
+          this.handlers.onContext?.(this.context);
+        }
         break;
       case 'ui/resource-teardown':
       case 'ping':
         // Requests the host expects an (empty) answer to.
         if (message.id !== undefined) this.post({ id: message.id, result: {} });
         break;
+      default:
+        // A request (it has an id) for something this view doesn't do: say so now
+        // rather than leave the host waiting for its own timeout. Notifications
+        // we don't know are ignored, as JSON-RPC says.
+        if (message.id !== undefined && message.method !== undefined) {
+          this.post({ id: message.id, error: { code: METHOD_NOT_FOUND, message: `Method not found: ${message.method}` } });
+        }
     }
   }
 

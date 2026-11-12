@@ -17,7 +17,7 @@
   <button
     type="button"
     onclick={open}
-    class="inline-flex items-center gap-1 rounded-viewsm border border-line px-2 py-1 text-fg2 hover:bg-bg2 hover:text-fg"
+    class="inline-flex min-h-8 min-w-8 items-center justify-center gap-1 rounded-viewsm border border-line px-2 text-fg2 hover:bg-bg2 hover:text-fg"
     aria-label={compact ? label : undefined}
     title={label}
   >
