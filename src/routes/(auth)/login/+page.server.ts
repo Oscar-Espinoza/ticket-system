@@ -20,7 +20,7 @@ function signInErrorCopy(value: string | null): string | null {
     return 'Your identity provider signed you in with an email outside this workspace’s SSO domain.';
   }
   if (code.includes('account_not_linked')) {
-    return 'An account with this email already exists and couldn’t be linked to single sign-on. Sign in another way, or ask your admin to add an email_verified attribute in the identity provider.';
+    return 'An account with this email already exists and couldn’t be linked automatically. Sign in the way you did before (for example with your password). For single sign-on, ask your admin to add an email_verified attribute in the identity provider.';
   }
   if (code.includes('unable_to_create_session') || code.includes('sso_required')) {
     return SSO_REQUIRED_COPY;
