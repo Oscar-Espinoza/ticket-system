@@ -48,3 +48,5 @@ Run `npm run db:migrate` against the database before deploying new code.
 Migration 0009 (durable webhook dispatch, description source) comes with
 the 2026-11 security and reliability fixes; see
 `docs/reports/2026-09-25-architecture-security-review.md` for what they fix.
+Migration 0010 adds the issue fields `waiting_on_id` and `follow_up` (plus
+`follow_up_notified_on`, used by the daily follow-up job).

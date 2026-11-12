@@ -127,8 +127,8 @@ function pick<T>(input: Args, keys: readonly string[]): T {
 }
 
 const CREATE_FIELDS = [
-  'title', 'description', 'stateId', 'priority', 'estimate', 'startDate', 'dueDate',
-  'assigneeId', 'labelIds', 'parentId', 'cycleId', 'epicId', 'milestoneId',
+  'title', 'description', 'stateId', 'priority', 'estimate', 'startDate', 'dueDate', 'followUp',
+  'assigneeId', 'waitingOnId', 'labelIds', 'parentId', 'cycleId', 'epicId', 'milestoneId',
 ] as const;
 const UPDATE_FIELDS = [...CREATE_FIELDS, 'addLabelIds', 'removeLabelIds', 'sortOrder'] as const;
 

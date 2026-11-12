@@ -163,7 +163,11 @@ export const typeDefs = /* GraphQL */ `
     startDate: String
     "YYYY-MM-DD"
     dueDate: String
+    "Follow-up date, YYYY-MM-DD"
+    followUp: String
     assignee: User
+    "Who the issue is waiting on."
+    waitingOn: User
     creator: User
     labels: [Label!]!
     parent: Issue
@@ -223,6 +227,10 @@ export const typeDefs = /* GraphQL */ `
     state: String
     "User id, 'me' or 'none'."
     assignee: String
+    "Waiting-on user id, 'me' or 'none'."
+    waitingOn: String
+    "Follow-up date: overdue, today, week, next-week, none, or YYYY-MM-DD with optional <, <=, >, >=."
+    followUp: String
     "Label id or name."
     label: String
     updatedSince: DateTime
@@ -238,7 +246,9 @@ export const typeDefs = /* GraphQL */ `
     estimate: Int
     startDate: String
     dueDate: String
+    followUp: String
     assigneeId: ID
+    waitingOnId: ID
     labelIds: [ID!]
     parentId: ID
     cycleId: ID
@@ -254,7 +264,9 @@ export const typeDefs = /* GraphQL */ `
     estimate: Int
     startDate: String
     dueDate: String
+    followUp: String
     assigneeId: ID
+    waitingOnId: ID
     "Replaces the whole label set."
     labelIds: [ID!]
     "Adds labels, keeping the rest (not combinable with labelIds)."

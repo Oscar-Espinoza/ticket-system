@@ -7,7 +7,8 @@ import { allowOptions } from '../../../../_lib/options';
 /**
  * GET /projects/:id/issues — newest number first, cursor = last number seen.
  * Filters: state (id | name | type), assignee (id | me | none), label (id | name),
- * updated_since (ISO date), include_archived (true). Trashed issues never list.
+ * waiting_on (id | me | none), follow_up (overdue | today | week | next-week | none |
+ * [<|<=|>|>=]YYYY-MM-DD), updated_since (ISO date), include_archived (true). Trashed issues never list.
  * Same listing as GraphQL `issues` (src/lib/issue-list.ts).
  */
 export const GET = apiRoute<{ id: string }>(async (req, { userId }, { id }) => {
@@ -23,6 +24,8 @@ export const GET = apiRoute<{ id: string }>(async (req, { userId }, { id }) => {
       state: params.get('state'),
       assignee: params.get('assignee'),
       label: params.get('label'),
+      waitingOn: params.get('waiting_on'),
+      followUp: params.get('follow_up'),
       updatedSince: params.get('updated_since'),
       includeArchived: params.get('include_archived') === 'true',
     },
