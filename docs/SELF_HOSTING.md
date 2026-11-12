@@ -72,6 +72,15 @@ company domain with a DNS TXT record (`_ticket-system.<domain>`), shown in
 workspace settings → Security. The record must stay published: the app re-checks
 it and stops trusting the IdP for that domain if it disappears.
 
+**AI assistants (MCP)** work self-hosted with Claude Code out of the box (it
+connects from each user's machine). claude.ai, Claude Desktop/mobile and
+ChatGPT connect from the vendors' clouds, so `/mcp`, the `/.well-known/oauth-*`
+documents and `/api/auth/oauth2/{register,token}` + `/api/auth/jwks` must be on
+public HTTPS, and `APP_URL` must be that public URL; sign-in and consent can
+stay on the VPN. A reverse proxy exposing only those paths, or a
+`cloudflared` tunnel for a test, is enough. Extra OAuth redirect URIs for other
+MCP clients go in `MCP_EXTRA_REDIRECT_URIS`. Details: [MCP.md](MCP.md).
+
 ## Database tests
 
 The tests in `src/tests/local-db` run the issue service against a throwaway
