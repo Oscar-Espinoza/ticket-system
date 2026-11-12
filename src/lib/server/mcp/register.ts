@@ -53,7 +53,8 @@ function extraRedirects(): Set<string> {
  * Whether a dynamically registered client may use this redirect URI. It must
  * be in canonical form first (what the URL parser prints back), so the string
  * we match is the URL a browser would follow: `http://localhost\@evil/cb`
- * and similar parser tricks are refused before any pattern runs.
+ * and similar parser tricks are refused before any pattern runs. A loopback
+ * URI may also leave out the path (`http://127.0.0.1:1234`).
  */
 export function isAllowedRedirect(uri: string): boolean {
   let url: URL;
@@ -62,9 +63,14 @@ export function isAllowedRedirect(uri: string): boolean {
   } catch {
     return false;
   }
-  if (url.href !== uri) return false;
-  if (FIXED_REDIRECTS.has(uri) || CHATGPT_CALLBACK.test(uri) || extraRedirects().has(uri)) return true;
-  // Loopback: any port and path, plain http, no credentials or fragment.
+  const canonical = url.href === uri;
+  // The one exception: a loopback URI with no path (`http://localhost:1234`)
+  // prints back with a trailing slash. It is the same URL, so the loopback
+  // rule below accepts it too.
+  const barePath = !canonical && url.pathname === '/' && url.href === `${uri}/`;
+  if (!canonical && !barePath) return false;
+  if (canonical && (FIXED_REDIRECTS.has(uri) || CHATGPT_CALLBACK.test(uri) || extraRedirects().has(uri))) return true;
+  // Loopback: any port and path (or none), plain http, no credentials or fragment.
   return (
     url.protocol === 'http:' &&
     LOOPBACK_HOSTS.has(url.hostname) &&

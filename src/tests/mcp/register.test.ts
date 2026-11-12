@@ -35,6 +35,8 @@ describe.skipIf(!localDb)('MCP dynamic client registration', () => {
     'https://chatgpt.com/connector/oauth/abc123_DEF-9',
     'http://localhost:53122/callback',
     'http://127.0.0.1:6274/oauth/callback',
+    'http://localhost:1234',
+    'http://127.0.0.1:1234',
   ])('registers a public, dynamic client for %s', async (redirect) => {
     const res = await register(publicClient(redirect));
     expect(res.status).toBe(200);
@@ -57,6 +59,10 @@ describe.skipIf(!localDb)('MCP dynamic client registration', () => {
     'http://localhost\\@evil.com/cb',
     'HTTP://localhost:3000/callback',
     'http://localhost:3000/a/../callback',
+    // The no-path exception is for loopback only, and only for the bare form.
+    'http://localhost.:1234',
+    'https://claude.ai',
+    'http://localhost:1234?next=https://evil.example',
   ])('refuses the redirect %s', async (redirect) => {
     const res = await register(publicClient(redirect));
     expect(res.status).toBe(400);

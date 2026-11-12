@@ -167,7 +167,7 @@ says `token_endpoint_auth_method: none` (RFC 7591 §3.2.1); other methods and
 
 - `https://claude.ai/api/mcp/auth_callback`
 - `https://chatgpt.com/connector_platform_oauth_redirect` and `https://chatgpt.com/connector/oauth/<id>`
-- `http://localhost:<port>/…` and `http://127.0.0.1:<port>/…` (Claude Code, MCP Inspector)
+- `http://localhost:<port>/…` and `http://127.0.0.1:<port>/…` (Claude Code, MCP Inspector), also with no path (`http://localhost:<port>`)
 - anything listed in `MCP_EXTRA_REDIRECT_URIS` (comma- or space-separated, exact match)
 
 Homepage, logo, terms and privacy URLs (`client_uri`, `logo_uri`, `tos_uri`,
