@@ -9,6 +9,7 @@ import { run as digests } from './jobs/digests';
 import { run as pulse } from './jobs/pulse';
 import { run as webhookRetries } from './jobs/webhook-retries';
 import { run as collabPrune } from './jobs/collab-prune';
+import { run as oauthDcrCleanup } from './jobs/oauth-dcr-cleanup';
 
 import { MINUTE_MS } from '@/lib/time';
 
@@ -20,6 +21,7 @@ const JOBS: Record<string, (now: Date) => Promise<string>> = {
   pulse,
   webhookRetries,
   collabPrune,
+  oauthDcrCleanup,
 };
 
 /**

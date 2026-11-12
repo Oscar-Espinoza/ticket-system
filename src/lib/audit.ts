@@ -78,7 +78,7 @@ const CATEGORY_PREFIXES: Record<Exclude<AuditCategory, 'other'>, string[]> = {
   members: ['member.', 'workspace.'],
   settings: ['project.', 'label.', 'workflow.', 'template.'],
   security: ['security.'],
-  integrations: ['github.', 'gitlab.', 'bitbucket.', 'sentry.', 'webhook.', 'slack.', 'intake.', 'import.'],
+  integrations: ['github.', 'gitlab.', 'bitbucket.', 'sentry.', 'webhook.', 'slack.', 'intake.', 'import.', 'mcp.'],
 };
 
 export const isAuditCategory = (value: unknown): value is AuditCategory =>

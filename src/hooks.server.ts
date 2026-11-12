@@ -30,6 +30,8 @@ const CSRF_EXEMPT = [
   /^\/api\/graphql$/,
   /^\/api\/webhooks\//,
   /^\/api\/cron\//,
+  // MCP: bearer token only, never the session cookie (src/lib/server/mcp/http.ts).
+  /^\/mcp$/,
 ];
 const FORM_TYPES = ['application/x-www-form-urlencoded', 'multipart/form-data', 'text/plain'];
 const MUTATING = ['POST', 'PUT', 'PATCH', 'DELETE'];

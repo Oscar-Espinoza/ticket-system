@@ -23,7 +23,7 @@
 
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { createAuthMiddleware, isAPIError } from 'better-auth/api';
+import { APIError, createAuthMiddleware, isAPIError } from 'better-auth/api';
 import { getRequestEvent } from '$app/server';
 import { sveltekitCookies } from 'better-auth/svelte-kit';
 import { jwt, twoFactor } from 'better-auth/plugins';
@@ -33,6 +33,8 @@ import { sso } from '@better-auth/sso';
 import { MIN_PASSWORD_LENGTH } from '@/lib/auth-rules';
 import { authDb } from '@/lib/db';
 import { recordUserSecurityEvent } from '@/lib/audit';
+import { checkDynamicRegistration, markDynamicClient } from '@/lib/server/mcp/register';
+import { mcpUrl } from '@/lib/server/mcp/urls';
 import {
   assertIdentityDomain,
   assertPasswordSignInAllowed,
@@ -129,6 +131,13 @@ export const auth = betterAuth({
       scopes: ['openid', 'profile', 'email', 'offline_access', 'read', 'write'],
       // Discovery is served by src/routes/[x+2e]well-known/oauth-authorization-server/api/auth/+server.ts.
       silenceWarnings: { oauthAuthServerConfig: true },
+      // MCP connectors (docs/mcp/PLAN.md D3/D4): Claude and ChatGPT register
+      // themselves (policy: src/lib/server/mcp/register.ts, via hooks below)
+      // and ask for `resource=<origin>/mcp`, which gets a JWT for that audience.
+      allowDynamicClientRegistration: true,
+      allowUnauthenticatedClientRegistration: true,
+      validAudiences: [mcpUrl()],
+      rateLimit: { register: { window: 60, max: 5 } },
     }),
     // Providers are written only by workspace admins through
     // src/lib/server/actions/security.ts (domain proven, see src/lib/sso.ts), so the
@@ -165,6 +174,13 @@ export const auth = betterAuth({
   ],
   hooks: {
     before: createAuthMiddleware(async (ctx) => {
+      if (ctx.path === '/oauth2/register') {
+        const verdict = checkDynamicRegistration(ctx.body);
+        if (!verdict.ok) {
+          throw new APIError('BAD_REQUEST', { error: verdict.error, error_description: verdict.description });
+        }
+        return { context: { body: verdict.body } };
+      }
       // "Enforce SSO": password sign-in / sign-up is refused for the domain.
       if (ctx.path === '/sign-in/email' || ctx.path === '/sign-up/email') {
         await assertPasswordSignInAllowed(ctx.body?.email);
@@ -188,6 +204,10 @@ export const auth = betterAuth({
       if (override) return { context: { context: override } };
     }),
     after: createAuthMiddleware(async (ctx) => {
+      if (ctx.path === '/oauth2/register' && ctx.context.returned && !isAPIError(ctx.context.returned)) {
+        await markDynamicClient((ctx.context.returned as { client_id?: unknown }).client_id);
+        return;
+      }
       const userId = ctx.context.session?.user.id;
       if (
         ctx.path === '/two-factor/generate-backup-codes' &&
