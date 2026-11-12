@@ -193,6 +193,14 @@ header the caller sends:
   set. The counter lives in each function instance's memory, so the limit is
   per instance: a speed bump against floods, not a guarantee.
 
+**Calls per connection.** Each connection (one user with one assistant, or
+one user with one API key) may make 120 MCP requests a minute; a burst up to
+that passes, then requests flow at two a second. Over it, `/mcp` answers HTTP
+429 with `Retry-After` and a JSON-RPC error. Set `MCP_RATE_LIMIT_PER_MINUTE` to
+change it (`0` turns it off). Like the registration limit, the counter is in
+memory, so it is per instance (each Vercel function instance or Docker replica
+counts on its own).
+
 ## Troubleshooting
 
 - **"Couldn't connect" in Claude or ChatGPT right away**: the server isn't

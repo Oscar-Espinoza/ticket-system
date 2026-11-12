@@ -516,6 +516,22 @@ describe.skipIf(!localDb)('MCP tools over /mcp', () => {
     expect(text(detail)).not.toContain('batched');
   });
 
+  it('limits calls per connection and leaves other users alone', async () => {
+    vi.stubEnv('MCP_RATE_LIMIT_PER_MINUTE', '3');
+    try {
+      const [carol, dave] = [await apiKeyFor(await makeUser('carol')), await apiKeyFor(await makeUser('dave'))];
+      for (let i = 0; i < 3; i++) expect((await rpc(carol, 'tools/list')).status).toBe(200);
+      const limited = await rpc(carol, 'tools/list');
+      expect(limited.status).toBe(429);
+      expect(Number(limited.headers.get('retry-after'))).toBeGreaterThanOrEqual(1);
+      expect(limited.headers.get('access-control-allow-origin')).toBe('*');
+      expect(JSON.parse(limited.body as string).error.code).toBe(-32000);
+      expect((await rpc(dave, 'tools/list')).status).toBe(200);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   it('refuses a write with a read-only token as insufficient_scope', async () => {
     const result = await call(readOnly, 'create_issue', { project: projectKey, title: 'Nope' });
     expect(result.isError).toBe(true);

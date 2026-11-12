@@ -126,7 +126,8 @@ public HTTPS, and `APP_URL` must be that public URL; sign-in and consent can
 stay on the VPN. A reverse proxy exposing only those paths, or a
 `cloudflared` tunnel for a test, is enough. Extra OAuth redirect URIs for other
 MCP clients go in `MCP_EXTRA_REDIRECT_URIS`. Set `ADDRESS_HEADER` / `XFF_DEPTH`
-(above) so client registration is limited per caller. Details: [MCP.md](MCP.md).
+(above) so client registration is limited per caller. `MCP_RATE_LIMIT_PER_MINUTE`
+(default 120, `0` = off) caps MCP calls per connection, per replica. Details: [MCP.md](MCP.md).
 
 ## Database tests
 

@@ -13,6 +13,8 @@ export interface McpCredential {
   via: 'jwt' | 'oauth' | 'api_key';
   /** OAuth client id (null for API keys). */
   clientId: string | null;
+  /** API key id (null for OAuth tokens). */
+  apiKeyId: string | null;
   /** OAuth client name as registered (self-asserted for dynamic clients). */
   clientName: string | null;
   scopes: ReadonlySet<ApiScope>;
