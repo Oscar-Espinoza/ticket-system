@@ -20,19 +20,24 @@ import * as issues from '@/lib/issue-service';
 import { sweepPendingEvents } from '@/lib/integrations/outgoing-webhooks';
 import { createCommentAs } from '@/lib/comments';
 import { localDb, makeProject, makeUser } from './fixtures';
+import type { WebhookPayload } from '@/lib/integrations/outgoing-webhooks';
 
 let server: Server;
 let url = '';
-const received: { event: string; delivery: string }[] = [];
+const received: { event: string; delivery: string; body: string }[] = [];
 
 beforeAll(async () => {
   server = createServer((req, res) => {
-    received.push({
-      event: String(req.headers['x-webhook-event']),
-      delivery: String(req.headers['x-webhook-delivery']),
+    const chunks: Buffer[] = [];
+    req.on('data', (chunk: Buffer) => chunks.push(chunk));
+    req.on('end', () => {
+      received.push({
+        event: String(req.headers['x-webhook-event']),
+        delivery: String(req.headers['x-webhook-delivery']),
+        body: Buffer.concat(chunks).toString('utf8'),
+      });
+      res.writeHead(204).end();
     });
-    req.resume();
-    req.on('end', () => res.writeHead(204).end());
   });
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
   url = `http://127.0.0.1:${(server.address() as AddressInfo).port}/hook`;
@@ -127,6 +132,52 @@ describe.skipIf(!localDb)('durable webhook dispatch (review finding #9)', () => 
     await sweepPendingEvents({ now: later() });
     const rows = await db.select().from(webhookDeliveries).where(eq(webhookDeliveries.webhookId, hookId));
     expect(rows.map((r) => r.eventType)).toEqual(['issue.created']);
+  });
+
+  it('an event swept after its issue moved to a private project carries nothing of the issue’s new life (follow-up 2026-11-12)', async () => {
+    const owner = await makeUser('leak-owner');
+    // Member of the private target project only.
+    const insider = await makeUser('secret-assignee-name');
+    const src = await makeProject(owner, 'LKA');
+    const dst = await makeProject(owner, 'LKB', [insider]);
+    const hookId = crypto.randomUUID();
+    await db.insert(webhooks).values({
+      id: hookId,
+      projectId: src,
+      url,
+      secret: 'shh',
+      events: [],
+      createdAt: new Date(),
+    });
+
+    const created = await issues.createIssue({ userId: owner }, src, { title: 'Public title' });
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+    const moved = await issues.moveIssue({ userId: owner }, src, created.issue.id, dst);
+    expect(moved.ok).toBe(true);
+    if (!moved.ok) return;
+    const edited = await issues.updateIssueFields({ userId: owner }, dst, created.issue.id, {
+      title: 'Secret private title',
+      assigneeId: insider,
+    });
+    expect(edited.ok).toBe(true);
+
+    // The source project's pending issue.created is swept only now.
+    await sweepPendingEvents({ now: later() });
+    const rows = await db.select().from(webhookDeliveries).where(eq(webhookDeliveries.webhookId, hookId));
+    expect(rows.map((r) => r.eventType)).toEqual(['issue.created']);
+    const created_ = rows.find((r) => r.eventType === 'issue.created')!.payload as unknown as WebhookPayload;
+    // What the event recorded when it happened stays; the issue's current row is not used.
+    expect(created_.issue).toBeNull();
+    expect(created_.data).toMatchObject({ key: created.issue.key, title: 'Public title' });
+
+    const sent = received.filter((r) => rows.some((row) => row.eventId === r.delivery));
+    expect(sent.length).toBe(1);
+    for (const text of [...rows.map((r) => JSON.stringify(r.payload)), ...sent.map((r) => r.body)]) {
+      expect(text).not.toContain('Secret private title');
+      expect(text).not.toContain('secret-assignee-name');
+      expect(text).not.toContain(insider);
+    }
   });
 
   it('a comment and its comment.created event commit together (Astra review #4)', async () => {
