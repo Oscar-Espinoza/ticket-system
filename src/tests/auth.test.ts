@@ -11,11 +11,20 @@
 //   - afterEach deletes any rows created by the run so the suite leaves no residue.
 //   - NODE_ENV=test; .env.local is loaded by src/tests/setup.ts via dotenv.
 
-import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { eq, inArray } from 'drizzle-orm';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { users } from '@/db/schema';
+
+// auth.ts hands SvelteKit's getRequestEvent to the sveltekitCookies() plugin,
+// which calls it after every response that sets a cookie; outside a request the
+// real one throws request_event_unavailable. These tests call auth.api directly
+// and read the Set-Cookie header themselves, so "no current request" is right.
+vi.mock('$app/server', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('$app/server')>()),
+  getRequestEvent: () => undefined,
+}));
 
 // Track every email we register so afterEach can clean up the `user` rows
 // (sessions/accounts cascade-delete via their FKs to user).

@@ -22,6 +22,11 @@ any Postgres self-hosted), Better Auth, Tailwind v4 with bits-ui primitives
   Vercel with the same variables (adapter-vercel is picked automatically there);
   `vercel.json` schedules the daily cron.
 - **Checks**: `npm run check` (svelte-check), `npm run lint`, `npm run build`.
+  A clean checkout needs `BETTER_AUTH_SECRET` and `BETTER_AUTH_URL` (any dummy
+  values; the build prerenders the auth module) to build; `PUBLIC_APP_URL` is
+  inlined into the bundle. No `DATABASE_URL` is needed to build. CI
+  (`.github/workflows/ci.yml`) runs all of this plus the tests against a
+  throwaway Postgres service and never uses secrets.
 - **Server actions** live in `src/lib/server/actions/`; after adding or changing
   an exported action run `npm run gen:actions` to regenerate the remote-function
   wrappers the UI calls (`src/lib/remote`, `src/lib/actions`).
