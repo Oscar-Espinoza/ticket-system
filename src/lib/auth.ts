@@ -35,9 +35,21 @@ import { socialProviderOptions } from '@/lib/auth-providers';
 import {
   emailVerificationAvailable,
   emailVerificationRequired,
+  passwordResetAvailable,
+  PASSWORD_RESET_TTL_SECONDS,
   VERIFICATION_LINK_TTL_SECONDS,
 } from '@/lib/email-verification';
-import { sendVerificationEmail } from '@/lib/server/verification-email';
+import { sendPasswordReset, sendVerificationEmail } from '@/lib/server/verification-email';
+import {
+  assertResetAllowed,
+  assertUserName,
+  assertVerifierIsHolder,
+  onPasswordReset,
+  passwordResetRequestBody,
+  resendVerificationBody,
+  verifyingSignInContext,
+  verifyLinkRedirect,
+} from '@/lib/server/email-proof';
 import { invalidClientUri } from '@/lib/oauth-model';
 import { authDb } from '@/lib/db';
 import { recordUserSecurityEvent } from '@/lib/audit';
@@ -116,12 +128,31 @@ export const auth = betterAuth({
     minPasswordLength: MIN_PASSWORD_LENGTH,
     // Off unless REQUIRE_EMAIL_VERIFICATION=true AND email is configured
     // (src/lib/email-verification.ts): unverified accounts then get 403
-    // EMAIL_NOT_VERIFIED on password sign-in, and sign-up stops signing in.
+    // EMAIL_NOT_VERIFIED on password sign-in (with a fresh link emailed, see
+    // sendOnSignIn), and sign-up stops signing in. The link's landing page
+    // signs them in with password + link (verifyingSignInContext below).
     requireEmailVerification: emailVerificationRequired(),
+    // "Forgot password?" (only with email configured; otherwise Better Auth
+    // answers RESET_PASSWORD_DISABLED and the UI hides it). The link is
+    // single-use (consumed atomically), lasts an hour, only the newest one
+    // works, and a reset signs out every session. It also proves the address
+    // (email-proof.ts onPasswordReset): an unverified account is claimed.
+    ...(passwordResetAvailable()
+      ? {
+          sendResetPassword: sendPasswordReset,
+          resetPasswordTokenExpiresIn: PASSWORD_RESET_TTL_SECONDS,
+          onPasswordReset,
+        }
+      : {}),
+    revokeSessionsOnPasswordReset: true,
   },
   // Only with email configured; without it Better Auth answers
   // /send-verification-email with VERIFICATION_EMAIL_NOT_ENABLED and sign-up
   // sends nothing (the UI hides every verification prompt).
+  // A link verifies only inside a session of its own account (hooks.before
+  // /verify-email, and beforeEmailVerification inside the endpoint): proving
+  // the mailbox alone would let the real owner, or a mail scanner, verify a
+  // squatter's account (src/lib/server/email-proof.ts).
   // autoSignInAfterVerification stays OFF: it would mint a session for whoever
   // opens the link, skipping the password, two-factor and "Enforce SSO". A
   // signed-in user stays signed in; /email-verification refreshes the cached
@@ -131,9 +162,12 @@ export const auth = betterAuth({
         emailVerification: {
           sendVerificationEmail,
           sendOnSignUp: true,
-          sendOnSignIn: false,
+          // With the switch on, an unverified holder can't sign in to resend:
+          // a correct password gets a fresh link instead (same cooldown).
+          sendOnSignIn: emailVerificationRequired(),
           autoSignInAfterVerification: false,
           expiresIn: VERIFICATION_LINK_TTL_SECONDS,
+          beforeEmailVerification: assertVerifierIsHolder,
         },
       }
     : {}),
@@ -261,6 +295,32 @@ export const auth = betterAuth({
       // "Enforce SSO": password sign-in / sign-up is refused for the domain.
       if (ctx.path === '/sign-in/email' || ctx.path === '/sign-up/email') {
         await assertPasswordSignInAllowed(ctx.body?.email);
+        if (ctx.path === '/sign-up/email') {
+          assertUserName(ctx.body);
+          return;
+        }
+        const override = await verifyingSignInContext(ctx);
+        if (override) return { context: { context: override } };
+        return;
+      }
+      if (ctx.path === '/update-user') {
+        assertUserName(ctx.body);
+        return;
+      }
+      // Email proof (src/lib/server/email-proof.ts).
+      if (ctx.path === '/verify-email') {
+        const landing = await verifyLinkRedirect(ctx);
+        if (landing) throw ctx.redirect(landing);
+        return;
+      }
+      if (ctx.path === '/send-verification-email') {
+        return { context: { body: await resendVerificationBody(ctx) } };
+      }
+      if (ctx.path === '/request-password-reset') {
+        return { context: { body: await passwordResetRequestBody(ctx) } };
+      }
+      if (ctx.path === '/reset-password') {
+        await assertResetAllowed(ctx);
         return;
       }
       if (ctx.path === '/scim/v2/Users/:userId') {

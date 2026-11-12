@@ -70,36 +70,68 @@ export const uniqueEmail = (label: string) =>
 
 export const PASSWORD = 'correct-horse-battery-staple';
 
-export function signUp(email: string, callbackURL = '/dashboard') {
+export function signUp(email: string, callbackURL = '/dashboard', password = PASSWORD, name = email.split('@')[0]) {
   return authRequest('/sign-up/email', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ email, password: PASSWORD, name: email.split('@')[0], callbackURL }),
+    body: JSON.stringify({ email, password, name, callbackURL }),
   });
 }
 
-export function signIn(email: string) {
+export function signIn(email: string, password = PASSWORD, headers: Record<string, string> = {}) {
   return authRequest('/sign-in/email', {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ email, password: PASSWORD }),
+    headers: { 'content-type': 'application/json', ...headers },
+    body: JSON.stringify({ email, password }),
   });
 }
 
-export function sendVerification(email: string, cookie?: string) {
+export function sendVerification(email: string, cookie?: string, callbackURL = '/dashboard') {
   return authRequest('/send-verification-email', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ email, callbackURL: '/dashboard' }),
+    body: JSON.stringify({ email, callbackURL }),
     cookie,
+  });
+}
+
+/** The signed-in user id for a cookie, read from the database (null when signed out or revoked). */
+export async function sessionOf(cookie: string): Promise<string | null> {
+  const res = await authRequest('/get-session?disableCookieCache=true', { method: 'GET', cookie });
+  const body = (await res.json()) as { user?: { id: string } } | null;
+  return body?.user?.id ?? null;
+}
+
+export function requestReset(email: string) {
+  return authRequest('/request-password-reset', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ email, redirectTo: 'https://evil.example/steal' }),
+  });
+}
+
+/** The token in the newest reset email to `email` (the link carries it in the fragment). */
+export function resetTokenFor(email: string): string {
+  const mail = emailsTo(email).filter((m) => m.subject === 'Reset your password').at(-1);
+  if (!mail) throw new Error(`no reset email sent to ${email}`);
+  const match = /(https?:\/\/\S+)\/reset-password#token=(\S+)/.exec(mail.text);
+  if (!match) throw new Error(`no reset link in: ${mail.text}`);
+  return decodeURIComponent(match[2]);
+}
+
+export function resetPassword(token: string, newPassword: string) {
+  return authRequest('/reset-password', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ token, newPassword }),
   });
 }
 
 export const emailsTo = (email: string) => sent.filter((m) => m.to.includes(email));
 
-/** The verify link in the newest email to `email`. */
+/** The verify link in the newest verification email to `email`. */
 export function verifyLinkFor(email: string): URL {
-  const mail = emailsTo(email).at(-1);
+  const mail = emailsTo(email).filter((m) => m.subject === 'Verify your email address').at(-1);
   if (!mail) throw new Error(`no email sent to ${email}`);
   const match = /https?:\/\/\S+\/api\/auth\/verify-email\?\S+/.exec(mail.text);
   if (!match) throw new Error(`no verify link in: ${mail.text}`);

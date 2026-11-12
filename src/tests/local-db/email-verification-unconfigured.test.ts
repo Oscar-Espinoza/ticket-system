@@ -19,6 +19,8 @@ import {
   stubOutboundHttp,
   uniqueEmail,
   userByEmail,
+  cookieOf,
+  requestReset,
 } from './auth-email-flow';
 
 describe.skipIf(!localDb)('email verification without email configured', () => {
@@ -35,9 +37,14 @@ describe.skipIf(!localDb)('email verification without email configured', () => {
     const { id } = await userByEmail(email);
     expect(await sessionUserId(signedUp)).toBe(id);
 
-    const resend = await sendVerification(email);
+    const resend = await sendVerification(email, cookieOf(signedUp));
     expect(resend.status).toBe(400);
     expect(((await resend.json()) as { code: string }).code).toBe('VERIFICATION_EMAIL_NOT_ENABLED');
+
+    // No "Forgot password?" either: Better Auth refuses resets without a sender.
+    const reset = await requestReset(email);
+    expect(reset.status).toBe(400);
+    expect(((await reset.json()) as { code: string }).code).toBe('RESET_PASSWORD_DISABLED');
 
     const signedIn = await signIn(email);
     expect(signedIn.status).toBe(200);

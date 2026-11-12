@@ -1,10 +1,12 @@
 // Email verification with email configured and REQUIRE_EMAIL_VERIFICATION
-// off (the default): sign-up sends the link, the link verifies (and signs
-// nobody in), bad links don't, Google links to an existing password account
-// only once its address is verified, resends are limited per user, the
-// address can't be changed, and unverified accounts still sign in.
+// off (the default): sign-up sends the link; the link verifies only inside a
+// session of its own account (password + mailbox), never for whoever opens
+// it; Google links to an existing password account only once it is verified;
+// resends are for the signed-in holder only and limited per user; the address
+// can't be changed; unverified accounts still sign in.
 // Real Better Auth against the local database; only outbound HTTP is stubbed.
 import { SignJWT } from 'jose';
+import { verifyEmail as verifyEmailEndpoint } from 'better-auth/api';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { eq, sql } from 'drizzle-orm';
 
@@ -18,6 +20,7 @@ vi.hoisted(() => {
 
 import { db } from '@/lib/db';
 import { users, verifications } from '@/db/schema';
+import { claimSendSlot } from '@/lib/server/verification-email';
 import { localDb } from './guard';
 import {
   accountsOf,
@@ -26,6 +29,7 @@ import {
   emailsTo,
   googleSignIn,
   openVerifyLink,
+  PASSWORD,
   sendVerification,
   sessionUserId,
   signIn,
@@ -36,6 +40,8 @@ import {
   verifyLinkFor,
 } from './auth-email-flow';
 import { authRequest } from '../mcp/oauth-flow';
+
+const SIGN_IN_REQUIRED = /^\/email-verification\?error=SIGN_IN_REQUIRED(&redirect=[^#]+)?#token=[^#]+$/;
 
 describe.skipIf(!localDb)('email verification (email configured, not required)', () => {
   beforeAll(() => stubOutboundHttp());
@@ -58,23 +64,72 @@ describe.skipIf(!localDb)('email verification (email configured, not required)',
     expect((await userByEmail(email)).emailVerified).toBe(false);
   });
 
-  it('verifies through the link without creating a session for whoever opens it', async () => {
+  it('keeps sign-up names out of the email and refuses multi-line or overlong names', async () => {
+    const email = uniqueEmail('name');
+    expect((await signUp(email, '/dashboard', PASSWORD, 'Support team\n\nYour account is locked, call 555')).status).toBe(400);
+    expect((await signUp(email, '/dashboard', PASSWORD, 'x'.repeat(101))).status).toBe(400);
+    expect(await userByEmail(email)).toBeUndefined();
+
+    expect((await signUp(email, '/dashboard', PASSWORD, 'Visit evil.example now')).status).toBe(200);
+    const [mail] = emailsTo(email);
+    expect(mail.text).not.toContain('evil.example');
+  });
+
+  it('verifies only inside a session of the account; opened signed out or as someone else it changes nothing', async () => {
     const email = uniqueEmail('verify');
-    await signUp(email);
-    const res = await openVerifyLink(verifyLinkFor(email));
-    expect(res.status).toBe(302);
-    expect(res.headers.get('location')).toBe('/email-verification?verified=1');
+    const cookie = cookieOf(await signUp(email, '/invite/abc'));
+    const link = verifyLinkFor(email);
+
+    const signedOut = await openVerifyLink(link);
+    expect(signedOut.status).toBe(302);
+    const landing = signedOut.headers.get('location')!;
+    expect(landing).toMatch(SIGN_IN_REQUIRED);
+    expect(landing.startsWith('/email-verification?error=SIGN_IN_REQUIRED&redirect=%2Finvite%2Fabc#')).toBe(true);
+    expect(decodeURIComponent(landing.split('#token=')[1])).toBe(link.searchParams.get('token'));
+    expect(await sessionUserId(signedOut)).toBeNull();
+
+    const other = cookieOf(await signUp(uniqueEmail('other')));
+    expect((await openVerifyLink(link, other)).headers.get('location')).toMatch(SIGN_IN_REQUIRED);
+    expect((await userByEmail(email)).emailVerified).toBe(false);
+
+    // Other spellings of the request (a scanner's HEAD, trailing slash, encoded path) verify nothing either.
+    for (const [path, method] of [
+      ['/verify-email', 'HEAD'],
+      ['/verify-email/', 'GET'],
+      ['/verify%2Demail', 'GET'],
+      ['//verify-email', 'GET'],
+    ]) {
+      const res = await authRequest(`${path}${link.search}`, { method });
+      expect(res.headers.get('location') ?? '').not.toContain('verified=1');
+    }
+    expect((await userByEmail(email)).emailVerified).toBe(false);
+
+    const holder = await openVerifyLink(link, cookie);
+    expect(holder.headers.get('location')).toBe('/email-verification?verified=1&redirect=%2Finvite%2Fabc');
     expect((await userByEmail(email)).emailVerified).toBe(true);
-    // autoSignInAfterVerification is off: no password / 2FA / SSO bypass.
-    expect(await sessionUserId(res)).toBeNull();
+    // autoSignInAfterVerification is off: no new session is minted by the link.
+    expect(await sessionUserId(holder)).toBeNull();
+  });
+
+  it('refuses a verification through auth.api, or a direct endpoint call that skips hooks, without the holder’s session', async () => {
+    const email = uniqueEmail('api');
+    await signUp(email);
+    const token = verifyLinkFor(email).searchParams.get('token')!;
+    const { auth } = await import('@/lib/auth');
+    await expect(auth.api.verifyEmail({ query: { token } })).rejects.toThrow();
+    // The raw endpoint (no hooks): the check inside it (beforeEmailVerification) still refuses.
+    await expect(verifyEmailEndpoint({ query: { token }, context: await auth.$context } as never)).rejects.toMatchObject({
+      body: { code: 'SIGN_IN_REQUIRED' },
+    });
+    expect((await userByEmail(email)).emailVerified).toBe(false);
   });
 
   it('rejects a garbage token and an expired token without verifying anyone', async () => {
     const email = uniqueEmail('badlink');
-    await signUp(email);
+    const cookie = cookieOf(await signUp(email));
     const callbackURL = encodeURIComponent('/email-verification?verified=1');
 
-    const garbage = await authRequest(`/verify-email?token=not-a-token&callbackURL=${callbackURL}`, { method: 'GET' });
+    const garbage = await authRequest(`/verify-email?token=not-a-token&callbackURL=${callbackURL}`, { method: 'GET', cookie });
     expect(garbage.headers.get('location')).toBe('/email-verification?verified=1&error=INVALID_TOKEN');
 
     const now = Math.floor(Date.now() / 1000);
@@ -83,13 +138,32 @@ describe.skipIf(!localDb)('email verification (email configured, not required)',
       .setIssuedAt(now - 7200)
       .setExpirationTime(now - 3600)
       .sign(new TextEncoder().encode((await authContext()).secret));
-    const expired = await authRequest(`/verify-email?token=${expiredToken}&callbackURL=${callbackURL}`, { method: 'GET' });
+    const expired = await authRequest(`/verify-email?token=${expiredToken}&callbackURL=${callbackURL}`, { method: 'GET', cookie });
     expect(expired.headers.get('location')).toBe('/email-verification?verified=1&error=TOKEN_EXPIRED');
 
     expect((await userByEmail(email)).emailVerified).toBe(false);
   });
 
-  it('links Google to an existing password account only after its email is verified, to the same user', async () => {
+  it('keeps a squatted address unlinkable: the owner opening the link signed out verifies nothing', async () => {
+    // The attacker registers the victim's address with their own password.
+    const victim = uniqueEmail('victim');
+    await signUp(victim, '/dashboard', 'attacker-password-1');
+    const { id: squatId } = await userByEmail(victim);
+    const profile = { sub: `g-${squatId}`, email: victim, email_verified: true, name: 'Victim' };
+
+    // The victim tries Google, is told the account isn't linked, opens the email signed out.
+    expect((await googleSignIn(profile)).headers.get('location')).toBe('/login?error=account_not_linked');
+    expect((await openVerifyLink(verifyLinkFor(victim))).headers.get('location')).toMatch(SIGN_IN_REQUIRED);
+    expect((await userByEmail(victim)).emailVerified).toBe(false);
+
+    // Google still refuses to join the squatter's account.
+    const again = await googleSignIn(profile);
+    expect(again.headers.get('location')).toBe('/login?error=account_not_linked');
+    expect(await sessionUserId(again)).toBeNull();
+    expect((await accountsOf(squatId)).map((a) => a.providerId)).toEqual(['credential']);
+  });
+
+  it('links Google to a password account after its holder verifies while signed in, to the same user', async () => {
     const email = uniqueEmail('link');
     await signUp(email);
     const { id: userId } = await userByEmail(email);
@@ -98,9 +172,9 @@ describe.skipIf(!localDb)('email verification (email configured, not required)',
     const refused = await googleSignIn(profile);
     expect(refused.headers.get('location')).toBe('/login?error=account_not_linked');
     expect(await sessionUserId(refused)).toBeNull();
-    expect((await accountsOf(userId)).map((a) => a.providerId)).toEqual(['credential']);
 
-    await openVerifyLink(verifyLinkFor(email));
+    const signedIn = cookieOf(await signIn(email));
+    await openVerifyLink(verifyLinkFor(email), signedIn);
     const linked = await googleSignIn(profile);
     expect(linked.headers.get('location')).toBe('/dashboard');
     expect(await sessionUserId(linked)).toBe(userId);
@@ -111,8 +185,8 @@ describe.skipIf(!localDb)('email verification (email configured, not required)',
 
   it('never links when Google itself does not vouch for the address', async () => {
     const email = uniqueEmail('unverified-google');
-    await signUp(email);
-    await openVerifyLink(verifyLinkFor(email));
+    const cookie = cookieOf(await signUp(email));
+    await openVerifyLink(verifyLinkFor(email), cookie);
     const { id: userId } = await userByEmail(email);
 
     const res = await googleSignIn({ sub: `g-${userId}`, email, email_verified: false, name: 'Nope' });
@@ -120,29 +194,56 @@ describe.skipIf(!localDb)('email verification (email configured, not required)',
     expect((await accountsOf(userId)).map((a) => a.providerId)).toEqual(['credential']);
   });
 
-  it('sends at most one verification email per user per minute', async () => {
+  it('a link for a deleted and re-registered address verifies only the signed-in current holder', async () => {
+    const email = uniqueEmail('recreated');
+    await signUp(email);
+    const oldLink = verifyLinkFor(email);
+    await db.delete(users).where(eq(users.email, email));
+
+    const cookie = cookieOf(await signUp(email, '/dashboard', 'second-holder-password'));
+    expect((await openVerifyLink(oldLink)).headers.get('location')).toMatch(SIGN_IN_REQUIRED);
+    expect((await userByEmail(email)).emailVerified).toBe(false);
+    // Signed in as the current account (its password): accepted, as for any of its links.
+    await openVerifyLink(oldLink, cookie);
+    expect((await userByEmail(email)).emailVerified).toBe(true);
+  });
+
+  it('sends verification emails only to the signed-in holder, to a fixed page, at most one a minute', async () => {
     const email = uniqueEmail('resend');
     const cookie = cookieOf(await signUp(email));
     expect(emailsTo(email)).toHaveLength(1);
 
-    // Signed in (the banner) and signed out (the sign-in form): both inside the cooldown.
-    expect((await sendVerification(email, cookie)).status).toBe(200);
-    expect((await sendVerification(email)).status).toBe(200);
+    // Signed out: refused, nothing sent (even after the cooldown).
+    const { id } = await userByEmail(email);
+    const expireCooldown = () =>
+      db
+        .update(verifications)
+        .set({ expiresAt: sql`now() - interval '1 second'` })
+        .where(eq(verifications.identifier, `verification-email-sent:${id}`));
+    await expireCooldown();
+    expect((await sendVerification(email, undefined, '/invite/attacker-invite')).status).toBe(401);
     expect(emailsTo(email)).toHaveLength(1);
 
-    const { id } = await userByEmail(email);
-    await db
-      .update(verifications)
-      .set({ expiresAt: sql`now() - interval '1 second'` })
-      .where(eq(verifications.identifier, `verification-email-sent:${id}`));
+    // Signed in: sent, and the caller's callbackURL is ignored.
+    expect((await sendVerification(email, cookie, '/invite/attacker-invite')).status).toBe(200);
+    expect(emailsTo(email)).toHaveLength(2);
+    expect(verifyLinkFor(email).searchParams.get('callbackURL')).toBe('/email-verification?verified=1');
+
+    // Inside the cooldown: dropped silently.
     expect((await sendVerification(email, cookie)).status).toBe(200);
     expect(emailsTo(email)).toHaveLength(2);
+  });
+
+  it('lets only one of many concurrent sends claim the cooldown slot', async () => {
+    const userId = `concurrent-${crypto.randomUUID()}`;
+    const claims = await Promise.all(Array.from({ length: 8 }, () => claimSendSlot('verification-email-sent', userId)));
+    expect(claims.filter(Boolean)).toHaveLength(1);
   });
 
   it('cannot change the address, so a verified flag never moves to an unproven one', async () => {
     const email = uniqueEmail('change');
     const cookie = cookieOf(await signUp(email));
-    await openVerifyLink(verifyLinkFor(email));
+    await openVerifyLink(verifyLinkFor(email), cookie);
     const target = uniqueEmail('target');
 
     const change = await authRequest('/change-email', {

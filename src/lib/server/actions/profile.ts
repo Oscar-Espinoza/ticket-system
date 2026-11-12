@@ -9,6 +9,7 @@ import { db } from '@/lib/db';
 import { userProfiles } from '@/db/schema';
 import { formField as field, refreshesData } from '@/lib/server/action-kit';
 import { getSession } from '@/lib/session';
+import { USER_NAME_MAX, validUserName } from '@/lib/auth-rules';
 
 export type ProfileState = {
   errors?: {
@@ -55,7 +56,7 @@ export async function updateProfile(
 
   const errors: NonNullable<ProfileState['errors']> = {};
   if (!name) errors.name = 'Name is required.';
-  else if (name.length > 100) errors.name = 'Name must be 100 characters or fewer.';
+  else if (!validUserName(name)) errors.name = `Name must be ${USER_NAME_MAX} characters or fewer, on one line.`;
   // Only http(s): the value lands in <img src> for every teammate.
   if (image && (image.length > 2048 || !isHttpUrl(image))) {
     errors.image = 'Enter an http(s) image URL.';

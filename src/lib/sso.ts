@@ -22,16 +22,24 @@ import { lookup, resolveTxt } from 'node:dns/promises';
 import { isPublicRoutableHost } from '@better-auth/core/utils/host';
 import { discoverOIDCConfig } from '@better-auth/sso';
 import { APIError } from 'better-auth/api';
-import { and, eq, inArray, ne, sql } from 'drizzle-orm';
+import { and, eq, inArray, ne, notLike, sql } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import {
   accounts,
+  apiKeys,
+  oauthAccessTokens,
+  oauthClients,
+  oauthConsents,
+  oauthRefreshTokens,
   projectMembers,
   projects,
+  pushSubscriptions,
   scimProviders,
   sessions,
+  slackUserLinks,
   ssoProviders,
+  twoFactors,
   users,
   workspaceMembers,
   workspaceSso,
@@ -39,7 +47,7 @@ import {
 } from '@/db/schema';
 import { authBaseUrl } from '@/lib/integrations/app-url';
 import { appSecret, hmacHex, safeEqual } from '@/lib/server/secrets';
-import { recordWorkspaceEvent } from '@/lib/audit';
+import { recordUserSecurityEvent, recordWorkspaceEvent } from '@/lib/audit';
 import { workspaceRoleAllows } from '@/lib/workspace-types';
 
 // ---------------------------------------------------------------------------
@@ -496,11 +504,72 @@ export async function assertIdentityDomain(
   }
 }
 
+// --- Pre-account-takeover cleanup -------------------------------------------
+
+/**
+ * Someone who proves they own an UNVERIFIED account's address (a workspace IdP
+ * on a DNS-proven domain linking to it, or a completed password reset)
+ * claims the account. Whoever registered the address before them may not own
+ * it, so everything they could have planted to keep a way in, or to keep
+ * receiving the account's data, goes, in one transaction:
+ *
+ * - every session;
+ * - the password, unless `keepPassword` (a reset has just replaced it);
+ * - linked Google / GitHub / other social identities (only sso-* and scim-*
+ *   identities stay: an IdP on a proven domain vouched for those, and the
+ *   claimer just proved the one being linked);
+ * - two-factor enrolment and its backup codes (users.two_factor_enabled off);
+ * - API keys; OAuth apps the account registered, and every OAuth consent,
+ *   access and refresh token it granted (authorized apps, MCP connectors);
+ * - Slack DM links and web-push subscriptions (they deliver its notifications).
+ *
+ * Kept: the user row and profile, workspace / project memberships (they came
+ * from invitations accepted while signed in; a workspace admin can remove
+ * them), and the content it wrote. Then the address is marked verified. The
+ * caller has already decided the account was unverified.
+ */
+export async function claimUnverifiedAccount(
+  userId: string,
+  { keepPassword, via }: { keepPassword: boolean; via: 'sso' | 'password_reset' },
+) {
+  const plantedIdentities = and(
+    eq(accounts.userId, userId),
+    notLike(accounts.providerId, `${SSO_PREFIX}%`),
+    notLike(accounts.providerId, `${SCIM_PREFIX}%`),
+    ...(keepPassword ? [ne(accounts.providerId, 'credential')] : []),
+  );
+  await db.batch([
+    db.delete(sessions).where(eq(sessions.userId, userId)),
+    db.delete(accounts).where(plantedIdentities),
+    db.delete(twoFactors).where(eq(twoFactors.userId, userId)),
+    db.delete(apiKeys).where(eq(apiKeys.userId, userId)),
+    db.delete(oauthAccessTokens).where(eq(oauthAccessTokens.userId, userId)),
+    db.delete(oauthRefreshTokens).where(eq(oauthRefreshTokens.userId, userId)),
+    db.delete(oauthConsents).where(eq(oauthConsents.userId, userId)),
+    db.delete(oauthClients).where(eq(oauthClients.userId, userId)),
+    db.delete(slackUserLinks).where(eq(slackUserLinks.userId, userId)),
+    db.delete(pushSubscriptions).where(eq(pushSubscriptions.userId, userId)),
+    db
+      .update(users)
+      .set({ emailVerified: true, twoFactorEnabled: false, updatedAt: new Date() })
+      .where(eq(users.id, userId)),
+  ]);
+  await recordUserSecurityEvent(userId, {
+    actorId: userId,
+    type: 'security.account_claimed',
+    summary:
+      via === 'sso'
+        ? 'claimed an unverified account through single sign-on; other sign-in methods, sessions, two-factor, API keys and app access were removed'
+        : 'claimed an unverified account by resetting its password; other sign-in methods, sessions, two-factor, API keys and app access were removed',
+  });
+}
+
 /**
  * account.create.after: SSO sign-ins and SCIM provisioning join the
- * workspace. Linking SSO to an account whose email was never verified also
- * drops that account's password and sessions — whoever registered the address
- * without owning it (pre-account takeover) loses access; the IdP now vouches.
+ * workspace. Linking SSO to an existing account whose email was never
+ * verified claims it (claimUnverifiedAccount, password dropped): whoever
+ * registered the address without owning it (pre-account takeover) loses
+ * access; the IdP now vouches.
  */
 export async function onIdentityCreated(account: { providerId: string; userId: string }) {
   try {
@@ -514,13 +583,7 @@ export async function onIdentityCreated(account: { providerId: string; userId: s
         .limit(1);
       // Older than a minute = an existing account being linked, not a new SSO user.
       if (user && !user.emailVerified && Date.now() - user.createdAt.getTime() > 60_000) {
-        await db.batch([
-          db
-            .delete(accounts)
-            .where(and(eq(accounts.userId, account.userId), eq(accounts.providerId, 'credential'))),
-          db.delete(sessions).where(eq(sessions.userId, account.userId)),
-          db.update(users).set({ emailVerified: true, updatedAt: new Date() }).where(eq(users.id, account.userId)),
-        ]);
+        await claimUnverifiedAccount(account.userId, { keepPassword: false, via: 'sso' });
       }
       await addWorkspaceMember(link.workspaceId, account.userId, 'sso');
     } else if (isScimProviderId(account.providerId)) {
