@@ -305,27 +305,32 @@ export function parseIssueKey(raw: string): { prefix: string; number: number } |
 /**
  * "APP-12" → the issue's id + project id, following ticket_key_alias for issues
  * that moved to another project. No authorization: callers check the viewer's
- * role in the returned project (REST v1 and GraphQL both do).
+ * role in the returned project (REST v1 and GraphQL both do). With
+ * `memberId`, only an issue in a project that user belongs to is returned, in
+ * the same two queries either way (the MCP refusal audit, which must not learn
+ * or leak whether another team's key exists).
  */
 export async function resolveIssueKey(
   key: string,
+  opts: { memberId?: string } = {},
 ): Promise<{ id: string; projectId: string } | null> {
   const parsed = parseIssueKey(key);
   // REST v1 and GraphQL accept key prefixes of at most 10 characters (project keys are 2–6).
   if (!parsed || parsed.prefix.length > 10) return null;
+  const member = opts.memberId ? projectMemberOf(tickets.projectId, opts.memberId) : undefined;
 
   const [current, alias] = await db.batch([
     db
       .select({ id: tickets.id, projectId: tickets.projectId })
       .from(tickets)
       .innerJoin(projects, eq(projects.id, tickets.projectId))
-      .where(and(eq(projects.ticketKey, parsed.prefix), eq(tickets.ticketNumber, parsed.number)))
+      .where(and(eq(projects.ticketKey, parsed.prefix), eq(tickets.ticketNumber, parsed.number), member))
       .limit(1),
     db
       .select({ id: tickets.id, projectId: tickets.projectId })
       .from(ticketKeyAliases)
       .innerJoin(tickets, eq(tickets.id, ticketKeyAliases.ticketId))
-      .where(eq(ticketKeyAliases.key, `${parsed.prefix}-${parsed.number}`))
+      .where(and(eq(ticketKeyAliases.key, `${parsed.prefix}-${parsed.number}`), member))
       .limit(1),
   ]);
   return current[0] ?? alias[0] ?? null;

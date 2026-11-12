@@ -5,6 +5,10 @@
 // the SDK's per-request handler. Bearer tokens only (./auth.ts), never the
 // session cookie, which is what makes CORS `*` safe here.
 //
+// Each credential (user + OAuth client, or user + API key) gets at most
+// MCP_RATE_LIMIT_PER_MINUTE calls (default 120) per instance; over it, HTTP
+// 429 with Retry-After and a JSON-RPC error, before the body is read.
+//
 // One JSON-RPC message per POST: batches (a JSON array) were dropped from the
 // protocol in 2025-06-18 and none of the clients we serve send them, so an
 // array is refused before any tool runs instead of fanning out into many
@@ -21,6 +25,7 @@ import {
 
 import type { McpCredential } from './contracts';
 import { authenticateMcpRequest } from './auth';
+import { TokenBucketLimiter } from '@/lib/server/rate-limit';
 import { createMcpServer } from './server';
 import { mcpConfig } from './urls';
 
@@ -32,7 +37,7 @@ const CORS_HEADERS: Record<string, string> = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers':
     'authorization, content-type, mcp-protocol-version, mcp-session-id, last-event-id, mcp-method, mcp-name',
-  'Access-Control-Expose-Headers': 'WWW-Authenticate, Mcp-Session-Id',
+  'Access-Control-Expose-Headers': 'WWW-Authenticate, Mcp-Session-Id, Retry-After',
   'Access-Control-Max-Age': '86400',
 };
 
@@ -41,6 +46,24 @@ export function withCors(response: Response): Response {
   for (const [name, value] of Object.entries(CORS_HEADERS)) headers.set(name, value);
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 }
+
+export const MCP_RATE_LIMIT_DEFAULT = 120;
+
+let limiter: TokenBucketLimiter | null = null;
+
+/** The limiter for the configured rate (read per request, so a changed setting takes effect); null when 0 turns it off. */
+function rateLimiter(): TokenBucketLimiter | null {
+  const raw = process.env.MCP_RATE_LIMIT_PER_MINUTE?.trim();
+  const parsed = raw ? Number(raw) : MCP_RATE_LIMIT_DEFAULT;
+  const limit = Number.isInteger(parsed) && parsed >= 0 ? parsed : MCP_RATE_LIMIT_DEFAULT;
+  if (limit === 0) return null;
+  if (limiter?.limit !== limit) limiter = new TokenBucketLimiter(limit, 60_000);
+  return limiter;
+}
+
+/** One bucket per connection: the user with one OAuth client, or with one API key. */
+const rateKey = (credential: McpCredential) =>
+  `${credential.userId}:${credential.clientId ? `client:${credential.clientId}` : `key:${credential.apiKeyId}`}`;
 
 const jsonRpcError = (status: number, code: number, message: string, headers?: Record<string, string>) =>
   Response.json({ jsonrpc: '2.0', error: { code, message }, id: null }, { status, headers });
@@ -96,6 +119,14 @@ export async function handleMcpPost(request: Request): Promise<Response> {
     if (!config.ok) return withCors(jsonRpcError(500, -32603, config.error));
     const auth = await authenticateMcpRequest(request);
     if (!auth.ok) return withCors(auth.response);
+    const limited = rateLimiter()?.take(rateKey(auth.credential));
+    if (limited && !limited.ok) {
+      return withCors(
+        jsonRpcError(429, -32000, `Too many requests: slow down and retry in ${limited.retryAfterSeconds} s.`, {
+          'Retry-After': String(limited.retryAfterSeconds),
+        }),
+      );
+    }
     if (!isJsonContentType(request.headers.get('content-type'))) {
       return withCors(jsonRpcError(415, -32000, 'Content-Type must be application/json.'));
     }

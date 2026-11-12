@@ -4,12 +4,15 @@
 // check itself, so no tool can forget it. A write tool called with a read-only
 // token answers a tool error carrying `_meta["mcp/www_authenticate"]` (the
 // `insufficient_scope` challenge ChatGPT turns into its re-link prompt).
+// Write tools are audited here when refused or failed (../audit.ts); their
+// successful calls are audited by the tool itself, which knows the issue.
 
 import type { CallToolResult, McpServer } from '@modelcontextprotocol/server';
 import type { z } from 'zod';
 
 import type { ApiScope } from '@/lib/api-auth';
 import type { McpCredential } from '../contracts';
+import { auditRefusal, refusalOf, type Refusal } from '../audit';
 import { toolError } from '../format';
 import { protectedResourceMetadataUrl } from '../urls';
 
@@ -62,13 +65,24 @@ export function registerMcpTool(server: McpServer, credential: McpCredential, to
       },
     },
     async (args: unknown) => {
-      if (!credential.scopes.has(tool.scope)) return insufficientScope(tool.scope);
+      const refuse = async (result: CallToolResult, refusal: Refusal) => {
+        if (write) await auditRefusal(credential, tool.name, (args ?? {}) as Record<string, unknown>, refusal);
+        return result;
+      };
+      if (!credential.scopes.has(tool.scope)) {
+        return refuse(insufficientScope(tool.scope), { outcome: 'denied', reason: 'insufficient_scope' });
+      }
+      let result: CallToolResult;
       try {
-        return await tool.run(args as never, credential);
+        result = await tool.run(args as never, credential);
       } catch (err) {
         console.error(`[mcp] ${tool.name} failed`, err);
-        return toolError('Something went wrong on the server. Try again in a moment.');
+        return refuse(toolError('Something went wrong on the server. Try again in a moment.'), {
+          outcome: 'failed',
+          reason: 'server_error',
+        });
       }
+      return result.isError ? refuse(result, refusalOf(result)) : result;
     },
   );
 }

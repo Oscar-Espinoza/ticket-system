@@ -68,11 +68,31 @@ describe.skipIf(!localDb)('email verification (email configured, not required)',
     const email = uniqueEmail('name');
     expect((await signUp(email, '/dashboard', PASSWORD, 'Support team\n\nYour account is locked, call 555')).status).toBe(400);
     expect((await signUp(email, '/dashboard', PASSWORD, 'x'.repeat(101))).status).toBe(400);
+    // Not a string at all: an array would slip past a length check on strings only.
+    const arrayName = await authRequest('/sign-up/email', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ email, password: PASSWORD, name: ['x'.repeat(5000)] }),
+    });
+    expect(arrayName.status).toBe(400);
     expect(await userByEmail(email)).toBeUndefined();
 
-    expect((await signUp(email, '/dashboard', PASSWORD, 'Visit evil.example now')).status).toBe(200);
+    const created = await signUp(email, '/dashboard', PASSWORD, 'Visit evil.example now');
+    expect(created.status).toBe(200);
     const [mail] = emailsTo(email);
     expect(mail.text).not.toContain('evil.example');
+
+    // The same rule on /update-user.
+    for (const name of [['x'.repeat(5000)], 'Two\nlines', 'y'.repeat(101)]) {
+      const update = await authRequest('/update-user', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ name }),
+        cookie: cookieOf(created),
+      });
+      expect(update.status).toBe(400);
+    }
+    expect((await userByEmail(email)).name).toBe('Visit evil.example now');
   });
 
   it('verifies only inside a session of the account; opened signed out or as someone else it changes nothing', async () => {

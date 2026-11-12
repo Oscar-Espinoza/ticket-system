@@ -40,7 +40,8 @@ Open `APP_URL`, sign up, create a workspace and invite people.
   proxies in front of the app (1 for one proxy that appends the client
   address, as Caddy, Traefik and nginx's `proxy_add_x_forwarded_for` do). Only
   set them when every request reaches the app through those proxies: the app
-  trusts that header.
+  trusts that header. When sign-in requests arrive from a private or loopback
+  address and `ADDRESS_HEADER` is unset, the server logs one warning saying so.
 - **Uploads**: the image sets `BODY_SIZE_LIMIT=6M` (attachments and uploads are
   capped at 4 MB, webhooks at 5 MB). Raise it in the environment if you need more.
 - **Updates**: `git pull && docker compose up -d --build`. The new container
@@ -61,6 +62,11 @@ docker run -d --name tickets --restart unless-stopped -p 3000:3000 \
   -e BETTER_AUTH_SECRET="$(openssl rand -base64 32)" \
   ticket-system-app
 ```
+
+Set `PUBLIC_APP_URL` and `BETTER_AUTH_URL` to the same canonical URL: lowercase
+host, `https` (plain `http` only for `localhost`), no default port, no trailing
+slash. AI assistants (MCP) compare the OAuth issuer byte for byte, and Better
+Auth does not rewrite a non-canonical URL consistently.
 
 Add `?sslmode=require` to `DATABASE_URL` if the server requires TLS. The app
 uses the standard Postgres driver for any host that isn't `*.neon.tech`
@@ -241,7 +247,8 @@ public HTTPS, and `APP_URL` must be that public URL; sign-in and consent can
 stay on the VPN. A reverse proxy exposing only those paths, or a
 `cloudflared` tunnel for a test, is enough. Extra OAuth redirect URIs for other
 MCP clients go in `MCP_EXTRA_REDIRECT_URIS`. Set `ADDRESS_HEADER` / `XFF_DEPTH`
-(above) so client registration is limited per caller. Details: [MCP.md](MCP.md).
+(above) so client registration is limited per caller. `MCP_RATE_LIMIT_PER_MINUTE`
+(default 120, `0` = off) caps MCP calls per connection, per replica. Details: [MCP.md](MCP.md).
 
 ## Database tests
 

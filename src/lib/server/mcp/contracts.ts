@@ -13,6 +13,8 @@ export interface McpCredential {
   via: 'jwt' | 'oauth' | 'api_key';
   /** OAuth client id (null for API keys). */
   clientId: string | null;
+  /** API key id (null for OAuth tokens). */
+  apiKeyId: string | null;
   /** OAuth client name as registered (self-asserted for dynamic clients). */
   clientName: string | null;
   scopes: ReadonlySet<ApiScope>;
@@ -54,9 +56,13 @@ export interface IssueSummary {
   state: StateRef;
   priority: string;
   assignee: UserRef | null;
+  /** The project member the issue is waiting on; null = no one. */
+  waitingOn: UserRef | null;
   labels: LabelRef[];
   estimate: number | null;
   dueDate: string | null;
+  /** When to follow up, YYYY-MM-DD (a calendar date, like dueDate). */
+  followUp: string | null;
   updatedAt: string;
   url: string;
   /** Start of the description (list rows carry a truncated copy). */

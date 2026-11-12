@@ -7,8 +7,10 @@
 
 import type { CallToolResult } from '@modelcontextprotocol/server';
 
+import { toDateString } from '@/lib/dates';
 import { absoluteIssueUrl, appUrl } from '@/lib/integrations/app-url';
-import { PRIORITY_LABEL, type IssueRow } from '@/lib/issue-model';
+import { PRIORITY_LABEL, type IssueRow, type StateType } from '@/lib/issue-model';
+import { isClosed } from '@/lib/workflow';
 import type { TimelineComment } from '@/lib/timeline';
 import type {
   CommentView,
@@ -28,6 +30,46 @@ export function truncate(text: string | null | undefined, max: number): string |
 }
 
 const oneLine = (text: string) => text.replace(/\s+/g, ' ').trim();
+
+/** Longest run of backticks in `text`, counted in one pass (no spread over a match array of unbounded size). */
+function longestBacktickRun(text: string): number {
+  let longest = 0;
+  let run = 0;
+  for (let i = 0; i < text.length; i++) {
+    run = text.charCodeAt(i) === 96 ? run + 1 : 0;
+    if (run > longest) longest = run;
+  }
+  return longest;
+}
+
+/** Hard cap on one inline value (a title, a name, a snippet) in text results. */
+export const INLINE_MAX = 300;
+/** Hard cap on one block of user content in text results (descriptions are cut to 12,000 before this). */
+const BLOCK_MAX = DESCRIPTION_MAX;
+
+/**
+ * Characters and forms that make text Markdown: emphasis, code, links, HTML,
+ * headings, tables, escapes, and what GFM turns into links on its own (bare
+ * URLs, `www.` hosts, email addresses).
+ */
+const MARKUP = /[`*_[\]<>#|~\\]|[a-z][a-z0-9+.-]*:\/\/|\bwww\.|\S@\S/i;
+
+/**
+ * Short user-written text (a title, a person's name, a search snippet) inert
+ * on one line: whitespace collapsed, cut to INLINE_MAX, and, when it contains
+ * Markdown, inside a code span longer than any backtick run in it, so it can't
+ * close the span, open a block or restyle our output. Plain text stays as it
+ * is to keep list rows compact. Multi-line text (descriptions, comment bodies)
+ * goes through userContentBlock instead.
+ */
+export function userContentInline(text: string): string {
+  // Cut before any other work: a name can be hundreds of thousands of characters.
+  const line = truncate(oneLine(text.slice(0, INLINE_MAX * 4)), INLINE_MAX) ?? '';
+  if (!MARKUP.test(line)) return line;
+  const fence = '`'.repeat(longestBacktickRun(line) + 1);
+  // CommonMark drops one space on each side, so a leading or trailing backtick stays content.
+  return `${fence} ${line} ${fence}`;
+}
 
 export function projectRef(project: { id: string; key: string; name: string }): ProjectRef {
   return { id: project.id, key: project.key, name: project.name };
@@ -50,9 +92,11 @@ export function summarizeIssue(issue: IssueRow, project: ProjectRef, snippet?: s
     state: stateRef(issue.state),
     priority: issue.priority,
     assignee: issue.assignee ? { id: issue.assignee.id, name: issue.assignee.name } : null,
+    waitingOn: issue.waitingOn ? { id: issue.waitingOn.id, name: issue.waitingOn.name } : null,
     labels: issue.labels.map((l) => ({ id: l.id, name: l.name, color: l.color })),
     estimate: issue.estimate,
     dueDate: issue.dueDate,
+    followUp: issue.followUp,
     updatedAt: issue.updatedAt.toISOString(),
     url: absoluteIssueUrl(issue.projectId, issue.key),
     excerpt: truncate(issue.description ? oneLine(issue.description) : null, EXCERPT_MAX),
@@ -76,16 +120,29 @@ export const descriptionText = (text: string | null) => truncate(text, DESCRIPTI
 // Markdown
 // ---------------------------------------------------------------------------
 
-/** `- **WEB-12** Fix login — In Progress · High · Ana · due 2026-11-20 · bug` */
+/**
+ * Whether an issue's follow-up is due: an open issue whose date has arrived by
+ * the server's date (like the follow-up notification, and the `overdue`
+ * filter, which covers open issues only).
+ */
+export const isFollowUpDue = (issue: Pick<IssueSummary, 'followUp' | 'state'>, now = new Date()) =>
+  issue.followUp != null && !isClosed(issue.state.type as StateType) && issue.followUp <= toDateString(now);
+
+/** `follow-up due 2026-11-10` when due, `follow up 2026-11-20` otherwise. */
+const followUpText = (issue: IssueSummary) => `${isFollowUpDue(issue) ? 'follow-up due' : 'follow up'} ${issue.followUp}`;
+
+/** `- **WEB-12** Fix login — In Progress · High · Ana · waiting on Grace · due 2026-11-20 · follow up 2026-11-18 · bug` */
 export function issueLine(issue: IssueSummary): string {
   const parts = [issue.state.name];
   if (issue.priority !== 'none') parts.push(PRIORITY_LABEL[issue.priority as keyof typeof PRIORITY_LABEL] ?? issue.priority);
-  parts.push(issue.assignee ? issue.assignee.name : 'Unassigned');
+  parts.push(issue.assignee ? userContentInline(issue.assignee.name) : 'Unassigned');
+  if (issue.waitingOn) parts.push(`waiting on ${userContentInline(issue.waitingOn.name)}`);
   if (issue.dueDate) parts.push(`due ${issue.dueDate}`);
+  if (issue.followUp) parts.push(followUpText(issue));
   if (issue.estimate != null) parts.push(`${issue.estimate} pt`);
   if (issue.labels.length) parts.push(issue.labels.map((l) => l.name).join(', '));
-  let line = `- **${issue.key}** ${oneLine(issue.title)} — ${parts.join(' · ')}`;
-  if (issue.snippet) line += `\n  > ${oneLine(issue.snippet)}`;
+  let line = `- **${issue.key}** ${userContentInline(issue.title)} — ${parts.join(' · ')}`;
+  if (issue.snippet) line += `\n  > ${userContentInline(issue.snippet)}`;
   return line;
 }
 
@@ -95,9 +152,9 @@ export function issueLine(issue: IssueSummary): string {
  * so the model can tell where the data ends and our output resumes.
  */
 export function userContentBlock(text: string): string {
-  const longest = Math.max(0, ...(text.match(/`+/g) ?? []).map((run) => run.length));
-  const fence = '`'.repeat(Math.max(3, longest + 1));
-  return `${fence}user-content\n${text}\n${fence}`;
+  const body = truncate(text, BLOCK_MAX) ?? '';
+  const fence = '`'.repeat(Math.max(3, longestBacktickRun(body) + 1));
+  return `${fence}user-content\n${body}\n${fence}`;
 }
 
 export function issueListMarkdown(title: string, issues: IssueSummary[], nextCursor: string | null): string {

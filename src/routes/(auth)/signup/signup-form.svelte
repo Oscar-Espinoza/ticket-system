@@ -28,7 +28,7 @@
   import GitBranchIcon from '@lucide/svelte/icons/git-branch';
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
 
-  import { MIN_PASSWORD_LENGTH } from '@/lib/auth-rules';
+  import { MAX_NAME_LENGTH, MIN_PASSWORD_LENGTH } from '@/lib/auth-rules';
   import { authClient } from '@/lib/svelte/auth-client';
   import { Button } from '@/lib/components/ui/button';
   import { Input } from '@/lib/components/ui/input';
@@ -90,7 +90,7 @@
 
     loading = true;
     const { data, error } = await authClient.signUp.email({
-      name: email.split('@')[0],
+      name: email.split('@')[0].slice(0, MAX_NAME_LENGTH),
       email,
       password,
       callbackURL: redirectTo,

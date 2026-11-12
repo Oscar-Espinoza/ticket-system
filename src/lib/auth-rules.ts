@@ -10,19 +10,23 @@ export const MIN_PASSWORD_LENGTH = 8;
  */
 export const VERIFICATION_TOKEN_HEADER = 'x-email-verification-token';
 
-/** Longest display name (sign-up, /update-user, Settings → Profile). */
-export const USER_NAME_MAX = 100;
+/** Longest display name: sign-up, /update-user and the profile form (names show in every list and audit row). */
+export const MAX_NAME_LENGTH = 100;
 
 /**
- * A display name the server accepts: 1..USER_NAME_MAX characters, no control
- * characters (no line breaks to forge extra lines wherever it is shown).
+ * The one display-name rule (sign-up, /update-user, Settings → Profile): a
+ * string (not an array or object) of 1..MAX_NAME_LENGTH characters with no
+ * control characters (no line breaks to forge extra lines wherever it shows).
  */
 export function validUserName(name: unknown): name is string {
   return (
     typeof name === 'string' &&
     name.trim().length > 0 &&
-    name.length <= USER_NAME_MAX &&
+    name.length <= MAX_NAME_LENGTH &&
     // eslint-disable-next-line no-control-regex
     !/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/.test(name)
   );
 }
+
+/** The error every name check shows. */
+export const NAME_RULE_MESSAGE = `Name must be 1 to ${MAX_NAME_LENGTH} characters on one line.`;

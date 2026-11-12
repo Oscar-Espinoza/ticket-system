@@ -16,7 +16,7 @@ import { getCurrentAuthContext } from '@better-auth/core/context';
 import { APIError, getAuthoritativeSessionFromCtx } from 'better-auth/api';
 import { verifyJWT } from 'better-auth/crypto';
 
-import { VERIFICATION_TOKEN_HEADER, validUserName } from '@/lib/auth-rules';
+import { NAME_RULE_MESSAGE, VERIFICATION_TOKEN_HEADER, validUserName } from '@/lib/auth-rules';
 import { emailVerificationRequired, PASSWORD_RESET_PATH, signInRequiredLanding } from '@/lib/email-verification';
 import { DEFAULT_AUTH_REDIRECT } from '@/lib/safe-redirect';
 import { recordUserSecurityEvent } from '@/lib/audit';
@@ -115,13 +115,13 @@ export async function resendVerificationBody(ctx: GenericEndpointContext) {
   return { ...ctx.body, callbackURL: DEFAULT_AUTH_REDIRECT };
 }
 
-/** hooks.before on /sign-up/email and /update-user: names are short, single-line text. */
+/** hooks.before on /sign-up/email and /update-user: the one name rule (auth-rules validUserName); Better Auth checks none. */
 export function assertUserName(body: Record<string, unknown> | undefined) {
   if (!body || !('name' in body)) return;
   if (!validUserName(body.name)) {
     throw APIError.from('BAD_REQUEST', {
       code: 'INVALID_NAME',
-      message: 'Name must be 1 to 100 characters on one line.',
+      message: NAME_RULE_MESSAGE,
     });
   }
 }
