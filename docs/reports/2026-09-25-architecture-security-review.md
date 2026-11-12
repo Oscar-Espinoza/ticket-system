@@ -201,7 +201,7 @@ fails.
   concurrent alerts replay one issue. A trashed or moved triage issue still
   lets the next alert open a fresh one. Test: `sentry-triage.test.ts`.
 - **Provider webhooks lost on a failed sync.** GitHub, GitLab and Bitbucket
-  deliveries are stored (`vcs_webhook_delivery`, migration `0012`) before the
+  deliveries are stored (`vcs_webhook_delivery`, migration `0013`) before the
   route answers 202, and 500 is answered when that fails. The work runs after
   the response; failed or unfinished rows are claimed atomically and retried
   lazily after the next delivery and by the daily cron (`inboundWebhooks`),
@@ -230,5 +230,6 @@ Review round 1 (same day) widened two of them:
   up starts it over. Stored payloads keep PR text and commit messages for 3
   days (30 if the delivery gave up): see `docs/SELF_HOSTING.md`.
 
-Deploy: run `npm run db:migrate` (migration `0012_vcs_webhook_deliveries`)
+Deploy: run `npm run db:migrate` (migration `0013_vcs_webhook_deliveries`, renumbered from 0012
+at integration because PR #12's `0012_oauth_client_indexes` merged first)
 before the new code.

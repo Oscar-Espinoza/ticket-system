@@ -30,7 +30,7 @@ import { jwt, twoFactor } from 'better-auth/plugins';
 import { oauthProvider } from '@better-auth/oauth-provider';
 import { scim } from '@better-auth/scim';
 import { sso } from '@better-auth/sso';
-import { MIN_PASSWORD_LENGTH } from '@/lib/auth-rules';
+import { MAX_NAME_LENGTH, MIN_PASSWORD_LENGTH } from '@/lib/auth-rules';
 import { socialProviderOptions } from '@/lib/auth-providers';
 import { invalidClientUri } from '@/lib/oauth-model';
 import { authDb } from '@/lib/db';
@@ -215,6 +215,10 @@ export const auth = betterAuth({
           });
         }
         return;
+      }
+      // Better Auth caps no name length; the profile form allows MAX_NAME_LENGTH.
+      if ((ctx.path === '/sign-up/email' || ctx.path === '/update-user') && typeof ctx.body?.name === 'string' && ctx.body.name.length > MAX_NAME_LENGTH) {
+        throw new APIError('BAD_REQUEST', { message: `Name must be ${MAX_NAME_LENGTH} characters or fewer.` });
       }
       // "Enforce SSO": password sign-in / sign-up is refused for the domain.
       if (ctx.path === '/sign-in/email' || ctx.path === '/sign-up/email') {

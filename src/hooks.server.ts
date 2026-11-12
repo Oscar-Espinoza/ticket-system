@@ -6,6 +6,7 @@ import { building, dev } from '$app/env';
 import { isAuthPath } from 'better-auth/svelte-kit';
 import { auth, CLIENT_IP_HEADER } from '@/lib/auth';
 import { DENSITY_BOOT_SCRIPT, DENSITY_CSS } from '@/lib/density';
+import { warnIfBehindUnconfiguredProxy } from '@/lib/server/proxy-warning';
 
 // Awaited before the first request is served (adapter-node: before listen).
 // Self-hosted: apply migrations and schedule the daily jobs.
@@ -62,7 +63,10 @@ function withClientIp(event: Parameters<Handle>[0]['event']): Request {
   headers.delete(CLIENT_IP_HEADER);
   try {
     const address = event.getClientAddress();
-    if (address) headers.set(CLIENT_IP_HEADER, address);
+    if (address) {
+      headers.set(CLIENT_IP_HEADER, address);
+      if (!dev) warnIfBehindUnconfiguredProxy(address);
+    }
   } catch {
     // No resolvable address (e.g. ADDRESS_HEADER set but missing): Better Auth
     // falls back to one shared bucket, which is stricter, not looser.

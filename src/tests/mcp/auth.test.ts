@@ -56,8 +56,8 @@ describe.skipIf(!localDb)('MCP authentication', () => {
     expect(res.headers.get('access-control-expose-headers')).toContain('WWW-Authenticate');
   });
 
-  it('publishes protected-resource metadata for the exact MCP URL', () => {
-    expect(protectedResourceMetadata()).toEqual({
+  it('publishes protected-resource metadata for the exact MCP URL', async () => {
+    expect(await protectedResourceMetadata()).toEqual({
       resource: `${AUTH_ORIGIN}/mcp`,
       authorization_servers: [`${AUTH_ORIGIN}/api/auth`],
       scopes_supported: ['read', 'write'],

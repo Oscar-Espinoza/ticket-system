@@ -13,7 +13,7 @@ import { listIssueRelations } from '@/lib/relations';
 import { getTicketById, queryIssues } from '@/lib/tickets';
 import type { McpProject } from '../access';
 import type { IssueDetail } from '../contracts';
-import { commentView, descriptionText, projectRef, stateRef, summarizeIssue, truncate, userContentBlock } from '../format';
+import { commentView, descriptionText, isFollowUpDue, projectRef, stateRef, summarizeIssue, truncate, userContentBlock, userContentInline } from '../format';
 
 export const COMMENTS_DEFAULT = 5;
 export const COMMENTS_MAX = 20;
@@ -78,16 +78,19 @@ const RELATION_TEXT: Record<string, string> = {
 
 export function issueDetailMarkdown(detail: IssueDetail, changes?: string[]): string {
   const lines: string[] = [];
-  if (changes?.length) lines.push(`Updated ${detail.key}: ${changes.join('; ')}.`, '');
-  lines.push(`# ${detail.key}: ${detail.title}`);
+  // Change strings carry titles and names: each is kept inert like any user text.
+  if (changes?.length) lines.push(`Updated ${detail.key}: ${changes.map(userContentInline).join('; ')}.`, '');
+  lines.push(`# ${detail.key}: ${userContentInline(detail.title)}`);
   const facts = [
     `State: ${detail.state.name}`,
     `Priority: ${detail.priority}`,
-    `Assignee: ${detail.assignee?.name ?? 'Unassigned'}`,
+    `Assignee: ${detail.assignee ? userContentInline(detail.assignee.name) : 'Unassigned'}`,
   ];
+  if (detail.waitingOn) facts.push(`Waiting on: ${userContentInline(detail.waitingOn.name)}`);
   if (detail.labels.length) facts.push(`Labels: ${detail.labels.map((l) => l.name).join(', ')}`);
   if (detail.estimate != null) facts.push(`Estimate: ${detail.estimate}`);
   if (detail.dueDate) facts.push(`Due: ${detail.dueDate}`);
+  if (detail.followUp) facts.push(`Follow-up: ${detail.followUp}${isFollowUpDue(detail) ? ' (due)' : ''}`);
   if (detail.cycle) facts.push(`Cycle: ${detail.cycle.number}${detail.cycle.name ? ` (${detail.cycle.name})` : ''}`);
   if (detail.epic) facts.push(`Epic: ${detail.epic.name}`);
   if (detail.parent) facts.push(`Parent: ${detail.parent.key}`);
@@ -96,20 +99,20 @@ export function issueDetailMarkdown(detail: IssueDetail, changes?: string[]): st
   lines.push(facts.join(' · '), `Project: ${detail.project.name} (${detail.project.key}) · ${detail.url}`);
   lines.push('', detail.description?.trim() ? `Description:\n${userContentBlock(detail.description)}` : '_No description._');
   if (detail.subIssues.length) {
-    lines.push('', '## Sub-issues', ...detail.subIssues.map((s) => `- **${s.key}** ${s.title} — ${s.state.name}`));
+    lines.push('', '## Sub-issues', ...detail.subIssues.map((s) => `- **${s.key}** ${userContentInline(s.title)} — ${s.state.name}`));
   }
   if (detail.relations.length) {
     lines.push(
       '',
       '## Relations',
-      ...detail.relations.map((r) => `- ${RELATION_TEXT[r.kind] ?? r.kind} **${r.issue.key}** ${r.issue.title} — ${r.issue.state.name}`),
+      ...detail.relations.map((r) => `- ${RELATION_TEXT[r.kind] ?? r.kind} **${r.issue.key}** ${userContentInline(r.issue.title)} — ${r.issue.state.name}`),
     );
   }
   if (detail.commentCount) {
     const shown = detail.comments.length;
     lines.push('', `## Comments (${shown === detail.commentCount ? shown : `last ${shown} of ${detail.commentCount}`})`);
     for (const c of detail.comments) {
-      lines.push(`**${c.author?.name ?? 'Deleted user'}** (${c.createdAt.slice(0, 10)}):`, userContentBlock(truncate(c.body, 600) ?? ''));
+      lines.push(`**${c.author ? userContentInline(c.author.name) : 'Deleted user'}** (${c.createdAt.slice(0, 10)}):`, userContentBlock(truncate(c.body, 600) ?? ''));
     }
   }
   return lines.join('\n');

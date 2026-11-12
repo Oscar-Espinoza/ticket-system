@@ -22,7 +22,7 @@ import {
   toolError,
   toolResult,
 } from '../format';
-import { loadProjectMetadata, resolveAssignee } from '../resolve';
+import { loadProjectMetadata, resolveAssignee, type ProjectMetadata, type Resolved } from '../resolve';
 import { defineTool } from './common';
 import { COMMENTS_DEFAULT, COMMENTS_MAX, issueDetail, issueDetailMarkdown } from './detail';
 import { projectArg } from './projects';
@@ -82,12 +82,20 @@ export const listIssuesTool = defineTool({
   name: 'list_issues',
   title: 'List issues',
   description:
-    'List the issues of one project, newest first, with optional filters (state, assignee, label, updated since) and paging. Can group the result by state.',
+    'List the issues of one project, newest first, with optional filters (state, assignee, waiting on, follow-up date, label, updated since) and paging. Can group the result by state.',
   scope: 'read',
   input: z.object({
     project: projectArg,
     state: z.string().max(100).optional().describe('State name, id or type (backlog, unstarted, started, completed, canceled, triage).'),
     assignee: z.string().max(200).optional().describe('"me", "none", or a member name, email or id.'),
+    waiting_on: z.string().max(200).optional().describe('Who the issues wait on: "me", "none", or a member name, email or id.'),
+    follow_up: z
+      .string()
+      .max(20)
+      .optional()
+      .describe(
+        'Follow-up date: "overdue" (before today, open issues), "today", "week", "next-week", "none", or YYYY-MM-DD with an optional <, <=, >, >= (e.g. "<=2026-12-01").',
+      ),
     label: z.string().max(100).optional().describe('Label name or id.'),
     updated_since: z.string().max(40).optional().describe('ISO 8601 date or date-time.'),
     include_archived: z.boolean().optional(),
@@ -102,18 +110,29 @@ export const listIssuesTool = defineTool({
     if (!access.ok) return toolError(access.error);
     const { project } = access;
 
-    let assignee = args.assignee ?? null;
-    if (assignee && !['me', 'none'].includes(assignee.trim().toLowerCase())) {
-      const resolved = resolveAssignee(await loadProjectMetadata(project.id), userId, assignee);
-      if (!resolved.ok) return toolError(resolved.error);
-      assignee = resolved.value ?? 'none';
-    }
+    // People filters: "me" / "none" pass through; names and emails resolve
+    // among this project's members (same rule and error as the writes).
+    let meta: ProjectMetadata | null = null;
+    const person = async (input: string | undefined): Promise<Resolved<string | null>> => {
+      if (!input) return { ok: true, value: null };
+      const value = input.trim().toLowerCase();
+      if (value === 'me' || value === 'none') return { ok: true, value };
+      meta ??= await loadProjectMetadata(project.id);
+      const resolved = resolveAssignee(meta, userId, input);
+      return resolved.ok ? { ok: true, value: resolved.value ?? 'none' } : resolved;
+    };
+    const assignee = await person(args.assignee);
+    if (!assignee.ok) return toolError(assignee.error);
+    const waitingOn = await person(args.waiting_on);
+    if (!waitingOn.ok) return toolError(waitingOn.error);
     const result = await listProjectIssues(
       userId,
       project.id,
       {
         state: args.state ?? null,
-        assignee: assignee?.trim().toLowerCase() === 'me' ? 'me' : assignee,
+        assignee: assignee.value,
+        waitingOn: waitingOn.value,
+        followUp: args.follow_up?.trim() || null,
         label: args.label ?? null,
         updatedSince: args.updated_since ?? null,
         includeArchived: args.include_archived === true,

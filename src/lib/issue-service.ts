@@ -85,6 +85,8 @@ export const SYSTEM_ACTOR: IssueActor = { userId: null };
 
 export type IssueServiceError = { ok: false; error: string; field?: IssueField };
 export type IssueResult = { ok: true; issue: IssueRow } | IssueServiceError;
+/** `replayed`: the client id was already used, and this is the issue that earlier attempt created. */
+export type CreateIssueResult = { ok: true; issue: IssueRow; replayed: boolean } | IssueServiceError;
 export type IssuesResult = { ok: true; issues: IssueRow[] } | IssueServiceError;
 export type PurgeResult = { ok: true } | IssueServiceError;
 
@@ -639,7 +641,7 @@ async function existingCreate(
   actor: IssueActor,
   projectId: string,
   id: string,
-): Promise<IssueResult | null> {
+): Promise<CreateIssueResult | null> {
   const [row] = await db
     .select({ projectId: tickets.projectId, creatorId: tickets.creatorId })
     .from(tickets)
@@ -650,7 +652,7 @@ async function existingCreate(
     return fail(ISSUE_ID_IN_USE);
   }
   const [issue] = await queryIssues(and(eq(tickets.id, id), eq(tickets.projectId, projectId)));
-  return issue ? { ok: true, issue } : fail(ISSUE_ID_IN_USE);
+  return issue ? { ok: true, issue, replayed: true } : fail(ISSUE_ID_IN_USE);
 }
 
 /** moveIssue's guard statement divides by zero when the tree changed under it. */
@@ -685,7 +687,7 @@ export async function createIssue(
   projectId: string,
   input: CreateIssueInput,
   opts?: CreateIssueOptions,
-): Promise<IssueResult> {
+): Promise<CreateIssueResult> {
   if (!projectId) return fail('Project not found.');
   const normalized = normalizePatch(input);
   if (!normalized.ok) return normalized;
@@ -840,7 +842,7 @@ export async function createIssue(
   };
 
   publishIssueEvents([{ ...created, data: { key: issue.key, ...created.data } }]);
-  return { ok: true, issue };
+  return { ok: true, issue, replayed: false };
 }
 
 // ---------------------------------------------------------------------------

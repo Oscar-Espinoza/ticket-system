@@ -1,5 +1,5 @@
 {
-  "id": "9555dcde-a74b-4ecf-84d3-be3cab541a34",
+  "id": "41be6aa9-7499-4275-a798-ddaf84e06365",
   "prevId": "d828bcf1-9a35-436c-99dd-d38a2f141442",
   "version": "7",
   "dialect": "postgresql",
@@ -2041,12 +2041,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "provider_updated_at": {
-          "name": "provider_updated_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -3158,7 +3152,23 @@
           "notNull": true
         }
       },
-      "indexes": {},
+      "indexes": {
+        "oauth_access_token_client_idx": {
+          "name": "oauth_access_token_client_idx",
+          "columns": [
+            {
+              "expression": "client_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "oauth_access_token_client_id_oauth_client_client_id_fk": {
           "name": "oauth_access_token_client_id_oauth_client_client_id_fk",
@@ -3490,7 +3500,23 @@
           "notNull": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "oauth_consent_client_idx": {
+          "name": "oauth_consent_client_idx",
+          "columns": [
+            {
+              "expression": "client_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "oauth_consent_client_id_oauth_client_client_id_fk": {
           "name": "oauth_consent_client_id_oauth_client_client_id_fk",
@@ -3596,7 +3622,23 @@
           "notNull": true
         }
       },
-      "indexes": {},
+      "indexes": {
+        "oauth_refresh_token_client_idx": {
+          "name": "oauth_refresh_token_client_idx",
+          "columns": [
+            {
+              "expression": "client_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "oauth_refresh_token_client_id_oauth_client_client_id_fk": {
           "name": "oauth_refresh_token_client_id_oauth_client_client_id_fk",
@@ -5817,163 +5859,6 @@
           ]
         }
       },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.vcs_webhook_delivery": {
-      "name": "vcs_webhook_delivery",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "provider": {
-          "name": "provider",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "delivery_id": {
-          "name": "delivery_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "project_id": {
-          "name": "project_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "integration_id": {
-          "name": "integration_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "event": {
-          "name": "event",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "payload": {
-          "name": "payload",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "attempts": {
-          "name": "attempts",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "next_attempt_at": {
-          "name": "next_attempt_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "processed_at": {
-          "name": "processed_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "error": {
-          "name": "error",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "vcs_webhook_delivery_uq": {
-          "name": "vcs_webhook_delivery_uq",
-          "columns": [
-            {
-              "expression": "provider",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "delivery_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "project_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "vcs_webhook_delivery_due_idx": {
-          "name": "vcs_webhook_delivery_due_idx",
-          "columns": [
-            {
-              "expression": "next_attempt_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "where": "next_attempt_at is not null",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "vcs_webhook_delivery_project_id_project_id_fk": {
-          "name": "vcs_webhook_delivery_project_id_project_id_fk",
-          "tableFrom": "vcs_webhook_delivery",
-          "tableTo": "project",
-          "columnsFrom": [
-            "project_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "vcs_webhook_delivery_integration_id_project_integration_id_fk": {
-          "name": "vcs_webhook_delivery_integration_id_project_integration_id_fk",
-          "tableFrom": "vcs_webhook_delivery",
-          "tableTo": "project_integration",
-          "columnsFrom": [
-            "integration_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false

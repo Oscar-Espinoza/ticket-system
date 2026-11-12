@@ -122,6 +122,15 @@ describe('Email/password authentication (AUTH-01, AUTH-03, AUTH-04)', () => {
     expect(rows).toHaveLength(0);
   });
 
+  it('signUp.email refuses a name longer than MAX_NAME_LENGTH and creates no `user` row', async () => {
+    const email = uniqueEmail('longname');
+    // The before-hook throws; over HTTP that is a 400.
+    await expect(
+      auth.api.signUpEmail({ body: { name: '`x'.repeat(150_000), email, password: 'password123' } }),
+    ).rejects.toMatchObject({ statusCode: 400 });
+    expect(await db.select().from(users).where(eq(users.email, email))).toHaveLength(0);
+  });
+
   it('AUTH-03: after signIn.email a session cookie is set and getSession with those headers returns a non-null session', async () => {
     const email = uniqueEmail('signin');
     const password = 'password123';

@@ -94,7 +94,8 @@ Claude and ChatGPT both use DCR, and Better Auth 1.6.33 supports it. Enable `all
   - anything in `MCP_EXTRA_REDIRECT_URIS`
 - **Public clients only**: `token_endpoint_auth_method` must be `none`. Scopes are capped at `openid profile email offline_access read write`. Client names are capped at 100 characters.
 - **Rate limit** `/api/auth/oauth2/register` with a Better Auth `rateLimit.customRules` entry.
-- **Cleanup**: the daily cron deletes DCR clients that have had no live token for 30 days.
+- **Cleanup**: the daily cron deletes DCR clients that have had no live token for 30 days, with
+  their consents (a user's consent doesn't keep a client; they consent again on reconnecting).
 - **Consent page**: show the redirect host next to the self-asserted client name, for example "Claude · claude.ai". Flag dynamically registered clients.
 - CIMD is what both vendors prefer, but it needs Better Auth 1.7 or later (1.7.18 has `client_id_metadata_document_supported`). That is follow-up F1, not v1.
 
@@ -471,4 +472,62 @@ plan's intent was kept with what exists.
   `src/tests/local-db/mcp-tools.test.ts` need the local Postgres
   (`LOCAL_DB_TESTS=1`); the auth test runs the whole DCR → PKCE (`resource`) →
   consent → token → refresh flow through `auth.handler` in-process.
+
+### Hardening (2026-11-12, branch `feat/mcp-hardening`)
+
+Closes the open notes of PR #4's focused re-review and its follow-up list.
+
+- **Waiting on, follow-up.** `create_issue` / `update_issue` take `waiting_on`
+  (resolved by `resolveAssignee`: `me`, `none`, a member's name, email or id
+  inside the authorized project) and `follow_up` (`YYYY-MM-DD` or null).
+  `IssueSummary` (so every list row and `IssueDetail`) gains `waitingOn:
+  UserRef | null` and `followUp: string | null`; no other contract changed.
+  `list_issues` filters `waiting_on` and `follow_up` through
+  `listProjectIssues` (the REST code, `searchFollowUp` parser). List lines
+  show "waiting on X" and "follow up D" / "follow-up due D" (server date),
+  which is how `my_work` shows a due follow-up.
+- **DCR cleanup** deletes in statements of 200 clients, at most 10 per run;
+  migration `0012_oauth_client_indexes` indexes `client_id` on
+  `oauth_access_token`, `oauth_refresh_token` and `oauth_consent` (none had one;
+  the cascades scanned).
+- **Config.** `mcpConfig()` compares `<app URL>/api/auth` with Better Auth's
+  base URL after normalising (`URL.origin` + path without trailing slash), so
+  letter case or `:443` is no longer a mismatch. The advertised authorization
+  server and the issuer `/mcp` accepts are both Better Auth's base URL as
+  Better Auth holds it at runtime (`tokenIssuer()`, the `iss` of its tokens),
+  not a re-derivation; for a canonical URL it is byte-identical to before.
+  Better Auth itself doesn't normalise consistently (its OAuth metadata
+  upgrades http→https for non-loopback hosts; tokens keep the raw URL), so
+  self-hosted instances must use a canonical URL (docs/SELF_HOSTING.md;
+  review round 1). A mismatch answers
+  a generic 500; the two URLs are logged once per configuration.
+- **`request_id` race.** `createIssue` returns `replayed: true` when the client
+  id was already used (before the insert or after losing the unique race);
+  `create_issue` audits only the creating call. A replay changes nothing, so a
+  second row would read as a second create.
+- **Inert text.** `userContentInline` (format.ts) puts titles, people's names,
+  search snippets and notification lines on one line, inside a code span longer
+  than any backtick run when they contain Markdown; plain text is unchanged.
+  List excerpts and project descriptions appear only in `structuredContent`,
+  never in text, so they needed nothing.
+- **Audit of refused writes** (`src/lib/server/mcp/audit.ts`): every write-tool
+  call leaves one `mcp.tool_call` row with `data.outcome` = `success`,
+  `denied` (`insufficient_scope`, `forbidden_role`, `connectors_blocked`,
+  `not_found`), `invalid` (`invalid_input`) or `failed` (`server_error`),
+  written by `registerMcpTool` for refusals. No issue content. A refusal is
+  written only into a project the caller is a member of (membership is part of
+  the target lookup, so existing and missing keys cost the same queries);
+  outsiders' attempts get a server log line only (review round 1); schema
+  validation failures happen in the SDK before the tool and aren't audited.
+- **Rate limit.** `/mcp` allows `MCP_RATE_LIMIT_PER_MINUTE` (default 120, 0 =
+  off) calls per credential (user + OAuth client, or user + API key) with an
+  in-memory token bucket (`src/lib/server/rate-limit.ts`; the app had none to
+  reuse); over it, HTTP 429 + `Retry-After` + JSON-RPC -32000. Per instance.
+- **Proxy warning.** `src/hooks.server.ts` logs one warning when an
+  `/api/auth` request resolves to a private or loopback address and
+  `ADDRESS_HEADER` is unset (not in dev or on Vercel).
+- **Loopback redirects** may leave out the path (`http://localhost:1234`); the
+  exception applies to the loopback rule only.
+- Still open: database-backed limiters, the audit row inside the write's
+  transaction, client logo hosts / CSP, MCP Apps views.
 

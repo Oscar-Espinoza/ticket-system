@@ -968,7 +968,7 @@ export const oauthRefreshTokens = pgTable('oauth_refresh_token', {
   revoked: timestamp('revoked'),
   authTime: timestamp('auth_time'),
   scopes: text('scopes').array().notNull(),
-});
+}, (table) => [index('oauth_refresh_token_client_idx').on(table.clientId)]);
 
 export const oauthAccessTokens = pgTable('oauth_access_token', {
   id: text('id').primaryKey(),
@@ -985,7 +985,7 @@ export const oauthAccessTokens = pgTable('oauth_access_token', {
   expiresAt: timestamp('expires_at'),
   createdAt: timestamp('created_at'),
   scopes: text('scopes').array().notNull(),
-});
+}, (table) => [index('oauth_access_token_client_idx').on(table.clientId)]);
 
 export const oauthConsents = pgTable('oauth_consent', {
   id: text('id').primaryKey(),
@@ -997,7 +997,7 @@ export const oauthConsents = pgTable('oauth_consent', {
   scopes: text('scopes').array().notNull(),
   createdAt: timestamp('created_at'),
   updatedAt: timestamp('updated_at'),
-});
+}, (table) => [index('oauth_consent_client_idx').on(table.clientId)]);
 
 /** Workspace-level SAML/OIDC SSO + SCIM link (Better Auth has no org plugin here). */
 export const workspaceSso = pgTable('workspace_sso', {
