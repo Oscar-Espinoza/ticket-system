@@ -89,7 +89,7 @@ export function issueDetailMarkdown(detail: IssueDetail, changes?: string[]): st
   if (detail.labels.length) facts.push(`Labels: ${detail.labels.map((l) => l.name).join(', ')}`);
   if (detail.estimate != null) facts.push(`Estimate: ${detail.estimate}`);
   if (detail.dueDate) facts.push(`Due: ${detail.dueDate}`);
-  if (detail.followUp) facts.push(`Follow-up: ${detail.followUp}${isFollowUpDue(detail.followUp) ? ' (due)' : ''}`);
+  if (detail.followUp) facts.push(`Follow-up: ${detail.followUp}${isFollowUpDue(detail) ? ' (due)' : ''}`);
   if (detail.cycle) facts.push(`Cycle: ${detail.cycle.number}${detail.cycle.name ? ` (${detail.cycle.name})` : ''}`);
   if (detail.epic) facts.push(`Epic: ${detail.epic.name}`);
   if (detail.parent) facts.push(`Parent: ${detail.parent.key}`);

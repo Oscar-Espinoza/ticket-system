@@ -407,6 +407,10 @@ describe.skipIf(!localDb)('MCP tools over /mcp', () => {
     const badFilter = await call(aliceKey, 'list_issues', { project: projectKey, follow_up: 'someday' });
     expect(badFilter.isError).toBe(true);
 
+    // A closed issue's follow-up isn't due (the overdue filter covers open issues only).
+    const closed = await call(aliceKey, 'create_issue', { project: projectKey, title: 'Closed follow-up', state: 'done', follow_up: '2026-01-05' });
+    expect(text(closed)).toContain('Follow-up: 2026-01-05\n');
+
     const updated = await call(aliceKey, 'update_issue', { key, waiting_on: 'none', follow_up: null });
     expect(updated.structuredContent!.changes).toEqual(['waiting on: guest → none', 'follow-up: 2026-01-05 → none']);
     expect(updated.structuredContent!.issue).toMatchObject({ waitingOn: null, followUp: null });

@@ -9,7 +9,8 @@ import type { CallToolResult } from '@modelcontextprotocol/server';
 
 import { toDateString } from '@/lib/dates';
 import { absoluteIssueUrl, appUrl } from '@/lib/integrations/app-url';
-import { PRIORITY_LABEL, type IssueRow } from '@/lib/issue-model';
+import { PRIORITY_LABEL, type IssueRow, type StateType } from '@/lib/issue-model';
+import { isClosed } from '@/lib/workflow';
 import type { TimelineComment } from '@/lib/timeline';
 import type {
   CommentView,
@@ -120,13 +121,15 @@ export const descriptionText = (text: string | null) => truncate(text, DESCRIPTI
 // ---------------------------------------------------------------------------
 
 /**
- * Whether a follow-up date has arrived, by the server's date (like the
- * follow-up notification and the `follow_up=overdue|today` filters).
+ * Whether an issue's follow-up is due: an open issue whose date has arrived by
+ * the server's date (like the follow-up notification, and the `overdue`
+ * filter, which covers open issues only).
  */
-export const isFollowUpDue = (followUp: string, now = new Date()) => followUp <= toDateString(now);
+export const isFollowUpDue = (issue: Pick<IssueSummary, 'followUp' | 'state'>, now = new Date()) =>
+  issue.followUp != null && !isClosed(issue.state.type as StateType) && issue.followUp <= toDateString(now);
 
-/** `follow-up due 2026-11-10` once the date has arrived, `follow up 2026-11-20` before. */
-const followUpText = (followUp: string) => (isFollowUpDue(followUp) ? `follow-up due ${followUp}` : `follow up ${followUp}`);
+/** `follow-up due 2026-11-10` when due, `follow up 2026-11-20` otherwise. */
+const followUpText = (issue: IssueSummary) => `${isFollowUpDue(issue) ? 'follow-up due' : 'follow up'} ${issue.followUp}`;
 
 /** `- **WEB-12** Fix login — In Progress · High · Ana · waiting on Grace · due 2026-11-20 · follow up 2026-11-18 · bug` */
 export function issueLine(issue: IssueSummary): string {
@@ -135,7 +138,7 @@ export function issueLine(issue: IssueSummary): string {
   parts.push(issue.assignee ? userContentInline(issue.assignee.name) : 'Unassigned');
   if (issue.waitingOn) parts.push(`waiting on ${userContentInline(issue.waitingOn.name)}`);
   if (issue.dueDate) parts.push(`due ${issue.dueDate}`);
-  if (issue.followUp) parts.push(followUpText(issue.followUp));
+  if (issue.followUp) parts.push(followUpText(issue));
   if (issue.estimate != null) parts.push(`${issue.estimate} pt`);
   if (issue.labels.length) parts.push(issue.labels.map((l) => l.name).join(', '));
   let line = `- **${issue.key}** ${userContentInline(issue.title)} — ${parts.join(' · ')}`;
