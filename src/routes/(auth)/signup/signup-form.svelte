@@ -32,8 +32,16 @@
   import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/lib/components/ui/card';
   import { Separator } from '@/lib/components/ui/separator';
   import { authHref } from '@/lib/safe-redirect';
+  import GoogleSignInButton from '@/lib/components/auth/google-sign-in-button.svelte';
 
-  let { redirectTo }: { redirectTo: string } = $props();
+  let {
+    redirectTo,
+    googleEnabled = false,
+  }: {
+    redirectTo: string;
+    /** GOOGLE_CLIENT_ID/SECRET are set on the server. */
+    googleEnabled?: boolean;
+  } = $props();
 
   let email = $state('');
   let password = $state('');
@@ -115,6 +123,9 @@
       <GitBranchIcon />
       Continue with GitHub
     </Button>
+    {#if googleEnabled}
+      <GoogleSignInButton {redirectTo} onerror={(message) => (formError = message)} />
+    {/if}
 
     <div class="flex items-center gap-2">
       <Separator class="flex-1" />

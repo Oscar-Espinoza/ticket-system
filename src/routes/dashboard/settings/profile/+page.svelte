@@ -30,5 +30,5 @@
 {#if data.hasPassword}
   <PasswordForm />
 {:else}
-  <p class="mt-2 text-sm text-muted-foreground">You sign in with GitHub, so there is no password to change.</p>
+  <p class="mt-2 text-sm text-muted-foreground">You sign in with GitHub, Google or single sign-on, so there is no password to change.</p>
 {/if}

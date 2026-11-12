@@ -65,7 +65,45 @@ migrations are exempt.
 
 Every integration switches off cleanly when its variables are empty
 (`docker/selfhost.env.example` lists them): GitHub sign-in and PR automation
-(`GITHUB_*`), email (`RESEND_*`), web push (`*VAPID*`), Slack (`SLACK_*`).
+(`GITHUB_*`), Google sign-in (`GOOGLE_*`), email (`RESEND_*`), web push
+(`*VAPID*`), Slack (`SLACK_*`).
+
+### Google sign-in
+
+Adds "Continue with Google" to the sign-in and sign-up pages (and so to invite
+links, which go through them). With `GOOGLE_CLIENT_ID` or `GOOGLE_CLIENT_SECRET`
+empty the button does not appear and nothing is registered. Google is identity
+only: the app asks for `openid`, `email` and `profile`, nothing else, and never
+reads or uses a Google token (GitHub branch creation still needs GitHub).
+
+1. In the [Google Cloud Console](https://console.cloud.google.com/) pick or
+   create a project (use one owned by the company Google Workspace).
+2. **APIs & Services → OAuth consent screen** (called **Google Auth Platform →
+   Branding / Audience** in the newer console). Choose the user type:
+   - **Internal** if everyone who signs in has an account in your Google
+     Workspace. Only people in that Workspace can sign in; this is the right
+     choice for a company tool and needs no Google review.
+   - **External** only if people outside a Workspace (personal Gmail) must sign
+     in. It starts in "Testing" (test users only, tokens expire) and needs
+     publishing; this is not a way to limit sign-in to your company.
+   Fill in the app name and support email; the scopes stay `openid`, `email`,
+   `profile` (the defaults, no sensitive scopes, so no verification).
+3. **APIs & Services → Credentials → Create credentials → OAuth client ID**,
+   application type **Web application**.
+   - **Authorized JavaScript origins**: your `APP_URL`, e.g.
+     `https://tickets.example.com` (local dev: `http://localhost:3000`).
+   - **Authorized redirect URIs**: `<APP_URL>/api/auth/callback/google`, e.g.
+     `https://tickets.example.com/api/auth/callback/google` (local dev:
+     `http://localhost:3000/api/auth/callback/google`). It must match exactly,
+     including `http`/`https` and any port. Add one entry per origin you use.
+4. Copy the client ID and secret into `.env` (`GOOGLE_CLIENT_ID`,
+   `GOOGLE_CLIENT_SECRET`) and restart the app (`docker compose up -d`). They are
+   read at runtime; no rebuild is needed.
+
+Rules that apply to Google like they do to GitHub: an existing account is linked
+only when Google reports the email as verified and the account's email is
+verified in this app (otherwise the person signs in the way they did before);
+a domain with "Enforce SSO" turned on cannot use Google to get around it.
 
 **SSO (SAML/OIDC) and SCIM** work self-hosted. A workspace admin proves the
 company domain with a DNS TXT record (`_ticket-system.<domain>`), shown in

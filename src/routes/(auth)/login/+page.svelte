@@ -16,5 +16,6 @@
     redirectTo={data.redirectTo}
     initialError={data.initialError}
     initialSso={data.initialSso}
+    googleEnabled={data.googleEnabled}
   />
 </div>
