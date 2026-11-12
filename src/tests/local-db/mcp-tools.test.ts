@@ -52,13 +52,13 @@ async function apiKeyFor(userId: string) {
 }
 
 /** An opaque OAuth token with the given scopes (as the token endpoint would store it). */
-async function oauthTokenFor(userId: string, scopes: string[]) {
+async function oauthTokenFor(userId: string, scopes: string[], name = 'Test Assistant') {
   const clientId = `mcp-test-${uid()}`;
   const now = new Date();
   await db.insert(oauthClients).values({
     id: uid(),
     clientId,
-    name: 'Test Assistant',
+    name,
     redirectUris: ['http://localhost:9999/callback'],
     public: true,
     tokenEndpointAuthMethod: 'none',
@@ -562,21 +562,32 @@ describe.skipIf(!localDb)('MCP tools over /mcp', () => {
     }
     await notFound('update_issue', { key: issueKey, title: 'Hacked' });
     await notFound('add_comment', { key: issueKey, body: 'Hi' });
-    // Admins see the attempts; the rows hold no content from them.
-    const attempts = (await mcpAudit(project)).filter((a) => a.actorId === bob);
-    expect(attempts.map((a) => [a.tool, a.outcome, a.reason])).toEqual([
-      ['create_issue', 'denied', 'not_member'],
-      ['create_issue', 'denied', 'not_member'],
-      ['update_issue', 'denied', 'not_member'],
-      ['add_comment', 'denied', 'not_member'],
-    ]);
-    expect(JSON.stringify(attempts)).not.toMatch(/Intrusion|Hacked/);
+    // An outsider can't write into this team's audit log, whatever they name.
+    expect((await mcpAudit(project)).filter((a) => a.actorId === bob)).toEqual([]);
 
     const search = await call(bobKey, 'search_issues', { query: secretWord });
     expect(search.structuredContent!.issues).toEqual([]);
     expect(text(search)).not.toContain(issueKey);
     const projectsResult = await call(bobKey, 'list_projects');
     expect(projectsResult.structuredContent!.projects).toEqual([]);
+  });
+
+  it("leaves no row in a team's audit log for an outsider's read-only token", async () => {
+    const outsider = await makeUser('outsider');
+    const token = await oauthTokenFor(outsider, ['read'], 'Owner-approved backup bot');
+    for (const [name, args] of [
+      ['create_issue', { project: projectKey, title: 'Nope' }],
+      ['create_issue', { project, title: 'Nope' }],
+      ['update_issue', { key: issueKey, title: 'Nope' }],
+      ['add_comment', { key: issueKey, body: 'Nope' }],
+    ] as const) {
+      expect((await call(token, name, args)).isError, name).toBe(true);
+    }
+    const rows = await db
+      .select({ id: activities.id })
+      .from(activities)
+      .where(and(eq(activities.actorId, outsider), eq(activities.type, 'mcp.tool_call')));
+    expect(rows).toEqual([]);
   });
 
   it('treats a workspace with connectors blocked as nonexistent until it allows them', async () => {

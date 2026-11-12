@@ -32,11 +32,14 @@ settings or integrations. Every write is recorded in the audit log as
 category Integrations), and so is every refused or failed write attempt, e.g.
 "tried to update WEB-12 through Claude (MCP), denied: their role has no write
 access". `data.outcome` is `success`, `denied` (no write permission on the
-connection, a role without write access, not a member of the team, AI
-connectors blocked), `invalid` (input that didn't resolve or that the issue
-service refused) or `failed` (server error), with a `reason` code. The rows hold
-the tool, the client and the issue key, never the issue content the call sent.
-An attempt at a team or issue that doesn't exist has nowhere to be recorded.
+connection, a role without write access, AI connectors blocked), `invalid`
+(input that didn't resolve or that the issue service refused) or `failed`
+(server error), with a `reason` code. The rows hold the tool, the client and the
+issue key, never the issue content the call sent. Only attempts by members of
+the team are recorded in its log: an attempt by someone who isn't a member, or
+at a team or issue that doesn't exist, leaves no row in any team's log (only a
+line in the server log), so outsiders can't put their name or a client name of
+their choosing into your log.
 Inputs that don't match a tool's schema are refused by the MCP library before
 the tool runs and aren't audited. The assistant acts with your own permissions: it sees
 only projects you are a member of, and a guest can still only read and comment.

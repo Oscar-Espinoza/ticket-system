@@ -509,10 +509,12 @@ Closes the open notes of PR #4's focused re-review and its follow-up list.
   never in text, so they needed nothing.
 - **Audit of refused writes** (`src/lib/server/mcp/audit.ts`): every write-tool
   call leaves one `mcp.tool_call` row with `data.outcome` = `success`,
-  `denied` (`insufficient_scope`, `forbidden_role`, `not_member`,
-  `connectors_blocked`, `not_found`), `invalid` (`invalid_input`) or `failed`
-  (`server_error`), written by `registerMcpTool` for refusals. No issue content;
-  attempts at a project or issue that doesn't exist have no row; schema
+  `denied` (`insufficient_scope`, `forbidden_role`, `connectors_blocked`,
+  `not_found`), `invalid` (`invalid_input`) or `failed` (`server_error`),
+  written by `registerMcpTool` for refusals. No issue content. A refusal is
+  written only into a project the caller is a member of (membership is part of
+  the target lookup, so existing and missing keys cost the same queries);
+  outsiders' attempts get a server log line only (review round 1); schema
   validation failures happen in the SDK before the tool and aren't audited.
 - **Rate limit.** `/mcp` allows `MCP_RATE_LIMIT_PER_MINUTE` (default 120, 0 =
   off) calls per credential (user + OAuth client, or user + API key) with an

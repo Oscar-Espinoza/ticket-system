@@ -9,11 +9,15 @@
 //   - `invalid`: the input didn't resolve or the service refused it;
 //   - `failed`: the server threw.
 // Rows never hold issue content or secrets: tool, client, outcome, a reason
-// code and the target issue's key/id. A row needs a project to sit on, so an
-// attempt at a project or issue that doesn't exist leaves none. Writing a row
+// code and the target issue's key/id. A refusal is written only into the log
+// of a project the caller is a member of: an attempt by an outsider, or at a
+// project or issue that doesn't exist, leaves no row in any team's log (a
+// server log line only), so nobody can write their name or a self-chosen
+// client name into another team's log, and a mistyped key doesn't show a
+// stranger's identity to an unrelated team. Writing a row
 // never throws: a failed insert is logged and the tool's answer is unchanged.
 
-import { and, eq, or } from 'drizzle-orm';
+import { and, eq, or, type SQL } from 'drizzle-orm';
 import type { CallToolResult } from '@modelcontextprotocol/server';
 
 import { db } from '@/lib/db';
@@ -27,7 +31,6 @@ export type RefusalReason =
   | 'insufficient_scope'
   | 'forbidden_role'
   | 'not_found'
-  | 'not_member'
   | 'connectors_blocked'
   | 'invalid_input'
   | 'server_error';
@@ -41,7 +44,6 @@ const REASON_TEXT: Record<RefusalReason, string> = {
   insufficient_scope: 'the connection has no write permission',
   forbidden_role: 'their role has no write access',
   not_found: 'the issue or project was not found',
-  not_member: 'not a member of this team',
   connectors_blocked: 'AI connectors are blocked in this workspace',
   invalid_input: 'invalid input',
   server_error: 'server error',
@@ -96,35 +98,39 @@ export function refused(text: string, refusal: Refusal): CallToolResult {
 export const refusalOf = (result: CallToolResult): Refusal =>
   refusals.get(result) ?? { outcome: 'invalid', reason: 'invalid_input' };
 
-/** The project (and issue) a write named, looked up without any access rule. */
-async function target(args: Record<string, unknown>): Promise<{ projectId: string; issue: { id: string; key: string } | null } | null> {
+/**
+ * The project (and issue) a write named, only if the caller is a member of
+ * that project (whatever their role, and even when the workspace blocks
+ * connectors). Membership is part of the lookup, so a project or issue that
+ * exists costs the same queries as one that doesn't, and an outsider's attempt
+ * finds nothing to write on.
+ */
+async function target(
+  userId: string,
+  args: Record<string, unknown>,
+): Promise<{ projectId: string; connectorsAllowed: boolean; issue: { id: string; key: string } | null } | null> {
+  // The caller's membership row joined in: no row for a non-member.
+  const memberProject = (where: SQL | undefined) =>
+    db
+      .select({ id: projects.id, allowed: workspaces.aiConnectorsAllowed })
+      .from(projects)
+      .innerJoin(projectMembers, and(eq(projectMembers.projectId, projects.id), eq(projectMembers.userId, userId)))
+      .leftJoin(workspaces, eq(projects.workspaceId, workspaces.id))
+      .where(where)
+      .limit(1);
   if (typeof args.key === 'string') {
-    const ref = await resolveIssueKey(args.key);
-    return ref ? { projectId: ref.projectId, issue: { id: ref.id, key: args.key.trim().toUpperCase() } } : null;
+    const ref = await resolveIssueKey(args.key, { memberId: userId });
+    if (!ref) return null;
+    const [row] = await memberProject(eq(projects.id, ref.projectId));
+    if (!row) return null;
+    return { projectId: row.id, connectorsAllowed: row.allowed !== false, issue: { id: ref.id, key: args.key.trim().toUpperCase() } };
   }
   if (typeof args.project === 'string' && args.project.trim()) {
     const value = args.project.trim();
-    const [row] = await db
-      .select({ id: projects.id })
-      .from(projects)
-      .where(or(eq(projects.id, value), eq(projects.ticketKey, value.toUpperCase())))
-      .limit(1);
-    return row ? { projectId: row.id, issue: null } : null;
+    const [row] = await memberProject(or(eq(projects.id, value), eq(projects.ticketKey, value.toUpperCase())));
+    return row ? { projectId: row.id, connectorsAllowed: row.allowed !== false, issue: null } : null;
   }
   return null;
-}
-
-/** "Not found" as the caller saw it, split for admins: not a member, or the workspace blocks connectors. */
-async function notFoundReason(userId: string, projectId: string): Promise<RefusalReason> {
-  const [row] = await db
-    .select({ member: projectMembers.userId, allowed: workspaces.aiConnectorsAllowed })
-    .from(projects)
-    .leftJoin(projectMembers, and(eq(projectMembers.projectId, projects.id), eq(projectMembers.userId, userId)))
-    .leftJoin(workspaces, eq(projects.workspaceId, workspaces.id))
-    .where(eq(projects.id, projectId))
-    .limit(1);
-  if (!row?.member) return 'not_member';
-  return row.allowed === false ? 'connectors_blocked' : 'not_found';
 }
 
 /** A write attempt that was refused or failed. */
@@ -135,9 +141,14 @@ export async function auditRefusal(
   refusal: Refusal,
 ) {
   try {
-    const found = await target(args);
-    if (!found) return;
-    const reason = refusal.reason === 'not_found' ? await notFoundReason(credential.userId, found.projectId) : refusal.reason;
+    const found = await target(credential.userId, args);
+    if (!found) {
+      // Not a member (or nothing by that name): no team's log gets the row.
+      console.info(`[mcp] refused ${tool} for user ${credential.userId} via ${credential.via}: ${refusal.outcome} ${refusal.reason}, no project of theirs named`);
+      return;
+    }
+    // "Not found" as a member saw it: hidden because the workspace blocks connectors.
+    const reason = refusal.reason === 'not_found' && !found.connectorsAllowed ? 'connectors_blocked' : refusal.reason;
     const attempt = [ATTEMPT[tool] ?? tool, found.issue?.key].filter(Boolean).join(' ');
     await recordProjectEvent(found.projectId, {
       actorId: credential.userId,
