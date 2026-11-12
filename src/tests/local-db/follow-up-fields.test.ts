@@ -15,7 +15,7 @@ vi.mock('@/lib/kit/request', async (orig) => ({
 }));
 
 import { db } from '@/lib/db';
-import { activities, apiKeys, notifications, tickets, workflowStates } from '@/db/schema';
+import { activities, apiKeys, notifications, projectMembers, tickets, workflowStates } from '@/db/schema';
 import { generateApiKey } from '@/lib/api-auth';
 import { run as runFollowUps } from '@/lib/cron/jobs/follow-ups';
 import { addDays, toDateString } from '@/lib/dates';
@@ -147,6 +147,34 @@ describe.skipIf(!localDb)('daily follow-up job', () => {
     expect(await followUpNotifications(dueToday)).toHaveLength(2);
     const [row] = await db.select({ followUp: tickets.followUp }).from(tickets).where(eq(tickets.id, dueToday));
     expect(row.followUp).toBe(day(2));
+  });
+});
+
+describe.skipIf(!localDb)('daily follow-up job: assignee who left the project', () => {
+  it('stays unclaimed until a current member is assigned, then notifies that person', async () => {
+    const owner = await makeUser('fl-owner');
+    const ana = await makeUser('fl-ana');
+    const bob = await makeUser('fl-bob');
+    const project = await makeProject(owner, 'FL', [ana, bob]);
+    const created = await issues.createIssue({ userId: owner }, project, { title: 'left', assigneeId: ana, followUp: day(0) });
+    if (!created.ok) throw new Error(created.error);
+    const id = created.issue.id;
+
+    // Removing a member does not unassign their issues.
+    await db.delete(projectMembers).where(and(eq(projectMembers.projectId, project), eq(projectMembers.userId, ana)));
+    await runFollowUps(NOW);
+    expect(await followUpNotifications(id)).toEqual([]);
+    const [unclaimed] = await db.select({ notified: tickets.followUpNotifiedOn }).from(tickets).where(eq(tickets.id, id));
+    expect(unclaimed.notified).toBeNull();
+
+    await issues.updateIssueFields({ userId: owner }, project, id, { assigneeId: bob });
+    await runFollowUps(NOW);
+    expect((await followUpNotifications(id)).map((n) => n.userId)).toEqual([bob]);
+
+    // Re-arm rule as built: the date is notified once, and reassigning after does not repeat it.
+    await issues.updateIssueFields({ userId: owner }, project, id, { assigneeId: owner });
+    await runFollowUps(NOW);
+    expect(await followUpNotifications(id)).toHaveLength(1);
   });
 });
 

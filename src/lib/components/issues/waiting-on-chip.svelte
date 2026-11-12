@@ -17,6 +17,7 @@
     )}
   >
     <HourglassIcon class="size-3 shrink-0" aria-hidden="true" />
+    <span class="sr-only">Waiting on </span>
     <span class="truncate">{user.name}</span>
   </span>
 {/if}

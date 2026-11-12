@@ -11,6 +11,7 @@ import {
   resolveSearchTerms,
   searchFollowUp,
 } from '@/lib/issue-filtering';
+import { duplicateInput } from '@/lib/components/productivity/issue-actions';
 import type { IssueRow } from '@/lib/issue-model';
 
 const TODAY = '2026-11-12';
@@ -63,5 +64,13 @@ describe('waiting-on / follow-up filters', () => {
     // Two followup terms: neither converts; bounds always stay as text.
     expect(chips.followUp).toEqual([]);
     expect(chips.q).toBe('followup:today followup:<=2026-12-01 bug');
+  });
+});
+
+describe('duplicating an issue', () => {
+  it('keeps waiting-on only while that person is still a project member', () => {
+    const source = { ...issue('A', 'ana', '2026-11-20'), labels: [], assignee: null } as unknown as IssueRow;
+    expect(duplicateInput(source, new Set(['ana']))).toMatchObject({ waitingOnId: 'ana', followUp: '2026-11-20' });
+    expect(duplicateInput(source, new Set(['bob'])).waitingOnId).toBeNull();
   });
 });

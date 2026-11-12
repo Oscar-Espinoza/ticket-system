@@ -153,8 +153,12 @@ curl -H "Authorization: Bearer $TICKETS_KEY" \
 `priority` is one of `urgent`, `high`, `medium`, `low`, `none`.
 `waitingOn` is the project member the issue is waiting on and `followUp` the
 date (`YYYY-MM-DD`) to follow up; both are `null` when unset. When the follow-up
-date arrives, the assignee gets a "Follow-up date reached" notification (once
-per date; issues without an assignee notify nobody).
+date arrives, the assignee gets a "Follow-up date reached" notification. It is
+sent once per date value: changing the follow-up to a new date re-arms it, but
+changing it and back to a date already notified, or reassigning the issue after
+the notification, does not notify again. Issues without an assignee, or whose
+assignee is no longer a project member, notify nobody until a current member is
+assigned.
 
 ### `POST /projects/:id/issues`
 
