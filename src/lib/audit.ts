@@ -451,6 +451,8 @@ const FIELD_LABEL: Record<string, string> = {
   labelIds: 'labels',
   estimate: 'estimate',
   dueDate: 'due date',
+  waitingOnId: 'waiting on',
+  followUp: 'follow-up date',
   startDate: 'start date',
   parentId: 'parent',
   cycleId: 'cycle',

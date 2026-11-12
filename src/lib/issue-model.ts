@@ -108,6 +108,10 @@ export interface IssueRow {
   /** When the issue entered its current state ("time in status"). */
   stateChangedAt: Date | null;
   assignee: IssueUser | null;
+  /** Who the issue is waiting on (a project member); null = no one. */
+  waitingOn: IssueUser | null;
+  /** When to follow up: calendar date, YYYY-MM-DD (no timezone), like dueDate. */
+  followUp: string | null;
   creator: IssueUser | null;
   labels: IssueLabel[];
   parentId: string | null;
@@ -140,6 +144,8 @@ export interface IssuePatch {
   startDate?: string | null;
   dueDate?: string | null;
   assigneeId?: string | null;
+  waitingOnId?: string | null;
+  followUp?: string | null;
   parentId?: string | null;
   cycleId?: string | null;
   epicId?: string | null;

@@ -55,6 +55,7 @@ export function issueSummary(issue: IssueRow) {
     state: { id: issue.state.id, name: issue.state.name, type: issue.state.type },
     priority: issue.priority,
     assignee: issue.assignee ? { id: issue.assignee.id, name: issue.assignee.name } : null,
+    waitingOn: issue.waitingOn ? { id: issue.waitingOn.id, name: issue.waitingOn.name } : null,
     url: absoluteIssueUrl(issue.projectId, issue.key),
   };
 }

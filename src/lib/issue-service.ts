@@ -8,8 +8,9 @@
 // │   - API routes: API key → user → membership + role                      │
 // │   - webhooks / automations: verify the signature / own the project      │
 // │ Every function then scopes writes by (issue id, project id) and checks  │
-// │ that every referenced id (state, label, assignee, parent, cycle, epic,  │
-// │ milestone) belongs to `projectId`, so ids can't reach across projects.  │
+// │ that every referenced id (state, label, assignee, waiting-on, parent,   │
+// │ cycle, epic, milestone) belongs to `projectId`, so ids can't reach      │
+// │ across projects (people: project members only).                         │
 // │ Nothing here refreshes page data — callers do (refreshesData()).        │
 // └─────────────────────────────────────────────────────────────────────────┘
 //
@@ -151,15 +152,23 @@ function normalizePatch(input: unknown): { ok: true; patch: IssuePatch } | Issue
     }
     patch.dueDate = raw.dueDate;
   }
+  if (raw.followUp !== undefined) {
+    if (raw.followUp !== null && !isDateString(raw.followUp)) {
+      return fail('Invalid follow-up date.', 'followUp');
+    }
+    patch.followUp = raw.followUp;
+  }
   if (raw.startDate !== undefined) {
     if (raw.startDate !== null && !isDateString(raw.startDate)) {
       return fail('Invalid start date.', 'startDate');
     }
     patch.startDate = raw.startDate;
   }
-  for (const field of ['assigneeId', 'parentId', 'cycleId', 'epicId', 'milestoneId'] as const) {
+  for (const field of ['assigneeId', 'waitingOnId', 'parentId', 'cycleId', 'epicId', 'milestoneId'] as const) {
     if (raw[field] === undefined) continue;
-    if (!optionalId(raw[field])) return fail(`Invalid ${field.replace(/Id$/, '')}.`, field);
+    if (!optionalId(raw[field])) {
+      return fail(field === 'waitingOnId' ? 'Invalid waiting on.' : `Invalid ${field.replace(/Id$/, '')}.`, field);
+    }
     patch[field] = raw[field];
   }
   if (raw.sortOrder !== undefined) {
@@ -214,6 +223,7 @@ interface Context {
   issues: IssueRow[];
   labels: Map<string, IssueLabel>;
   assignee: IssueUser | null;
+  waitingOn: IssueUser | null;
   parents: Map<string, ParentRef>;
   cycles: Map<string, Named>;
   epics: Map<string, Named & { available: boolean }>;
@@ -224,6 +234,18 @@ interface Context {
 }
 
 const NOTHING = sql`false`;
+
+/** The user `userId` if they are a member of `projectId` (assignee / waiting-on). */
+function projectMemberQuery(projectId: string, userId: string | null | undefined) {
+  return db
+    .select({ id: users.id, name: users.name, image: users.image })
+    .from(projectMembers)
+    .innerJoin(users, eq(projectMembers.userId, users.id))
+    .where(
+      userId ? and(eq(projectMembers.projectId, projectId), eq(projectMembers.userId, userId)) : NOTHING,
+    )
+    .limit(1);
+}
 
 async function loadContext(
   projectId: string,
@@ -260,6 +282,7 @@ async function loadContext(
     stateRows,
     labelRows,
     assigneeRows,
+    waitingOnRows,
     parentRows,
     cycleRows,
     epicRows,
@@ -291,16 +314,8 @@ async function loadContext(
           ? and(eq(labels.projectId, projectId), inArray(labels.id, labelIds))
           : NOTHING,
       ),
-    db
-      .select({ id: users.id, name: users.name, image: users.image })
-      .from(projectMembers)
-      .innerJoin(users, eq(projectMembers.userId, users.id))
-      .where(
-        patch.assigneeId
-          ? and(eq(projectMembers.projectId, projectId), eq(projectMembers.userId, patch.assigneeId))
-          : NOTHING,
-      )
-      .limit(1),
+    projectMemberQuery(projectId, patch.assigneeId),
+    projectMemberQuery(projectId, patch.waitingOnId),
     db
       .select({
         id: tickets.id,
@@ -370,6 +385,7 @@ async function loadContext(
     issues: mergeIssueRows(issueRows, issueLabelRows),
     labels: new Map(labelRows.map((label) => [label.id, label])),
     assignee: assigneeRows[0] ?? null,
+    waitingOn: waitingOnRows[0] ?? null,
     parents: new Map(
       parentRows.map((p) => [
         p.id,
@@ -394,6 +410,7 @@ interface Resolved {
   /** addLabelIds / removeLabelIds, applied per issue. */
   labelDelta?: { add: IssueLabel[]; remove: Set<string> };
   assignee?: IssueUser | null;
+  waitingOn?: IssueUser | null;
   /** Epic implied by the milestone (a milestone always belongs to one epic). */
   milestoneEpicId?: string;
 }
@@ -436,6 +453,12 @@ function resolvePatch(ctx: Context, patch: IssuePatch): { ok: true; resolved: Re
     }
     resolved.assignee = patch.assigneeId === null ? null : ctx.assignee;
   }
+  if (patch.waitingOnId !== undefined) {
+    if (patch.waitingOnId !== null && !ctx.waitingOn) {
+      return fail('Waiting on must be a project member.', 'waitingOnId');
+    }
+    resolved.waitingOn = patch.waitingOnId === null ? null : ctx.waitingOn;
+  }
   if (patch.parentId) {
     const parent = ctx.parents.get(patch.parentId);
     if (!parent || parent.deleted) return fail('Invalid parent issue.', 'parentId');
@@ -472,7 +495,7 @@ function applyToIssue(
   const set: TicketSet = {};
   const next: IssueRow = { ...old };
 
-  for (const field of ['title', 'description', 'priority', 'estimate', 'startDate', 'dueDate', 'parentId', 'cycleId', 'sortOrder'] as const) {
+  for (const field of ['title', 'description', 'priority', 'estimate', 'startDate', 'dueDate', 'followUp', 'parentId', 'cycleId', 'sortOrder'] as const) {
     if (patch[field] !== undefined) {
       (set as Record<string, unknown>)[field] = patch[field];
       (next as unknown as Record<string, unknown>)[field] = patch[field];
@@ -494,6 +517,10 @@ function applyToIssue(
   if (resolved.assignee !== undefined) {
     set.assigneeId = resolved.assignee?.id ?? null;
     next.assignee = resolved.assignee;
+  }
+  if (resolved.waitingOn !== undefined) {
+    set.waitingOnId = resolved.waitingOn?.id ?? null;
+    next.waitingOn = resolved.waitingOn;
   }
   if (resolved.labels) next.labels = resolved.labels;
   else if (resolved.labelDelta) {
@@ -530,10 +557,14 @@ function applyToIssue(
   if (next.estimate !== old.estimate) push('estimate', old.estimate, next.estimate);
   if (next.dueDate !== old.dueDate) push('dueDate', old.dueDate, next.dueDate);
   if (next.startDate !== old.startDate) push('startDate', old.startDate, next.startDate);
+  const describeUser = (u: IssueUser | null) => (u ? { id: u.id, name: u.name } : null);
   if ((next.assignee?.id ?? null) !== (old.assignee?.id ?? null)) {
-    const describe = (u: IssueUser | null) => (u ? { id: u.id, name: u.name } : null);
-    push('assigneeId', describe(old.assignee), describe(next.assignee));
+    push('assigneeId', describeUser(old.assignee), describeUser(next.assignee));
   }
+  if ((next.waitingOn?.id ?? null) !== (old.waitingOn?.id ?? null)) {
+    push('waitingOnId', describeUser(old.waitingOn), describeUser(next.waitingOn));
+  }
+  if (next.followUp !== old.followUp) push('followUp', old.followUp, next.followUp);
   if (next.parentId !== old.parentId) {
     const describe = (id: string | null) => {
       const parent = id ? ctx.parents.get(id) : undefined;
@@ -702,9 +733,11 @@ export async function createIssue(
     estimate: patch.estimate ?? null,
     startDate: patch.startDate ?? null,
     dueDate: patch.dueDate ?? null,
+    followUp: patch.followUp ?? null,
     slaDueAt,
     stateChangedAt: now,
     assigneeId: resolved.assignee?.id ?? null,
+    waitingOnId: resolved.waitingOn?.id ?? null,
     creatorId: ctx.actor?.id ?? null,
     parentId: patch.parentId ?? null,
     // New issues sort like migrated ones (sort_order = number) unless placed.
@@ -779,6 +812,8 @@ export async function createIssue(
     slaBreachedAt: null,
     stateChangedAt: now,
     assignee: resolved.assignee ?? null,
+    waitingOn: resolved.waitingOn ?? null,
+    followUp: patch.followUp ?? null,
     creator: ctx.actor,
     labels: labelList,
     parentId: patch.parentId ?? null,
@@ -1178,8 +1213,8 @@ export type MoveIssueResult =
  * another project — from `fromProjectId` to `toProjectId`. Callers MUST
  * authorize write access in BOTH projects. Each issue gets the next number in
  * the target and its old key is kept as a `ticket_key_alias`. State maps by
- * name → type → default; labels by name (unmatched are dropped); assignee kept
- * if a target member; cycle cleared; epic + milestone kept only when the epic
+ * name → type → default; labels by name (unmatched are dropped); assignee and
+ * waiting-on kept if a target member; cycle cleared; epic + milestone kept only when the epic
  * is available to the target (epicAvailableTo). Comments, attachments,
  * relations, subscribers, PR links, notifications and activity come along.
  */
@@ -1285,6 +1320,7 @@ export async function moveIssue(
       ...timestamps,
       stateChangedAt: typeChanged ? now : old.stateChangedAt,
       assigneeId: old.assignee && memberIds.has(old.assignee.id) ? old.assignee.id : null,
+      waitingOnId: old.waitingOn && memberIds.has(old.waitingOn.id) ? old.waitingOn.id : null,
       // The root's parent stays behind; sub-issues keep theirs (moved too).
       parentId: i === 0 ? null : old.parentId,
       cycleId: null,
