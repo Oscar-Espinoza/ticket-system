@@ -137,9 +137,12 @@ the office network works with Claude Code (it connects from the user's machine)
 but not with claude.ai or ChatGPT. Options: the Vercel deployment, a reverse
 proxy that exposes only the paths above, or a tunnel (`cloudflared`) for
 testing. `PUBLIC_APP_URL` / `BETTER_AUTH_URL` must both be that public URL:
-the token audience, the metadata and the token issuer are built from them. If
-they differ, the server logs `[mcp] MCP is misconfigured: …` once and `/mcp`
-and the protected-resource documents answer 500 with the same message.
+the token audience, the metadata and the token issuer are built from them. They
+are compared after normalising (letter case, the default port, a trailing
+slash). If they differ, the server logs `[mcp] MCP is misconfigured: …` with
+both URLs once, and `/mcp` and the protected-resource documents answer 500
+with a generic message (the URLs may name internal hosts, so callers don't
+see them).
 
 **Client registration.** Claude and ChatGPT register themselves (OAuth dynamic
 client registration). Only public clients (PKCE, no secret) with these redirect
