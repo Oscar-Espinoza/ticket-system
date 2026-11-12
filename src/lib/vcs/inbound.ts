@@ -11,7 +11,9 @@
 // If the row cannot be stored the route answers 500 instead.
 //
 // Rows are claimed atomically (next_attempt_at moves past the lease), so a
-// row runs on one runner at a time. The handlers are idempotent by state (PR
+// row runs on one runner at a time. Every claim counts as an attempt (the
+// route's own lease is the first), so a delivery whose runner is cut off every
+// time also stops after MAX_ATTEMPTS. The handlers are idempotent by state (PR
 // links and their events: vcs/automation.ts; issue moves skip issues already
 // there), so a retry after a partial run finishes the work without repeating
 // what was done. Failed rows back off like outgoing webhooks and give up after
@@ -103,7 +105,8 @@ async function processRow(row: Row): Promise<void> {
 /** Process rows this runner holds (claimed or just recorded). Never throws. */
 async function processRows(rows: Row[]): Promise<void> {
   for (const row of rows) {
-    const attempts = row.attempts + 1;
+    // Counted when the row was leased (recordInbound / the claim).
+    const attempts = row.attempts;
     try {
       await processRow(row);
       await db
@@ -136,10 +139,15 @@ export interface InboundDelivery {
   targets: { projectId: string; integrationId?: string | null }[];
 }
 
+/** Stored rows that gave up: never processed, out of attempts. */
+const gaveUp = () =>
+  and(isNull(vcsWebhookDeliveries.processedAt), sql`${vcsWebhookDeliveries.attempts} >= ${MAX_ATTEMPTS}`);
+
 /**
- * Store a verified delivery (leased to the caller) and return the new rows.
- * A delivery id already stored for a project (a provider redelivery) is
- * skipped. Throws when the rows cannot be stored: the route must not answer
+ * Store a verified delivery (leased to the caller: its first attempt) and
+ * return the rows to process now. A delivery id already stored for a project
+ * (a provider redelivery) is skipped while that row is processed or pending;
+ * a row that gave up is started over (a manual "Redeliver" after an outage). Throws when the rows cannot be stored: the route must not answer
  * 2xx then.
  */
 export async function recordInbound(delivery: InboundDelivery): Promise<Row[]> {
@@ -158,13 +166,20 @@ export async function recordInbound(delivery: InboundDelivery): Promise<Row[]> {
         integrationId: target.integrationId ?? null,
         event: delivery.event,
         payload: delivery.payload ?? {},
-        attempts: 0,
+        attempts: 1,
         nextAttemptAt: new Date(now.getTime() + LEASE_MS),
         createdAt: now,
       })),
     )
-    .onConflictDoNothing({
+    .onConflictDoUpdate({
       target: [vcsWebhookDeliveries.provider, vcsWebhookDeliveries.deliveryId, vcsWebhookDeliveries.projectId],
+      set: {
+        payload: sql`excluded.payload`,
+        attempts: 1,
+        nextAttemptAt: new Date(now.getTime() + LEASE_MS),
+        error: null,
+      },
+      setWhere: gaveUp(),
     })
     .returning();
 }
@@ -176,6 +191,12 @@ export async function recordInbound(delivery: InboundDelivery): Promise<Row[]> {
 export async function retryInbound(options: { limit?: number; now?: Date } = {}): Promise<number> {
   const now = options.now ?? new Date();
   try {
+    // Out of attempts and its last lease expired (the runner was cut off):
+    // given up, like a row whose last attempt failed.
+    await db
+      .update(vcsWebhookDeliveries)
+      .set({ nextAttemptAt: null, error: sql`coalesce(${vcsWebhookDeliveries.error}, 'gave up: no attempt finished')` })
+      .where(and(gaveUp(), isNotNull(vcsWebhookDeliveries.nextAttemptAt), lte(vcsWebhookDeliveries.nextAttemptAt, now)));
     const due = db
       .select({ id: vcsWebhookDeliveries.id })
       .from(vcsWebhookDeliveries)
@@ -192,8 +213,14 @@ export async function retryInbound(options: { limit?: number; now?: Date } = {})
     // The claim re-checks due-ness, so two runners never both take a row.
     const claimed = await db
       .update(vcsWebhookDeliveries)
-      .set({ nextAttemptAt: new Date(now.getTime() + LEASE_MS) })
-      .where(and(inArray(vcsWebhookDeliveries.id, due), lte(vcsWebhookDeliveries.nextAttemptAt, now)))
+      .set({ nextAttemptAt: new Date(now.getTime() + LEASE_MS), attempts: sql`${vcsWebhookDeliveries.attempts} + 1` })
+      .where(
+        and(
+          inArray(vcsWebhookDeliveries.id, due),
+          lte(vcsWebhookDeliveries.nextAttemptAt, now),
+          lt(vcsWebhookDeliveries.attempts, MAX_ATTEMPTS),
+        ),
+      )
       .returning();
     await processRows(claimed);
     return claimed.length;
@@ -215,14 +242,10 @@ export async function pruneInbound(now = new Date()): Promise<number> {
     isNotNull(vcsWebhookDeliveries.processedAt),
     lt(vcsWebhookDeliveries.processedAt, new Date(now.getTime() - KEEP_PROCESSED_MS)),
   );
-  const gaveUp = and(
-    isNull(vcsWebhookDeliveries.processedAt),
-    sql`${vcsWebhookDeliveries.attempts} >= ${MAX_ATTEMPTS}`,
-    lt(vcsWebhookDeliveries.createdAt, new Date(now.getTime() - KEEP_FAILED_MS)),
-  );
+  const failed = and(gaveUp(), lt(vcsWebhookDeliveries.createdAt, new Date(now.getTime() - KEEP_FAILED_MS)));
   const removed = await db
     .delete(vcsWebhookDeliveries)
-    .where(sql`(${processed}) or (${gaveUp})`)
+    .where(sql`(${processed}) or (${failed})`)
     .returning({ id: vcsWebhookDeliveries.id });
   return removed.length;
 }
