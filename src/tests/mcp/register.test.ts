@@ -63,6 +63,25 @@ describe.skipIf(!localDb)('MCP dynamic client registration', () => {
     'http://localhost.:1234',
     'https://claude.ai',
     'http://localhost:1234?next=https://evil.example',
+    // Forms probed in review round 1 (already refused; pinned here).
+    'http://localhost.example.com:1234/cb',
+    'http://127.0.0.1.example.com:1234/cb',
+    'http://localhost:1234@example.com/cb',
+    'http://localhost\\@example.com/cb',
+    'http://[::1]:1234/cb',
+    'http://LOCALHOST:1234/cb',
+    'http://localhost:80/cb',
+    'http://localhost:01234/cb',
+    'http://127.1:1234/cb',
+    'http://0x7f000001:1234/cb',
+    'http://2130706433:1234/cb',
+    ' http://localhost:1234/cb',
+    'http://localhost:1234/cb ',
+    'http://localhost:1234?',
+    'http://localhost:1234#',
+    'http://localhost:1234/cb#',
+    'https://localhost:1234',
+    'https://claude.ai/api/mcp/auth_callback/',
   ])('refuses the redirect %s', async (redirect) => {
     const res = await register(publicClient(redirect));
     expect(res.status).toBe(400);

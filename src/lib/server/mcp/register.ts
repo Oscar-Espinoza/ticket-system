@@ -70,13 +70,14 @@ export function isAllowedRedirect(uri: string): boolean {
   const barePath = !canonical && url.pathname === '/' && url.href === `${uri}/`;
   if (!canonical && !barePath) return false;
   if (canonical && (FIXED_REDIRECTS.has(uri) || CHATGPT_CALLBACK.test(uri) || extraRedirects().has(uri))) return true;
-  // Loopback: any port and path (or none), plain http, no credentials or fragment.
+  // Loopback: any port and path (or none), plain http, no credentials or
+  // fragment (not even an empty `#`, which url.hash doesn't show; RFC 6749 §3.1.2).
   return (
     url.protocol === 'http:' &&
     LOOPBACK_HOSTS.has(url.hostname) &&
     !url.username &&
     !url.password &&
-    !url.hash &&
+    !uri.includes('#') &&
     uri.startsWith(`http://${url.hostname}`)
   );
 }
