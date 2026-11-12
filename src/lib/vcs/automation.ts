@@ -17,7 +17,7 @@ import { db } from '@/lib/db';
 import { githubPullRequests, tickets } from '@/db/schema';
 import { projectStatesQuery } from '@/lib/workflow-server';
 import { PR_EVENT } from '@/lib/event-names';
-import { commitWithEvents, type IssueEventInput } from '@/lib/events';
+import { insertEventIf, publishWrittenEvents, toStored, type IssueEventInput } from '@/lib/events';
 import { SYSTEM_ACTOR, updateIssueFields } from '@/lib/issue-service';
 import type { IssueRow, WorkflowState } from '@/lib/issue-model';
 import { queryIssues } from '@/lib/tickets';
@@ -117,14 +117,15 @@ export async function syncPullRequest(project: VcsProject, pr: VcsPullRequest, t
   const [referenced, existing] = await Promise.all([
     findIssues(project.id, [...auto, ...linkOnly], pr.branch),
     db
-      .select({ ticketId: githubPullRequests.ticketId, state: githubPullRequests.state })
+      .select({ ticketId: githubPullRequests.ticketId })
       .from(githubPullRequests)
       .where(and(samePullRequest(project.id, pr.provider, pr.repo), eq(githubPullRequests.number, pr.number))),
   ]);
-  const previous = new Map(existing.map((row) => [row.ticketId, row.state]));
 
   // Once linked, a PR stays linked even if the reference is edited away.
-  const missing = [...previous.keys()].filter((id) => !referenced.some((i) => i.id === id));
+  const missing = [...new Set(existing.map((row) => row.ticketId))].filter(
+    (id) => !referenced.some((i) => i.id === id),
+  );
   const stillLinked = missing.length
     ? await queryIssues(
         and(eq(tickets.projectId, project.id), isNull(tickets.deletedAt), inArray(tickets.id, missing)),
@@ -137,54 +138,54 @@ export async function syncPullRequest(project: VcsProject, pr: VcsPullRequest, t
     (issue) => auto.has(issue.number) || (!!pr.branch && issue.githubBranch === pr.branch),
   );
 
+  // Two deliveries for one PR can arrive at once (GitHub sends several events
+  // per action). ONE transaction, serialized per PR by an advisory lock: each
+  // event is written only if the stored link, read after the lock, does not
+  // already show its transition; then the links are updated, and created only
+  // for issues with no link to this PR in any letter case (the lookup above
+  // and the write agree on lower(repo)). Events commit with the links: a crash
+  // in between would otherwise turn the redelivery into a no-op and lose them.
   const now = new Date();
-  const upsert = db
-    .insert(githubPullRequests)
-    .values(
-      linked.map((issue) => ({
-        id: crypto.randomUUID(),
-        projectId: project.id,
-        ticketId: issue.id,
-        provider: pr.provider,
-        repo: pr.repo,
-        number: pr.number,
-        title: pr.title.slice(0, 500),
-        url: pr.url,
-        state: pr.state,
-        draft: pr.draft,
-        branch: pr.branch,
-        authorLogin: pr.author,
-        reviewDecision: pr.reviewDecision ?? null,
-        mergedAt: pr.mergedAt,
-        createdAt: now,
-        updatedAt: now,
-      })),
-    )
-    .onConflictDoUpdate({
-      target: [githubPullRequests.ticketId, githubPullRequests.repo, githubPullRequests.number],
-      set: {
-        provider: sql`excluded.provider`,
-        title: sql`excluded.title`,
-        url: sql`excluded.url`,
-        state: sql`excluded.state`,
-        draft: sql`excluded.draft`,
-        branch: sql`excluded.branch`,
-        authorLogin: sql`coalesce(excluded.author_login, ${githubPullRequests.authorLogin})`,
-        reviewDecision: sql`coalesce(excluded.review_decision, ${githubPullRequests.reviewDecision})`,
-        mergedAt: sql`excluded.merged_at`,
-        updatedAt: sql`excluded.updated_at`,
-      },
-    });
+  const thisPr = and(samePullRequest(project.id, pr.provider, pr.repo), eq(githubPullRequests.number, pr.number));
+  const linkOf = (ticketId: string, extra?: SQL) =>
+    sql`exists (select 1 from ${githubPullRequests} where ${and(thisPr, eq(githubPullRequests.ticketId, ticketId), extra)})`;
+  const lock = db.execute(
+    sql`select pg_advisory_xact_lock(hashtextextended(${`pr:${project.id}:${pr.provider}:${pr.repo.toLowerCase()}:${pr.number}`}, 0))`,
+  );
+  const title = pr.title.slice(0, 500);
+  const update = db
+    .update(githubPullRequests)
+    .set({
+      provider: pr.provider,
+      title,
+      url: pr.url,
+      state: pr.state,
+      draft: pr.draft,
+      branch: pr.branch,
+      authorLogin: sql`coalesce(${pr.author}, ${githubPullRequests.authorLogin})`,
+      reviewDecision: sql`coalesce(${pr.reviewDecision ?? null}, ${githubPullRequests.reviewDecision})`,
+      mergedAt: pr.mergedAt,
+      updatedAt: now,
+    })
+    .where(and(thisPr, inArray(githubPullRequests.ticketId, linked.map((issue) => issue.id))));
+  const inserts = linked.map(
+    (issue) => db.execute(sql`
+      insert into ${githubPullRequests}
+        (id, project_id, ticket_id, provider, repo, number, title, url, state, draft, branch,
+         author_login, review_decision, merged_at, created_at, updated_at)
+      select ${crypto.randomUUID()}, ${project.id}, ${issue.id}, ${pr.provider}, ${pr.repo}, ${pr.number}::int,
+        ${title}, ${pr.url}, ${pr.state}, ${pr.draft}::boolean, ${pr.branch}, ${pr.author},
+        ${pr.reviewDecision ?? null}, ${pr.mergedAt?.toISOString() ?? null}::timestamp,
+        ${now.toISOString()}::timestamp, ${now.toISOString()}::timestamp
+      where not ${linkOf(issue.id)}
+      on conflict do nothing
+    `),
+  );
 
-  // Events only on transitions, so redeliveries stay idempotent — which is
-  // why they commit with the upsert: a crash in between would otherwise turn
-  // the redelivery into a no-op and lose them.
   const label = `${prNoun(pr.provider)} ${prNumberLabel(pr.provider, pr.number)}`;
-  const events: IssueEventInput[] = [];
+  const planned: { event: IssueEventInput; when: SQL }[] = [];
   const base = { provider: pr.provider, number: pr.number, url: pr.url, repo: pr.repo, title: pr.title };
-  const mergedNow = new Set<string>();
   for (const issue of linked) {
-    const before = previous.get(issue.id);
     const common = { projectId: project.id, ticketId: issue.id, actorId: null };
     const about = {
       key: issue.key,
@@ -193,21 +194,33 @@ export async function syncPullRequest(project: VcsProject, pr: VcsPullRequest, t
       actorName: VCS_PROVIDER_LABEL[pr.provider],
       pullRequest: base,
     };
-    if (before === undefined) {
-      events.push({ ...common, type: PR_EVENT.prLinked, data: { ...about, summary: `linked ${label}` } });
-    }
-    if (pr.state === 'merged' && before !== 'merged') {
-      mergedNow.add(issue.id);
-      events.push({ ...common, type: PR_EVENT.prMerged, data: { ...about, summary: `merged ${label}` } });
-    } else if (pr.state === 'closed' && before !== 'closed') {
-      events.push({
-        ...common,
-        type: PR_EVENT.prClosed,
-        data: { ...about, summary: `closed ${label} without merging` },
+    planned.push({
+      event: { ...common, type: PR_EVENT.prLinked, data: { ...about, summary: `linked ${label}` } },
+      when: sql`not ${linkOf(issue.id)}`,
+    });
+    if (pr.state === 'merged') {
+      planned.push({
+        event: { ...common, type: PR_EVENT.prMerged, data: { ...about, summary: `merged ${label}` } },
+        when: sql`not ${linkOf(issue.id, eq(githubPullRequests.state, 'merged'))}`,
+      });
+    } else if (pr.state === 'closed') {
+      planned.push({
+        event: { ...common, type: PR_EVENT.prClosed, data: { ...about, summary: `closed ${label} without merging` } },
+        when: sql`not ${linkOf(issue.id, eq(githubPullRequests.state, 'closed'))}`,
       });
     }
   }
-  await commitWithEvents([upsert], events);
+  const stored = toStored(planned.map((p) => p.event));
+  await db.batch([
+    lock,
+    ...stored.map((event, i) => insertEventIf(event, planned[i].when)),
+    update,
+    ...inserts,
+  ]);
+  const written = await publishWrittenEvents(stored);
+  const wrote = (type: string) => new Set(written.filter((e) => e.type === type).map((e) => e.ticketId));
+  const linkedNow = wrote(PR_EVENT.prLinked);
+  const mergedNow = wrote(PR_EVENT.prMerged);
 
   if (!autoIssues.length) return;
   const states = await projectStatesQuery(project.id);
@@ -227,8 +240,7 @@ export async function syncPullRequest(project: VcsProject, pr: VcsPullRequest, t
   } else if (pr.state === 'open' && !pr.draft) {
     // Edits / pushes only move issues this delivery linked for the first time —
     // otherwise every push would undo a manual move back to In Progress.
-    const candidates =
-      trigger === 'opened' ? autoIssues : autoIssues.filter((issue) => !previous.has(issue.id));
+    const candidates = trigger === 'opened' ? autoIssues : autoIssues.filter((issue) => linkedNow.has(issue.id));
     const target = resolveAutomationState(project.prOpenStateId, states, defaultPrOpenState);
     await moveIssues(project, candidates, target, states);
   }

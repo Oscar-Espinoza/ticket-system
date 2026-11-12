@@ -19,6 +19,7 @@
 //   - issue.purged has ticketId null (the row is gone) and { ticketId, key, title }.
 //   - comment.created carries { commentId, mentions: userId[] }.
 
+import { inArray, sql, type SQL } from 'drizzle-orm';
 import type { BatchItem } from 'drizzle-orm/batch';
 
 import { after } from '@/lib/kit/request';
@@ -143,6 +144,47 @@ export async function commitWithEvents(
   const results = await db.batch(items as [BatchItem<'pg'>, ...BatchItem<'pg'>[]]);
   if (prepared) publishIssueEvents(prepared.stored);
   return prepared ? results.slice(0, statements.length) : results;
+}
+
+/**
+ * The activity insert for ONE stored event that writes the row only if `when`
+ * (an SQL condition) holds when the statement runs. For events that describe a
+ * transition of rows a concurrent writer may change too (a PR linked or merged
+ * by two deliveries at once): put it in the writer's db.batch after a lock
+ * that serializes those writers and before the write itself, so `when` reads
+ * the state the write is about to replace. Then publishWrittenEvents.
+ */
+export function insertEventIf(event: StoredIssueEvent, when: SQL): BatchItem<'pg'> {
+  const [row] = activityRows([event]);
+  return db.execute(sql`
+    insert into ${activities}
+      (id, project_id, ticket_id, actor_id, type, data, webhook_pending_project_id, created_at)
+    select ${row.id}, ${row.projectId}, ${row.ticketId}, ${row.actorId}, ${row.type},
+      ${JSON.stringify(row.data)}::jsonb, ${row.webhookPendingProjectId}, ${row.createdAt.toISOString()}::timestamp
+    where ${when}
+  `);
+}
+
+/**
+ * Schedule the fan-out for those of `stored` that were committed (insertEventIf
+ * may have skipped some) and return them. Never throws: the rows are durable,
+ * and the webhook sweep finds them even if this lookup fails.
+ */
+export async function publishWrittenEvents(stored: StoredIssueEvent[]): Promise<StoredIssueEvent[]> {
+  if (stored.length === 0) return [];
+  try {
+    const rows = await db
+      .select({ id: activities.id })
+      .from(activities)
+      .where(inArray(activities.id, stored.map((event) => event.id)));
+    const written = new Set(rows.map((row) => row.id));
+    const committed = stored.filter((event) => written.has(event.id));
+    publishIssueEvents(committed);
+    return committed;
+  } catch (err) {
+    console.error('[events] could not read back written events', err);
+    return [];
+  }
 }
 
 /** Activity rows for stored events, flagged for the durable webhook sweep. */
