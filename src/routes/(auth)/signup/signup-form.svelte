@@ -32,14 +32,18 @@
   import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/lib/components/ui/card';
   import { Separator } from '@/lib/components/ui/separator';
   import { authHref } from '@/lib/safe-redirect';
+  import GoogleSignInButton from '@/lib/components/auth/google-sign-in-button.svelte';
 
   let {
     redirectTo,
     githubEnabled = false,
+    googleEnabled = false,
   }: {
     redirectTo: string;
     /** GITHUB_CLIENT_ID/SECRET are set on the server; without them the button is hidden. */
     githubEnabled?: boolean;
+    /** GOOGLE_CLIENT_ID/SECRET are set on the server. */
+    googleEnabled?: boolean;
   } = $props();
 
   let email = $state('');
@@ -123,7 +127,12 @@
         <GitBranchIcon />
         Continue with GitHub
       </Button>
+    {/if}
+    {#if googleEnabled}
+      <GoogleSignInButton {redirectTo} onerror={(message) => (formError = message)} />
+    {/if}
 
+    {#if githubEnabled || googleEnabled}
       <div class="flex items-center gap-2">
         <Separator class="flex-1" />
         <span class="text-xs text-muted-foreground">or</span>

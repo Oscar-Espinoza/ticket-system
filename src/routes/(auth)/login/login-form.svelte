@@ -1,6 +1,6 @@
 <!--
   Login form (port of src/app/(auth)/login/login-form.tsx) — email/password,
-  GitHub and SSO sign-in via Better Auth.
+  GitHub, Google (when configured) and SSO sign-in via Better Auth.
 
   UI-SPEC contract:
     - Centered Card (max-w-sm), heading "Sign in", subheading "Welcome back".
@@ -32,6 +32,7 @@
   import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/lib/components/ui/card';
   import { Separator } from '@/lib/components/ui/separator';
   import { authHref } from '@/lib/safe-redirect';
+  import GoogleSignInButton from '@/lib/components/auth/google-sign-in-button.svelte';
 
   const SSO_REQUIRED = 'SSO_REQUIRED';
 
@@ -40,6 +41,7 @@
     githubEnabled = false,
     initialError = null,
     initialSso = false,
+    googleEnabled = false,
   }: {
     redirectTo: string;
     /** GITHUB_CLIENT_ID/SECRET are set on the server; without them the button is hidden. */
@@ -48,6 +50,8 @@
     initialError?: string | null;
     /** Open in SSO mode (`?sso=1`, e.g. from the sign-up page). */
     initialSso?: boolean;
+    /** GOOGLE_CLIENT_ID/SECRET are set on the server. */
+    googleEnabled?: boolean;
   } = $props();
 
   // useState initial values: read once, like React.
@@ -217,9 +221,12 @@
           Continue with GitHub
         </Button>
       {/if}
+      {#if googleEnabled}
+        <GoogleSignInButton {redirectTo} onerror={(message) => (formError = message)} />
+      {/if}
       <Button
         type="button"
-        variant={githubEnabled ? 'outline' : 'default'}
+        variant={githubEnabled || googleEnabled ? 'outline' : 'default'}
         class="w-full"
         onclick={() => switchMode('sso')}
       >

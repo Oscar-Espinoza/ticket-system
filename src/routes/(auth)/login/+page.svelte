@@ -17,5 +17,6 @@
     githubEnabled={data.githubEnabled}
     initialError={data.initialError}
     initialSso={data.initialSso}
+    googleEnabled={data.googleEnabled}
   />
 </div>
