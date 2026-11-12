@@ -20,11 +20,12 @@ export function mcpUrl(): string {
 
 /**
  * The authorization server `/mcp` advertises (RFC 9728 `authorization_servers`):
- * Better Auth's base URL, i.e. exactly the issuer its metadata and tokens
- * carry (RFC 8414 §3.3). With a sound configuration it is `<app URL>/api/auth`.
+ * Better Auth's base URL in the normalised form Better Auth itself uses as
+ * the issuer in its metadata and tokens (RFC 8414 §3.3 wants them identical).
+ * With a sound configuration it is `<app URL>/api/auth`.
  */
 export function mcpAuthorizationServer(): string {
-  return authBaseUrl();
+  return normalized(authBaseUrl()) ?? authBaseUrl();
 }
 
 /** RFC 9728 metadata URL for the MCP resource (path-suffixed form). */

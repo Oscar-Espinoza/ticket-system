@@ -21,8 +21,10 @@ describe('mcpConfig', () => {
 
   it('treats letter case, the default port and a trailing slash as the same URL', () => {
     vi.stubEnv('PUBLIC_APP_URL', 'https://Tickets.Example.com:443/');
-    vi.stubEnv('BETTER_AUTH_URL', 'https://tickets.example.com');
+    vi.stubEnv('BETTER_AUTH_URL', 'https://Tickets.example.com:443/');
     expect(mcpConfig()).toEqual({ ok: true });
+    // Advertised exactly as Better Auth normalises its issuer.
+    expect(mcpAuthorizationServer()).toBe('https://tickets.example.com/api/auth');
   });
 
   it('refuses a split configuration without showing the URLs, and logs them once', () => {
