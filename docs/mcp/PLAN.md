@@ -1,6 +1,9 @@
 # MCP server: Claude and ChatGPT connectors
 
-Status: planned (2026-11-05). Nothing built yet. Dispatch when Oscar says go.
+Status: phase 1 built without views (2026-11-12, branch `feat/mcp-server`): the `/mcp`
+endpoint, sign-in (DCR, JWT / opaque / API-key tokens), every read tool, the three writes, the
+D8 workspace switch, the settings section and [docs/MCP.md](../MCP.md). Not built yet: the MCP
+Apps views (D7, lane C) and phase 2. Differences from this plan: "As built" at the end.
 
 ## Goal
 
@@ -350,3 +353,122 @@ workers. Kill processes by PID.
 - Claude connectors: authentication <https://claude.com/docs/connectors/building/authentication>; MCP Apps <https://claude.com/docs/connectors/building/mcp-apps/getting-started>; limits <https://claude.com/docs/connectors/building/index>; review criteria <https://claude.com/docs/connectors/building/review-criteria>
 - MCP Apps spec (stable 2026-01-26) <https://github.com/modelcontextprotocol/ext-apps>; docs <https://modelcontextprotocol.io/docs/extensions/apps>; API <https://apps.extensions.modelcontextprotocol.io/api/>
 - ChatGPT (Apps renamed to Plugins): MCP server <https://developers.openai.com/plugins/build/mcp-server>; UI <https://developers.openai.com/plugins/build/chatgpt-ui>; auth <https://developers.openai.com/plugins/build/auth>; MCP Events <https://developers.openai.com/plugins/build/mcp-events>; reference <https://developers.openai.com/plugins/reference>; changelog <https://developers.openai.com/plugins/changelog>
+
+## As built (phase 1, 2026-11-12)
+
+Checked against the installed packages; where they differ from the plan, the
+plan's intent was kept with what exists.
+
+- **Execution.** Built in one worktree/branch with a PR, not on main with
+  lanes (Oscar's later instruction). Lane C (views) is out of this PR: no
+  `src/mcp-ui`, `ui.ts`, `@modelcontextprotocol/ext-apps` or `ui://` resource,
+  and no tool sets `_meta.ui.resourceUri` (nothing points at a resource that
+  doesn't exist). `contracts.ts` exists and every tool already returns
+  `structuredContent` with a `view` field, so the follow-up only adds the
+  bundle, the resource and the `resourceUri`s. One extra contract,
+  `project-metadata`, has no planned view.
+- **SDK (D1).** `@modelcontextprotocol/server@2.4.0` is real (v2 stable line,
+  spec 2026-07-28, successor of `@modelcontextprotocol/sdk` 1.x); `zod@^4.2` is
+  a direct dependency (resolves to 4.6.7, shared with Better Auth). It has
+  `WebStandardStreamableHTTPServerTransport` and also `createMcpHandler`, a
+  per-request entry for 2026-07-28 requests whose 2025 fallback answers over
+  SSE. `/mcp` routes with the SDK's `isLegacyRequest`: 2025-era requests (what
+  Claude, ChatGPT and Claude Code send today) get a fresh `McpServer` on the
+  web-standard transport (`sessionIdGenerator: undefined`,
+  `enableJsonResponse: true`); 2026-07-28 requests go to
+  `createMcpHandler(…, { legacy: 'reject' })`. Both build the server per
+  request from the authenticated credential (`src/lib/server/mcp/http.ts`).
+- **Tool metadata.** `registerTool` has no top-level `securitySchemes` and the
+  SDK's `tools/list` emits a fixed field set, so `securitySchemes` is only in
+  `_meta.securitySchemes` (ChatGPT reads either). The SDK's `scopeChallenge`
+  (an HTTP 403 step-up) is not used: D5's tool error with
+  `_meta["mcp/www_authenticate"]` (an array with one challenge string) is.
+- **Better Auth 1.6.33 (not upgraded).** `allowDynamicClientRegistration`,
+  `allowUnauthenticatedClientRegistration` and `validAudiences` exist and behave
+  as planned (`validAudiences` replaces the default `<origin>/api/auth`; with
+  `openid` the JWT `aud` is an array that also holds the userinfo URL).
+  - `verifyAccessToken` (from `better-auth/oauth2`) fetches the JWKS over HTTP;
+    `/mcp` uses its building block `verifyJwsAccessToken` with
+    `jwksFetch: () => auth.api.getJwks()` (in-process, cached five minutes),
+    issuer `<origin>/api/auth` and audience `<origin>/mcp`, then re-checks the
+    client (not disabled) and the consent row; granted scopes are the token's
+    scopes intersected with the consent's. Session JWTs from the jwt plugin's
+    `/api/auth/token` (issuer and audience = origin) are rejected.
+  - Rate limit: no `rateLimit.customRules` needed; the oauth-provider plugin
+    has its own `rateLimit.register` rule, set explicitly to 5 per 60 s. Better
+    Auth enforces rate limits only with `NODE_ENV=production` (Docker and
+    Vercel set it; verified: the 6th registration in a minute gets 429) and
+    stores counters in memory, i.e. per process / per Vercel instance.
+    Review round 1: Better Auth keys the counter by
+    `advanced.ipAddress.ipAddressHeaders` (default `x-forwarded-for`, trusted
+    when it holds one address, i.e. spoofable on a directly exposed Node
+    server). It now reads `x-ticket-system-client-ip`, which
+    `src/hooks.server.ts` overwrites on every `/api/auth` request with
+    SvelteKit's `getClientAddress()` (socket peer; `ADDRESS_HEADER` /
+    `XFF_DEPTH` behind a proxy; Vercel's `x-forwarded-for` on Vercel). No
+    resolvable address → Better Auth's single shared bucket.
+  - `hooks.before` on `/oauth2/register` works and runs the policy in
+    `src/lib/server/mcp/register.ts`. The endpoint's body schema drops unknown
+    fields, so the "dynamic" mark is written by `hooks.after`
+    (`oauth_client.metadata = {"registration":"dynamic"}`). Unauthenticated DCR
+    in Better Auth silently turns confidential requests into public ones; the
+    hook rejects an explicit confidential method instead, and also covers
+    cookie-authenticated registrations (which Better Auth would otherwise
+    allow to be confidential). `skip_consent` can't be set through DCR.
+  - Review round 1 (stored XSS): `client_uri`, `logo_uri`, `tos_uri` and
+    `policy_uri` must be absolute `https:` URLs or absent (`invalidClientUri`
+    in `src/lib/oauth-model.ts`, the one rule for DCR, the Settings action and
+    a `hooks.before` on Better Auth's create/update-client endpoints, which
+    `auth.api` calls also pass through); `post_logout_redirect_uris` is refused
+    on DCR; `/oauth2/create-client` and `/oauth2/update-client` are in
+    `disabledPaths` (Settings uses `auth.api`). Rendering goes through
+    `safeHref` (links and logos), and the Settings data is sanitized in its
+    load. Redirect URIs must be canonical (`new URL(uri).href === uri`) before
+    any allowlist pattern runs. Real Claude / ChatGPT registration payloads
+    aren't documented in the sources; they send https values or none.
+  - Cleanup (review round 1): the daily job also deletes dynamic clients
+    registered more than a day ago with no consent and no token at all; the
+    30-day rule for used ones is unchanged. Settings-created clients are never
+    touched.
+  - AS metadata lists `client_secret_basic`/`client_secret_post` besides `none`
+    (Settings-created apps are confidential); DCR stays public-only.
+  - Over `fetch` (which sends `sec-fetch-mode: cors`), `/oauth2/authorize`
+    answers `{redirect, url}` JSON; a browser navigation gets the 302.
+- **Tools.** The issue listing lives in `src/lib/issue-list.ts`. `searchIssues`
+  returns at most 50 matches with no cursor, so `search_issues` has `limit`
+  only (`nextCursor` always null), and takes the reachable project ids
+  (membership + D8, from `access.ts`) as a filter so blocked projects can't
+  fill those 50 slots; `my_work` and `list_inbox` page with an
+  opaque offset cursor. `listIssueRelations` already stays inside the issue's
+  project, so issue detail needs no extra relation filter. `list_inbox` drops
+  notifications without a project (the weekly pulse can summarize blocked
+  workspaces).
+- **Audit.** `mcp.tool_call` rows go on the issue's project (category
+  Integrations) with `ticketId` null, so they don't appear in the issue's own
+  timeline; `data` holds tool, client id/name, `via` and the issue id/key.
+  The row is written after the service's own batch commits (the services take
+  no extra rows, and update audits only when the diff is non-empty); a failed
+  audit insert is logged and the tool still returns its result, so a model
+  retry can't duplicate the write. `create_issue` takes an optional
+  `request_id` (the issue service's client-chosen id): a retry returns the same
+  issue and isn't audited twice.
+- **Protocol.** `/mcp` reads the body once (1 MiB cap) and refuses JSON-RPC
+  batches (arrays) with HTTP 400 / -32600: batching left the protocol in
+  2025-06-18 and Claude, ChatGPT and Claude Code don't send it (the SDK would
+  otherwise accept up to 100 messages). Text results put descriptions and
+  comment bodies in fenced `user-content` blocks longer than any backtick run
+  inside; `structuredContent` is unchanged.
+- **Config.** The resource (`<app URL>/mcp`) and the advertised authorization
+  server (`<app URL>/api/auth`) come from `appUrl()`; `mcpConfig()` in
+  `urls.ts` compares the latter with Better Auth's base URL (`authBaseUrl()`,
+  moved from `sso.ts` to `app-url.ts`) and, when they differ, logs once and
+  `/mcp` plus the protected-resource documents answer 500 naming both.
+- **D8.** Migration `0010_mcp_connectors`: `workspace.ai_connectors_allowed
+  boolean not null default true`; the switch is in Workspace → Security
+  (`setAiConnectorsAllowed`, audited as `security.ai_connectors_allowed` /
+  `security.ai_connectors_blocked`).
+- **Tests.** `src/tests/mcp/{auth,register}.test.ts` and
+  `src/tests/local-db/mcp-tools.test.ts` need the local Postgres
+  (`LOCAL_DB_TESTS=1`); the auth test runs the whole DCR → PKCE (`resource`) →
+  consent → token → refresh flow through `auth.handler` in-process.
+

@@ -71,6 +71,13 @@
       "when": 1793636572080,
       "tag": "0009_reliability_fixes",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1794496644832,
+      "tag": "0010_mcp_connectors",
+      "breakpoints": true
     }
   ]
 }

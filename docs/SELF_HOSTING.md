@@ -33,6 +33,14 @@ Open `APP_URL`, sign up, create a workspace and invite people.
   port and set `APP_URL` to the `https://` address. Rebuild after changing
   `APP_URL` (`docker compose up -d --build`): it is baked into the browser bundle
   and is the origin the server accepts form and remote-function posts from.
+- **Client IP behind the proxy**: sign-in and OAuth client registration are
+  rate-limited per client IP, read from the connection by default. Behind a
+  reverse proxy every request comes from the proxy, so all users share one
+  limit: set `ADDRESS_HEADER=X-Forwarded-For` and `XFF_DEPTH` to the number of
+  proxies in front of the app (1 for one proxy that appends the client
+  address, as Caddy, Traefik and nginx's `proxy_add_x_forwarded_for` do). Only
+  set them when every request reaches the app through those proxies: the app
+  trusts that header.
 - **Uploads**: the image sets `BODY_SIZE_LIMIT=6M` (attachments and uploads are
   capped at 4 MB, webhooks at 5 MB). Raise it in the environment if you need more.
 - **Updates**: `git pull && docker compose up -d --build`. The new container
@@ -109,6 +117,16 @@ a domain with "Enforce SSO" turned on cannot use Google to get around it.
 company domain with a DNS TXT record (`_ticket-system.<domain>`), shown in
 workspace settings → Security. The record must stay published: the app re-checks
 it and stops trusting the IdP for that domain if it disappears.
+
+**AI assistants (MCP)** work self-hosted with Claude Code out of the box (it
+connects from each user's machine). claude.ai, Claude Desktop/mobile and
+ChatGPT connect from the vendors' clouds, so `/mcp`, the `/.well-known/oauth-*`
+documents and `/api/auth/oauth2/{register,token}` + `/api/auth/jwks` must be on
+public HTTPS, and `APP_URL` must be that public URL; sign-in and consent can
+stay on the VPN. A reverse proxy exposing only those paths, or a
+`cloudflared` tunnel for a test, is enough. Extra OAuth redirect URIs for other
+MCP clients go in `MCP_EXTRA_REDIRECT_URIS`. Set `ADDRESS_HEADER` / `XFF_DEPTH`
+(above) so client registration is limited per caller. Details: [MCP.md](MCP.md).
 
 ## Database tests
 

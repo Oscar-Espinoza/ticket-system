@@ -1,0 +1,1 @@
+ALTER TABLE "workspace" ADD COLUMN "ai_connectors_allowed" boolean DEFAULT true NOT NULL;

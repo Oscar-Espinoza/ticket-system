@@ -6,20 +6,12 @@
     uri: string | null;
     policy: string | null;
     tos: string | null;
+    /** Registered itself through dynamic client registration (name unverified). */
+    dynamic: boolean;
   }
 
   /** openid is implied by any sign-in; don't list it as a separate permission. */
   const HIDDEN_SCOPES = new Set(['openid']);
-
-  function safeHref(uri: string | null): string | null {
-    if (!uri) return null;
-    try {
-      const url = new URL(uri);
-      return url.protocol === 'https:' || url.protocol === 'http:' ? url.toString() : null;
-    } catch {
-      return null;
-    }
-  }
 </script>
 
 <script lang="ts">
@@ -38,7 +30,7 @@
     CardHeader,
     CardTitle,
   } from '@/lib/components/ui/card';
-  import { describeScope } from '@/lib/oauth-model';
+  import { describeScope, safeHref } from '@/lib/oauth-model';
   import AppIcon from './app-icon.svelte';
 
   let {
@@ -101,9 +93,15 @@
             target="_blank"
             rel="noopener noreferrer nofollow"
             class="hover:underline">{app.name}</a
-          >{:else}{app.name}{/if}
+          >{:else}{app.name}{/if}{#if redirectHost}<span class="font-normal text-muted-foreground"> · {redirectHost}</span>{/if}
         wants to access your account
       </CardTitle>
+      {#if app.dynamic}
+        <p class="text-xs text-amber-600 dark:text-amber-500">
+          This app registered itself. Its name isn’t verified: only continue if you started this
+          from {redirectHost ?? 'the app'}.
+        </p>
+      {/if}
       <CardDescription class="flex items-center justify-center gap-2">
         <Avatar name={user.name} src={user.image} size={20} />
         <span class="truncate">{user.email}</span>

@@ -36,6 +36,11 @@ any Postgres self-hosted), Better Auth, Tailwind v4 with bits-ui primitives
 
 API reference: [docs/API.md](docs/API.md).
 
+**AI assistants (MCP):** Claude, ChatGPT and Claude Code connect to
+`<your host>/mcp` (OAuth sign-in, or an `lc_…` API key) to read issues and
+create, update and comment on them; see [docs/MCP.md](docs/MCP.md). For
+claude.ai and ChatGPT the instance must be reachable over public HTTPS.
+
 ## Tests
 
 Run targeted files, e.g. `npx vitest run src/tests/url-guard.test.ts`.
