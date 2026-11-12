@@ -133,7 +133,10 @@ and the protected-resource documents answer 500 with the same message.
 **Client registration.** Claude and ChatGPT register themselves (OAuth dynamic
 client registration). Only public clients (PKCE, no secret) with these redirect
 URIs (exactly as written: the URI must already be in canonical form) may
-register:
+register. A request for `client_secret_post` or `client_secret_basic` (claude.ai
+sends `client_secret_post`) is registered as a public client and the response
+says `token_endpoint_auth_method: none` (RFC 7591 §3.2.1); other methods and
+`type: web` are refused:
 
 - `https://claude.ai/api/mcp/auth_callback`
 - `https://chatgpt.com/connector_platform_oauth_redirect` and `https://chatgpt.com/connector/oauth/<id>`
@@ -182,7 +185,10 @@ tools; the vendors' clients need a public URL and real accounts:
 
 1. Deploy the branch (Vercel preview or production) or expose a local instance
    with `cloudflared tunnel --url http://localhost:3010` and set
-   `PUBLIC_APP_URL` / `BETTER_AUTH_URL` to the tunnel URL before starting it.
+   `PUBLIC_APP_URL` / `BETTER_AUTH_URL` to the tunnel URL, then build and start
+   it (`npm run build && node build`). `PUBLIC_APP_URL` is inlined at build
+   time: a build made with another URL serves `/mcp` as 500 "MCP is
+   misconfigured" even when the runtime variable is right.
 2. Run `npm run db:migrate` against that deployment's database (migration 0010).
 3. Claude: Settings → Connectors → Add custom connector → `<url>/mcp` →
    Connect → sign in → the consent screen should read "Claude · claude.ai"

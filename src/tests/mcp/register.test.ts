@@ -63,10 +63,30 @@ describe.skipIf(!localDb)('MCP dynamic client registration', () => {
     expect(((await res.json()) as { error: string }).error).toBe('invalid_redirect_uri');
   });
 
-  it('refuses confidential clients and non-code grants', async () => {
+  it('registers a confidential request as a public client (claude.ai sends client_secret_post)', async () => {
+    // claude.ai's registration body, as captured from a live connect.
+    const claudeAi = {
+      redirect_uris: ['https://claude.ai/api/mcp/auth_callback'],
+      token_endpoint_auth_method: 'client_secret_post',
+      grant_types: ['authorization_code', 'refresh_token'],
+      response_types: ['code'],
+      scope: 'read write offline_access',
+      client_name: 'Claude',
+      application_type: 'web',
+    };
+    for (const body of [claudeAi, publicClient('http://localhost:4000/cb', { token_endpoint_auth_method: 'client_secret_basic' })]) {
+      const res = await register(body);
+      expect(res.status, JSON.stringify(body)).toBe(200);
+      const out = (await res.json()) as { client_id: string; client_secret?: string; token_endpoint_auth_method: string };
+      expect(out.client_secret).toBeUndefined();
+      expect(out.token_endpoint_auth_method).toBe('none');
+      expect((await stored(out.client_id)).public).toBe(true);
+    }
+  });
+
+  it('refuses other client auth methods and non-code grants', async () => {
     for (const extra of [
-      { token_endpoint_auth_method: 'client_secret_basic' },
-      { token_endpoint_auth_method: 'client_secret_post' },
+      { token_endpoint_auth_method: 'private_key_jwt' },
       { type: 'web' },
       { grant_types: ['client_credentials'] },
     ]) {
