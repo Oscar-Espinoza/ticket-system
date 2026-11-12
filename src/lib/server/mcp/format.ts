@@ -30,22 +30,42 @@ export function truncate(text: string | null | undefined, max: number): string |
 
 const oneLine = (text: string) => text.replace(/\s+/g, ' ').trim();
 
-/** Characters that make text Markdown (emphasis, code, links, HTML, headings, tables, escapes). */
-const MARKUP = /[`*_[\]<>#|~\\]/;
+/** Longest run of backticks in `text`, counted in one pass (no spread over a match array of unbounded size). */
+function longestBacktickRun(text: string): number {
+  let longest = 0;
+  let run = 0;
+  for (let i = 0; i < text.length; i++) {
+    run = text.charCodeAt(i) === 96 ? run + 1 : 0;
+    if (run > longest) longest = run;
+  }
+  return longest;
+}
+
+/** Hard cap on one inline value (a title, a name, a snippet) in text results. */
+export const INLINE_MAX = 300;
+/** Hard cap on one block of user content in text results (descriptions are cut to 12,000 before this). */
+const BLOCK_MAX = DESCRIPTION_MAX;
+
+/**
+ * Characters and forms that make text Markdown: emphasis, code, links, HTML,
+ * headings, tables, escapes, and what GFM turns into links on its own (bare
+ * URLs, `www.` hosts, email addresses).
+ */
+const MARKUP = /[`*_[\]<>#|~\\]|[a-z][a-z0-9+.-]*:\/\/|\bwww\.|\S@\S/i;
 
 /**
  * Short user-written text (a title, a person's name, a search snippet) inert
- * on one line: whitespace collapsed, and, when it contains Markdown, inside a
- * code span longer than any backtick run in it, so it can't close the span,
- * open a block or restyle our output. Plain text stays as it is to keep list
- * rows compact. Multi-line text (descriptions, comment bodies) goes through
- * userContentBlock instead.
+ * on one line: whitespace collapsed, cut to INLINE_MAX, and, when it contains
+ * Markdown, inside a code span longer than any backtick run in it, so it can't
+ * close the span, open a block or restyle our output. Plain text stays as it
+ * is to keep list rows compact. Multi-line text (descriptions, comment bodies)
+ * goes through userContentBlock instead.
  */
 export function userContentInline(text: string): string {
-  const line = oneLine(text);
+  // Cut before any other work: a name can be hundreds of thousands of characters.
+  const line = truncate(oneLine(text.slice(0, INLINE_MAX * 4)), INLINE_MAX) ?? '';
   if (!MARKUP.test(line)) return line;
-  const longest = Math.max(0, ...(line.match(/`+/g) ?? []).map((run) => run.length));
-  const fence = '`'.repeat(longest + 1);
+  const fence = '`'.repeat(longestBacktickRun(line) + 1);
   // CommonMark drops one space on each side, so a leading or trailing backtick stays content.
   return `${fence} ${line} ${fence}`;
 }
@@ -129,9 +149,9 @@ export function issueLine(issue: IssueSummary): string {
  * so the model can tell where the data ends and our output resumes.
  */
 export function userContentBlock(text: string): string {
-  const longest = Math.max(0, ...(text.match(/`+/g) ?? []).map((run) => run.length));
-  const fence = '`'.repeat(Math.max(3, longest + 1));
-  return `${fence}user-content\n${text}\n${fence}`;
+  const body = truncate(text, BLOCK_MAX) ?? '';
+  const fence = '`'.repeat(Math.max(3, longestBacktickRun(body) + 1));
+  return `${fence}user-content\n${body}\n${fence}`;
 }
 
 export function issueListMarkdown(title: string, issues: IssueSummary[], nextCursor: string | null): string {

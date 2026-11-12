@@ -17,6 +17,7 @@
 // response returns the issue it already created; the service says when it
 // replayed one, and only the call that created the issue is audited.
 
+import type { CallToolResult } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 
 import { createCommentAs } from '@/lib/comments';
@@ -119,6 +120,30 @@ function toPatch(meta: ProjectMetadata, viewerId: string, args: FieldArgs): { ok
   return { ok: true, patch };
 }
 
+/**
+ * The answer to a write that has committed. Loading or formatting its result
+ * must not turn it into an error, which the model would retry (a second issue
+ * or comment): if either throws, the call still succeeds with the issue's key
+ * and id, and with the structured result when it was built.
+ */
+async function committed(
+  tool: string,
+  issue: { id: string; key: string },
+  done: string,
+  build: () => Promise<{ view: IssueDetailView; text: () => string }>,
+): Promise<CallToolResult> {
+  let view: IssueDetailView | undefined;
+  try {
+    const built = await build();
+    view = built.view;
+    return toolResult(built.text(), view);
+  } catch (err) {
+    console.error(`[mcp] ${tool} on ${issue.key} succeeded but its result could not be shown`, err);
+    const text = `${done} (issue id ${issue.id}). The details could not be shown here; use get_issue to read the issue.`;
+    return view ? toolResult(text, view) : { content: [{ type: 'text', text }] };
+  }
+}
+
 export const createIssueTool = defineTool({
   name: 'create_issue',
   title: 'Create issue',
@@ -168,10 +193,14 @@ export const createIssueTool = defineTool({
     // that lost the insert) changed nothing, so only the creating call is audited.
     const replay = result.replayed;
     if (!replay) await audit(credential, 'create_issue', result.issue, 'created');
-    const detail = await issueDetail(result.issue, project);
-    const view: IssueDetailView = { view: 'issue-detail', issue: detail, changes: [replay ? 'already created' : 'created'] };
-    const lead = replay ? `${detail.key} was already created with this request_id.` : `Created ${detail.key}.`;
-    return toolResult(`${lead}\n\n${issueDetailMarkdown(detail)}`, view);
+    const lead = replay ? `${result.issue.key} was already created with this request_id` : `Created ${result.issue.key}`;
+    return committed('create_issue', result.issue, lead, async () => {
+      const detail = await issueDetail(result.issue, project);
+      return {
+        view: { view: 'issue-detail', issue: detail, changes: [replay ? 'already created' : 'created'] },
+        text: () => `${lead}.\n\n${issueDetailMarkdown(detail)}`,
+      };
+    });
   },
 });
 
@@ -251,12 +280,14 @@ export const updateIssueTool = defineTool({
     if (!result.ok) return toolError(result.error);
     const changes = describeChanges(before, result.issue);
     if (changes.length) await audit(credential, 'update_issue', result.issue, 'updated');
-    const detail = await issueDetail(result.issue, project);
-    const view: IssueDetailView = { view: 'issue-detail', issue: detail, changes };
-    return toolResult(
-      changes.length ? issueDetailMarkdown(detail, changes) : `No changes: ${detail.key} already had those values.`,
-      view,
-    );
+    const done = changes.length ? `Updated ${result.issue.key}` : `No changes: ${result.issue.key} already had those values`;
+    return committed('update_issue', result.issue, done, async () => {
+      const detail = await issueDetail(result.issue, project);
+      return {
+        view: { view: 'issue-detail', issue: detail, changes },
+        text: () => (changes.length ? issueDetailMarkdown(detail, changes) : `${done}.`),
+      };
+    });
   },
 });
 
@@ -287,8 +318,12 @@ export const addCommentTool = defineTool({
     });
     if (!result.ok) return toolError(result.error);
     await audit(credential, 'add_comment', issue, 'commented on');
-    const detail = await issueDetail(issue, project);
-    const view: IssueDetailView = { view: 'issue-detail', issue: detail, changes: ['comment added'] };
-    return toolResult(`Comment added to ${issue.key}.\n\n${issueDetailMarkdown(detail)}`, view);
+    return committed('add_comment', issue, `Comment added to ${issue.key}`, async () => {
+      const detail = await issueDetail(issue, project);
+      return {
+        view: { view: 'issue-detail', issue: detail, changes: ['comment added'] },
+        text: () => `Comment added to ${issue.key}.\n\n${issueDetailMarkdown(detail)}`,
+      };
+    });
   },
 });

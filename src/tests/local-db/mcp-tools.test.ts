@@ -20,6 +20,19 @@ vi.mock('@/lib/audit', async (orig) => {
   };
 });
 
+// Lets one test make the text rendering of a write's result throw.
+const renderOutage = vi.hoisted(() => ({ on: false }));
+vi.mock('@/lib/server/mcp/tools/detail', async (orig) => {
+  const real = await orig<typeof import('@/lib/server/mcp/tools/detail')>();
+  return {
+    ...real,
+    issueDetailMarkdown: (...args: Parameters<typeof real.issueDetailMarkdown>) => {
+      if (renderOutage.on) throw new RangeError('render failed');
+      return real.issueDetailMarkdown(...args);
+    },
+  };
+});
+
 import { db } from '@/lib/db';
 import {
   activities,
@@ -33,6 +46,7 @@ import {
   projectMembers,
   projects,
   tickets,
+  users,
   workspaceMembers,
   workspaces,
 } from '@/db/schema';
@@ -440,6 +454,34 @@ describe.skipIf(!localDb)('MCP tools over /mcp', () => {
     // Plain values stay as they are, and structuredContent is untouched.
     expect(text(search)).toContain('Unassigned');
     expect((search.structuredContent!.issues as { title: string }[])[0].title).toBe(title);
+  });
+
+  it('answers a create by a member with a huge Markdown-laden name, once', async () => {
+    // Sign-up now caps names, but older rows and SSO names are not capped.
+    const long = await makeUser('long');
+    await db.update(users).set({ name: '`x'.repeat(150_000) }).where(eq(users.id, long));
+    await db.insert(projectMembers).values({ id: uid(), projectId: project, userId: long, role: 'member', createdAt: new Date() });
+    const title = `Long name ${Date.now()}`;
+    const result = await call(await apiKeyFor(long), 'create_issue', { project: projectKey, title, waiting_on: 'me' });
+    expect(result.isError).toBeUndefined();
+    const line = text(result).split('\n').find((l) => l.startsWith('State: '))!;
+    expect(line).toMatch(/Waiting on: `{2} `x`x.*… `{2}/);
+    expect(line.length).toBeLessThan(1_000);
+    expect(await db.select({ id: tickets.id }).from(tickets).where(eq(tickets.title, title))).toHaveLength(1);
+  });
+
+  it('answers a committed write as a success even when its text result fails', async () => {
+    renderOutage.on = true;
+    try {
+      const title = `Render outage ${Date.now()}`;
+      const result = await call(aliceKey, 'create_issue', { project: projectKey, title });
+      expect(result.isError).toBeUndefined();
+      const key = (result.structuredContent!.issue as { key: string }).key;
+      expect(text(result)).toContain(`Created ${key} (issue id `);
+      expect(await db.select({ id: tickets.id }).from(tickets).where(eq(tickets.title, title))).toHaveLength(1);
+    } finally {
+      renderOutage.on = false;
+    }
   });
 
   it('lets a guest comment but not create or update, like REST', async () => {
