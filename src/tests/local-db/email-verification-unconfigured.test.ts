@@ -1,6 +1,7 @@
 // No RESEND_API_KEY / EMAIL_FROM (a self-hosted instance without email), even
-// with REQUIRE_EMAIL_VERIFICATION=true: nothing is sent, the resend endpoint
-// is off, and unverified accounts sign up and sign in exactly as before.
+// with REQUIRE_EMAIL_VERIFICATION=true: nothing is sent, the resend and
+// password-reset endpoints are off, and unverified accounts sign up and sign
+// in exactly as before.
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 vi.hoisted(() => {

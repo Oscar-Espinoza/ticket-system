@@ -18,7 +18,7 @@ vi.hoisted(() => {
   delete process.env.REQUIRE_EMAIL_VERIFICATION;
 });
 
-import { db } from '@/lib/db';
+import { authDb, db } from '@/lib/db';
 import { users, verifications } from '@/db/schema';
 import { claimSendSlot } from '@/lib/server/verification-email';
 import { localDb } from './guard';
@@ -234,10 +234,38 @@ describe.skipIf(!localDb)('email verification (email configured, not required)',
     expect(emailsTo(email)).toHaveLength(2);
   });
 
-  it('lets only one of many concurrent sends claim the cooldown slot', async () => {
+  it('makes a send that races another one wait for it, so only one claims the cooldown slot', async () => {
     const userId = `concurrent-${crypto.randomUUID()}`;
-    const claims = await Promise.all(Array.from({ length: 8 }, () => claimSendSlot('verification-email-sent', userId)));
-    expect(claims.filter(Boolean)).toHaveLength(1);
+    const identifier = `verification-email-sent:${userId}`;
+    let second: Promise<boolean> | undefined;
+    await authDb.transaction(async (tx) => {
+      // The first send is mid-claim: it holds the lock and its marker isn't committed yet.
+      await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${identifier}, 0))`);
+      await tx.insert(verifications).values({
+        id: crypto.randomUUID(),
+        identifier,
+        value: '1',
+        expiresAt: new Date(Date.now() + 60_000),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      second = claimSendSlot('verification-email-sent', userId);
+      let settled = false;
+      void second.then(
+        () => (settled = true),
+        () => (settled = true),
+      );
+      // Bounded wait until the second claim queues on the lock (or has already answered).
+      for (let i = 0; i < 500 && !settled; i++) {
+        const { rows } = await db.execute(sql`
+          select 1 from pg_locks
+          where locktype = 'advisory' and not granted
+            and database = (select oid from pg_database where datname = current_database())
+        `);
+        if (rows.length) break;
+      }
+    });
+    expect(await second).toBe(false);
   });
 
   it('cannot change the address, so a verified flag never moves to an unproven one', async () => {
