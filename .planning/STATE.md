@@ -40,7 +40,7 @@ Postgres (Neon on Vercel, or plain Postgres self-hosted via Docker), Better Auth
 | #2 | `fix/event-followups` | Review follow-ups: webhook payloads scoped to the event's project; every event committed with its mutation |
 | #3 | `feat/follow-up-fields` | Waiting-on and follow-up issue fields + daily follow-up notification |
 | #4 | `feat/mcp-server` | MCP server phase 1: `/mcp` with OAuth (DCR, JWT), read tools and three audited writes |
-| — | `chore/stabilise` | This PR: CI workflow, smoke test of the main flows with fixes, this file |
+| #5 | `chore/stabilise` | This PR: CI workflow, smoke test of the main flows with fixes, this file |
 
 CI (`.github/workflows/ci.yml`) only starts on a branch once it contains that file: #1–#4 get it after this PR
 merges and they are rebased.
