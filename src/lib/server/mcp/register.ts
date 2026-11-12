@@ -4,7 +4,10 @@
 // src/lib/auth.ts, narrows what such a client may be:
 //   - redirect URIs only on the allowlist (the vendors' callbacks, loopback for
 //     Claude Code / MCP Inspector, MCP_EXTRA_REDIRECT_URIS);
-//   - public clients only (`token_endpoint_auth_method: none`, PKCE);
+//   - public clients only (`token_endpoint_auth_method: none`, PKCE): a
+//     request for `client_secret_basic` / `client_secret_post` (claude.ai sends
+//     `client_secret_post`) is registered as public instead, as RFC 7591
+//     §3.2.1 allows; the response says `none` and the client follows it;
 //   - authorization code + refresh token grants only;
 //   - scopes within the provider's list, client names capped;
 //   - homepage / logo / terms / policy URLs absolute https or absent
@@ -33,6 +36,9 @@ const CHATGPT_CALLBACK = /^https:\/\/chatgpt\.com\/connector\/oauth\/[A-Za-z0-9_
 const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1']);
 const ALLOWED_GRANTS = new Set(['authorization_code', 'refresh_token']);
 const ALLOWED_SCOPES = new Set<string>(OAUTH_APP_SCOPES);
+// Confidential methods we answer with a public client (RFC 7591 §3.2.1). Any
+// other method (private_key_jwt, …) is refused.
+const DOWNGRADED_AUTH_METHODS = new Set(['client_secret_basic', 'client_secret_post']);
 
 function extraRedirects(): Set<string> {
   return new Set(
@@ -80,8 +86,9 @@ const reject = (
 
 /**
  * Checks an RFC 7591 registration body; on success returns the body to register
- * (public client, marked dynamic). A missing `token_endpoint_auth_method`
- * becomes `none`; an explicit confidential method is refused.
+ * (public client, marked dynamic). A missing `token_endpoint_auth_method`, or
+ * `client_secret_basic` / `client_secret_post`, becomes `none`; any other
+ * method, and type "web", is refused.
  */
 export function checkDynamicRegistration(input: unknown): RegistrationVerdict {
   const body = input && typeof input === 'object' ? (input as Record<string, unknown>) : {};
@@ -97,9 +104,11 @@ export function checkDynamicRegistration(input: unknown): RegistrationVerdict {
   }
 
   const method = body.token_endpoint_auth_method;
-  if (method !== undefined && method !== 'none') {
+  if (method !== undefined && method !== 'none' && !(typeof method === 'string' && DOWNGRADED_AUTH_METHODS.has(method))) {
     return reject('invalid_client_metadata', 'Only public clients (token_endpoint_auth_method "none") may register.');
   }
+  // Type "web" is refused rather than dropped: Better Auth merges this verdict
+  // into the request body, so a hook can't remove a field.
   if (body.type !== undefined && body.type !== 'native' && body.type !== 'user-agent-based') {
     return reject('invalid_client_metadata', 'Only public clients may register.');
   }
