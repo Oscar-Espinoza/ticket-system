@@ -188,7 +188,9 @@ header the caller sends:
 - **Behind a reverse proxy**: set `ADDRESS_HEADER=X-Forwarded-For` and
   `XFF_DEPTH` to the number of proxies (see
   [SELF_HOSTING.md](SELF_HOSTING.md)). Without them every caller shares the
-  proxy's single limit (strict, not open).
+  proxy's single limit (strict, not open); the server logs one `[auth] Sign-in
+  requests arrive from <address>, a private or loopback address, and
+  ADDRESS_HEADER is not set` warning when it sees that.
 - **Vercel**: the address Vercel's edge puts in `X-Forwarded-For`; nothing to
   set. The counter lives in each function instance's memory, so the limit is
   per instance: a speed bump against floods, not a guarantee.

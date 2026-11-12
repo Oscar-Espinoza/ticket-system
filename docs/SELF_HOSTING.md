@@ -40,7 +40,8 @@ Open `APP_URL`, sign up, create a workspace and invite people.
   proxies in front of the app (1 for one proxy that appends the client
   address, as Caddy, Traefik and nginx's `proxy_add_x_forwarded_for` do). Only
   set them when every request reaches the app through those proxies: the app
-  trusts that header.
+  trusts that header. When sign-in requests arrive from a private or loopback
+  address and `ADDRESS_HEADER` is unset, the server logs one warning saying so.
 - **Uploads**: the image sets `BODY_SIZE_LIMIT=6M` (attachments and uploads are
   capped at 4 MB, webhooks at 5 MB). Raise it in the environment if you need more.
 - **Updates**: `git pull && docker compose up -d --build`. The new container
