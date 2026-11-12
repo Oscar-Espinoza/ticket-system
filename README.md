@@ -34,6 +34,14 @@ any Postgres self-hosted), Better Auth, Tailwind v4 with bits-ui primitives
   migrations and daily jobs run inside the app): `docker compose up -d --build`,
   see [docs/SELF_HOSTING.md](docs/SELF_HOSTING.md).
 
+**Email verification:** with email configured (`RESEND_API_KEY`, `EMAIL_FROM`)
+password sign-ups get a verification link, and a verified address is what lets
+"Continue with Google/GitHub" link to an existing password account.
+`REQUIRE_EMAIL_VERIFICATION=true` (off by default, ignored without email) also
+blocks password sign-in until the address is verified. Details, the steps for
+existing users and the admin fallback without email:
+[docs/SELF_HOSTING.md](docs/SELF_HOSTING.md#email-verification).
+
 API reference: [docs/API.md](docs/API.md).
 
 **AI assistants (MCP):** Claude, ChatGPT and Claude Code connect to

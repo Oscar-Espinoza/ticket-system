@@ -2,7 +2,8 @@
 // (src/lib/auth.ts) driven through its HTTP handler against the local
 // database. Only outbound HTTP is replaced: Resend's send endpoint is captured
 // and Google's token endpoint answers with an id_token for `google.profile`.
-// Any other outbound request fails the test (no real network).
+// Any other outbound request fails the test (no real network), except the
+// local Neon proxy (NEON_PROXY_HOST), which the neon-http driver reaches by fetch.
 //
 // Each suite sets its environment in vi.hoisted() BEFORE importing this file,
 // because auth.ts reads RESEND_* / GOOGLE_* / REQUIRE_EMAIL_VERIFICATION once.
@@ -36,8 +37,11 @@ const unsignedJwt = (claims: Record<string, unknown>) =>
     .join('.') + '.';
 
 export function stubOutboundHttp() {
+  const realFetch = globalThis.fetch;
+  const proxyHost = process.env.NEON_PROXY_HOST;
   vi.stubGlobal('fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+    if (proxyHost && new URL(url).host === proxyHost) return realFetch(input, init);
     if (url === 'https://api.resend.com/emails') {
       sent.push(JSON.parse(String(init?.body)));
       return Response.json({ id: `email-${sent.length}` });

@@ -586,7 +586,8 @@ const SSO_CALLBACK_PATHS = new Set([
 /**
  * hooks.before on SSO callbacks: a configured workspace IdP may link to an
  * existing account on its domain even when that account's email was never
- * verified (password sign-ups here have no verification step). Returns the
+ * verified (verification needs email configured, and older password accounts
+ * predate it). Returns the
  * per-request context override, or null. The domain check and
  * onIdentityCreated's cleanup make this safe.
  */

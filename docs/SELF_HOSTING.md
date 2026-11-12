@@ -73,7 +73,8 @@ migrations are exempt.
 
 Every integration switches off cleanly when its variables are empty
 (`docker/selfhost.env.example` lists them): GitHub sign-in and PR automation
-(`GITHUB_*`), Google sign-in (`GOOGLE_*`), email (`RESEND_*`), web push
+(`GITHUB_*`), Google sign-in (`GOOGLE_*`), email (`RESEND_API_KEY`,
+`EMAIL_FROM`; also email verification and `REQUIRE_EMAIL_VERIFICATION`), web push
 (`*VAPID*`), Slack (`SLACK_*`).
 
 ### Google sign-in
@@ -110,8 +111,75 @@ reads or uses a Google token (GitHub branch creation still needs GitHub).
 
 Rules that apply to Google like they do to GitHub: an existing account is linked
 only when Google reports the email as verified and the account's email is
-verified in this app (otherwise the person signs in the way they did before);
+verified in this app (see [Email verification](#email-verification); until then
+the person gets "account not linked" and signs in the way they did before);
 a domain with "Enforce SSO" turned on cannot use Google to get around it.
+
+### Email verification
+
+Accounts created through Google, GitHub or SSO arrive verified when the provider
+says the address is verified. Password accounts start unverified. When email is
+configured (`RESEND_API_KEY` and `EMAIL_FROM`), the app:
+
+- emails a verification link on password sign-up (it works for 24 hours and
+  lands on `/email-verification`; signing up still signs you in);
+- shows unverified users a "Verify your email" banner on the dashboard and a row
+  in Settings → Profile, both with a resend button (one email per account per
+  minute, plus Better Auth's per-IP limit on `/api/auth/send-verification-email`);
+- once the address is verified, "Continue with Google" or "Continue with GitHub"
+  with the same address signs in to that same account and links it. Linking
+  never happens while either side is unverified, and no provider is "trusted"
+  to skip that check. Opening a link verifies the address but never signs
+  anyone in by itself (that would skip the password, two-factor and "Enforce
+  SSO"); a signed-in user simply stays signed in.
+
+`REQUIRE_EMAIL_VERIFICATION=true` (off by default) also refuses password sign-in
+to unverified accounts: the sign-in form explains it and offers a new link, and
+sign-up then says "check your email" instead of signing in. It is ignored while
+email isn't configured, so it can't lock anyone out. Existing sessions are not
+ended. Turn it on only after existing users have had time to verify.
+
+Without email configured nothing changes: no email, no banner, no resend
+button, everyone signs in as before, and password accounts stay unverified (so
+Google/GitHub can't be linked to them by signing in). An admin who has
+confirmed the person owns the address another way can mark it verified in the
+database:
+
+```sql
+UPDATE "user" SET email_verified = true, updated_at = now() WHERE email = 'person@example.com';
+```
+
+(`docker compose exec postgres psql -U tickets tickets`; emails are stored
+lowercase.) Don't do this for an address you haven't confirmed: a verified
+address lets anyone who controls that Google/GitHub identity into the account.
+
+Decisions about other ways an address can be proven:
+
+| Event | Marks the address verified? |
+| --- | --- |
+| Sign-up or sign-in through Google, GitHub or SSO | Yes, if the provider says the address is verified (unchanged). |
+| Clicking the emailed verification link | Yes. |
+| Password reset by email | The app has no password-reset flow today; if one is added it should verify the address (Better Auth 1.6.33 does not on its own). |
+| Accepting an invitation | No: invite links are shareable, they don't prove anyone owns an address. |
+| Changing the email in settings | Not possible: the address is read-only in the profile and Better Auth's change-email is off, so a verified flag can never move to an unproven address. |
+| SCIM / SSO provisioning | As the SSO/SCIM code sets it (a SCIM email change resets it to unverified). |
+
+#### Existing users
+
+People who signed up with a password before verification existed:
+
+1. Sign in with email and password as before.
+2. Use **Resend email** on the dashboard banner (or Settings → Profile) and open
+   the link.
+3. Sign out and use **Continue with Google** (or GitHub) with the same address:
+   it opens the same account and links it, so either way of signing in works
+   from then on.
+
+If someone tries Google first they see "account not linked" on the sign-in page,
+with these same steps and a button that emails the link. If a person never
+created the password account that holds their address (someone else signed up
+with it), they can't verify it; an admin should delete that account so the
+person can sign up with Google.
 
 **SSO (SAML/OIDC) and SCIM** work self-hosted. A workspace admin proves the
 company domain with a DNS TXT record (`_ticket-system.<domain>`), shown in
