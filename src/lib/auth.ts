@@ -83,6 +83,13 @@ const authSchema = {
   oauthConsent: oauthConsents,
 };
 
+/**
+ * The header Better Auth reads the client IP from (rate limits, session IP).
+ * src/hooks.server.ts sets it on every /api/auth request; never trust it from
+ * anywhere else.
+ */
+export const CLIENT_IP_HEADER = 'x-ticket-system-client-ip';
+
 // Better Auth's OAuth client writes besides /oauth2/register (the DCR policy
 // covers that one): Settings → OAuth apps calls the first two through auth.api.
 const CLIENT_WRITE_PATHS = new Set([
@@ -118,6 +125,11 @@ export const auth = betterAuth({
   session: {
     cookieCache: { enabled: true, maxAge: 5 * 60 },
   },
+  // Rate limits (production only) count per client IP. src/hooks.server.ts
+  // overwrites this header on every /api/auth request with the address
+  // SvelteKit resolved (the socket peer, or ADDRESS_HEADER / XFF_DEPTH behind
+  // a proxy; Vercel's edge on Vercel), so a caller can't pick its own bucket.
+  advanced: { ipAddress: { ipAddressHeaders: [CLIENT_IP_HEADER] } },
   account: {
     // AES-256-GCM at rest, since linked tokens can carry `repo` scope. Rows
     // written before this stay plaintext and still read fine.

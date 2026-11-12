@@ -3,8 +3,8 @@
 import type { Handle, HandleServerError, ServerInit } from '@sveltejs/kit/hooks';
 import { sequence } from '@sveltejs/kit/hooks';
 import { building, dev } from '$app/env';
-import { isAuthPath, svelteKitHandler } from 'better-auth/svelte-kit';
-import { auth } from '@/lib/auth';
+import { isAuthPath } from 'better-auth/svelte-kit';
+import { auth, CLIENT_IP_HEADER } from '@/lib/auth';
 import { DENSITY_BOOT_SCRIPT, DENSITY_CSS } from '@/lib/density';
 
 // Awaited before the first request is served (adapter-node: before listen).
@@ -51,16 +51,35 @@ const csrf: Handle = ({ event, resolve }) => {
   return resolve(event);
 };
 
+/**
+ * The request Better Auth sees: CLIENT_IP_HEADER (its rate-limit key) is
+ * always the address SvelteKit resolved, never a value the caller sent.
+ * adapter-node: the socket peer, or ADDRESS_HEADER / XFF_DEPTH when an admin
+ * sets them behind a proxy; adapter-vercel: Vercel's x-forwarded-for.
+ */
+function withClientIp(event: Parameters<Handle>[0]['event']): Request {
+  const headers = new Headers(event.request.headers);
+  headers.delete(CLIENT_IP_HEADER);
+  try {
+    const address = event.getClientAddress();
+    if (address) headers.set(CLIENT_IP_HEADER, address);
+  } catch {
+    // No resolvable address (e.g. ADDRESS_HEADER set but missing): Better Auth
+    // falls back to one shared bucket, which is stricter, not looser.
+  }
+  return new Request(event.request, { headers });
+}
+
 const session: Handle = async ({ event, resolve }) => {
   event.locals.user = null;
   event.locals.session = null;
-  if (!building && !isAuthPath(event.url.toString(), auth.options)) {
-    const s = await auth.api.getSession({ headers: event.request.headers });
-    event.locals.user = s?.user ?? null;
-    event.locals.session = s?.session ?? null;
-  }
+  if (building) return resolve(event);
   // Answers /api/auth/* before routing.
-  return svelteKitHandler({ event, resolve, auth, building });
+  if (isAuthPath(event.url.toString(), auth.options)) return auth.handler(withClientIp(event));
+  const s = await auth.api.getSession({ headers: event.request.headers });
+  event.locals.user = s?.user ?? null;
+  event.locals.session = s?.session ?? null;
+  return resolve(event);
 };
 
 // Signed-out requests under /dashboard go to /login before any load runs. A

@@ -1,14 +1,14 @@
 // Dynamic client registration through Better Auth's /oauth2/register with the
 // MCP policy (docs/mcp/PLAN.md D3): allowlisted redirects only, public clients
 // only, client URLs https only (stored XSS), dynamic clients marked, and
-// stale ones cleaned up daily. Needs a local Postgres
+// unused or stale ones cleaned up daily. Needs a local Postgres
 // (LOCAL_DB_TESTS=1).
 import { describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import { auth } from '@/lib/auth';
-import { oauthClients } from '@/db/schema';
+import { oauthAccessTokens, oauthClients, oauthConsents } from '@/db/schema';
 import { run as cleanup } from '@/lib/cron/jobs/oauth-dcr-cleanup';
 import { isDynamicClient } from '@/lib/server/mcp/register';
 import { localDb } from '../local-db/guard';
@@ -122,13 +122,33 @@ describe.skipIf(!localDb)('MCP dynamic client registration', () => {
     expect((await stored(created.client_id)).policy).toBeNull();
   });
 
-  it('cleans up dynamic clients with no live token for 30 days, and nothing else', async () => {
-    const res = await register(publicClient('http://localhost:4001/cb'));
-    const { client_id: stale } = (await res.json()) as { client_id: string };
-    const fresh = ((await (await register(publicClient('http://localhost:4002/cb'))).json()) as { client_id: string }).client_id;
+  it('cleans up unused dynamic clients after a day and stale ones after 30, and nothing else', async () => {
+    const dynamic = async (port: number, ageDays: number) => {
+      const res = await register(publicClient(`http://localhost:${port}/cb`));
+      const { client_id: id } = (await res.json()) as { client_id: string };
+      const at = new Date(Date.now() - ageDays * 86_400_000);
+      await db.update(oauthClients).set({ createdAt: at }).where(eq(oauthClients.clientId, id));
+      return id;
+    };
+    const stale = await dynamic(4001, 31);
+    const fresh = await dynamic(4002, 0);
+    const unused = await dynamic(4003, 2);
+    const consented = await dynamic(4004, 2);
+    const withToken = await dynamic(4005, 2);
+    const { userId } = await signUp('dcr-cleanup');
+    const now = new Date();
+    await db.insert(oauthConsents).values({ id: crypto.randomUUID(), clientId: consented, userId, scopes: ['read'], createdAt: now, updatedAt: now });
+    await db.insert(oauthAccessTokens).values({
+      id: crypto.randomUUID(),
+      token: crypto.randomUUID(),
+      clientId: withToken,
+      userId,
+      scopes: ['read'],
+      createdAt: now,
+      expiresAt: new Date(now.getTime() + 3600_000),
+    });
+    // An app someone registered in Settings is never a DCR client, however old or unused.
     const old = new Date(Date.now() - 31 * 86_400_000);
-    await db.update(oauthClients).set({ createdAt: old }).where(eq(oauthClients.clientId, stale));
-    // An app someone registered in Settings is never a DCR client, however old.
     const manual = `manual-${crypto.randomUUID()}`;
     await db.insert(oauthClients).values({
       id: crypto.randomUUID(),
@@ -141,7 +161,10 @@ describe.skipIf(!localDb)('MCP dynamic client registration', () => {
 
     await cleanup(new Date());
     expect(await stored(stale)).toBeUndefined();
+    expect(await stored(unused)).toBeUndefined();
     expect(await stored(fresh)).toBeDefined();
+    expect(await stored(consented)).toBeDefined();
+    expect(await stored(withToken)).toBeDefined();
     expect(await stored(manual)).toBeDefined();
   });
 });
