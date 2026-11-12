@@ -4,13 +4,13 @@
 // unused or stale ones cleaned up daily. Needs a local Postgres
 // (LOCAL_DB_TESTS=1).
 import { describe, expect, it } from 'vitest';
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import { auth } from '@/lib/auth';
 import { oauthAccessTokens, oauthClients, oauthConsents } from '@/db/schema';
-import { run as cleanup } from '@/lib/cron/jobs/oauth-dcr-cleanup';
-import { isDynamicClient } from '@/lib/server/mcp/register';
+import { BATCH as CLEANUP_BATCH, run as cleanup } from '@/lib/cron/jobs/oauth-dcr-cleanup';
+import { DYNAMIC_REGISTRATION, isDynamicClient } from '@/lib/server/mcp/register';
 import { localDb } from '../local-db/guard';
 import { authRequest, register, signUp } from './oauth-flow';
 
@@ -186,5 +186,25 @@ describe.skipIf(!localDb)('MCP dynamic client registration', () => {
     expect(await stored(consented)).toBeDefined();
     expect(await stored(withToken)).toBeDefined();
     expect(await stored(manual)).toBeDefined();
+  });
+
+  it('keeps deleting past one batch in a run', async () => {
+    const old = new Date(Date.now() - 2 * 86_400_000);
+    const ids = Array.from({ length: CLEANUP_BATCH + 1 }, () => `junk-${crypto.randomUUID()}`);
+    await db.insert(oauthClients).values(
+      ids.map((clientId) => ({
+        id: crypto.randomUUID(),
+        clientId,
+        name: 'Junk',
+        redirectUris: ['http://localhost:4100/cb'],
+        public: true,
+        metadata: { registration: DYNAMIC_REGISTRATION },
+        createdAt: old,
+        updatedAt: old,
+      })),
+    );
+    await cleanup(new Date());
+    const left = await db.select({ id: oauthClients.id }).from(oauthClients).where(inArray(oauthClients.clientId, ids));
+    expect(left).toEqual([]);
   });
 });

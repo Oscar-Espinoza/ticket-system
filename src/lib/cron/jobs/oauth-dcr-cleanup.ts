@@ -5,10 +5,12 @@
 //     at all (an abandoned or junk registration);
 //   - gone stale: registered more than 30 days ago, no unexpired access or
 //     refresh token, and no token issued in the last 30 days.
-// Consents and tokens cascade. Clients created in Settings → OAuth apps are
-// never touched (only `metadata.registration = 'dynamic'` rows qualify).
+// Consents and tokens cascade (each token and consent table has an index on
+// client_id for it). Clients created in Settings → OAuth apps are never
+// touched (only `metadata.registration = 'dynamic'` rows qualify). Deletes run
+// in batches with a cap per run, like the other jobs; the next run continues.
 
-import { and, eq, gt, isNull, lt, or, sql } from 'drizzle-orm';
+import { and, eq, gt, inArray, isNull, lt, or, sql } from 'drizzle-orm';
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 
 import { db } from '@/lib/db';
@@ -18,6 +20,9 @@ import { DAY_MS } from '@/lib/time';
 
 export const STALE_AFTER_MS = 30 * DAY_MS;
 export const UNUSED_AFTER_MS = DAY_MS;
+export const BATCH = 200;
+/** Safety valve: at most this many batches per run (the next run continues). */
+const MAX_BATCHES = 10;
 
 export async function run(now: Date): Promise<string> {
   const cutoff = new Date(now.getTime() - STALE_AFTER_MS);
@@ -44,22 +49,30 @@ export async function run(now: Date): Promise<string> {
   const anyRefresh = db.select({ one: sql`1` }).from(oauthRefreshTokens).where(ofClient(oauthRefreshTokens));
   const anyConsent = db.select({ one: sql`1` }).from(oauthConsents).where(ofClient(oauthConsents));
 
-  const removed = await db
-    .delete(oauthClients)
-    .where(
+  const expired = and(
+    sql`${oauthClients.metadata}->>'registration' = ${DYNAMIC_REGISTRATION}`,
+    or(
       and(
-        sql`${oauthClients.metadata}->>'registration' = ${DYNAMIC_REGISTRATION}`,
-        or(
-          and(
-            lt(oauthClients.createdAt, unusedCutoff),
-            sql`not exists (${anyConsent})`,
-            sql`not exists (${anyAccess})`,
-            sql`not exists (${anyRefresh})`,
-          ),
-          and(lt(oauthClients.createdAt, cutoff), sql`not exists (${liveAccess})`, sql`not exists (${liveRefresh})`),
-        ),
+        lt(oauthClients.createdAt, unusedCutoff),
+        sql`not exists (${anyConsent})`,
+        sql`not exists (${anyAccess})`,
+        sql`not exists (${anyRefresh})`,
       ),
-    )
-    .returning({ id: oauthClients.id });
-  return `removed ${removed.length} unused or stale dynamically registered OAuth clients`;
+      and(lt(oauthClients.createdAt, cutoff), sql`not exists (${liveAccess})`, sql`not exists (${liveRefresh})`),
+    ),
+  );
+
+  // One statement per batch: the rules are checked in the same statement that
+  // deletes, so a client that gets a token meanwhile is kept.
+  let removed = 0;
+  for (let i = 0; i < MAX_BATCHES; i++) {
+    const batch = db.select({ id: oauthClients.id }).from(oauthClients).where(expired).limit(BATCH);
+    const rows = await db
+      .delete(oauthClients)
+      .where(inArray(oauthClients.id, batch))
+      .returning({ id: oauthClients.id });
+    removed += rows.length;
+    if (rows.length < BATCH) break;
+  }
+  return `removed ${removed} unused or stale dynamically registered OAuth clients`;
 }
