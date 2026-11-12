@@ -16,6 +16,7 @@
   import { toast } from 'svelte-sonner';
 
   import { updateProfile, type ProfileState } from '@/lib/actions/profile';
+  import { MAX_NAME_LENGTH } from '@/lib/auth-rules';
   import { Avatar } from '@/lib/components/ui-icons';
   import { Button } from '@/lib/components/ui/button';
   import { Input } from '@/lib/components/ui/input';
@@ -58,7 +59,7 @@
       id="profile-name"
       name="name"
       value={name}
-      maxlength={100}
+      maxlength={MAX_NAME_LENGTH}
       required
       aria-invalid={!!errors.name}
       aria-describedby={errors.name ? 'profile-name-error' : undefined}

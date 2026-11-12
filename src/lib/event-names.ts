@@ -10,6 +10,8 @@ export const ISSUE_EVENT = {
   deleted: 'issue.deleted',
   restored: 'issue.restored',
   purged: 'issue.purged',
+  /** Two rows per move: one in the source project (no ticket), one per moved issue in the target. */
+  moved: 'issue.moved',
   slaBreached: 'issue.sla_breached',
   commentCreated: 'comment.created',
   commentUpdated: 'comment.updated',

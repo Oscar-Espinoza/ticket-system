@@ -30,8 +30,29 @@ import { jwt, twoFactor } from 'better-auth/plugins';
 import { oauthProvider } from '@better-auth/oauth-provider';
 import { scim } from '@better-auth/scim';
 import { sso } from '@better-auth/sso';
-import { MAX_NAME_LENGTH, MIN_PASSWORD_LENGTH } from '@/lib/auth-rules';
+import { MIN_PASSWORD_LENGTH } from '@/lib/auth-rules';
+import { after } from '@/lib/kit/request';
 import { socialProviderOptions } from '@/lib/auth-providers';
+import {
+  emailVerificationAvailable,
+  emailVerificationRequired,
+  passwordResetAvailable,
+  PASSWORD_RESET_TTL_SECONDS,
+  VERIFICATION_LINK_TTL_SECONDS,
+} from '@/lib/email-verification';
+import { sendPasswordReset, sendVerificationEmail } from '@/lib/server/verification-email';
+import {
+  assertResetAllowed,
+  assertUserName,
+  assertVerifierIsHolder,
+  onPasswordReset,
+  passwordResetRequestBody,
+  resendVerificationBody,
+  resetResponseWithClaim,
+  unverifiedSignInBody,
+  verifyingSignInContext,
+  verifyLinkRedirect,
+} from '@/lib/server/email-proof';
 import { invalidClientUri } from '@/lib/oauth-model';
 import { authDb } from '@/lib/db';
 import { recordUserSecurityEvent } from '@/lib/audit';
@@ -108,6 +129,57 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     minPasswordLength: MIN_PASSWORD_LENGTH,
+    // Off unless REQUIRE_EMAIL_VERIFICATION=true AND email is configured
+    // (src/lib/email-verification.ts): unverified accounts then get 403
+    // EMAIL_NOT_VERIFIED on password sign-in (with a fresh link emailed, see
+    // sendOnSignIn), and sign-up stops signing in. The link's landing page
+    // signs them in with password + link (verifyingSignInContext below).
+    requireEmailVerification: emailVerificationRequired(),
+    // "Forgot password?" (only with email configured; otherwise Better Auth
+    // answers RESET_PASSWORD_DISABLED and the UI hides it). The link is
+    // single-use (consumed atomically), lasts an hour, only the newest one
+    // works, and a reset signs out every session. It also proves the address
+    // (email-proof.ts onPasswordReset): an unverified account is claimed.
+    ...(passwordResetAvailable()
+      ? {
+          sendResetPassword: sendPasswordReset,
+          resetPasswordTokenExpiresIn: PASSWORD_RESET_TTL_SECONDS,
+          onPasswordReset,
+        }
+      : {}),
+    revokeSessionsOnPasswordReset: true,
+  },
+  // Only with email configured; without it Better Auth answers
+  // /send-verification-email with VERIFICATION_EMAIL_NOT_ENABLED and sign-up
+  // sends nothing (the UI hides every verification prompt).
+  // A link verifies only inside a session of its own account (hooks.before
+  // /verify-email, and beforeEmailVerification inside the endpoint): proving
+  // the mailbox alone would let the real owner, or a mail scanner, verify a
+  // squatter's account (src/lib/server/email-proof.ts).
+  // autoSignInAfterVerification stays OFF: it would mint a session for whoever
+  // opens the link, skipping the password, two-factor and "Enforce SSO". A
+  // signed-in user stays signed in; /email-verification refreshes the cached
+  // session so the banner goes away.
+  ...(emailVerificationAvailable()
+    ? {
+        emailVerification: {
+          sendVerificationEmail,
+          sendOnSignUp: true,
+          // With the switch on, an unverified holder can't sign in to resend:
+          // a correct password gets a fresh link instead (same cooldown).
+          sendOnSignIn: emailVerificationRequired(),
+          autoSignInAfterVerification: false,
+          expiresIn: VERIFICATION_LINK_TTL_SECONDS,
+          beforeEmailVerification: assertVerifierIsHolder,
+        },
+      }
+    : {}),
+  user: {
+    // No email changes: the profile shows the address read-only and
+    // /update-user refuses `email`. Kept explicit so turning it on is a
+    // deliberate change (a new address must be verified before it replaces
+    // the old one, or account linking could follow it).
+    changeEmail: { enabled: false },
   },
   // Better Auth always requests read:user + user:email for GitHub; `scope`
   // below only restates them (least privilege at sign-in). Tokens are read
@@ -126,7 +198,15 @@ export const auth = betterAuth({
   // overwrites this header on every /api/auth request with the address
   // SvelteKit resolved (the socket peer, or ADDRESS_HEADER / XFF_DEPTH behind
   // a proxy; Vercel's edge on Vercel), so a caller can't pick its own bucket.
-  advanced: { ipAddress: { ipAddressHeaders: [CLIENT_IP_HEADER] } },
+  advanced: {
+    ipAddress: { ipAddressHeaders: [CLIENT_IP_HEADER] },
+    // Better Auth's sends (reset links, verification links) run after the
+    // response (Vercel waitUntil / the Node process; src/lib/kit/request.ts):
+    // a known address's reset request otherwise waited for the cooldown
+    // claim and Resend while an unknown one answered at once, so the time
+    // told which addresses have accounts.
+    backgroundTasks: { handler: after },
+  },
   account: {
     // AES-256-GCM at rest, since linked tokens can carry `repo` scope. Rows
     // written before this stay plaintext and still read fine.
@@ -136,6 +216,13 @@ export const auth = betterAuth({
       // linkSocial is session-bound, so this only lets a signed-in user attach
       // a GitHub identity they just authenticated as.
       allowDifferentEmails: true,
+      // Implicit linking (signing in with Google/GitHub as an address that
+      // already has an account) needs the provider to report the address as
+      // verified AND this account's address to be verified. Both are Better
+      // Auth defaults, stated here; no `trustedProviders` (they would skip the
+      // provider-side check). Only SSO callbacks relax the local side, for a
+      // DNS-proven domain (ssoCallbackContext in src/lib/sso.ts).
+      requireLocalEmailVerified: true,
     },
   },
   // TOTP 2FA, SAML/OIDC SSO, SCIM provisioning, and an OAuth 2.0 provider
@@ -216,13 +303,37 @@ export const auth = betterAuth({
         }
         return;
       }
-      // Better Auth caps no name length; the profile form allows MAX_NAME_LENGTH.
-      if ((ctx.path === '/sign-up/email' || ctx.path === '/update-user') && typeof ctx.body?.name === 'string' && ctx.body.name.length > MAX_NAME_LENGTH) {
-        throw new APIError('BAD_REQUEST', { message: `Name must be ${MAX_NAME_LENGTH} characters or fewer.` });
-      }
       // "Enforce SSO": password sign-in / sign-up is refused for the domain.
       if (ctx.path === '/sign-in/email' || ctx.path === '/sign-up/email') {
         await assertPasswordSignInAllowed(ctx.body?.email);
+        if (ctx.path === '/sign-up/email') {
+          assertUserName(ctx.body);
+          return;
+        }
+        const override = await verifyingSignInContext(ctx);
+        if (override) return { context: { context: override } };
+        const pinned = await unverifiedSignInBody(ctx);
+        if (pinned) return { context: { body: pinned } };
+        return;
+      }
+      if (ctx.path === '/update-user') {
+        assertUserName(ctx.body);
+        return;
+      }
+      // Email proof (src/lib/server/email-proof.ts).
+      if (ctx.path === '/verify-email') {
+        const landing = await verifyLinkRedirect(ctx);
+        if (landing) throw ctx.redirect(landing);
+        return;
+      }
+      if (ctx.path === '/send-verification-email') {
+        return { context: { body: await resendVerificationBody(ctx) } };
+      }
+      if (ctx.path === '/request-password-reset') {
+        return { context: { body: await passwordResetRequestBody(ctx) } };
+      }
+      if (ctx.path === '/reset-password') {
+        await assertResetAllowed(ctx);
         return;
       }
       if (ctx.path === '/scim/v2/Users/:userId') {
@@ -243,6 +354,11 @@ export const auth = betterAuth({
       if (override) return { context: { context: override } };
     }),
     after: createAuthMiddleware(async (ctx) => {
+      if (ctx.path === '/reset-password') {
+        const body = resetResponseWithClaim(ctx);
+        if (body) return ctx.json(body);
+        return;
+      }
       if (ctx.path === '/oauth2/register' && ctx.context.returned && !isAPIError(ctx.context.returned)) {
         await markDynamicClient((ctx.context.returned as { client_id?: unknown }).client_id);
         return;

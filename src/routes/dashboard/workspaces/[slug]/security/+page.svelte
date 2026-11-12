@@ -76,6 +76,7 @@
         provider={security.provider}
         enforced={security.enforced}
         ssoMemberCount={security.ssoMemberCount}
+        unverifiedDomainMemberCount={security.unverifiedDomainMemberCount}
         urls={security.urls}
         txtRecord={security.txtRecord}
         proofOptional={security.proofOptional}

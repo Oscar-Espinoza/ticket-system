@@ -27,6 +27,8 @@ export interface OAuthAppView {
   uri: string | null;
   redirectUris: string[];
   isPublic: boolean;
+  /** Turned off (e.g. when an unverified account that registered it was secured): it can't be used. */
+  disabled: boolean;
   createdAt: string;
 }
 
@@ -102,7 +104,7 @@ interface ClientRow {
 
 /** An app the user registered, as Settings → OAuth apps shows it (URLs through safeHref). */
 export function oauthAppView(
-  row: ClientRow & { redirectUris: string[]; isPublic: boolean | null; createdAt: Date | null },
+  row: ClientRow & { redirectUris: string[]; isPublic: boolean | null; disabled?: boolean | null; createdAt: Date | null },
 ): OAuthAppView {
   return {
     clientId: row.clientId,
@@ -111,6 +113,7 @@ export function oauthAppView(
     uri: safeHref(row.uri),
     redirectUris: row.redirectUris,
     isPublic: row.isPublic === true,
+    disabled: row.disabled === true,
     createdAt: (row.createdAt ?? new Date(0)).toISOString(),
   };
 }

@@ -43,6 +43,7 @@ import {
   workspaces,
 } from '@/db/schema';
 import { formatIssueKey } from '@/lib/tickets';
+import { ELSEWHERE_ACTIVITY_TYPE, redactActivityFor } from '@/lib/moved-events';
 
 // ---------------------------------------------------------------------------
 // Categories
@@ -164,7 +165,7 @@ export function auditFilterParams(filters: AuditFilters): Record<string, string>
 // Scope + authorization
 // ---------------------------------------------------------------------------
 
-export type AuditScope =
+export type AuditScope = (
   | {
       kind: 'project';
       id: string;
@@ -179,7 +180,11 @@ export type AuditScope =
       name: string;
       /** Projects of the workspace the viewer administers (their issue events are included). */
       adminProjectIds: string[];
-    };
+    }
+) & {
+  /** Who reads the log: moves name another project only when they belong to it. */
+  viewerId: string;
+};
 
 /**
  * The audit scope when `userId` may read it, else null (callers 404):
@@ -202,6 +207,7 @@ export async function resolveAuditScope(
       name: row.name,
       ticketKey: row.ticketKey,
       workspaceId: row.workspaceId,
+      viewerId: userId,
     };
   }
 
@@ -237,6 +243,7 @@ export async function resolveAuditScope(
       slug: row.slug,
       name: row.name,
       adminProjectIds: adminProjects.map((p) => p.id),
+      viewerId: userId,
     };
   }
 
@@ -344,47 +351,44 @@ export function decodeAuditCursor(value: unknown): AuditCursor | null {
   return { createdAt: new Date(Number(match[1])), id: match[2] };
 }
 
-/** Newest first; `before` continues after the last row of the previous page. */
+/**
+ * Filters that select rows by what they say (who, what kind, which issue key).
+ * A row collapsed for the viewer must not match them at all: matching would
+ * tell who did what kind of thing in a project the viewer cannot see, or the
+ * key an issue had there.
+ */
+export const filtersProbeRows = (filters: AuditFilters) =>
+  !!(filters.actor || filters.category || filters.issue);
+
+/**
+ * Newest first; `before` continues after the last row of the previous page.
+ * Activity recorded in another project is redacted for `viewerId` (moved-events.ts);
+ * with `dropElsewhere` (filtersProbeRows) those rows are left out instead,
+ * and the page is filled from the rows after them, so a page cursor (its last
+ * row) still continues exactly where the page stopped.
+ */
 export async function queryAuditRows(
   where: SQL | undefined,
-  { before, limit }: { before?: AuditCursor | null; limit: number },
+  {
+    before,
+    limit,
+    viewerId,
+    dropElsewhere = false,
+  }: { before?: AuditCursor | null; limit: number; viewerId: string; dropElsewhere?: boolean },
 ): Promise<AuditRow[]> {
-  const cursor = before
-    ? or(
-        lt(activities.createdAt, before.createdAt),
-        and(eq(activities.createdAt, before.createdAt), lt(activities.id, before.id)),
-      )
-    : undefined;
+  type Raw = Awaited<ReturnType<typeof selectAuditRows>>[number];
+  const rows: Raw[] = [];
+  let from = before ?? null;
+  for (;;) {
+    const raw = await selectAuditRows(where, from, limit);
+    const redacted = await redactActivityFor(raw, viewerId);
+    rows.push(...(dropElsewhere ? redacted.filter((row) => row.type !== ELSEWHERE_ACTIVITY_TYPE) : redacted));
+    if (!dropElsewhere || raw.length < limit || rows.length >= limit) break;
+    const last = raw[raw.length - 1];
+    from = { createdAt: last.createdAt, id: last.id };
+  }
 
-  const ticketProject = alias(projects, 'ticket_project');
-  const rows = await db
-    .select({
-      id: activities.id,
-      createdAt: activities.createdAt,
-      type: activities.type,
-      data: activities.data,
-      actorId: users.id,
-      actorName: users.name,
-      actorEmail: users.email,
-      actorImage: users.image,
-      projectId: projects.id,
-      projectName: projects.name,
-      projectKey: projects.ticketKey,
-      ticketNumber: tickets.ticketNumber,
-      ticketTitle: tickets.title,
-      ticketProjectId: ticketProject.id,
-      ticketProjectKey: ticketProject.ticketKey,
-    })
-    .from(activities)
-    .innerJoin(projects, eq(activities.projectId, projects.id))
-    .leftJoin(users, eq(activities.actorId, users.id))
-    .leftJoin(tickets, eq(activities.ticketId, tickets.id))
-    .leftJoin(ticketProject, eq(tickets.projectId, ticketProject.id))
-    .where(and(where, cursor))
-    .orderBy(desc(activities.createdAt), desc(activities.id))
-    .limit(limit);
-
-  return rows.map((row) => {
+  return rows.slice(0, limit).map((row) => {
     const data = row.data ?? {};
     const dataKey = typeof data.key === 'string' ? data.key : null;
     const liveKey =
@@ -417,6 +421,44 @@ export async function queryAuditRows(
       data,
     };
   });
+}
+
+function selectAuditRows(where: SQL | undefined, before: AuditCursor | null, limit: number) {
+  const cursor = before
+    ? or(
+        lt(activities.createdAt, before.createdAt),
+        and(eq(activities.createdAt, before.createdAt), lt(activities.id, before.id)),
+      )
+    : undefined;
+
+  const ticketProject = alias(projects, 'ticket_project');
+  return db
+    .select({
+      id: activities.id,
+      createdAt: activities.createdAt,
+      type: activities.type,
+      data: activities.data,
+      ticketId: activities.ticketId,
+      actorId: users.id,
+      actorName: users.name,
+      actorEmail: users.email,
+      actorImage: users.image,
+      projectId: projects.id,
+      projectName: projects.name,
+      projectKey: projects.ticketKey,
+      ticketNumber: tickets.ticketNumber,
+      ticketTitle: tickets.title,
+      ticketProjectId: ticketProject.id,
+      ticketProjectKey: ticketProject.ticketKey,
+    })
+    .from(activities)
+    .innerJoin(projects, eq(activities.projectId, projects.id))
+    .leftJoin(users, eq(activities.actorId, users.id))
+    .leftJoin(tickets, eq(activities.ticketId, tickets.id))
+    .leftJoin(ticketProject, eq(tickets.projectId, ticketProject.id))
+    .where(and(where, cursor))
+    .orderBy(desc(activities.createdAt), desc(activities.id))
+    .limit(limit);
 }
 
 /** Actors to filter by: members of the scope's teams / workspace, by name. */

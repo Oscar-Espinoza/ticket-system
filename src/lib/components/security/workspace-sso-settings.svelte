@@ -6,6 +6,7 @@
 -->
 <script lang="ts">
   import { untrack } from 'svelte';
+  import { pluralize } from '@/lib/format';
   import KeyRoundIcon from '@lucide/svelte/icons/key-round';
   import PencilIcon from '@lucide/svelte/icons/pencil';
   import { toast } from 'svelte-sonner';
@@ -34,6 +35,7 @@
     provider,
     enforced: initialEnforced,
     ssoMemberCount,
+    unverifiedDomainMemberCount = 0,
     urls,
     txtRecord,
     proofOptional,
@@ -43,6 +45,8 @@
     provider: SsoProviderView | null;
     enforced: boolean;
     ssoMemberCount: number;
+    /** Members on the domain who never verified their email (secured at their first SSO sign-in). */
+    unverifiedDomainMemberCount?: number;
     urls: SsoUrls;
     /** DNS proof: `<label>.<domain>` TXT = value. */
     txtRecord: { label: string; value: string };
@@ -143,6 +147,21 @@
       </div>
       <Switch id="sso-enforced" bind:checked={() => enforced, toggleEnforced} disabled={pending} />
     </div>
+
+    {#if unverifiedDomainMemberCount > 0}
+      <p
+        data-unverified-members
+        class="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm"
+      >
+        <span class="font-medium">
+          {pluralize(unverifiedDomainMemberCount, 'member')} on @{provider.domain}
+          {unverifiedDomainMemberCount === 1 ? 'hasn’t' : 'haven’t'} verified their email.
+        </span>
+        Their first SSO sign-in secures the account: it removes their password, two-factor, API keys, connected
+        apps, linked Google/GitHub sign-ins, Slack link, push subscriptions and pending invitations (they get an
+        email listing what went). Ask them to sign in with their password and verify their email first.
+      </p>
+    {/if}
   {/if}
 
   {#if !provider && !editing}

@@ -79,6 +79,7 @@ describe.skipIf(!localDb)('events commit with their mutation (review follow-up, 
       branch: null,
       author: null,
       mergedAt: null,
+      updatedAt: null,
     };
     // The event cannot be written (a trigger refuses it, for this issue only):
     // the PR row must not stay behind, or the redelivery would find nothing
@@ -129,7 +130,7 @@ describe.skipIf(!localDb)('events commit with their mutation (review follow-up, 
     // Written by the same batch as the state change, one millisecond after it, so
     // the timeline (which sorts by time) always shows the pair in the same order.
     expect(closed.createdAt.getTime() - updated.createdAt.getTime()).toBe(1);
-    const timeline = await loadIssueTimeline(projectId, created.issue.id);
+    const timeline = await loadIssueTimeline(projectId, created.issue.id, user);
     const order = timeline.activities.map((a) => a.type).filter((t) => t === 'github.commit_closed' || t === 'issue.updated');
     expect(order).toEqual(['issue.updated', 'github.commit_closed']);
     const [ticket] = await db

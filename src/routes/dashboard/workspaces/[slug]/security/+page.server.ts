@@ -59,6 +59,7 @@ export const load: PageServerLoad = async ({ params }) => {
       provider,
       enforced: view.enforced,
       ssoMemberCount: view.ssoMemberIds.length,
+      unverifiedDomainMemberCount: view.unverifiedDomainMemberCount,
       urls: {
         acsUrl: urls.acsUrl,
         spEntityId: urls.spEntityId,

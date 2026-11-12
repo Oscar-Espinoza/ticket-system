@@ -18,5 +18,7 @@
     initialError={data.initialError}
     initialSso={data.initialSso}
     googleEnabled={data.googleEnabled}
+    initialOfferVerification={data.offerVerification}
+    passwordResetAvailable={data.passwordResetAvailable}
   />
 </div>

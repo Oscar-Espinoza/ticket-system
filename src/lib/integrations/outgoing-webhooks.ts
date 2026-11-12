@@ -37,6 +37,7 @@ import { WEBHOOK_TIMEOUT_MS } from '@/lib/integrations/timeouts';
 import { guardedRequest, isDeliverableUrl } from '@/lib/integrations/url-guard';
 import { hmacHex } from '@/lib/server/secrets';
 import { MINUTE_MS } from '@/lib/time';
+import { redactMovedData } from '@/lib/moved-events';
 
 /** Wait before retry n (after the n-th failed attempt). */
 export const RETRY_DELAYS_MS = [MINUTE_MS, 5 * MINUTE_MS, 30 * MINUTE_MS, 120 * MINUTE_MS, 720 * MINUTE_MS];
@@ -250,7 +251,8 @@ async function run(all: StoredIssueEvent[]) {
       projectId: event.projectId,
       actor: event.actorId ? { id: event.actorId, name: actorName ?? '' } : null,
       issue: issue ? issueSummary(issue) : null,
-      data: event.data,
+      // A receiver belongs to one project: a move never names the other one.
+      data: redactMovedData(event.type, event.data, (projectId) => projectId === event.projectId),
     };
   };
 

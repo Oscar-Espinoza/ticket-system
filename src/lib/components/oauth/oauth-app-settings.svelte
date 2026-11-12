@@ -123,6 +123,14 @@
               >
                 {app.isPublic ? 'Public' : 'Confidential'}
               </span>
+              {#if app.disabled}
+                <span
+                  class="shrink-0 rounded border border-amber-500/40 px-1 text-[0.65rem] font-normal text-amber-700 uppercase dark:text-amber-400"
+                  title="This app can't be used. Delete it and register it again if you need it."
+                >
+                  Disabled
+                </span>
+              {/if}
             </p>
             <p class="mt-0.5 truncate font-mono text-xs text-muted-foreground">
               {app.clientId}<span class="font-sans"

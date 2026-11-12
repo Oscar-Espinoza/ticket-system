@@ -8,6 +8,7 @@ import {
   syncPullRequest,
   updatePullRequestStatus,
   type PrTrigger,
+  providerTime,
 } from '@/lib/vcs/automation';
 import type { VcsProject } from '@/lib/vcs/project';
 import type { GitlabConfig } from '@/lib/vcs/integrations';
@@ -96,6 +97,8 @@ async function syncMergeRequest(project: VcsProject, config: GitlabConfig, hook:
       // `user` is whoever acted; on open that's the author.
       author: action === 'open' ? (hook.user?.username ?? null) : null,
       mergedAt: state === 'merged' ? new Date(mr.merged_at ?? mr.updated_at ?? Date.now()) : null,
+      updatedAt: providerTime(mr.updated_at),
+      reopened: action === 'reopen',
       reviewDecision: reviewOf(hook),
     },
     triggerOf(hook),

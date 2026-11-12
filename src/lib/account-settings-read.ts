@@ -118,6 +118,7 @@ export async function getOAuthSettings(userId: string) {
         uri: oauthClients.uri,
         redirectUris: oauthClients.redirectUris,
         isPublic: oauthClients.public,
+        disabled: oauthClients.disabled,
         createdAt: oauthClients.createdAt,
       })
       .from(oauthClients)

@@ -9,6 +9,7 @@ import { run as followUps } from './jobs/follow-ups';
 import { run as digests } from './jobs/digests';
 import { run as pulse } from './jobs/pulse';
 import { run as webhookRetries } from './jobs/webhook-retries';
+import { run as inboundWebhooks } from './jobs/inbound-webhooks';
 import { run as collabPrune } from './jobs/collab-prune';
 import { run as oauthDcrCleanup } from './jobs/oauth-dcr-cleanup';
 
@@ -22,6 +23,7 @@ const JOBS: Record<string, (now: Date) => Promise<string>> = {
   digests,
   pulse,
   webhookRetries,
+  inboundWebhooks,
   collabPrune,
   oauthDcrCleanup,
 };

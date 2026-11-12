@@ -196,7 +196,7 @@ export const createIssueTool = defineTool({
     if (!replay) await audit(credential, 'create_issue', result.issue, 'created');
     const lead = replay ? `${result.issue.key} was already created with this request_id` : `Created ${result.issue.key}`;
     return committed('create_issue', result.issue, lead, async () => {
-      const detail = await issueDetail(result.issue, project);
+      const detail = await issueDetail(result.issue, project, userId);
       return {
         view: { view: 'issue-detail', issue: detail, changes: [replay ? 'already created' : 'created'] },
         text: () => `${lead}.\n\n${issueDetailMarkdown(detail)}`,
@@ -295,7 +295,7 @@ export const updateIssueTool = defineTool({
     if (changes.length) await audit(credential, 'update_issue', result.issue, 'updated');
     const done = changes.length ? `Updated ${result.issue.key}` : `No changes: ${result.issue.key} already had those values`;
     return committed('update_issue', result.issue, done, async () => {
-      const detail = await issueDetail(result.issue, project);
+      const detail = await issueDetail(result.issue, project, userId);
       return {
         view: { view: 'issue-detail', issue: detail, changes },
         text: () => (changes.length ? issueDetailMarkdown(detail, changes) : `${done}.`),
@@ -333,7 +333,7 @@ export const addCommentTool = defineTool({
     if (!result.ok) return toolError(result.error);
     await audit(credential, 'add_comment', issue, 'commented on');
     return committed('add_comment', issue, `Comment added to ${issue.key}`, async () => {
-      const detail = await issueDetail(issue, project);
+      const detail = await issueDetail(issue, project, userId);
       return {
         view: { view: 'issue-detail', issue: detail, changes: ['comment added'] },
         text: () => `Comment added to ${issue.key}.\n\n${issueDetailMarkdown(detail)}`,
