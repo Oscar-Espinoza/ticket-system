@@ -1,6 +1,7 @@
 // The issue-detail payload shared by get_issue and the write tools: the issue,
-// its newest comments, sub-issues, relations, cycle and epic. Relations can
-// point into other projects, so they pass the same MCP access filter.
+// its newest comments, sub-issues, relations, cycle and epic. Everything is
+// read within the issue's own project (listIssueRelations only returns
+// relations inside it), which ./access.ts already cleared.
 
 import { and, asc, eq, isNull } from 'drizzle-orm';
 
@@ -10,7 +11,7 @@ import { loadIssueTimeline } from '@/lib/comments';
 import type { IssueRow } from '@/lib/issue-model';
 import { listIssueRelations } from '@/lib/relations';
 import { getTicketById, queryIssues } from '@/lib/tickets';
-import { mcpProjectIds, type McpProject } from '../access';
+import type { McpProject } from '../access';
 import type { IssueDetail } from '../contracts';
 import { commentView, descriptionText, projectRef, stateRef, summarizeIssue, truncate } from '../format';
 
@@ -19,12 +20,11 @@ export const COMMENTS_MAX = 20;
 const SUB_ISSUES_MAX = 50;
 
 export async function issueDetail(
-  userId: string,
   issue: IssueRow,
   project: McpProject,
   commentLimit = COMMENTS_DEFAULT,
 ): Promise<IssueDetail> {
-  const [timeline, relations, subIssues, parent, cycleRow, epicRow, allowed] = await Promise.all([
+  const [timeline, relations, subIssues, parent, cycleRow, epicRow] = await Promise.all([
     loadIssueTimeline(issue.projectId, issue.id),
     listIssueRelations(issue.projectId, issue.id),
     queryIssues(and(eq(tickets.projectId, issue.projectId), eq(tickets.parentId, issue.id), isNull(tickets.deletedAt)), {
@@ -46,7 +46,6 @@ export async function issueDetail(
           .where(and(eq(epics.id, issue.epicId), eq(epics.projectId, issue.projectId)))
           .limit(1)
       : [],
-    mcpProjectIds(userId),
   ]);
 
   const comments = timeline.comments;
@@ -59,9 +58,7 @@ export async function issueDetail(
     epic: epicRow[0] ?? null,
     parent: parent && !parent.deletedAt ? { id: parent.id, key: parent.key, title: parent.title } : null,
     subIssues: subIssues.map(ref),
-    relations: relations
-      .filter((r) => allowed.has(r.issue.projectId))
-      .map((r) => ({ kind: r.kind, issue: ref(r.issue) })),
+    relations: relations.map((r) => ({ kind: r.kind, issue: ref(r.issue) })),
     comments: comments.slice(Math.max(0, comments.length - commentLimit)).map(commentView),
     commentCount: comments.length,
     archivedAt: issue.archivedAt?.toISOString() ?? null,

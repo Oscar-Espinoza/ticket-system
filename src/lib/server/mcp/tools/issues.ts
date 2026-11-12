@@ -204,7 +204,7 @@ export const getIssueTool = defineTool({
   async run({ key, comments }, { userId }) {
     const found = await mcpIssue(userId, key, 'read');
     if (!found.ok) return toolError(found.error);
-    const detail = await issueDetail(userId, found.issue, found.project, comments ?? COMMENTS_DEFAULT);
+    const detail = await issueDetail(found.issue, found.project, comments ?? COMMENTS_DEFAULT);
     const view: IssueDetailView = { view: 'issue-detail', issue: detail };
     return toolResult(issueDetailMarkdown(detail), view);
   },

@@ -171,6 +171,16 @@ describe.skipIf(!localDb)('MCP tools over /mcp', () => {
     });
     if (!hidden.ok) throw new Error(hidden.error);
     blockedIssueKey = hidden.issue.key;
+    await db.insert(notifications).values({
+      id: uid(),
+      userId: alice,
+      projectId: blockedProject,
+      ticketId: hidden.issue.id,
+      type: 'assigned',
+      actorId: bob,
+      data: { key: blockedIssueKey, title: 'Hidden roadmap' },
+      createdAt: now,
+    });
 
     aliceKey = await apiKeyFor(alice);
     bobKey = await apiKeyFor(bob);
@@ -346,6 +356,7 @@ describe.skipIf(!localDb)('MCP tools over /mcp', () => {
     expect(listed.map((p) => p.key)).not.toContain(blockedKey);
     const mine = (await call(aliceKey, 'my_work')).structuredContent!.issues as { key: string }[];
     expect(mine.map((i) => i.key)).not.toContain(blockedIssueKey);
+    expect(text(await call(aliceKey, 'list_inbox'))).not.toContain(blockedIssueKey);
 
     await db.update(workspaces).set({ aiConnectorsAllowed: true }).where(eq(workspaces.id, workspaceId));
     expect((await call(aliceKey, 'get_issue', { key: blockedIssueKey })).isError).toBeUndefined();

@@ -65,11 +65,6 @@ export async function mcpProjects(userId: string): Promise<McpProject[]> {
   return (await projectRows(userId)).map(toProject);
 }
 
-/** Ids of `mcpProjects`, for filtering cross-project reads (search, my work, inbox). */
-export async function mcpProjectIds(userId: string): Promise<Set<string>> {
-  return new Set((await mcpProjects(userId)).map((p) => p.id));
-}
-
 export type ProjectAccess =
   | { ok: true; project: McpProject }
   | { ok: false; error: string; notFound: boolean };
