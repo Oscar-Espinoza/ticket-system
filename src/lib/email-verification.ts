@@ -22,6 +22,7 @@
 //   to unverified accounts, and only takes effect while verification is
 //   available, so an instance without email can never lock everyone out.
 
+import { CLAIM_AFTERCARE, type ClaimReport, claimedItems } from '@/lib/account-claim';
 import { emailConfigured } from '@/lib/email';
 import { DEFAULT_AUTH_REDIRECT, safeRedirect } from '@/lib/safe-redirect';
 
@@ -132,8 +133,14 @@ export function verificationEmail(user: { email: string }, url: string) {
 }
 
 /** The password-reset email. */
-export function passwordResetEmail(user: { email: string }, url: string) {
+export function passwordResetEmail(user: { email: string; emailVerified?: boolean }, url: string) {
   const minutes = PASSWORD_RESET_TTL_SECONDS / 60;
+  const claim = user.emailVerified
+    ? []
+    : [
+        '',
+        'This account’s email address was never verified, so resetting also secures it: two-factor, API keys, connected apps and assistants, linked Google/GitHub sign-ins, the Slack link, push subscriptions and pending invitations are removed. The page lists them before you confirm. If you still know your password, sign in and verify your email instead: then nothing is removed.',
+      ];
   return {
     to: user.email,
     subject: 'Reset your password',
@@ -144,8 +151,46 @@ export function passwordResetEmail(user: { email: string }, url: string) {
       url,
       '',
       `The link works once, for ${minutes} minutes. Resetting signs out every session of this account and verifies the address.`,
+      ...claim,
       '',
       'If you didn’t ask for this, ignore this email: your password stays as it is.',
+    ].join('\n'),
+  };
+}
+
+/**
+ * "Your account was secured" (src/lib/server/account-claim.ts): sent after an
+ * unverified account is claimed by a password reset or a first SSO sign-in.
+ * Lists what was removed, when, and what to do, including when it wasn't them.
+ */
+export function accountSecuredEmail(
+  email: string,
+  notice: { via: 'sso' | 'password_reset'; at: string; removed: ClaimReport },
+) {
+  const when = new Date(notice.at).toUTCString();
+  const how =
+    notice.via === 'sso'
+      ? 'someone signed in to it through your workspace’s single sign-on'
+      : 'its password was reset with a link sent to this address';
+  const removed = claimedItems(notice.removed).map(({ label, count }) => `- ${label}${count > 1 ? ` (${count})` : ''}`);
+  const notMe =
+    notice.via === 'sso'
+      ? 'If this wasn’t you, tell your workspace admin now: the sign-in came through your company’s identity provider.'
+      : 'If this wasn’t you, someone can read this mailbox: secure your email account, then use "Forgot password?" on the sign-in page to take the account back.';
+  return {
+    to: email,
+    subject: 'Your account was secured',
+    text: [
+      'Hi,',
+      '',
+      `On ${when}, ${how}. The account for ${email} had never verified its email address, so the app could not tell whether whoever set it up owned the address. To make sure nobody else keeps a way in, every session was signed out and these were removed:`,
+      ...(removed.length > 0 ? removed : ['- Nothing besides the sessions: none of the usual extras were set up.']),
+      '',
+      'The address is now verified. What to do next:',
+      ...CLAIM_AFTERCARE.map((line) => `- ${line}`),
+      'Apps that already had an access token may keep using it until it expires, within an hour.',
+      '',
+      notMe,
     ].join('\n'),
   };
 }

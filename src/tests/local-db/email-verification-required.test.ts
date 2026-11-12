@@ -17,9 +17,11 @@ import { db } from '@/lib/db';
 import { verifications } from '@/db/schema';
 import { VERIFICATION_TOKEN_HEADER } from '@/lib/auth-rules';
 import { localDb } from './guard';
+import { authRequest } from '../mcp/oauth-flow';
 import {
   cookieOf,
   emailsTo,
+  PASSWORD,
   openVerifyLink,
   sessionUserId,
   signIn,
@@ -84,7 +86,14 @@ describe.skipIf(!localDb)('REQUIRE_EMAIL_VERIFICATION=true (email configured)', 
 
     expect((await signIn(email, 'wrong-password-123')).status).toBe(401);
     expect(emailsTo(email)).toHaveLength(1);
-    expect((await signIn(email)).status).toBe(403);
+    // Whoever knows the password picks no destination for the owner's link.
+    const res = await authRequest('/sign-in/email', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ email, password: PASSWORD, callbackURL: '/invite/someone-elses-token' }),
+    });
+    expect(res.status).toBe(403);
     expect(emailsTo(email)).toHaveLength(2);
+    expect(verifyLinkFor(email).searchParams.get('callbackURL')).toBe('/email-verification?verified=1');
   });
 });

@@ -16,11 +16,29 @@ import { getCurrentAuthContext } from '@better-auth/core/context';
 import { APIError, getAuthoritativeSessionFromCtx } from 'better-auth/api';
 import { verifyJWT } from 'better-auth/crypto';
 
+import { and, eq, gt, sql } from 'drizzle-orm';
+
+import { users, verifications } from '@/db/schema';
+import {
+  ACCOUNT_CLAIM_ACK_FIELD,
+  ACCOUNT_CLAIM_FAILED,
+  ACCOUNT_CLAIM_NOT_ACKNOWLEDGED,
+  type ClaimReport,
+  type ResetClaimPreview,
+} from '@/lib/account-claim';
 import { NAME_RULE_MESSAGE, VERIFICATION_TOKEN_HEADER, validUserName } from '@/lib/auth-rules';
+import { db } from '@/lib/db';
 import { emailVerificationRequired, PASSWORD_RESET_PATH, signInRequiredLanding } from '@/lib/email-verification';
 import { DEFAULT_AUTH_REDIRECT } from '@/lib/safe-redirect';
 import { recordUserSecurityEvent } from '@/lib/audit';
-import { assertPasswordSignInAllowed, claimUnverifiedAccount, enforcedSsoForEmail, SSO_REQUIRED } from '@/lib/sso';
+import {
+  assertPasswordSignInAllowed,
+  claimInventory,
+  claimUnverifiedAccount,
+  enforcedSsoForEmail,
+  revokeAllSessions,
+  SSO_REQUIRED,
+} from '@/lib/sso';
 
 const SIGN_IN_REQUIRED_ERROR = {
   code: 'SIGN_IN_REQUIRED',
@@ -99,6 +117,29 @@ export async function verifyingSignInContext(ctx: GenericEndpointContext) {
 }
 
 /**
+ * hooks.before on /sign-in/email, REQUIRE_EMAIL_VERIFICATION on, after
+ * verifyingSignInContext declined: a correct password on an unverified
+ * account makes Better Auth email a fresh link built from the request's
+ * `callbackURL` (sendOnSignIn), and no session follows. Anyone who knows the
+ * password could otherwise mail the owner a link that lands where they chose
+ * (an invitation, say), so that link always lands on the dashboard, as a
+ * resend's does. Verified accounts keep their callbackURL (it is only where
+ * the sign-in form goes next). Returns the body override, or null.
+ */
+export async function unverifiedSignInBody(ctx: GenericEndpointContext) {
+  if (!emailVerificationRequired()) return null;
+  const email = ctx.body?.email;
+  if (typeof email !== 'string' || email.length > 320) return null;
+  const [holder] = await db
+    .select({ emailVerified: users.emailVerified })
+    .from(users)
+    .where(eq(users.email, email.toLowerCase()))
+    .limit(1);
+  if (!holder || holder.emailVerified) return null;
+  return { ...ctx.body, callbackURL: DEFAULT_AUTH_REDIRECT };
+}
+
+/**
  * hooks.before on /send-verification-email: only for the signed-in holder of
  * the address (Better Auth itself refuses another address), and the link
  * always lands on the dashboard: a caller can't pick where it goes.
@@ -136,34 +177,94 @@ export async function passwordResetRequestBody(ctx: GenericEndpointContext) {
   return { ...ctx.body, redirectTo: PASSWORD_RESET_PATH };
 }
 
+/** The account a reset token belongs to while the token still works, or null. */
+async function resetTokenHolder(token: unknown) {
+  if (typeof token !== 'string' || !token || token.length > 200) return null;
+  const [row] = await db
+    .select({ id: users.id, email: users.email, emailVerified: users.emailVerified })
+    .from(verifications)
+    .innerJoin(users, eq(users.id, verifications.value))
+    .where(and(eq(verifications.identifier, `reset-password:${token}`), gt(verifications.expiresAt, sql`now()`)))
+    .limit(1);
+  return row ?? null;
+}
+
 /**
- * hooks.before on /reset-password: refuses the reset when the token's account
- * is now under "Enforce SSO" (turned on after the email was sent). Unknown or
- * used tokens are left to Better Auth (INVALID_TOKEN).
+ * hooks.before on /reset-password:
+ * - refuses the reset when the token's account is now under "Enforce SSO"
+ *   (turned on after the email was sent);
+ * - an UNVERIFIED account's reset secures it (onPasswordReset), which removes
+ *   two-factor, API keys, connected apps and more; the reset page lists them
+ *   (resetClaimPreview) and the request must carry ACCOUNT_CLAIM_ACK_FIELD:
+ *   true, so no client, scripted or not, wipes an account without saying so.
+ * Unknown or used tokens are left to Better Auth (INVALID_TOKEN).
  */
 export async function assertResetAllowed(ctx: GenericEndpointContext) {
-  const token = ctx.body?.token ?? ctx.query?.token;
-  if (typeof token !== 'string' || !token) return;
-  const row = await ctx.context.internalAdapter.findVerificationValue(`reset-password:${token}`);
-  if (!row) return;
-  const user = await ctx.context.internalAdapter.findUserById(row.value);
-  if (user && (await enforcedSsoForEmail(user.email.toLowerCase()))) {
+  const user = await resetTokenHolder(ctx.body?.token ?? ctx.query?.token);
+  if (!user) return;
+  if (await enforcedSsoForEmail(user.email.toLowerCase())) {
     throw APIError.from('FORBIDDEN', SSO_REQUIRED);
   }
+  if (!user.emailVerified && ctx.body?.[ACCOUNT_CLAIM_ACK_FIELD] !== true) {
+    throw APIError.from('BAD_REQUEST', {
+      code: ACCOUNT_CLAIM_NOT_ACKNOWLEDGED,
+      message:
+        'This account’s email address was never verified, so resetting its password removes two-factor, API keys, connected apps, linked sign-ins, the Slack link, push subscriptions and pending invitations. Confirm that to continue.',
+    });
+  }
 }
+
+/**
+ * The reset page's question before it asks for a new password: does this
+ * link secure an unverified account, and what is there to remove? Answers
+ * { claim: false } alike for an unknown, used or expired token, a verified
+ * account and a domain under "Enforce SSO", so a caller without a working
+ * link learns nothing.
+ */
+export async function resetClaimPreview(token: unknown): Promise<ResetClaimPreview> {
+  const user = await resetTokenHolder(token);
+  if (!user || user.emailVerified || (await enforcedSsoForEmail(user.email.toLowerCase()))) {
+    return { claim: false };
+  }
+  return { claim: true, removes: await claimInventory(user.id, { keepPassword: true }) };
+}
+
+/** What a reset's claim removed, by request (onPasswordReset → hooks.after on /reset-password). */
+const claimedByRequest = new WeakMap<object, ClaimReport>();
 
 /**
  * emailAndPassword.onPasswordReset (the new password is stored; Better Auth
  * revokes every session right after, revokeSessionsOnPasswordReset). The link
  * came to the mailbox and set the password, so the address is now proven:
  * - unverified before: the real owner claims the account
- *   (claimUnverifiedAccount keeps the new password, removes the rest);
+ *   (claimUnverifiedAccount keeps the new password, removes the rest; the
+ *   request was acknowledged, assertResetAllowed). If the claim fails it
+ *   fails closed: every session is revoked anyway, the account stays
+ *   unverified (the claim is one transaction) so the next reset claims
+ *   again, and the request answers ACCOUNT_CLAIM_FAILED;
  * - verified before: an ordinary reset; two-factor stays and is asked for at
  *   the next sign-in (a reset never creates a session).
  */
 export async function onPasswordReset({ user }: { user: { id: string; emailVerified: boolean } }) {
   if (!user.emailVerified) {
-    await claimUnverifiedAccount(user.id, { keepPassword: true, via: 'password_reset' });
+    let removed: ClaimReport;
+    try {
+      removed = await claimUnverifiedAccount(user.id, { keepPassword: true, via: 'password_reset' });
+    } catch (err) {
+      console.error('[email-proof] securing the account after a reset failed', err);
+      await revokeAllSessions(user.id);
+      throw APIError.from('INTERNAL_SERVER_ERROR', {
+        code: ACCOUNT_CLAIM_FAILED,
+        message:
+          'Your new password is set, but securing the account didn’t finish. Ask for a new reset link and use it to finish.',
+      });
+    }
+    try {
+      const ctx = await getCurrentAuthContext();
+      claimedByRequest.set(ctx.context, removed);
+    } catch {
+      // Called outside an endpoint: nobody reads the response's list.
+    }
     return;
   }
   await recordUserSecurityEvent(user.id, {
@@ -171,4 +272,16 @@ export async function onPasswordReset({ user }: { user: { id: string; emailVerif
     type: 'security.password_reset',
     summary: 'reset the password by email; every session was signed out',
   });
+}
+
+/**
+ * hooks.after on /reset-password: a reset that secured the account answers
+ * { status: true, claimed: ClaimReport } so the page can list what was
+ * removed. Returns the new body, or null to leave the response alone.
+ */
+export function resetResponseWithClaim(ctx: GenericEndpointContext) {
+  const claimed = claimedByRequest.get(ctx.context);
+  if (!claimed) return null;
+  claimedByRequest.delete(ctx.context);
+  return { status: true, claimed };
 }

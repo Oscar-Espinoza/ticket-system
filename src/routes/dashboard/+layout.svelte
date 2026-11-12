@@ -11,9 +11,17 @@
   import TopbarChrome from '@/lib/components/topbar-chrome.svelte';
   import UserMenu from '@/lib/components/user-menu.svelte';
   import VerifyEmailBanner from '@/lib/components/auth/verify-email-banner.svelte';
+  import AccountSecuredNotice from '@/lib/components/auth/account-secured-notice.svelte';
+  import { untrack } from 'svelte';
   import type { LayoutProps } from './$types';
 
   let { data, children }: LayoutProps = $props();
+
+  // The server hands the notice out once; keep it across later layout reloads.
+  let claimNotice = $state(untrack(() => data.claimNotice));
+  $effect(() => {
+    if (data.claimNotice) claimNotice = data.claimNotice;
+  });
 
   const loading = useNavigationLoading();
   const topbarProjects = $derived(data.projects.map((p) => ({ id: p.id, name: p.name })));
@@ -39,6 +47,11 @@
   {/if}
   <!-- Kept mounted (hidden) while the skeleton shows, so a cancelled navigation loses nothing. -->
   <div class={loading.dashboard ? 'hidden' : 'contents'}>
+    {#if claimNotice}
+      <div class="mb-6">
+        <AccountSecuredNotice removed={claimNotice.removed} via={claimNotice.via} at={claimNotice.at} />
+      </div>
+    {/if}
     {#if data.unverifiedEmail}
       <VerifyEmailBanner email={data.unverifiedEmail} />
     {/if}

@@ -22,12 +22,13 @@ import { lookup, resolveTxt } from 'node:dns/promises';
 import { isPublicRoutableHost } from '@better-auth/core/utils/host';
 import { discoverOIDCConfig } from '@better-auth/sso';
 import { APIError } from 'better-auth/api';
-import { and, eq, inArray, ne, notLike, sql } from 'drizzle-orm';
+import { and, eq, gt, inArray, isNull, ne, notLike, or, sql } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import {
   accounts,
   apiKeys,
+  invitations,
   oauthAccessTokens,
   oauthClients,
   oauthConsents,
@@ -41,10 +42,13 @@ import {
   ssoProviders,
   twoFactors,
   users,
+  workspaceInvitations,
   workspaceMembers,
   workspaceSso,
   workspaces,
 } from '@/db/schema';
+import { ACCOUNT_CLAIM_FAILED, type ClaimReport } from '@/lib/account-claim';
+import { claimNoticeWrites, type ClaimVia, sendAccountSecuredEmail } from '@/lib/server/account-claim';
 import { authBaseUrl } from '@/lib/integrations/app-url';
 import { appSecret, hmacHex, safeEqual } from '@/lib/server/secrets';
 import { recordUserSecurityEvent, recordWorkspaceEvent } from '@/lib/audit';
@@ -225,6 +229,12 @@ export interface WorkspaceSsoView {
   } | null;
   /** Members who have signed in with this workspace's SSO at least once. */
   ssoMemberIds: string[];
+  /**
+   * Members on the SSO domain whose email was never verified: their first SSO
+   * sign-in secures the account (claimUnverifiedAccount), removing their
+   * password, two-factor, API keys and app connections.
+   */
+  unverifiedDomainMemberCount: number;
 }
 
 /** A stored JSON config column; null when empty or unparsable. */
@@ -277,7 +287,9 @@ export async function getWorkspaceSso(workspaceId: string): Promise<WorkspaceSso
     .leftJoin(ssoProviders, eq(ssoProviders.providerId, workspaceSso.ssoProviderId))
     .where(eq(workspaceSso.workspaceId, workspaceId))
     .limit(1);
-  if (!link) return { enforced: false, scimConfigured: false, provider: null, ssoMemberIds: [] };
+  if (!link) {
+    return { enforced: false, scimConfigured: false, provider: null, ssoMemberIds: [], unverifiedDomainMemberCount: 0 };
+  }
 
   let provider: WorkspaceSsoView['provider'] = null;
   if (link.providerId && link.domain && link.issuer) {
@@ -312,12 +324,22 @@ export async function getWorkspaceSso(workspaceId: string): Promise<WorkspaceSso
         )
         .where(eq(accounts.providerId, provider.providerId))
     : [];
+  const unverified = provider
+    ? await db
+        .select({ email: users.email })
+        .from(workspaceMembers)
+        .innerJoin(users, eq(users.id, workspaceMembers.userId))
+        .where(and(eq(workspaceMembers.workspaceId, workspaceId), eq(users.emailVerified, false)))
+    : [];
 
   return {
     enforced: link.enforced && !!provider,
     scimConfigured: !!link.scimProviderId,
     provider,
     ssoMemberIds: ssoMembers.map((m) => m.userId),
+    unverifiedDomainMemberCount: provider
+      ? unverified.filter((m) => domainMatches(emailDomain(m.email), provider.domain)).length
+      : 0,
   };
 }
 
@@ -510,8 +532,10 @@ export async function assertIdentityDomain(
  * Someone who proves they own an UNVERIFIED account's address (a workspace IdP
  * on a DNS-proven domain linking to it, or a completed password reset)
  * claims the account. Whoever registered the address before them may not own
- * it, so everything they could have planted to keep a way in, or to keep
- * receiving the account's data, goes, in one transaction:
+ * it (and before email verification existed, no password account was
+ * verified, so the app can't tell), so everything they could have planted to
+ * keep a way in, or to keep receiving the account's data, goes, in one
+ * transaction (the words for each: src/lib/account-claim.ts):
  *
  * - every session;
  * - the password, unless `keepPassword` (a reset has just replaced it);
@@ -519,49 +543,171 @@ export async function assertIdentityDomain(
  *   identities stay: an IdP on a proven domain vouched for those, and the
  *   claimer just proved the one being linked);
  * - two-factor enrolment and its backup codes (users.two_factor_enabled off);
- * - API keys; OAuth apps the account registered, and every OAuth consent,
- *   access and refresh token it granted (authorized apps, MCP connectors);
- * - Slack DM links and web-push subscriptions (they deliver its notifications).
+ * - API keys; every OAuth consent, access and refresh token the account
+ *   granted (authorized apps, MCP connectors);
+ * - OAuth apps the account registered are DISABLED, not deleted: other
+ *   people's connections to them stop, but nothing is lost and an admin can
+ *   turn them back on (oauth_client.disabled);
+ * - Slack DM links and web-push subscriptions (they deliver its notifications);
+ * - pending invitations it sent (a project share link or a workspace invite
+ *   would let a previous holder bring a second account back in).
  *
  * Kept: the user row and profile, workspace / project memberships (they came
  * from invitations accepted while signed in; a workspace admin can remove
- * them), and the content it wrote. Then the address is marked verified. The
- * caller has already decided the account was unverified.
+ * them), webhooks and integrations (workspace data, listed for review in the
+ * email), and the content it wrote. Then the address is marked verified, a
+ * one-time dashboard notice is stored, the audit log gets the counts, and the
+ * "Your account was secured" email goes out. Stateless OAuth JWT access
+ * tokens already issued stay valid until they expire (at most an hour).
+ *
+ * The caller has already decided the account was unverified. Throws if the
+ * transaction fails (nothing is removed then, and the account stays
+ * unverified, so the next claim tries again).
  */
 export async function claimUnverifiedAccount(
   userId: string,
-  { keepPassword, via }: { keepPassword: boolean; via: 'sso' | 'password_reset' },
-) {
-  const plantedIdentities = and(
-    eq(accounts.userId, userId),
-    notLike(accounts.providerId, `${SSO_PREFIX}%`),
-    notLike(accounts.providerId, `${SCIM_PREFIX}%`),
-    ...(keepPassword ? [ne(accounts.providerId, 'credential')] : []),
-  );
-  await db.batch([
-    db.delete(sessions).where(eq(sessions.userId, userId)),
-    db.delete(accounts).where(plantedIdentities),
-    db.delete(twoFactors).where(eq(twoFactors.userId, userId)),
-    db.delete(apiKeys).where(eq(apiKeys.userId, userId)),
-    db.delete(oauthAccessTokens).where(eq(oauthAccessTokens.userId, userId)),
-    db.delete(oauthRefreshTokens).where(eq(oauthRefreshTokens.userId, userId)),
-    db.delete(oauthConsents).where(eq(oauthConsents.userId, userId)),
-    db.delete(oauthClients).where(eq(oauthClients.userId, userId)),
-    db.delete(slackUserLinks).where(eq(slackUserLinks.userId, userId)),
-    db.delete(pushSubscriptions).where(eq(pushSubscriptions.userId, userId)),
-    db
-      .update(users)
-      .set({ emailVerified: true, twoFactorEnabled: false, updatedAt: new Date() })
-      .where(eq(users.id, userId)),
-  ]);
+  { keepPassword, via }: { keepPassword: boolean; via: ClaimVia },
+): Promise<ClaimReport> {
+  const at = new Date();
+  const scope = claimScope(userId, keepPassword, at);
+  // The report is what each statement really removed (RETURNING), so the
+  // notice and the email never list something that wasn't there.
+  const [, identities, twoFactor, keys, access, refresh, consents, apps, slack, push, projectInvites, workspaceInvites, [user]] =
+    await db.batch([
+      db.delete(sessions).where(eq(sessions.userId, userId)),
+      db.delete(accounts).where(scope.identities).returning({ providerId: accounts.providerId }),
+      db.delete(twoFactors).where(eq(twoFactors.userId, userId)).returning({ id: twoFactors.id }),
+      db.delete(apiKeys).where(eq(apiKeys.userId, userId)).returning({ id: apiKeys.id }),
+      db
+        .delete(oauthAccessTokens)
+        .where(eq(oauthAccessTokens.userId, userId))
+        .returning({ clientId: oauthAccessTokens.clientId }),
+      db
+        .delete(oauthRefreshTokens)
+        .where(eq(oauthRefreshTokens.userId, userId))
+        .returning({ clientId: oauthRefreshTokens.clientId }),
+      db.delete(oauthConsents).where(eq(oauthConsents.userId, userId)).returning({ clientId: oauthConsents.clientId }),
+      db
+        .update(oauthClients)
+        .set({ disabled: true, updatedAt: at })
+        .where(scope.enabledApps)
+        .returning({ clientId: oauthClients.clientId }),
+      db.delete(slackUserLinks).where(eq(slackUserLinks.userId, userId)).returning({ userId: slackUserLinks.userId }),
+      db.delete(pushSubscriptions).where(eq(pushSubscriptions.userId, userId)).returning({ id: pushSubscriptions.id }),
+      db.delete(invitations).where(scope.projectInvites).returning({ id: invitations.id }),
+      db.delete(workspaceInvitations).where(scope.workspaceInvites).returning({ id: workspaceInvitations.id }),
+      db
+        .update(users)
+        .set({ emailVerified: true, twoFactorEnabled: false, updatedAt: at })
+        .where(eq(users.id, userId))
+        .returning({ email: users.email }),
+    ]);
+  const removed = claimReport({
+    identities,
+    twoFactor,
+    apiKeys: keys,
+    appGrants: [...access, ...refresh, ...consents],
+    oauthApps: apps,
+    slack,
+    push,
+    invitations: [...projectInvites, ...workspaceInvites],
+  });
+  const notice = { via, at: at.toISOString(), removed };
+  // Written after the claim committed (its content is the claim's result);
+  // losing the notice must not undo the claim.
+  try {
+    await db.batch(claimNoticeWrites(userId, notice));
+  } catch (err) {
+    console.error('[sso] failed to store the account-claimed notice', err);
+  }
   await recordUserSecurityEvent(userId, {
     actorId: userId,
     type: 'security.account_claimed',
     summary:
       via === 'sso'
-        ? 'claimed an unverified account through single sign-on; other sign-in methods, sessions, two-factor, API keys and app access were removed'
-        : 'claimed an unverified account by resetting its password; other sign-in methods, sessions, two-factor, API keys and app access were removed',
+        ? 'secured an unverified account through single sign-on; sessions, other sign-in methods, two-factor, API keys and app access were removed'
+        : 'secured an unverified account by resetting its password; sessions, other sign-in methods, two-factor, API keys and app access were removed',
+    data: { via, removed },
   });
+  if (user) sendAccountSecuredEmail(user.email, notice);
+  return removed;
+}
+
+/** What a claim of `userId` would remove (the reset page's warning). Read-only. */
+export async function claimInventory(userId: string, { keepPassword }: { keepPassword: boolean }): Promise<ClaimReport> {
+  const scope = claimScope(userId, keepPassword, new Date());
+  const [identities, twoFactor, keys, access, refresh, consents, apps, slack, push, projectInvites, workspaceInvites] =
+    await db.batch([
+      db.select({ providerId: accounts.providerId }).from(accounts).where(scope.identities),
+      db.select({ id: twoFactors.id }).from(twoFactors).where(eq(twoFactors.userId, userId)),
+      db.select({ id: apiKeys.id }).from(apiKeys).where(eq(apiKeys.userId, userId)),
+      db.select({ clientId: oauthAccessTokens.clientId }).from(oauthAccessTokens).where(eq(oauthAccessTokens.userId, userId)),
+      db
+        .select({ clientId: oauthRefreshTokens.clientId })
+        .from(oauthRefreshTokens)
+        .where(eq(oauthRefreshTokens.userId, userId)),
+      db.select({ clientId: oauthConsents.clientId }).from(oauthConsents).where(eq(oauthConsents.userId, userId)),
+      db.select({ clientId: oauthClients.clientId }).from(oauthClients).where(scope.enabledApps),
+      db.select({ userId: slackUserLinks.userId }).from(slackUserLinks).where(eq(slackUserLinks.userId, userId)),
+      db.select({ id: pushSubscriptions.id }).from(pushSubscriptions).where(eq(pushSubscriptions.userId, userId)),
+      db.select({ id: invitations.id }).from(invitations).where(scope.projectInvites),
+      db.select({ id: workspaceInvitations.id }).from(workspaceInvitations).where(scope.workspaceInvites),
+    ]);
+  return claimReport({
+    identities,
+    twoFactor,
+    apiKeys: keys,
+    appGrants: [...access, ...refresh, ...consents],
+    oauthApps: apps,
+    slack,
+    push,
+    invitations: [...projectInvites, ...workspaceInvites],
+  });
+}
+
+/** The rows a claim touches beyond "everything of this user" (shared by the claim and its preview). */
+function claimScope(userId: string, keepPassword: boolean, at: Date) {
+  const pending = (table: typeof invitations | typeof workspaceInvitations) =>
+    and(eq(table.invitedById, userId), isNull(table.acceptedAt), gt(table.expiresAt, at));
+  return {
+    identities: and(
+      eq(accounts.userId, userId),
+      notLike(accounts.providerId, `${SSO_PREFIX}%`),
+      notLike(accounts.providerId, `${SCIM_PREFIX}%`),
+      ...(keepPassword ? [ne(accounts.providerId, 'credential')] : []),
+    ),
+    enabledApps: and(eq(oauthClients.userId, userId), or(isNull(oauthClients.disabled), eq(oauthClients.disabled, false))),
+    projectInvites: pending(invitations),
+    workspaceInvites: pending(workspaceInvitations),
+  };
+}
+
+function claimReport(rows: {
+  identities: { providerId: string }[];
+  twoFactor: unknown[];
+  apiKeys: unknown[];
+  appGrants: { clientId: string }[];
+  oauthApps: unknown[];
+  slack: unknown[];
+  push: unknown[];
+  invitations: unknown[];
+}): ClaimReport {
+  return {
+    password: rows.identities.filter((a) => a.providerId === 'credential').length,
+    twoFactor: rows.twoFactor.length > 0 ? 1 : 0,
+    apiKeys: rows.apiKeys.length,
+    connectedApps: new Set(rows.appGrants.map((r) => r.clientId)).size,
+    linkedSignIns: rows.identities.filter((a) => a.providerId !== 'credential').length,
+    oauthApps: rows.oauthApps.length,
+    slack: rows.slack.length,
+    push: rows.push.length,
+    invitations: rows.invitations.length,
+  };
+}
+
+/** Signs the account out everywhere (a claim that failed still must not leave sessions behind). */
+export async function revokeAllSessions(userId: string) {
+  await db.delete(sessions).where(eq(sessions.userId, userId));
 }
 
 /**
@@ -569,29 +715,44 @@ export async function claimUnverifiedAccount(
  * workspace. Linking SSO to an existing account whose email was never
  * verified claims it (claimUnverifiedAccount, password dropped): whoever
  * registered the address without owning it (pre-account takeover) loses
- * access; the IdP now vouches.
+ * access; the IdP now vouches. If that claim fails, the sign-in fails closed:
+ * every session is revoked and the new SSO link removed, so the next SSO
+ * sign-in links (and claims) again.
  */
 export async function onIdentityCreated(account: { providerId: string; userId: string }) {
+  const sso = isSsoProviderId(account.providerId);
+  const link = sso ? await ssoLink(account.providerId) : null;
+  // Membership first, so the claim's audit row lands in this workspace too.
   try {
-    if (isSsoProviderId(account.providerId)) {
-      const link = await ssoLink(account.providerId);
-      if (!link) return;
-      const [user] = await db
-        .select({ emailVerified: users.emailVerified, createdAt: users.createdAt })
-        .from(users)
-        .where(eq(users.id, account.userId))
-        .limit(1);
-      // Older than a minute = an existing account being linked, not a new SSO user.
-      if (user && !user.emailVerified && Date.now() - user.createdAt.getTime() > 60_000) {
-        await claimUnverifiedAccount(account.userId, { keepPassword: false, via: 'sso' });
-      }
+    if (link) {
       await addWorkspaceMember(link.workspaceId, account.userId, 'sso');
     } else if (isScimProviderId(account.providerId)) {
-      const link = await scimLink(account.providerId);
-      if (link) await addWorkspaceMember(link.workspaceId, account.userId, 'scim');
+      const scim = await scimLink(account.providerId);
+      if (scim) await addWorkspaceMember(scim.workspaceId, account.userId, 'scim');
     }
   } catch (err) {
     console.error('[sso] failed to add member after identity link', err);
+  }
+  if (!link) return;
+  const [user] = await db
+    .select({ emailVerified: users.emailVerified, createdAt: users.createdAt })
+    .from(users)
+    .where(eq(users.id, account.userId))
+    .limit(1);
+  // Older than a minute = an existing account being linked, not a new SSO user.
+  if (!user || user.emailVerified || Date.now() - user.createdAt.getTime() <= 60_000) return;
+  try {
+    await claimUnverifiedAccount(account.userId, { keepPassword: false, via: 'sso' });
+  } catch (err) {
+    console.error('[sso] securing an unverified account failed; refusing the sign-in', err);
+    await revokeAllSessions(account.userId);
+    await db
+      .delete(accounts)
+      .where(and(eq(accounts.userId, account.userId), eq(accounts.providerId, account.providerId)));
+    throw APIError.from('INTERNAL_SERVER_ERROR', {
+      code: ACCOUNT_CLAIM_FAILED,
+      message: 'Couldn’t finish securing this account. Try signing in with SSO again.',
+    });
   }
 }
 

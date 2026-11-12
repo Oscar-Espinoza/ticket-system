@@ -31,6 +31,7 @@ import { oauthProvider } from '@better-auth/oauth-provider';
 import { scim } from '@better-auth/scim';
 import { sso } from '@better-auth/sso';
 import { MIN_PASSWORD_LENGTH } from '@/lib/auth-rules';
+import { after } from '@/lib/kit/request';
 import { socialProviderOptions } from '@/lib/auth-providers';
 import {
   emailVerificationAvailable,
@@ -47,6 +48,8 @@ import {
   onPasswordReset,
   passwordResetRequestBody,
   resendVerificationBody,
+  resetResponseWithClaim,
+  unverifiedSignInBody,
   verifyingSignInContext,
   verifyLinkRedirect,
 } from '@/lib/server/email-proof';
@@ -195,7 +198,15 @@ export const auth = betterAuth({
   // overwrites this header on every /api/auth request with the address
   // SvelteKit resolved (the socket peer, or ADDRESS_HEADER / XFF_DEPTH behind
   // a proxy; Vercel's edge on Vercel), so a caller can't pick its own bucket.
-  advanced: { ipAddress: { ipAddressHeaders: [CLIENT_IP_HEADER] } },
+  advanced: {
+    ipAddress: { ipAddressHeaders: [CLIENT_IP_HEADER] },
+    // Better Auth's sends (reset links, verification links) run after the
+    // response (Vercel waitUntil / the Node process; src/lib/kit/request.ts):
+    // a known address's reset request otherwise waited for the cooldown
+    // claim and Resend while an unknown one answered at once, so the time
+    // told which addresses have accounts.
+    backgroundTasks: { handler: after },
+  },
   account: {
     // AES-256-GCM at rest, since linked tokens can carry `repo` scope. Rows
     // written before this stay plaintext and still read fine.
@@ -301,6 +312,8 @@ export const auth = betterAuth({
         }
         const override = await verifyingSignInContext(ctx);
         if (override) return { context: { context: override } };
+        const pinned = await unverifiedSignInBody(ctx);
+        if (pinned) return { context: { body: pinned } };
         return;
       }
       if (ctx.path === '/update-user') {
@@ -341,6 +354,11 @@ export const auth = betterAuth({
       if (override) return { context: { context: override } };
     }),
     after: createAuthMiddleware(async (ctx) => {
+      if (ctx.path === '/reset-password') {
+        const body = resetResponseWithClaim(ctx);
+        if (body) return ctx.json(body);
+        return;
+      }
       if (ctx.path === '/oauth2/register' && ctx.context.returned && !isAPIError(ctx.context.returned)) {
         await markDynamicClient((ctx.context.returned as { client_id?: unknown }).client_id);
         return;

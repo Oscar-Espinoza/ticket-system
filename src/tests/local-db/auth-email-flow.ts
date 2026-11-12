@@ -11,7 +11,9 @@ import { eq } from 'drizzle-orm';
 import { vi } from 'vitest';
 
 import { auth } from '@/lib/auth';
+import { ACCOUNT_CLAIM_ACK_FIELD } from '@/lib/account-claim';
 import { db } from '@/lib/db';
+import { POST as previewEndpoint } from '../../routes/api/password-reset/preview/+server';
 import { accounts, sessions, users } from '@/db/schema';
 import { authRequest } from '../mcp/oauth-flow';
 
@@ -36,6 +38,19 @@ const unsignedJwt = (claims: Record<string, unknown>) =>
     .map((part) => Buffer.from(JSON.stringify(part)).toString('base64url'))
     .join('.') + '.';
 
+/** While set, Resend calls wait for it (to see what a request answers before its email is sent). */
+let resendGate: Promise<void> | null = null;
+
+/** Holds every Resend call until the returned function is called. */
+export function holdResend(): () => void {
+  let release!: () => void;
+  resendGate = new Promise((resolve) => (release = resolve));
+  return () => {
+    resendGate = null;
+    release();
+  };
+}
+
 export function stubOutboundHttp() {
   const realFetch = globalThis.fetch;
   const proxyHost = process.env.NEON_PROXY_HOST;
@@ -43,6 +58,7 @@ export function stubOutboundHttp() {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
     if (proxyHost && new URL(url).host === proxyHost) return realFetch(input, init);
     if (url === 'https://api.resend.com/emails') {
+      if (resendGate) await resendGate;
       sent.push(JSON.parse(String(init?.body)));
       return Response.json({ id: `email-${sent.length}` });
     }
@@ -119,12 +135,24 @@ export function resetTokenFor(email: string): string {
   return decodeURIComponent(match[2]);
 }
 
-export function resetPassword(token: string, newPassword: string) {
+/** POST /reset-password; `acknowledge` sends the "remove these and secure the account" confirmation. */
+export function resetPassword(token: string, newPassword: string, acknowledge = false) {
   return authRequest('/reset-password', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ token, newPassword }),
+    body: JSON.stringify({ token, newPassword, ...(acknowledge ? { [ACCOUNT_CLAIM_ACK_FIELD]: true } : {}) }),
   });
+}
+
+/** The reset page's question (src/routes/api/password-reset/preview), through its real handler. */
+export async function resetPreview(token: unknown): Promise<unknown> {
+  const request = new Request('http://localhost:3000/api/password-reset/preview', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ token }),
+  });
+  const response = await previewEndpoint({ request } as Parameters<typeof previewEndpoint>[0]);
+  return response.json();
 }
 
 export const emailsTo = (email: string) => sent.filter((m) => m.to.includes(email));

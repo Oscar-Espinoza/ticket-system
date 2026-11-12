@@ -4,6 +4,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 
 import { auth } from '@/lib/auth';
+import { afterSettled } from '@/lib/kit/request';
 import { mcpUrl } from '@/lib/server/mcp/urls';
 
 export const AUTH_ORIGIN = new URL(process.env.BETTER_AUTH_URL ?? 'http://localhost:3000').origin;
@@ -17,11 +18,18 @@ function cookieHeader(response: Response): string {
     .join('; ');
 }
 
+/**
+ * One request to Better Auth's handler. Returns once its after-response work
+ * (emails sent in the background, src/lib/kit/request.ts after) has finished
+ * too, so a test sees what the request caused.
+ */
 export async function authRequest(path: string, init: RequestInit & { cookie?: string } = {}) {
   const headers = new Headers(init.headers);
   headers.set('origin', AUTH_ORIGIN);
   if (init.cookie) headers.set('cookie', init.cookie);
-  return auth.handler(new Request(`${API}${path}`, { ...init, headers }));
+  const response = await auth.handler(new Request(`${API}${path}`, { ...init, headers }));
+  await afterSettled();
+  return response;
 }
 
 export async function signUp(label: string): Promise<{ cookie: string; userId: string; email: string }> {

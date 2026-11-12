@@ -58,7 +58,8 @@
           its way. It works once, for an hour. Check your spam folder too; you can ask again in a minute.
         {:else}
           We’ll email you a link to choose a new password. Resetting signs out every session of the account and
-          verifies its address.
+          verifies its address. If the address was never verified, it also removes two-factor, API keys and
+          connected apps; the link’s page lists them before you confirm.
         {/if}
       </CardDescription>
     </CardHeader>

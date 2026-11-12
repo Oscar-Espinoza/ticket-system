@@ -11,6 +11,9 @@ export async function headers(): Promise<Headers> {
   return getRequestEvent().request.headers;
 }
 
+/** after() tasks not finished yet. */
+const inFlight = new Set<Promise<unknown>>();
+
 /**
  * after(task): run work after the response. Vercel functions keep it alive
  * through @vercel/functions' waitUntil; on Node (adapter-node) the process
@@ -19,7 +22,10 @@ export async function headers(): Promise<Headers> {
  */
 export function after(task: Promise<unknown> | (() => unknown)): void {
   const run = typeof task === 'function' ? Promise.resolve().then(task) : task;
-  const guarded = Promise.resolve(run).catch((err) => console.error('[after] task failed', err));
+  const guarded = Promise.resolve(run)
+    .catch((err) => console.error('[after] task failed', err))
+    .finally(() => inFlight.delete(guarded));
+  inFlight.add(guarded);
   // adapter-vercel passes no platform context, so register with Vercel's own
   // request context; outside Vercel this is a no-op and Node simply runs the
   // promise on.
@@ -28,6 +34,14 @@ export function after(task: Promise<unknown> | (() => unknown)): void {
   } catch {
     // not inside a Vercel request (adapter-node, cron, boot)
   }
+}
+
+/**
+ * Resolves once every after() task started so far (and any they start) has
+ * finished. For tests that assert what after-response work did.
+ */
+export async function afterSettled(): Promise<void> {
+  while (inFlight.size > 0) await Promise.all([...inFlight]);
 }
 
 export function redirect(location: string): never {

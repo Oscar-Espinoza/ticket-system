@@ -85,7 +85,7 @@ export async function sendPasswordReset({
   url,
   token,
 }: {
-  user: { id: string; email: string };
+  user: { id: string; email: string; emailVerified?: boolean };
   url: string;
   token: string;
 }): Promise<void> {
