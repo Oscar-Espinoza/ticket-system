@@ -4,13 +4,13 @@
 // unused or stale ones cleaned up daily. Needs a local Postgres
 // (LOCAL_DB_TESTS=1).
 import { describe, expect, it } from 'vitest';
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import { auth } from '@/lib/auth';
 import { oauthAccessTokens, oauthClients, oauthConsents } from '@/db/schema';
-import { run as cleanup } from '@/lib/cron/jobs/oauth-dcr-cleanup';
-import { isDynamicClient } from '@/lib/server/mcp/register';
+import { BATCH as CLEANUP_BATCH, run as cleanup } from '@/lib/cron/jobs/oauth-dcr-cleanup';
+import { DYNAMIC_REGISTRATION, isDynamicClient } from '@/lib/server/mcp/register';
 import { localDb } from '../local-db/guard';
 import { authRequest, register, signUp } from './oauth-flow';
 
@@ -35,6 +35,8 @@ describe.skipIf(!localDb)('MCP dynamic client registration', () => {
     'https://chatgpt.com/connector/oauth/abc123_DEF-9',
     'http://localhost:53122/callback',
     'http://127.0.0.1:6274/oauth/callback',
+    'http://localhost:1234',
+    'http://127.0.0.1:1234',
   ])('registers a public, dynamic client for %s', async (redirect) => {
     const res = await register(publicClient(redirect));
     expect(res.status).toBe(200);
@@ -57,6 +59,29 @@ describe.skipIf(!localDb)('MCP dynamic client registration', () => {
     'http://localhost\\@evil.com/cb',
     'HTTP://localhost:3000/callback',
     'http://localhost:3000/a/../callback',
+    // The no-path exception is for loopback only, and only for the bare form.
+    'http://localhost.:1234',
+    'https://claude.ai',
+    'http://localhost:1234?next=https://evil.example',
+    // Forms probed in review round 1 (already refused; pinned here).
+    'http://localhost.example.com:1234/cb',
+    'http://127.0.0.1.example.com:1234/cb',
+    'http://localhost:1234@example.com/cb',
+    'http://localhost\\@example.com/cb',
+    'http://[::1]:1234/cb',
+    'http://LOCALHOST:1234/cb',
+    'http://localhost:80/cb',
+    'http://localhost:01234/cb',
+    'http://127.1:1234/cb',
+    'http://0x7f000001:1234/cb',
+    'http://2130706433:1234/cb',
+    ' http://localhost:1234/cb',
+    'http://localhost:1234/cb ',
+    'http://localhost:1234?',
+    'http://localhost:1234#',
+    'http://localhost:1234/cb#',
+    'https://localhost:1234',
+    'https://claude.ai/api/mcp/auth_callback/',
   ])('refuses the redirect %s', async (redirect) => {
     const res = await register(publicClient(redirect));
     expect(res.status).toBe(400);
@@ -186,5 +211,25 @@ describe.skipIf(!localDb)('MCP dynamic client registration', () => {
     expect(await stored(consented)).toBeDefined();
     expect(await stored(withToken)).toBeDefined();
     expect(await stored(manual)).toBeDefined();
+  });
+
+  it('keeps deleting past one batch in a run', async () => {
+    const old = new Date(Date.now() - 2 * 86_400_000);
+    const ids = Array.from({ length: CLEANUP_BATCH + 1 }, () => `junk-${crypto.randomUUID()}`);
+    await db.insert(oauthClients).values(
+      ids.map((clientId) => ({
+        id: crypto.randomUUID(),
+        clientId,
+        name: 'Junk',
+        redirectUris: ['http://localhost:4100/cb'],
+        public: true,
+        metadata: { registration: DYNAMIC_REGISTRATION },
+        createdAt: old,
+        updatedAt: old,
+      })),
+    );
+    await cleanup(new Date());
+    const left = await db.select({ id: oauthClients.id }).from(oauthClients).where(inArray(oauthClients.clientId, ids));
+    expect(left).toEqual([]);
   });
 });

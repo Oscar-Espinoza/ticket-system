@@ -14,8 +14,8 @@ Connect an AI assistant**.
 | Tool | Needs | What it does |
 |---|---|---|
 | `list_projects` | read | Projects you can reach, with key and open issue count |
-| `search_issues` | read | Full-text search with filters (`assignee:me label:bug priority:high state:started is:open`) |
-| `list_issues` | read | One project's issues: state, assignee, label, updated since, paging, group by state |
+| `search_issues` | read | Full-text search with filters (`assignee:me waiting:me followup:overdue label:bug priority:high state:started is:open`) |
+| `list_issues` | read | One project's issues: state, assignee, waiting on, follow-up date, label, updated since, paging, group by state |
 | `my_work` | read | Your open issues across projects, most urgent first |
 | `get_issue` | read | One issue with recent comments, sub-issues and relations |
 | `get_project_overview` | read | Counts by state, current cycle progress and burndown, recent issues |
@@ -23,25 +23,52 @@ Connect an AI assistant**.
 | `get_project_metadata` | read | Valid states, labels, members, cycles and epics |
 | `list_inbox` | read | Your notifications |
 | `create_issue` | write | Create an issue |
-| `update_issue` | write | Change title, description, state, priority, assignee, labels, estimate, due date, cycle, epic |
+| `update_issue` | write | Change title, description, state, priority, assignee, waiting on, labels, estimate, due date, follow-up date, cycle, epic |
 | `add_comment` | write | Comment on an issue |
 
 Nothing else: no deleting, archiving, moving, bulk edits, members, roles,
 settings or integrations. Every write is recorded in the audit log as
 `mcp.tool_call` with the assistant's name (workspace or team → Audit log,
-category Integrations). The assistant acts with your own permissions: it sees
+category Integrations), and so is every refused or failed write attempt, e.g.
+"tried to update WEB-12 through Claude (MCP), denied: their role has no write
+access". `data.outcome` is `success`, `denied` (no write permission on the
+connection, a role without write access, AI connectors blocked), `invalid`
+(input that didn't resolve or that the issue service refused) or `failed`
+(server error), with a `reason` code. The rows hold the tool, the client and the
+issue key, never the issue content the call sent. Only attempts by members of
+the team are recorded in its log: an attempt by someone who isn't a member, or
+at a team or issue that doesn't exist, leaves no row in any team's log (only a
+line in the server log), so outsiders can't put their name or a client name of
+their choosing into your log.
+Inputs that don't match a tool's schema are refused by the MCP library before
+the tool runs and aren't audited. The assistant acts with your own permissions: it sees
 only projects you are a member of, and a guest can still only read and comment.
+
+**Waiting on and follow-up.** `create_issue` and `update_issue` take
+`waiting_on` (`me`, `none`, or a member's name, email or id, like `assignee`;
+someone outside the project is refused with the list of members) and
+`follow_up` (`YYYY-MM-DD`, `null` clears it). Issues in every result carry
+`waitingOn` and `followUp`; list lines show "waiting on Grace" and "follow up
+2026-11-20", or "follow-up due 2026-11-10" once the date has arrived (server
+date), which is how `my_work` shows follow-ups that are due. `list_issues`
+filters with `waiting_on` (same values) and `follow_up` (`overdue`, `today`,
+`week`, `next-week`, `none`, or a date with `<`, `<=`, `>`, `>=`), the same
+values and code as REST `GET /api/v1/projects/:id/issues` ([API.md](API.md)).
 
 Hosts ask before `update_issue` runs (it is marked as overwriting data).
 `create_issue` takes an optional `request_id` (a UUID the assistant picks): a
 retry with the same one returns the issue already created instead of a second
-copy. If the audit row can't be written after a successful change, the change
+copy, and only the call that created it is audited (also when two calls with
+the same id race: the issue service reports which one replayed). If the audit row can't be written after a successful change, the change
 stands and the failure is logged (an error would make the assistant retry and
 duplicate it).
 
 Issue text is written by people and may contain instructions; the server tells
 the model to treat it as data, text results put descriptions and comment
-bodies in fenced `user-content` blocks the text can't close, and the write
+bodies in fenced `user-content` blocks the text can't close, and titles,
+people's names, search snippets and notification lines on one line, inside an
+inline code span when they contain Markdown (plain text is left as it is, to
+keep lists compact; `structuredContent` is never altered), and the write
 limits above apply regardless. One JSON-RPC message per request: batches
 (arrays) are refused with HTTP 400.
 
@@ -126,9 +153,14 @@ the office network works with Claude Code (it connects from the user's machine)
 but not with claude.ai or ChatGPT. Options: the Vercel deployment, a reverse
 proxy that exposes only the paths above, or a tunnel (`cloudflared`) for
 testing. `PUBLIC_APP_URL` / `BETTER_AUTH_URL` must both be that public URL:
-the token audience, the metadata and the token issuer are built from them. If
-they differ, the server logs `[mcp] MCP is misconfigured: …` once and `/mcp`
-and the protected-resource documents answer 500 with the same message.
+the token audience, the metadata and the token issuer are built from them. They
+are compared after normalising (letter case, the default port, a trailing
+slash), but use the canonical form anyway: lowercase host, `https` unless
+`localhost`, no default port, no trailing slash (Better Auth does not rewrite
+the issuer consistently). If they differ, the server logs `[mcp] MCP is misconfigured: …` with
+both URLs once, and `/mcp` and the protected-resource documents answer 500
+with a generic message (the URLs may name internal hosts, so callers don't
+see them).
 
 **Client registration.** Claude and ChatGPT register themselves (OAuth dynamic
 client registration). Only public clients (PKCE, no secret) with these redirect
@@ -140,7 +172,7 @@ says `token_endpoint_auth_method: none` (RFC 7591 §3.2.1); other methods and
 
 - `https://claude.ai/api/mcp/auth_callback`
 - `https://chatgpt.com/connector_platform_oauth_redirect` and `https://chatgpt.com/connector/oauth/<id>`
-- `http://localhost:<port>/…` and `http://127.0.0.1:<port>/…` (Claude Code, MCP Inspector)
+- `http://localhost:<port>/…` and `http://127.0.0.1:<port>/…` (Claude Code, MCP Inspector), also with no path (`http://localhost:<port>`)
 - anything listed in `MCP_EXTRA_REDIRECT_URIS` (comma- or space-separated, exact match)
 
 Homepage, logo, terms and privacy URLs (`client_uri`, `logo_uri`, `tos_uri`,
@@ -161,10 +193,21 @@ header the caller sends:
 - **Behind a reverse proxy**: set `ADDRESS_HEADER=X-Forwarded-For` and
   `XFF_DEPTH` to the number of proxies (see
   [SELF_HOSTING.md](SELF_HOSTING.md)). Without them every caller shares the
-  proxy's single limit (strict, not open).
+  proxy's single limit (strict, not open); the server logs one `[auth] Sign-in
+  requests arrive from <address>, a private or loopback address, and
+  ADDRESS_HEADER is not set` warning when it sees that.
 - **Vercel**: the address Vercel's edge puts in `X-Forwarded-For`; nothing to
   set. The counter lives in each function instance's memory, so the limit is
   per instance: a speed bump against floods, not a guarantee.
+
+**Calls per connection.** Each connection (one user with one assistant, or
+one user with one API key) may make 120 MCP requests a minute; a burst up to
+that passes, then requests flow at two a second. Over it, `/mcp` answers HTTP
+429 with `Retry-After` and a JSON-RPC error. Set `MCP_RATE_LIMIT_PER_MINUTE` to
+change it (`0` turns it off). Like the registration limit, the counter is in
+memory, so it is per instance (each Vercel function instance or Docker replica
+counts on its own). It is per connection, not per person: someone with several
+API keys or assistants gets the allowance once for each.
 
 ## Troubleshooting
 

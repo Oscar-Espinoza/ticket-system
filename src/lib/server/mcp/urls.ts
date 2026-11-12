@@ -5,22 +5,22 @@
 // so they agree byte for byte. Server-only, no imports of auth.ts (auth.ts
 // imports this file).
 //
-// One source: the resource (`<app URL>/mcp`) and the authorization server we
-// advertise (`<app URL>/api/auth`) both come from the app URL, and
-// `mcpConfig()` refuses to serve when Better Auth's own base URL (the token
-// issuer) is somewhere else: clients would fetch metadata whose issuer doesn't
-// match and fail in ways that are hard to trace.
+// One place: the resource (`<app URL>/mcp`) comes from the app URL; the
+// authorization server we advertise is Better Auth's base URL as Better Auth
+// itself holds it at runtime (`tokenIssuer()` in ./auth.ts, the `iss` of its
+// tokens), and `mcpConfig()` refuses to serve when the two aren't the same
+// site: clients would fetch metadata from one host for an issuer on another
+// and fail in ways that are hard to trace. The comparison forgives letter
+// case, a default port and a trailing slash, but Better Auth doesn't rewrite
+// its base URL that way (its OAuth metadata even upgrades http to https for a
+// non-loopback host while tokens keep the raw URL): set PUBLIC_APP_URL and
+// BETTER_AUTH_URL to the canonical form (docs/SELF_HOSTING.md).
 
 import { appUrl, authBaseUrl } from '@/lib/integrations/app-url';
 
 /** `<origin>/mcp`. */
 export function mcpUrl(): string {
   return `${appUrl()}/mcp`;
-}
-
-/** The authorization server `/mcp` advertises (RFC 9728 `authorization_servers`). */
-export function mcpAuthorizationServer(): string {
-  return `${appUrl()}/api/auth`;
 }
 
 /** RFC 9728 metadata URL for the MCP resource (path-suffixed form). */
@@ -30,26 +30,41 @@ export function protectedResourceMetadataUrl(): string {
 
 export type McpConfig = { ok: true } | { ok: false; error: string };
 
-let reported = false;
+/** What unauthenticated callers see: the URLs may name internal hosts, so they stay in the log. */
+export const MCP_MISCONFIGURED = 'MCP is not configured correctly on this server; the administrator can find the details in the server log.';
+
+let reported: string | null = null;
+
+/** `https://Tickets.example.com:443/api/auth/` → `https://tickets.example.com/api/auth`; null if not a URL. */
+function normalized(url: string): string | null {
+  try {
+    const parsed = new URL(url);
+    return `${parsed.origin}${parsed.pathname.replace(/\/+$/, '')}`;
+  } catch {
+    return null;
+  }
+}
 
 /**
- * Whether the advertised authorization server is the one that issues tokens
- * (Better Auth's base URL). When PUBLIC_APP_URL and BETTER_AUTH_URL point at
- * different places it logs one clear error and the MCP routes answer 500 with
- * the same message.
+ * Whether the app (where `/mcp` and its metadata live) and Better Auth (which
+ * issues the tokens) share one URL, compared after normalising (letter case,
+ * default port, trailing slash). When PUBLIC_APP_URL and BETTER_AUTH_URL point
+ * at different places it logs the two URLs once and the MCP routes answer 500
+ * with a generic message.
  */
 export function mcpConfig(): McpConfig {
-  const advertised = mcpAuthorizationServer();
+  const expected = `${appUrl()}/api/auth`;
   const issuer = authBaseUrl();
-  if (advertised === issuer) return { ok: true };
-  const error =
-    `MCP is misconfigured: the app URL (PUBLIC_APP_URL → ${advertised}) and Better Auth's URL ` +
+  const a = normalized(expected);
+  if (a !== null && a === normalized(issuer)) return { ok: true };
+  const detail =
+    `MCP is misconfigured: the app URL (PUBLIC_APP_URL → ${expected}) and Better Auth's URL ` +
     `(BETTER_AUTH_URL → ${issuer}) differ. Set both to the same public URL.`;
-  if (!reported) {
-    reported = true;
-    console.error(`[mcp] ${error}`);
+  if (reported !== detail) {
+    reported = detail;
+    console.error(`[mcp] ${detail}`);
   }
-  return { ok: false, error };
+  return { ok: false, error: MCP_MISCONFIGURED };
 }
 
 /** The OAuth scopes MCP tools use (D5). */
