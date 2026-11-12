@@ -11,6 +11,16 @@
       text-sm); clear a field's error as the user types.
     - Loading: Loader2 spinner, disabled button, text "Signing in…".
 
+  Errors stay until a real edit: `?error=` copy and sign-in errors are cleared
+  only by typing / pasting (an InputEvent) or a new submit. Browser autofill
+  of saved credentials fires plain `input` events (no InputEvent), often on the
+  first click anywhere on the page, which used to wipe the message before it
+  could be read.
+
+  Unverified email: `account_not_linked` (?error=) shows the three steps that
+  fix it, and EMAIL_NOT_VERIFIED (REQUIRE_EMAIL_VERIFICATION on) explains
+  itself; both offer "send verification email" when the server can send it.
+
   Redirect races: a password sign-in can answer `twoFactorRedirect` (the
   twoFactorClient plugin sends the browser to /login/two-factor) or, mid
   OAuth-provider flow, `{ redirect, url }` (the client follows it). In both
@@ -33,8 +43,13 @@
   import { Separator } from '@/lib/components/ui/separator';
   import { authHref } from '@/lib/safe-redirect';
   import GoogleSignInButton from '@/lib/components/auth/google-sign-in-button.svelte';
+  import ResendVerificationButton from '@/lib/components/auth/resend-verification-button.svelte';
 
   const SSO_REQUIRED = 'SSO_REQUIRED';
+  const EMAIL_NOT_VERIFIED = 'EMAIL_NOT_VERIFIED';
+
+  /** Typing, pasting, deleting: an InputEvent. Autofill / scripts: a plain Event. */
+  const isUserEdit = (e: Event) => typeof InputEvent !== 'undefined' && e instanceof InputEvent;
 
   let {
     redirectTo,
@@ -42,6 +57,8 @@
     initialError = null,
     initialSso = false,
     googleEnabled = false,
+    initialOfferVerification = false,
+    emailVerificationAvailable = false,
   }: {
     redirectTo: string;
     /** GITHUB_CLIENT_ID/SECRET are set on the server; without them the button is hidden. */
@@ -52,6 +69,10 @@
     initialSso?: boolean;
     /** GOOGLE_CLIENT_ID/SECRET are set on the server. */
     googleEnabled?: boolean;
+    /** `?error=account_not_linked` and verification emails can be sent: show the steps instead of `initialError`. */
+    initialOfferVerification?: boolean;
+    /** The server can send verification emails (RESEND_API_KEY + EMAIL_FROM). */
+    emailVerificationAvailable?: boolean;
   } = $props();
 
   // useState initial values: read once, like React.
@@ -60,7 +81,11 @@
   let password = $state('');
   let emailError = $state<string | null>(null);
   let passwordError = $state<string | null>(null);
-  let formError = $state<string | null>(untrack(() => initialError));
+  // account_not_linked help: not cleared by typing (step 1 is to type your password).
+  let linkHelp = $state<string | null>(untrack(() => (initialOfferVerification ? initialError : null)));
+  let formError = $state<string | null>(untrack(() => (initialOfferVerification ? null : initialError)));
+  // The last sign-in failed with EMAIL_NOT_VERIFIED: offer a new link.
+  let notVerified = $state(false);
   let loading = $state(false);
 
   async function handleGitHubSignIn() {
@@ -80,6 +105,8 @@
   function switchMode(next: 'password' | 'sso') {
     mode = next;
     formError = null;
+    linkHelp = null;
+    notVerified = false;
     emailError = null;
     passwordError = null;
   }
@@ -113,6 +140,7 @@
     emailError = null;
     passwordError = null;
     formError = null;
+    notVerified = false;
 
     if (!email) {
       emailError = 'Email is required.';
@@ -135,6 +163,11 @@
       if (error.code === SSO_REQUIRED) {
         mode = 'sso';
         formError = 'Your workspace requires single sign-on. Continue with SSO below.';
+      } else if (error.code === EMAIL_NOT_VERIFIED) {
+        // REQUIRE_EMAIL_VERIFICATION is on and the password was right.
+        notVerified = true;
+        formError =
+          'Verify your email address before signing in: open the link we emailed you, then sign in again.';
       } else if (error.status === 401) {
         // Better Auth returns 401 for invalid credentials.
         formError = 'Invalid email or password.';
@@ -154,12 +187,15 @@
     await goto(redirectTo, { refreshAll: true });
   }
 
-  function onEmailInput() {
+  function onEmailInput(e: Event) {
+    if (!isUserEdit(e)) return;
     if (emailError) emailError = null;
     if (formError) formError = null;
+    notVerified = false;
   }
 
-  function onPasswordInput() {
+  function onPasswordInput(e: Event) {
+    if (!isUserEdit(e)) return;
     if (passwordError) passwordError = null;
     if (formError) formError = null;
   }
@@ -215,6 +251,22 @@
         </Button>
       </form>
     {:else}
+      {#if linkHelp}
+        <div role="alert" data-link-help class="flex flex-col gap-2 rounded-md border px-3 py-3 text-sm">
+          <p class="text-destructive">{linkHelp}</p>
+          <ol class="flex list-decimal flex-col gap-1.5 pl-5 text-muted-foreground">
+            <li>Sign in below with your email and password.</li>
+            <li>
+              Verify your email with the link we send you. No email?
+              <ResendVerificationButton {email} {redirectTo} label="Email me a verification link" class="mt-1.5" />
+            </li>
+            <li>Continue with Google or GitHub again: it opens the same account.</li>
+          </ol>
+          <p class="text-xs text-muted-foreground">
+            Using single sign-on? Ask your admin to add an email_verified attribute in the identity provider.
+          </p>
+        </div>
+      {/if}
       <!-- GitHub OAuth (AUTH-02). Redirects the browser to GitHub on click. -->
       {#if githubEnabled}
         <Button type="button" variant="default" class="w-full" onclick={handleGitHubSignIn}>
@@ -262,7 +314,10 @@
           {/if}
         </div>
 
-        {#if formError}<p class="text-destructive text-sm">{formError}</p>{/if}
+        {#if formError}<p class="text-destructive text-sm" data-form-error>{formError}</p>{/if}
+        {#if notVerified && emailVerificationAvailable}
+          <ResendVerificationButton {email} {redirectTo} label="Send a new verification link" />
+        {/if}
 
         <Button type="submit" class="w-full" disabled={loading}>
           {#if loading}<Loader2Icon class="animate-spin" />{/if}

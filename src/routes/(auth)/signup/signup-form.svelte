@@ -15,6 +15,10 @@
       least 8 characters." (PASSWORD_TOO_SHORT).
     - Loading: Loader2 spinner, disabled button, text "Creating account…".
 
+  REQUIRE_EMAIL_VERIFICATION on: Better Auth creates the account without a
+  session (token null), also for an address that already has one (so the
+  answer doesn't reveal it); the form then says to check the inbox.
+
   Name: Better Auth's email/password signup requires a `name`; we derive a
   default from the email local-part.
 -->
@@ -52,6 +56,8 @@
   let passwordError = $state<string | null>(null);
   let formError = $state<string | null>(null);
   let loading = $state(false);
+  /** Set when sign-up needs the emailed link before signing in. */
+  let checkInbox = $state<string | null>(null);
 
   async function handleGitHubSignIn() {
     formError = null;
@@ -83,7 +89,7 @@
     }
 
     loading = true;
-    const { error } = await authClient.signUp.email({
+    const { data, error } = await authClient.signUp.email({
       name: email.split('@')[0],
       email,
       password,
@@ -111,11 +117,31 @@
       return;
     }
 
+    if (data && !data.token) {
+      loading = false;
+      checkInbox = email;
+      return;
+    }
+
     // router.push(redirectTo) + router.refresh()
     await goto(redirectTo, { refreshAll: true });
   }
 </script>
 
+{#if checkInbox}
+<Card class="w-full max-w-sm">
+  <CardHeader>
+    <CardTitle>Check your email</CardTitle>
+    <CardDescription>
+      We sent a link to <span class="font-medium break-all">{checkInbox}</span> to verify the address. Open it,
+      then sign in. Already have an account with this email? Just sign in.
+    </CardDescription>
+  </CardHeader>
+  <CardContent>
+    <Button href={authHref('/login', redirectTo)} class="w-full">Go to sign in</Button>
+  </CardContent>
+</Card>
+{:else}
 <Card class="w-full max-w-sm">
   <CardHeader>
     <CardTitle>Create account</CardTitle>
@@ -197,3 +223,4 @@
     </p>
   </CardContent>
 </Card>
+{/if}

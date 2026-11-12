@@ -4,16 +4,19 @@
 // count) is loaded here for every dashboard page.
 
 import { loadAppShellData } from '@/lib/components/app-shell/app-shell.server';
+import { emailVerificationAvailable } from '@/lib/email-verification';
 import { requireUser } from '@/lib/session';
 import type { LayoutServerLoad } from './$types';
 
 export const load: LayoutServerLoad = async () => {
-  const { id, email, name, image } = await requireUser();
+  const { id, email, name, image, emailVerified } = await requireUser();
   // Memoized per request — the dashboard page reuses getProjectsForUser.
   const shell = await loadAppShellData(id);
 
   return {
     user: { id, email, name, image: image ?? null },
+    // The "verify your email" banner: only when the server can send the email.
+    unverifiedEmail: !emailVerified && emailVerificationAvailable() ? email : null,
     ...shell,
   };
 };

@@ -32,6 +32,12 @@ import { scim } from '@better-auth/scim';
 import { sso } from '@better-auth/sso';
 import { MIN_PASSWORD_LENGTH } from '@/lib/auth-rules';
 import { socialProviderOptions } from '@/lib/auth-providers';
+import {
+  emailVerificationAvailable,
+  emailVerificationRequired,
+  VERIFICATION_LINK_TTL_SECONDS,
+} from '@/lib/email-verification';
+import { sendVerificationEmail } from '@/lib/server/verification-email';
 import { invalidClientUri } from '@/lib/oauth-model';
 import { authDb } from '@/lib/db';
 import { recordUserSecurityEvent } from '@/lib/audit';
@@ -108,6 +114,35 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     minPasswordLength: MIN_PASSWORD_LENGTH,
+    // Off unless REQUIRE_EMAIL_VERIFICATION=true AND email is configured
+    // (src/lib/email-verification.ts): unverified accounts then get 403
+    // EMAIL_NOT_VERIFIED on password sign-in, and sign-up stops signing in.
+    requireEmailVerification: emailVerificationRequired(),
+  },
+  // Only with email configured; without it Better Auth answers
+  // /send-verification-email with VERIFICATION_EMAIL_NOT_ENABLED and sign-up
+  // sends nothing (the UI hides every verification prompt).
+  // autoSignInAfterVerification stays OFF: it would mint a session for whoever
+  // opens the link, skipping the password, two-factor and "Enforce SSO". A
+  // signed-in user stays signed in; /email-verification refreshes the cached
+  // session so the banner goes away.
+  ...(emailVerificationAvailable()
+    ? {
+        emailVerification: {
+          sendVerificationEmail,
+          sendOnSignUp: true,
+          sendOnSignIn: false,
+          autoSignInAfterVerification: false,
+          expiresIn: VERIFICATION_LINK_TTL_SECONDS,
+        },
+      }
+    : {}),
+  user: {
+    // No email changes: the profile shows the address read-only and
+    // /update-user refuses `email`. Kept explicit so turning it on is a
+    // deliberate change (a new address must be verified before it replaces
+    // the old one, or account linking could follow it).
+    changeEmail: { enabled: false },
   },
   // Better Auth always requests read:user + user:email for GitHub; `scope`
   // below only restates them (least privilege at sign-in). Tokens are read
@@ -136,6 +171,13 @@ export const auth = betterAuth({
       // linkSocial is session-bound, so this only lets a signed-in user attach
       // a GitHub identity they just authenticated as.
       allowDifferentEmails: true,
+      // Implicit linking (signing in with Google/GitHub as an address that
+      // already has an account) needs the provider to report the address as
+      // verified AND this account's address to be verified. Both are Better
+      // Auth defaults, stated here; no `trustedProviders` (they would skip the
+      // provider-side check). Only SSO callbacks relax the local side, for a
+      // DNS-proven domain (ssoCallbackContext in src/lib/sso.ts).
+      requireLocalEmailVerified: true,
     },
   },
   // TOTP 2FA, SAML/OIDC SSO, SCIM provisioning, and an OAuth 2.0 provider

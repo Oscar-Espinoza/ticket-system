@@ -10,6 +10,7 @@
   import NavigationProgress from '@/lib/components/app-shell/navigation-progress.svelte';
   import TopbarChrome from '@/lib/components/topbar-chrome.svelte';
   import UserMenu from '@/lib/components/user-menu.svelte';
+  import VerifyEmailBanner from '@/lib/components/auth/verify-email-banner.svelte';
   import type { LayoutProps } from './$types';
 
   let { data, children }: LayoutProps = $props();
@@ -38,6 +39,9 @@
   {/if}
   <!-- Kept mounted (hidden) while the skeleton shows, so a cancelled navigation loses nothing. -->
   <div class={loading.dashboard ? 'hidden' : 'contents'}>
+    {#if data.unverifiedEmail}
+      <VerifyEmailBanner email={data.unverifiedEmail} />
+    {/if}
     {@render children()}
   </div>
 </AppShell>

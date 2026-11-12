@@ -1,6 +1,7 @@
 // Account settings › Profile.
 
 import { getProfileSettings } from '@/lib/account-settings-read';
+import { emailVerificationAvailable } from '@/lib/email-verification';
 import { requireUser } from '@/lib/session';
 import type { PageServerLoad } from './$types';
 
@@ -20,5 +21,7 @@ export const load: PageServerLoad = async () => {
       timezones: Intl.supportedValuesOf('timeZone'),
     },
     hasPassword,
+    emailVerified: user.emailVerified,
+    verificationAvailable: emailVerificationAvailable(),
   };
 };
