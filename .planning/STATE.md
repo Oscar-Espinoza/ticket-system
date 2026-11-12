@@ -1,137 +1,66 @@
----
-gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-current_phase: 03
-current_plan: 1
-status: gaps_found
-last_updated: "2026-06-02T03:28:54.346Z"
-progress:
-  total_phases: 9
-  completed_phases: 2
-  total_plans: 11
-  completed_plans: 7
-  percent: 22
----
+# Project State: Ticket System
 
-# Project State: Linear-Clone Ticket System
+**As of 2026-11-12.** Replaces the June 2026 phase-3 snapshot. Read this first; the rest of `.planning/` is history
+(see "Stale planning files" below).
 
-**Last updated:** 2026-06-01
-**Updated by:** roadmapper (new-project initialization)
+## What it is
 
----
+A Linear-style issue tracker for a small team that works mostly through AI agents. SvelteKit 3 + Svelte 5, Drizzle on
+Postgres (Neon on Vercel, or plain Postgres self-hosted via Docker), Better Auth. Default deployment budget is $0
+(Vercel + Neon free tiers); `docs/SELF_HOSTING.md` covers the Docker path.
 
-## Project Reference
+## What is built (all on `main`)
 
-**Core value:** A ticket's status stays in sync with real GitHub work — create a branch from a ticket and merging its PR automatically marks the ticket done — without paying for any hosted service.
+- **Phases 1–3 of the June plan** (auth, projects + authorization, invite links) and the original core (tickets,
+  kanban board, GitHub branch creation, PR webhooks) — then far beyond it:
+  - 2026-09-21..24: MIMO Linear-style UI refactor (M1–M8).
+  - 2026-09-24..25: Linear Parity I and II (`.planning/features/`): workflow states, labels, priorities, estimates,
+    sub-issues and relations, list/board/table/calendar/timeline views, cycles, epics, initiatives, roadmap, triage,
+    SLAs, recurring issues, customers and requests, dashboards and insights, collaborative editor with offline sync,
+    GitLab/Bitbucket/Sentry automation, Slack, REST + GraphQL APIs, outgoing webhooks, OAuth apps, SAML/OIDC SSO, SCIM,
+    two-factor, audit log.
+- **Security and reliability review** (`docs/reports/2026-09-25-architecture-security-review.md`): nine findings
+  (seven P1, two P2), all fixed on `main` on 2026-11-02 and re-checked by two cross-vendor reviews; migration
+  `0009_reliability_fixes`. Open follow-ups (not blocking) are listed at the end of that report: other event
+  producers (relations, attachments, epics, members, workflow states, SLA jobs) still write their activity row after
+  their own commit.
+- **Self-hosting** (2026-11-02..04): Docker image + compose, plain-Postgres driver (`pg`), app migrates and runs daily
+  jobs on start (`SELF_HOSTED=true`).
+- **SvelteKit migration** (2026-11-04..05): Next.js 16 / React 19 replaced by SvelteKit 3 / Svelte 5; cut over in
+  `e185ca9`. Conventions: `docs/migration/PLAN.md`. Parity and perf numbers: `docs/migration/`.
+- **Untangle refactor** (2026-11-06): shared owners for workflow-state, SLA, issue-key and search rules, one action
+  result contract, provider-neutral VCS engine; merged at `bcb256e`. Report and decision log: `docs/untangle/`.
+- **MCP server plan** (2026-11-05): `docs/mcp/PLAN.md`.
 
-**Current focus:** Phase 03 — membership-invite-links
+## In flight (open PRs on `Oscar-Espinoza/ticket-system`)
 
----
+| PR | Branch | What |
+|---|---|---|
+| #1 | `feat/google-sign-in` | Optional Google sign-in |
+| #2 | `fix/event-followups` | Review follow-ups: webhook payloads scoped to the event's project; every event committed with its mutation |
+| #3 | `feat/follow-up-fields` | Waiting-on and follow-up issue fields + daily follow-up notification |
+| #4 | `feat/mcp-server` | MCP server phase 1: `/mcp` with OAuth (DCR, JWT), read tools and three audited writes |
+| #5 | `chore/stabilise` | This PR: CI workflow, smoke test of the main flows with fixes, this file |
 
-## Current Position
+CI (`.github/workflows/ci.yml`) only starts on a branch once it contains that file: #1–#4 get it after this PR
+merges and they are rebased.
 
-Phase: 03 (membership-invite-links) — EXECUTING
-Plan: 1 of 4
-**Milestone:** v1
-**Current phase:** 03
-**Current plan:** 1
-**Phase status:** Gaps Found — 4/4 plans built, verification found 1 gap (MEM-02 logged-out join path); run gap closure before completing
+## What is next
 
-```
-Progress: [ 1 ][ 2 ][ 3 ][ 4 ][ 5 ][ 6 ][ 7 ][ 8 ][ 9 ]
-            ✓   ^^^
-                next
-```
+1. Merge the five PRs above (CI green on each after rebase).
+2. **Pilot at Go Nimbly with ~6 developers**, using the app as their task tracker. GitHub and Slack are not verified
+   end to end yet: that needs a GitHub OAuth app and a Slack app created by Oscar (setup lists are in the stabilise PR
+   body and in Settings → Slack).
+3. Decisions left to Oscar: **licence**, **repo owner/org**, **hosting** (Vercel + Neon vs. self-hosted Docker),
+   **DNS / public URL** (it is baked into the browser bundle as `PUBLIC_APP_URL` and is the origin the server trusts).
 
-**Phases complete:** 1 / 9
-**Requirements shipped:** 4 / 27 (AUTH-01, AUTH-02, AUTH-03, AUTH-04)
+## Stale planning files (not rewritten; read with care)
 
----
-
-## Performance Metrics
-
-| Metric | Value |
-|--------|-------|
-| Phases planned | 1 / 9 |
-| Phases complete | 1 / 9 |
-| Requirements complete | 4 / 27 |
-| Plans complete | 3 / 3 (Phase 1) |
-
-### Execution log
-
-| Phase-Plan | Duration | Tasks | Files | Result |
-|-----------|----------|-------|-------|--------|
-| 01-01 | — | — | — | Scaffold + DB foundation (complete) |
-| 01-02 | ~11m | 2 | 23 | Email/password auth slice + protected dashboard (complete) |
-| 01-03 | ~4m | 1 (+1 manual gate) | 6 | GitHub OAuth slice, minimal scopes, token seam (complete) |
-| 05 (direct, no GSD cmds) | — | 1 | 4 | Tickets core: `src/lib/tickets.ts` DAL, `src/app/actions/tickets.ts`, C5 model `src/lib/issue-model.ts`, 15 integration tests (TKT-01…06). UI ships with MIMO M5–M7 (2026-09-24) |
-
----
-
-## Accumulated Context
-
-### Decisions Made
-
-| Decision | Phase | Rationale |
-|----------|-------|-----------|
-| Split Neon drivers: neon-http for app, neon-serverless for Better Auth | Phase 1 | neon-http can't do interactive transactions; Better Auth requires them |
-| Server-side layout `getSession` guard as the protected-route boundary (not middleware) | Phase 1 | CVE-2025-29927 lets middleware be bypassed; `dashboard/layout.tsx` is the reusable pattern |
-| Better Auth drizzle adapter gets an explicit singular-keyed `authSchema` alias | Phase 1 | Adapter resolves `schema[modelName]` with singular keys; shared schema keeps plural exports for app code |
-| Pin `kysely@0.28.17` | Phase 1 | kysely 0.29 moved DEFAULT_MIGRATION_* off the package root; @better-auth/kysely-adapter@1.6.13 still imports them from root |
-| shadcn `radix-nova` preset (shadcn 4.x successor to new-york) | Phase 1 | shadcn 4.x replaced named styles with presets; radix-nova matches UI-SPEC (Radix + Lucide + Geist) |
-| Pin `@neondatabase/serverless@^0.10.4` | Phase 1 | v1.0.0 broke drizzle-orm/neon-http (open bug #5208) |
-| `requireProjectMember()` DAL helper as the security boundary | Phase 2 | Middleware is not a security boundary (CVE-2025-29927); DAL enforces per-project auth |
-| Shareable invite link, no email | Phase 3 | Avoids email provider; stays free-tier |
-| Better Auth session cookie cache ON (5 min) | Perf (2026-09-24) | Saves a DB round trip per request; revoked sessions stay valid ≤5 min. 1.6.13 falls back to the DB when the cache is stale (Pitfall 6 null-session bug no longer reproduces — verified with a 10 s maxAge). Project membership is still checked per request |
-| Project page loads all tickets once; list/board/filters/pane are client-side (history API) | Perf (2026-09-24) | Instant view/filter switches; fine at small-team scale. `getProjectView` batches project+tickets+members in one self-authorizing round trip |
-| Atomic `UPDATE...RETURNING` for ticket counter | Phase 5 | Race-safe per-project identifiers without multi-statement transactions |
-| Per-user GitHub OAuth token for branch creation (never in session JWT) | Phase 7 | Correct multi-tenant attribution; token fetched from accounts table at action time |
-| Raw body read before HMAC verification in webhook handler | Phase 8 | `request.json()` consumes the body stream; re-serializing breaks the hash |
-| Exclude `/api/webhooks/*` from middleware matcher | Phase 8 | Webhook has no session cookie; middleware would return 401/302 |
-| Use Next.js `after()` to defer webhook DB work | Phase 8 | Vercel Hobby 10s timeout; respond 200 immediately, defer state transitions |
-
-### Open Questions
-
-| Question | Phase | Notes |
-|----------|-------|-------|
-| Better Auth Organization plugin vs hand-rolled project tables | Phase 2 | Plugin defaults to emailed invites — need to verify if copy-paste link flow is achievable without email transport |
-
-**Resolved:**
-| Question | Phase | Resolution |
-|----------|-------|------------|
-| GitHub token encryption at rest | Phase 1 | RESOLVED (D-03/D-04): accept plaintext for v1 (token carries only read:user/user:email until Phase 7); all token reads isolated behind `getGitHubToken()` (src/lib/github-token.ts) as the single seam for AES-256-GCM encryption in Phase 7. |
-
-### Known Pitfalls
-
-All from research — must be verified with tests during implementation:
-
-1. Webhook route blocked by auth middleware — exclude `/api/webhooks/*` from matcher
-2. `request.json()` before HMAC — always `req.text()` first
-3. IDOR from missing `requireProjectMember()` — DAL helper on every scoped action
-4. GitHub token in session JWT — only store `githubConnected: boolean` in session
-5. Ticket counter race — single `UPDATE...RETURNING`, unique constraint on `(project_id, ticket_number)`
-6. Vercel 10s timeout on webhook — use `after()` + idempotency key on `X-GitHub-Delivery`
-7. `@neondatabase/serverless@^0.10.4` pin — do not upgrade without checking drizzle-orm#5208
-
-### Blockers
-
-None.
-
-### Todos
-
-- [ ] Resolve open question: Better Auth Organization plugin vs hand-rolled project tables (before Phase 2 planning)
-- [x] Decide on GitHub token encryption approach — resolved D-03/D-04 (plaintext v1, encrypt in Phase 7 via getGitHubToken seam)
-
----
-
-## Session Continuity
-
-**Last session:** 2026-06-02T02:52:18.810Z
-
-**To resume work:** Plan Phase 2 (Projects + membership). Before planning, resolve the open question: Better Auth Organization plugin vs hand-rolled project tables (copy-paste invite link without email transport).
-
-**Next action:** `/gsd:plan-phase 2`
-
----
-*State initialized: 2026-06-01*
+- `ROADMAP.md`, `REQUIREMENTS.md`, `v1.0-MILESTONE-AUDIT.md`: the June nine-phase v1 plan and its mid-flight audit
+  (2026-06-02). Phases 1, 3, 4, 7 and 8 show as unchecked / "gaps found" although their features exist in the app;
+  Phase 9 (deploy) is really the open hosting decision below. The audit's gap (MEM-02, invite redirect for
+  logged-out users) was never re-verified in that audit's terms.
+- `PROJECT.md`: "Out of scope" lists labels, priority, comments and real-time sync, which are all built; it also
+  assumes Next.js and the Neon-only free-tier stack.
+- `research/`, `phases/`: Next.js-era research and phase 1–3 plans.
+- `config.json` and the `current_phase` bookkeeping were GSD tooling state; Oscar overrode GSD workflow for this work.

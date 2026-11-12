@@ -51,3 +51,6 @@ next-env.d.ts
 # SvelteKit
 /.svelte-kit
 /build
+
+# smoke-test evidence (screenshots, logs)
+.smoke/

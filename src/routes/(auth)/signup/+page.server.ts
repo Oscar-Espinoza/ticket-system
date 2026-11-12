@@ -3,6 +3,7 @@
 
 import { redirect } from '@sveltejs/kit';
 
+import { githubOAuthConfigured } from '@/lib/github/oauth-config';
 import { safeRedirect } from '@/lib/safe-redirect';
 import type { PageServerLoad } from './$types';
 
@@ -10,5 +11,5 @@ export const load: PageServerLoad = async ({ url, locals }) => {
   // Invite links send people here with ?redirect=/invite/<token>.
   const redirectTo = safeRedirect(url.searchParams);
   if (locals.session) redirect(303, redirectTo);
-  return { redirectTo };
+  return { redirectTo, githubEnabled: githubOAuthConfigured() };
 };

@@ -135,13 +135,13 @@ A zero-cost, full-stack Linear-style ticket management system for small teams. U
 <!-- GSD:conventions-start source:CONVENTIONS.md -->
 ## Conventions
 
-Conventions not yet established. Will populate as patterns emerge during development.
+Conventions: `docs/migration/PLAN.md` (file layout, props contract, generated action wrappers) and `docs/untangle/decision-log.md` (shared owners for rules and constants).
 <!-- GSD:conventions-end -->
 
 <!-- GSD:architecture-start source:ARCHITECTURE.md -->
 ## Architecture
 
-Architecture not yet mapped. Follow existing patterns found in the codebase.
+Current state and layout: `.planning/STATE.md`; code map in `docs/untangle/inventory/`. Follow existing patterns found in the codebase.
 <!-- GSD:architecture-end -->
 
 <!-- GSD:skills-start source:skills/ -->

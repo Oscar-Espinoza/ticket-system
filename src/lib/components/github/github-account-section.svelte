@@ -13,7 +13,11 @@
   import GithubMark from './github-mark.svelte';
   import type { GithubAccountProp } from './github-types';
 
-  let { account, linkError }: { account: GithubAccountProp; linkError: string | null } = $props();
+  let {
+    account,
+    linkError,
+    oauthConfigured,
+  }: { account: GithubAccountProp; linkError: string | null; oauthConfigured: boolean } = $props();
 
   let pending = $state(false);
 
@@ -50,12 +54,18 @@
   {#if linkError}
     <Callout tone="error">{linkError}</Callout>
   {/if}
-  {#if account.status === 'none'}
+  {#if !oauthConfigured && account.status !== 'connected'}
+    <Callout tone="warning">
+      GitHub isn't set up on this server. An admin needs to create a GitHub OAuth app and set
+      <code class="font-mono text-xs">GITHUB_CLIENT_ID</code> and
+      <code class="font-mono text-xs">GITHUB_CLIENT_SECRET</code>, then restart (see docs/SELF_HOSTING.md).
+    </Callout>
+  {:else if account.status === 'none'}
     <div>{@render linkButton('Connect GitHub')}</div>
   {/if}
   {#if account.status === 'invalid'}
     <Callout tone="warning">Your GitHub authorization expired or was revoked.</Callout>
-    <div>{@render linkButton('Reconnect GitHub')}</div>
+    {#if oauthConfigured}<div>{@render linkButton('Reconnect GitHub')}</div>{/if}
   {/if}
   {#if account.status === 'error'}
     <Callout tone="warning">GitHub couldn&apos;t be reached. Reload to try again.</Callout>
