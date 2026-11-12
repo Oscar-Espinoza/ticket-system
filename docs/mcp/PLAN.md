@@ -472,3 +472,54 @@ plan's intent was kept with what exists.
   (`LOCAL_DB_TESTS=1`); the auth test runs the whole DCR → PKCE (`resource`) →
   consent → token → refresh flow through `auth.handler` in-process.
 
+### Hardening (2026-11-12, branch `feat/mcp-hardening`)
+
+Closes the open notes of PR #4's focused re-review and its follow-up list.
+
+- **Waiting on, follow-up.** `create_issue` / `update_issue` take `waiting_on`
+  (resolved by `resolveAssignee`: `me`, `none`, a member's name, email or id
+  inside the authorized project) and `follow_up` (`YYYY-MM-DD` or null).
+  `IssueSummary` (so every list row and `IssueDetail`) gains `waitingOn:
+  UserRef | null` and `followUp: string | null`; no other contract changed.
+  `list_issues` filters `waiting_on` and `follow_up` through
+  `listProjectIssues` (the REST code, `searchFollowUp` parser). List lines
+  show "waiting on X" and "follow up D" / "follow-up due D" (server date),
+  which is how `my_work` shows a due follow-up.
+- **DCR cleanup** deletes in statements of 200 clients, at most 10 per run;
+  migration `0012_oauth_client_indexes` indexes `client_id` on
+  `oauth_access_token`, `oauth_refresh_token` and `oauth_consent` (none had one;
+  the cascades scanned).
+- **Config.** `mcpConfig()` compares `<app URL>/api/auth` with Better Auth's
+  base URL after normalising (`URL.origin` + path without trailing slash), so
+  letter case or `:443` is no longer a mismatch; the advertised authorization
+  server is now Better Auth's base URL itself (byte-identical to the issuer,
+  RFC 8414 §3.3; unchanged when the two are already equal). A mismatch answers
+  a generic 500; the two URLs are logged once per configuration.
+- **`request_id` race.** `createIssue` returns `replayed: true` when the client
+  id was already used (before the insert or after losing the unique race);
+  `create_issue` audits only the creating call. A replay changes nothing, so a
+  second row would read as a second create.
+- **Inert text.** `userContentInline` (format.ts) puts titles, people's names,
+  search snippets and notification lines on one line, inside a code span longer
+  than any backtick run when they contain Markdown; plain text is unchanged.
+  List excerpts and project descriptions appear only in `structuredContent`,
+  never in text, so they needed nothing.
+- **Audit of refused writes** (`src/lib/server/mcp/audit.ts`): every write-tool
+  call leaves one `mcp.tool_call` row with `data.outcome` = `success`,
+  `denied` (`insufficient_scope`, `forbidden_role`, `not_member`,
+  `connectors_blocked`, `not_found`), `invalid` (`invalid_input`) or `failed`
+  (`server_error`), written by `registerMcpTool` for refusals. No issue content;
+  attempts at a project or issue that doesn't exist have no row; schema
+  validation failures happen in the SDK before the tool and aren't audited.
+- **Rate limit.** `/mcp` allows `MCP_RATE_LIMIT_PER_MINUTE` (default 120, 0 =
+  off) calls per credential (user + OAuth client, or user + API key) with an
+  in-memory token bucket (`src/lib/server/rate-limit.ts`; the app had none to
+  reuse); over it, HTTP 429 + `Retry-After` + JSON-RPC -32000. Per instance.
+- **Proxy warning.** `src/hooks.server.ts` logs one warning when an
+  `/api/auth` request resolves to a private or loopback address and
+  `ADDRESS_HEADER` is unset (not in dev or on Vercel).
+- **Loopback redirects** may leave out the path (`http://localhost:1234`); the
+  exception applies to the loopback rule only.
+- Still open: database-backed limiters, the audit row inside the write's
+  transaction, client logo hosts / CSP, MCP Apps views.
+
