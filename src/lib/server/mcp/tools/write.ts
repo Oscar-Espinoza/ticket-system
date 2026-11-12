@@ -24,7 +24,7 @@ import { createIssue, updateIssueFields } from '@/lib/issue-service';
 import type { CreateIssueInput, IssuePatch, IssueRow, Priority } from '@/lib/issue-model';
 import { mcpIssue, mcpProject } from '../access';
 import { auditWrite as audit, refused } from '../audit';
-import type { IssueDetailView, McpCredential } from '../contracts';
+import type { IssueDetailView } from '../contracts';
 import { toolError, toolResult } from '../format';
 import {
   loadProjectMetadata,
