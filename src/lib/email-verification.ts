@@ -61,7 +61,7 @@ export function verificationEmail(user: { name?: string | null; email: string },
       '',
       `The link expires in ${hours} hours. Once your address is verified you can also sign in with Google or GitHub using it.`,
       '',
-      'If you didn’t create an account, you can ignore this email.',
+      'If you didn’t create this account, don’t open the link: someone else used your address. Ignore this email and the account stays unverified.',
     ].join('\n'),
   };
 }
