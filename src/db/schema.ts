@@ -1261,6 +1261,44 @@ export const webhookDeliveries = pgTable(
   ],
 );
 
+/**
+ * Verified GitHub / GitLab / Bitbucket webhook deliveries, one row per
+ * delivery and project, written before the route answers 202 (GitHub never
+ * redelivers on its own, so a delivery whose processing failed after the
+ * response would otherwise be lost). Processed right after the response;
+ * failed or unfinished rows are retried by a lazy sweep and the daily cron
+ * (src/lib/vcs/inbound.ts).
+ */
+export const vcsWebhookDeliveries = pgTable(
+  'vcs_webhook_delivery',
+  {
+    id: text('id').primaryKey(),
+    /** 'github' | 'gitlab' | 'bitbucket' */
+    provider: text('provider').notNull(),
+    /** The provider's delivery id (a random one when it sends none). */
+    deliveryId: text('delivery_id').notNull(),
+    projectId: text('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    /** GitLab / Bitbucket: the connection the delivery was verified against (reloaded per attempt). */
+    integrationId: text('integration_id').references(() => projectIntegrations.id, { onDelete: 'cascade' }),
+    event: text('event').notNull(),
+    payload: jsonb('payload').$type<unknown>().notNull(),
+    attempts: integer('attempts').notNull().default(0),
+    /** When a runner may (re)claim it; null = finished (processed or gave up). */
+    nextAttemptAt: timestamp('next_attempt_at'),
+    processedAt: timestamp('processed_at'),
+    error: text('error'),
+    createdAt: timestamp('created_at').notNull(),
+  },
+  (table) => [
+    uniqueIndex('vcs_webhook_delivery_uq').on(table.provider, table.deliveryId, table.projectId),
+    index('vcs_webhook_delivery_due_idx')
+      .on(table.nextAttemptAt)
+      .where(sql`next_attempt_at is not null`),
+  ],
+);
+
 /** GitLab / Bitbucket / Sentry connections (GitHub keeps its project columns). */
 export const projectIntegrations = pgTable(
   'project_integration',

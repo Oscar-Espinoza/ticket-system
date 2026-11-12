@@ -1,8 +1,10 @@
 // GitHub webhook receiver. Public endpoint: no session. A delivery
 // is trusted only if its X-Hub-Signature-256 matches the per-project secret
 // of a project connected to that hook / repository; everything after that is
-// scoped to the verified project. Responds fast and does the work in after()
-// (Vercel Hobby time limits; GitHub times out deliveries after 10s).
+// scoped to the verified project. Stores the delivery (src/lib/vcs/inbound.ts)
+// before answering 202 and does the work in after() (Vercel Hobby time limits;
+// GitHub times out deliveries after 10s); unfinished work is retried from the
+// stored row. 500 when it cannot be stored.
 
 import { eq, sql } from 'drizzle-orm';
 
@@ -14,31 +16,11 @@ import { db } from '@/lib/db';
 import { projects } from '@/db/schema';
 import { verifyHmac } from '@/lib/server/secrets';
 import { readWebhookBody } from '@/lib/vcs/webhook-request';
-import {
-  syncCheckRun,
-  syncCheckSuite,
-  syncPullRequest,
-  syncPullRequestReview,
-  syncPush,
-  syncStatus,
-  type SyncProject,
-} from '@/lib/github/sync';
-import { vcsProjectColumns } from '@/lib/vcs/project';
+import { handlesEvent, processInbound, recordInbound } from '@/lib/vcs/inbound';
 
 const projectColumns = {
-  ...vcsProjectColumns,
+  id: projects.id,
   githubWebhookSecret: projects.githubWebhookSecret,
-  githubConnectedById: projects.githubConnectedById,
-};
-
-// Each handler reads only the payload fields it declares (GitHub's shapes).
-const HANDLERS: Record<string, (project: SyncProject, payload: never) => Promise<void>> = {
-  pull_request: syncPullRequest,
-  push: syncPush,
-  pull_request_review: syncPullRequestReview,
-  check_suite: syncCheckSuite,
-  check_run: syncCheckRun,
-  status: syncStatus,
 };
 
 /** Projects this delivery could belong to: by hook id first (survives repo renames), else by repo. */
@@ -69,7 +51,7 @@ export const POST: RequestHandler = async ({ request }) => {
   const { raw } = body;
   const payload = body.payload as { repository?: { full_name?: string } } & Record<string, unknown>;
 
-  let verified: SyncProject[];
+  let verified: { id: string }[];
   try {
     const found = await candidates(
       request.headers.get('x-github-hook-id'),
@@ -88,19 +70,21 @@ export const POST: RequestHandler = async ({ request }) => {
 
   if (event === 'ping') return Response.json({ ok: true });
 
-  const delivery = request.headers.get('x-github-delivery') ?? 'unknown';
-  const handler = Object.hasOwn(HANDLERS, event) ? HANDLERS[event] : null;
-  if (handler) {
-    after(async () => {
-      for (const project of verified) {
-        try {
-          await handler(project, payload as never);
-        } catch (err) {
-          console.error(`[github-webhook] ${event} delivery ${delivery} failed`, err);
-        }
-      }
+  if (!handlesEvent('github', event)) return Response.json({ ok: true }, { status: 202 });
+  let rows: Awaited<ReturnType<typeof recordInbound>>;
+  try {
+    rows = await recordInbound({
+      provider: 'github',
+      deliveryId: request.headers.get('x-github-delivery'),
+      event,
+      payload,
+      targets: verified.map((project) => ({ projectId: project.id })),
     });
+  } catch (err) {
+    console.error('[github-webhook] could not store the delivery', err);
+    return Response.json({ error: 'Internal error' }, { status: 500 });
   }
+  after(() => processInbound(rows));
   return Response.json({ ok: true }, { status: 202 });
 };
 
