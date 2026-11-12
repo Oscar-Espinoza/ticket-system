@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 
 // No after-response fan-out: these tests play the part of a process that died
 // right after the mutation committed. Whatever must survive is in the database.
@@ -15,6 +15,7 @@ vi.mock('@/lib/events', async (orig) => ({
 import { db } from '@/lib/db';
 import { activities, githubPullRequests, projects, tickets, workflowStates } from '@/db/schema';
 import { commitWithEvents } from '@/lib/events';
+import { loadIssueTimeline } from '@/lib/comments';
 import * as issues from '@/lib/issue-service';
 import { syncClosingCommits, syncPullRequest } from '@/lib/vcs/automation';
 import { applyPolicyToOpenIssues } from '@/lib/sla-server';
@@ -59,7 +60,7 @@ describe.skipIf(!localDb)('events commit with their mutation (review follow-up, 
     expect(await db.select().from(workflowStates).where(eq(workflowStates.id, stateId))).toEqual([]);
   });
 
-  it('PR sync: the PR row and its github.* events commit together, and a redelivery adds none', async () => {
+  it('PR sync: the PR row and its github.* events commit together (a refused event rolls the row back), and a redelivery adds none', async () => {
     const user = await makeUser('prs');
     const projectId = await makeProject(user, 'PRS');
     const project = await vcsProject(projectId);
@@ -79,6 +80,27 @@ describe.skipIf(!localDb)('events commit with their mutation (review follow-up, 
       author: null,
       mergedAt: null,
     };
+    // The event cannot be written (a trigger refuses it, for this issue only):
+    // the PR row must not stay behind, or the redelivery would find nothing
+    // changed and the event would be lost for good.
+    const guard = `refuse_pr_linked_${created.issue.id.replaceAll('-', '')}`;
+    await db.execute(
+      sql.raw(`create function ${guard}() returns trigger language plpgsql as $$ begin raise exception 'event refused'; end $$`),
+    );
+    await db.execute(
+      sql.raw(
+        `create trigger ${guard} before insert on activity for each row when (new.type = 'github.pr_linked' and new.ticket_id = '${created.issue.id}') execute function ${guard}()`,
+      ),
+    );
+    try {
+      await syncPullRequest(project, pr, 'updated').catch(() => undefined);
+      expect(await db.select().from(githubPullRequests).where(eq(githubPullRequests.ticketId, created.issue.id))).toEqual([]);
+      expect(await eventsOf(created.issue.id, 'github.pr_linked')).toEqual([]);
+    } finally {
+      await db.execute(sql.raw(`drop trigger ${guard} on activity`));
+      await db.execute(sql.raw(`drop function ${guard}()`));
+    }
+
     await syncPullRequest(project, pr, 'updated');
     const linked = await eventsOf(created.issue.id, 'github.pr_linked');
     expect(linked.length).toBe(1);
@@ -90,7 +112,7 @@ describe.skipIf(!localDb)('events commit with their mutation (review follow-up, 
     expect((await eventsOf(created.issue.id, 'github.pr_linked')).length).toBe(1);
   });
 
-  it('closing commit: github.commit_closed commits with the state change it explains', async () => {
+  it('closing commit: github.commit_closed commits with the state change it explains, sorted just after it', async () => {
     const user = await makeUser('cc');
     const projectId = await makeProject(user, 'CCL');
     const project = await vcsProject(projectId);
@@ -104,8 +126,12 @@ describe.skipIf(!localDb)('events commit with their mutation (review follow-up, 
     const [updated] = await eventsOf(created.issue.id, 'issue.updated');
     expect(closed?.webhookPendingProjectId).toBe(projectId);
     expect(updated).toBeDefined();
-    // Written by the same statement batch as the state change.
-    expect(closed.createdAt.getTime()).toBe(updated.createdAt.getTime());
+    // Written by the same batch as the state change, one millisecond after it, so
+    // the timeline (which sorts by time) always shows the pair in the same order.
+    expect(closed.createdAt.getTime() - updated.createdAt.getTime()).toBe(1);
+    const timeline = await loadIssueTimeline(projectId, created.issue.id);
+    const order = timeline.activities.map((a) => a.type).filter((t) => t === 'github.commit_closed' || t === 'issue.updated');
+    expect(order).toEqual(['issue.updated', 'github.commit_closed']);
     const [ticket] = await db
       .select({ type: workflowStates.type })
       .from(tickets)

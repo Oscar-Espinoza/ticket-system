@@ -43,6 +43,8 @@ export interface IssueEventInput {
   actorId: string | null;
   type: IssueEventType | (string & {});
   data?: Record<string, unknown>;
+  /** Defaults to now. Only for events that must sort at a fixed spot in the timeline. */
+  createdAt?: Date;
 }
 
 export interface StoredIssueEvent {
@@ -110,7 +112,7 @@ export function toStored(list: IssueEventInput[]): StoredIssueEvent[] {
     actorId: event.actorId,
     type: event.type,
     data: event.data ?? {},
-    createdAt: now,
+    createdAt: event.createdAt ?? now,
   }));
 }
 
