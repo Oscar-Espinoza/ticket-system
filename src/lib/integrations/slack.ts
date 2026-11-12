@@ -14,7 +14,7 @@ import { absoluteIssueUrl } from '@/lib/integrations/app-url';
 import { SLACK_TIMEOUT_MS } from '@/lib/integrations/timeouts';
 import { slackEscape } from '@/lib/slack/format';
 import { ISSUE_EVENT } from '@/lib/event-names';
-import { commentIdOf, loadEventContext, type EventContext } from '@/lib/integrations/event-context';
+import { commentBodyOf, issueOf, loadEventContext, type EventContext } from '@/lib/integrations/event-context';
 import {
   parseSlackSetting,
   SLACK_URL_PREFIX,
@@ -67,7 +67,8 @@ function slackKind(event: StoredIssueEvent): SlackEventKind | null {
 }
 
 function describe(event: StoredIssueEvent, kind: SlackEventKind, ctx: EventContext): string {
-  const issue = event.ticketId ? ctx.issues.get(event.ticketId) : undefined;
+  // Only while the issue is still in the event's project; else the recorded key / title.
+  const issue = issueOf(ctx, event);
   const key = issue?.key ?? String(event.data.key ?? '');
   const title = issue?.title ?? String(event.data.title ?? '');
   const link = key
@@ -88,9 +89,8 @@ function describe(event: StoredIssueEvent, kind: SlackEventKind, ctx: EventConte
     case 'canceled':
       return `${link}\n${actor} moved it to ${state || 'canceled'}`;
     case 'commented': {
-      const commentId = commentIdOf(event);
       const excerpt = typeof event.data.excerpt === 'string' ? event.data.excerpt : undefined;
-      const body = (commentId && ctx.commentBodies.get(commentId)) || excerpt;
+      const body = commentBodyOf(ctx, event) || excerpt;
       if (!body) return `${link}\n${actor} commented`;
       const plain = stripMentions(body).trim();
       const preview = plain.length > COMMENT_PREVIEW ? `${plain.slice(0, COMMENT_PREVIEW)}…` : plain;

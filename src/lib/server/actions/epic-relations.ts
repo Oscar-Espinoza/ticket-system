@@ -11,7 +11,7 @@ import { db } from '@/lib/db';
 import { epicRelations, epics } from '@/db/schema';
 import { authorizeProjectAction } from '@/lib/action-auth';
 import { isUniqueViolation } from '@/lib/db-errors';
-import { emitIssueEvent } from '@/lib/events';
+import { commitWithEvents } from '@/lib/events';
 import { fail, refreshesData, type ActionResult } from '@/lib/server/action-kit';
 import { isEpicRelationKind, type EpicRelationKind } from '@/lib/epic-model';
 
@@ -81,39 +81,42 @@ export async function addEpicRelation(input: {
 
   const id = crypto.randomUUID();
   try {
-    await db.insert(epicRelations).values({
-      id,
-      epicId: blocker.id,
-      relatedEpicId: blocked.id,
-      type: kind === 'related' ? 'related' : 'blocks',
-      createdById: authz.userId,
-      createdAt: new Date(),
-    });
+    await commitWithEvents(
+      [
+        db.insert(epicRelations).values({
+          id,
+          epicId: blocker.id,
+          relatedEpicId: blocked.id,
+          type: kind === 'related' ? 'related' : 'blocks',
+          createdById: authz.userId,
+          createdAt: new Date(),
+        }),
+      ],
+      [
+        {
+          projectId,
+          ticketId: null,
+          actorId: authz.userId,
+          type: 'epic.relation_added',
+          data: {
+            summary:
+              kind === 'related'
+                ? `marked epics ${epic.name} and ${other.name} as related`
+                : `marked epic ${blocker.name} as blocking ${blocked.name}`,
+            relationId: id,
+            type: kind === 'related' ? 'related' : 'blocks',
+            epicId: blocker.id,
+            epicName: blocker.name,
+            relatedEpicId: blocked.id,
+            relatedEpicName: blocked.name,
+          },
+        },
+      ],
+    );
   } catch (err) {
     if (isUniqueViolation(err)) return fail('These epics are already linked.');
     throw err;
   }
-
-  await emitIssueEvent([
-    {
-      projectId,
-      ticketId: null,
-      actorId: authz.userId,
-      type: 'epic.relation_added',
-      data: {
-        summary:
-          kind === 'related'
-            ? `marked epics ${epic.name} and ${other.name} as related`
-            : `marked epic ${blocker.name} as blocking ${blocked.name}`,
-        relationId: id,
-        type: kind === 'related' ? 'related' : 'blocks',
-        epicId: blocker.id,
-        epicName: blocker.name,
-        relatedEpicId: blocked.id,
-        relatedEpicName: blocked.name,
-      },
-    },
-  ]);
   refreshesData();
   return { ok: true, id };
 }
@@ -149,28 +152,29 @@ export async function removeEpicRelation(input: {
     .limit(1);
   if (!relation) return fail('Dependency not found.');
 
-  await db.delete(epicRelations).where(eq(epicRelations.id, relation.id));
-
-  await emitIssueEvent([
-    {
-      projectId: input.projectId,
-      ticketId: null,
-      actorId: authz.userId,
-      type: 'epic.relation_removed',
-      data: {
-        summary:
-          relation.type === 'blocks'
-            ? `removed the dependency ${relation.epicName} → ${relation.relatedEpicName}`
-            : `unlinked related epics ${relation.epicName} and ${relation.relatedEpicName}`,
-        relationId: relation.id,
-        type: relation.type,
-        epicId: relation.epicId,
-        epicName: relation.epicName,
-        relatedEpicId: relation.relatedEpicId,
-        relatedEpicName: relation.relatedEpicName,
+  await commitWithEvents(
+    [db.delete(epicRelations).where(eq(epicRelations.id, relation.id))],
+    [
+      {
+        projectId: input.projectId,
+        ticketId: null,
+        actorId: authz.userId,
+        type: 'epic.relation_removed',
+        data: {
+          summary:
+            relation.type === 'blocks'
+              ? `removed the dependency ${relation.epicName} → ${relation.relatedEpicName}`
+              : `unlinked related epics ${relation.epicName} and ${relation.relatedEpicName}`,
+          relationId: relation.id,
+          type: relation.type,
+          epicId: relation.epicId,
+          epicName: relation.epicName,
+          relatedEpicId: relation.relatedEpicId,
+          relatedEpicName: relation.relatedEpicName,
+        },
       },
-    },
-  ]);
+    ],
+  );
   refreshesData();
   return { ok: true };
 }

@@ -10,7 +10,6 @@ import { db } from '@/lib/db';
 import { labels, projectMembers, users } from '@/db/schema';
 import { projectStatesQuery } from '@/lib/workflow-server';
 import { authorizeProjectAction } from '@/lib/action-auth';
-import { emitIssueEvent } from '@/lib/events';
 import { updateIssueFields } from '@/lib/issue-service';
 import type { IssuePatch, IssueRow, Priority } from '@/lib/issue-model';
 import { isPriority } from '@/lib/issue-model';
@@ -88,23 +87,30 @@ export async function declineTriageIssue(input: {
   const target = declineState(await projectStatesQuery(input.projectId));
   if (!target) return fail('This project has no canceled state.');
   const { issue } = found;
-  const result = await updateIssueFields({ userId: authz.userId }, input.projectId, issue.id, {
-    stateId: target.id,
-  });
-  if (!result.ok) return fail(result.error);
-
-  await emitIssueEvent({
-    projectId: input.projectId,
-    ticketId: issue.id,
-    actorId: authz.userId,
-    type: 'triage.declined',
-    data: {
-      key: issue.key,
-      title: issue.title,
-      summary: reason ? `declined from triage: ${reason}` : 'declined from triage',
-      ...(reason ? { reason } : {}),
+  // The decline line commits with the state change.
+  const result = await updateIssueFields(
+    { userId: authz.userId },
+    input.projectId,
+    issue.id,
+    { stateId: target.id },
+    {
+      extraEvents: () => [
+        {
+          projectId: input.projectId,
+          ticketId: issue.id,
+          actorId: authz.userId,
+          type: 'triage.declined',
+          data: {
+            key: issue.key,
+            title: issue.title,
+            summary: reason ? `declined from triage: ${reason}` : 'declined from triage',
+            ...(reason ? { reason } : {}),
+          },
+        },
+      ],
     },
-  });
+  );
+  if (!result.ok) return fail(result.error);
   refreshesData();
   return { ok: true };
 }

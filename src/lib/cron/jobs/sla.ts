@@ -5,22 +5,23 @@
 // an inbox row, then the external channels. Completed / canceled issues never
 // breach: their clock stopped.
 
-import { and, eq, inArray, isNull } from 'drizzle-orm';
+import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
-import { projectMembers, projects, tickets, workflowStates, type notifications } from '@/db/schema';
+import { activities, projectMembers, projects, tickets, workflowStates, type notifications } from '@/db/schema';
 import { ISSUE_EVENT } from '@/lib/event-names';
-import { emitIssueEvent } from '@/lib/events';
+import { publishIssueEvents, type StoredIssueEvent } from '@/lib/events';
 import { createNotifications } from '@/lib/notifications/create';
 import { slaPastDue } from '@/lib/sla-server';
 import { getSubscriberIdsByTicket } from '@/lib/subscriptions';
 import { openStateType } from '@/lib/workflow-server';
-import { formatIssueKey } from '@/lib/tickets';
 
 const BATCH = 500;
 /** Safety valve: at most this many batches per run (the next run continues). */
 const MAX_BATCHES = 10;
 const SUMMARY = 'SLA breached';
+/** The activity line's summary (the notification's is SUMMARY). */
+const EVENT_SUMMARY = 'breached its SLA';
 
 type NotificationInsert = typeof notifications.$inferInsert;
 
@@ -41,55 +42,63 @@ async function flagBatch(now: Date): Promise<number> {
     .limit(BATCH);
   if (due.length === 0) return 0;
 
-  const claimed = await db
-    .update(tickets)
-    .set({ slaBreachedAt: now })
-    .where(
-      and(
-        inArray(
-          tickets.id,
-          due.map((row) => row.id),
-        ),
-        isNull(tickets.slaBreachedAt),
-      ),
+  // Claim and log in ONE statement: the breach flag and its issue.sla_breached
+  // event (pending for webhooks) commit together, so a crash can't leave an
+  // issue flagged with no event — the flag stops the next run from retrying.
+  // The key is formatIssueKey in SQL; webhook_pending_project_id is set as
+  // activityRows would (an issue event, not bulk: deliverable).
+  const ids = sql.join(
+    due.map((row) => sql`${row.id}`),
+    sql`, `,
+  );
+  const at = sql`${now.toISOString()}::timestamp`;
+  const { rows: claimed } = await db.execute<{
+    id: string;
+    project_id: string;
+    title: string;
+    assignee_id: string | null;
+    event_id: string;
+    data: Record<string, unknown>;
+  }>(sql`
+    with claimed as (
+      update ${tickets} set sla_breached_at = ${at}
+      where id in (${ids}) and sla_breached_at is null
+      returning id, project_id, ticket_number, title, assignee_id
+    ), logged as (
+      insert into ${activities} (id, project_id, ticket_id, actor_id, type, data, created_at, webhook_pending_project_id)
+      select gen_random_uuid()::text, c.project_id, c.id, null, ${ISSUE_EVENT.slaBreached},
+        jsonb_build_object('key', p.ticket_key || '-' || c.ticket_number, 'title', c.title, 'summary', ${EVENT_SUMMARY}::text),
+        ${at}, c.project_id
+      from claimed c join ${projects} p on p.id = c.project_id
+      returning id, ticket_id, data
     )
-    .returning({
-      id: tickets.id,
-      projectId: tickets.projectId,
-      number: tickets.ticketNumber,
-      title: tickets.title,
-      assigneeId: tickets.assigneeId,
-    });
+    select c.id, c.project_id, c.title, c.assignee_id, l.id as event_id, l.data
+    from claimed c join logged l on l.ticket_id = c.id
+  `);
   if (claimed.length === 0) return 0;
 
-  const projectIds = [...new Set(claimed.map((row) => row.projectId))];
-  const [keyRows, memberRows, subscribers] = await Promise.all([
-    db
-      .select({ id: projects.id, key: projects.ticketKey })
-      .from(projects)
-      .where(inArray(projects.id, projectIds)),
+  const projectIds = [...new Set(claimed.map((row) => row.project_id))];
+  const [memberRows, subscribers] = await Promise.all([
     db
       .select({ projectId: projectMembers.projectId, userId: projectMembers.userId })
       .from(projectMembers)
       .where(inArray(projectMembers.projectId, projectIds)),
     getSubscriberIdsByTicket(claimed.map((row) => row.id)),
   ]);
-  const keyOf = new Map(keyRows.map((row) => [row.id, row.key]));
   const members = new Set(memberRows.map((row) => `${row.projectId}:${row.userId}`));
 
   const rows: NotificationInsert[] = [];
-  const events = claimed.map((issue) => {
-    const key = formatIssueKey(keyOf.get(issue.projectId) ?? '?', issue.number);
-    const data = { key, title: issue.title, summary: SUMMARY };
-    const recipients = new Set([issue.assigneeId, ...(subscribers.get(issue.id) ?? [])]);
+  const events: StoredIssueEvent[] = claimed.map((issue) => {
+    const data = { key: String(issue.data.key), title: issue.title, summary: SUMMARY };
+    const recipients = new Set([issue.assignee_id, ...(subscribers.get(issue.id) ?? [])]);
     for (const userId of recipients) {
       if (!userId) continue;
       // Removed members are never notified; their type switch is applied on creation.
-      if (!members.has(`${issue.projectId}:${userId}`)) continue;
+      if (!members.has(`${issue.project_id}:${userId}`)) continue;
       rows.push({
         id: crypto.randomUUID(),
         userId,
-        projectId: issue.projectId,
+        projectId: issue.project_id,
         ticketId: issue.id,
         actorId: null,
         type: 'sla_breached',
@@ -98,15 +107,17 @@ async function flagBatch(now: Date): Promise<number> {
       });
     }
     return {
-      projectId: issue.projectId,
+      id: issue.event_id,
+      projectId: issue.project_id,
       ticketId: issue.id,
       actorId: null,
       type: ISSUE_EVENT.slaBreached,
-      data: { ...data, summary: 'breached its SLA' },
+      data: issue.data,
+      createdAt: now,
     };
   });
 
-  await emitIssueEvent(events);
+  publishIssueEvents(events);
   if (rows.length) await createNotifications(rows);
   return claimed.length;
 }

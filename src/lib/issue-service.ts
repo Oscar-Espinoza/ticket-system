@@ -820,6 +820,12 @@ export interface UpdateIssueOptions {
    * the next editor adopt the markdown instead of the (older) Yjs state.
    */
   descriptionSource?: 'collab';
+  /**
+   * More events about the change (e.g. triage.declined, github.commit_closed),
+   * written in the update's own transaction so they commit with it or not at
+   * all. Called with the issues the update actually changed (before the change).
+   */
+  extraEvents?: (changed: IssueRow[]) => IssueEventInput[];
 }
 
 export async function bulkUpdate(
@@ -910,15 +916,25 @@ export async function bulkUpdate(
     if (rows.length) statements.push(db.insert(issueLabels).values(rows).onConflictDoNothing());
   }
 
-  const events: IssueEventInput[] = changed
-    .filter((r) => r.changes.length > 0)
-    .map((r) => ({
+  const withChanges = changed.filter((r) => r.changes.length > 0);
+  // The timeline sorts by time only, and the activity ids are random: give the
+  // explanatory events their own millisecond, just after the update, so
+  // "closed by commit …" always renders next to the state change in one order.
+  const at = new Date();
+  const afterUpdate = new Date(at.getTime() + 1);
+  const events: IssueEventInput[] = [
+    ...(withChanges.length && opts?.extraEvents
+      ? opts.extraEvents(withChanges.map((r) => r.old)).map((event) => ({ ...event, createdAt: afterUpdate }))
+      : []),
+    ...withChanges.map((r) => ({
       projectId,
       ticketId: r.old.id,
       actorId: actor.userId,
       type: ISSUE_EVENT.updated,
       data: { ...opts?.eventData, key: r.old.key, title: r.next.title, changes: r.changes },
-    }));
+      createdAt: at,
+    })),
+  ];
   const prepared = events.length ? prepareIssueEvents(events) : null;
   if (prepared) statements.push(prepared.insert);
 

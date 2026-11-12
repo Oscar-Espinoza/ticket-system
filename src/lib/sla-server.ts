@@ -6,7 +6,8 @@ import { and, eq, inArray, isNotNull, isNull, lte, notInArray, sql, type SQL } f
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 
 import { db } from '@/lib/db';
-import { projects, tickets, workflowStates } from '@/db/schema';
+import { activities, projects, tickets, workflowStates } from '@/db/schema';
+import { publishIssueEvents, toStored } from '@/lib/events';
 import { PRIORITY_ORDER } from '@/lib/issue-model';
 import { normalizeSlaPolicy, type SlaPolicy } from '@/lib/sla';
 import { HOUR_MS } from '@/lib/time';
@@ -39,7 +40,10 @@ export function slaPastDue(now: Date): SQL {
  * applying a policy never floods inboxes. Returns how many issues changed;
  * null when the project doesn't exist.
  */
-export async function applyPolicyToOpenIssues(projectId: string): Promise<number | null> {
+export async function applyPolicyToOpenIssues(
+  projectId: string,
+  actorId: string | null,
+): Promise<number | null> {
   const [project] = await db
     .select({ slaPolicy: projects.slaPolicy })
     .from(projects)
@@ -93,7 +97,36 @@ export async function applyPolicyToOpenIssues(projectId: string): Promise<number
       )
       .returning({ id: tickets.id }),
   );
-  const [first, ...rest] = statements;
-  const results = await db.batch([first, ...rest]);
-  return results.reduce((sum, rows) => sum + rows.length, 0);
+  // One statement: every recompute and the project.sla_policy_applied line
+  // (which carries the count) commit together. The updates' row sets are
+  // disjoint (by priority), so running them in one snapshot changes nothing.
+  const event = toStored([
+    { projectId, ticketId: null, actorId, type: 'project.sla_policy_applied' },
+  ])[0];
+  const name = (i: number) => sql.identifier(`changed_${i}`);
+  const { rows } = await db.execute<{ data: Record<string, unknown> }>(sql`
+    with ${sql.join(
+      statements.map((statement, i) => sql`${name(i)} as (${statement.getSQL()})`),
+      sql`, `,
+    )},
+    counted as (
+      select count(*)::int as n from (${sql.join(
+        statements.map((_, i) => sql`select id from ${name(i)}`),
+        sql` union all `,
+      )}) changed
+    )
+    insert into ${activities} (id, project_id, ticket_id, actor_id, type, data, created_at)
+    select ${event.id}, ${projectId}, null, ${actorId}, ${event.type},
+      jsonb_build_object(
+        'summary', 'applied the SLA policy to ' || n || ' open ' || case when n = 1 then 'issue' else 'issues' end,
+        'count', n
+      ),
+      ${event.createdAt.toISOString()}::timestamp
+    from counted
+    returning data
+  `);
+  const data = rows[0]?.data ?? {};
+  // Project-level: no webhook delivery, but the same fan-out as every event.
+  publishIssueEvents([{ ...event, data }]);
+  return typeof data.count === 'number' ? data.count : 0;
 }
