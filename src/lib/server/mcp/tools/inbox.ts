@@ -7,7 +7,7 @@ import { getInbox } from '@/lib/notifications/inbox';
 import { describeNotification, notificationPath } from '@/lib/notifications/types';
 import { mcpProjects } from '../access';
 import type { InboxView, NotificationRow } from '../contracts';
-import { decodeOffset, encodeOffset, projectRef, toolError, toolResult } from '../format';
+import { decodeOffset, encodeOffset, projectRef, toolError, toolResult, userContentInline } from '../format';
 import { defineTool } from './common';
 
 const PAGE_DEFAULT = 25;
@@ -55,7 +55,7 @@ export const listInboxTool = defineTool({
           `Inbox (${unread} unread${nextCursor ? ', more available' : ''}):`,
           ...rows.map(
             (r) =>
-              `- ${r.read ? '' : '**[unread]** '}${r.issue ? `**${r.issue.key}** ${r.issue.title} — ` : ''}${r.sentence} (${r.at.slice(0, 10)})`,
+              `- ${r.read ? '' : '**[unread]** '}${r.issue ? `**${r.issue.key}** ${userContentInline(r.issue.title)} — ` : ''}${userContentInline(r.sentence)} (${r.at.slice(0, 10)})`,
           ),
           ...(nextCursor ? [`\nNext page: cursor "${nextCursor}".`] : []),
         ].join('\n')

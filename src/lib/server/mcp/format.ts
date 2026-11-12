@@ -30,6 +30,26 @@ export function truncate(text: string | null | undefined, max: number): string |
 
 const oneLine = (text: string) => text.replace(/\s+/g, ' ').trim();
 
+/** Characters that make text Markdown (emphasis, code, links, HTML, headings, tables, escapes). */
+const MARKUP = /[`*_[\]<>#|~\\]/;
+
+/**
+ * Short user-written text (a title, a person's name, a search snippet) inert
+ * on one line: whitespace collapsed, and, when it contains Markdown, inside a
+ * code span longer than any backtick run in it, so it can't close the span,
+ * open a block or restyle our output. Plain text stays as it is to keep list
+ * rows compact. Multi-line text (descriptions, comment bodies) goes through
+ * userContentBlock instead.
+ */
+export function userContentInline(text: string): string {
+  const line = oneLine(text);
+  if (!MARKUP.test(line)) return line;
+  const longest = Math.max(0, ...(line.match(/`+/g) ?? []).map((run) => run.length));
+  const fence = '`'.repeat(longest + 1);
+  // CommonMark drops one space on each side, so a leading or trailing backtick stays content.
+  return `${fence} ${line} ${fence}`;
+}
+
 export function projectRef(project: { id: string; key: string; name: string }): ProjectRef {
   return { id: project.id, key: project.key, name: project.name };
 }
@@ -92,14 +112,14 @@ const followUpText = (followUp: string) => (isFollowUpDue(followUp) ? `follow-up
 export function issueLine(issue: IssueSummary): string {
   const parts = [issue.state.name];
   if (issue.priority !== 'none') parts.push(PRIORITY_LABEL[issue.priority as keyof typeof PRIORITY_LABEL] ?? issue.priority);
-  parts.push(issue.assignee ? issue.assignee.name : 'Unassigned');
-  if (issue.waitingOn) parts.push(`waiting on ${issue.waitingOn.name}`);
+  parts.push(issue.assignee ? userContentInline(issue.assignee.name) : 'Unassigned');
+  if (issue.waitingOn) parts.push(`waiting on ${userContentInline(issue.waitingOn.name)}`);
   if (issue.dueDate) parts.push(`due ${issue.dueDate}`);
   if (issue.followUp) parts.push(followUpText(issue.followUp));
   if (issue.estimate != null) parts.push(`${issue.estimate} pt`);
   if (issue.labels.length) parts.push(issue.labels.map((l) => l.name).join(', '));
-  let line = `- **${issue.key}** ${oneLine(issue.title)} — ${parts.join(' · ')}`;
-  if (issue.snippet) line += `\n  > ${oneLine(issue.snippet)}`;
+  let line = `- **${issue.key}** ${userContentInline(issue.title)} — ${parts.join(' · ')}`;
+  if (issue.snippet) line += `\n  > ${userContentInline(issue.snippet)}`;
   return line;
 }
 

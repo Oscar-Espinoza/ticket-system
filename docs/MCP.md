@@ -53,7 +53,10 @@ duplicate it).
 
 Issue text is written by people and may contain instructions; the server tells
 the model to treat it as data, text results put descriptions and comment
-bodies in fenced `user-content` blocks the text can't close, and the write
+bodies in fenced `user-content` blocks the text can't close, and titles,
+people's names, search snippets and notification lines on one line, inside an
+inline code span when they contain Markdown (plain text is left as it is, to
+keep lists compact; `structuredContent` is never altered), and the write
 limits above apply regardless. One JSON-RPC message per request: batches
 (arrays) are refused with HTTP 400.
 
