@@ -9,6 +9,7 @@
 // dashboard notice. Reset links are single-use, expire, only the newest
 // works, and "Enforce SSO" domains can't use them. Real Better Auth against
 // the local database.
+import { createHash } from 'node:crypto';
 import { and, eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
@@ -25,6 +26,7 @@ import {
   accounts,
   activities,
   apiKeys,
+  oauthAccessTokens,
   oauthClients,
   oauthConsents,
   oauthRefreshTokens,
@@ -41,6 +43,9 @@ import {
   workspaces,
 } from '@/db/schema';
 import { auth } from '@/lib/auth';
+import { generateApiKey } from '@/lib/api-auth';
+import { queryAuditRows } from '@/lib/audit';
+import { authenticateMcpRequest } from '@/lib/server/mcp/auth';
 import { afterSettled } from '@/lib/kit/request';
 import { takeClaimNotice } from '@/lib/server/account-claim';
 import { onIdentityCreated } from '@/lib/sso';
@@ -99,9 +104,21 @@ async function expireCooldown(userId: string) {
     .where(eq(verifications.identifier, `password-reset-sent:${userId}`));
 }
 
-/** Everything a squatter could leave behind to keep a way in or keep reading the account. */
+/** `/mcp` accepts this bearer token (personal API key or opaque OAuth token). */
+const mcpAccepts = async (token: string) =>
+  (await authenticateMcpRequest(new Request('http://localhost/mcp', { headers: { authorization: `Bearer ${token}` } }))).ok;
+
+/**
+ * Everything a squatter could leave behind to keep a way in or keep reading the account.
+ * Returns the two bearer tokens planted (a real API key and opaque OAuth access token).
+ */
 async function plant(userId: string, workspaceId: string) {
   const clientId = `client-${uid()}`;
+  // A third-party app (registered by nobody here) the squatter granted access:
+  // only deleting the grant shuts it out, the claim can't disable the app.
+  const grantedClientId = `connector-${uid()}`;
+  const apiKey = generateApiKey();
+  const accessToken = `opaque-${uid()}`;
   await db.insert(workspaceInvitations).values({
     id: uid(),
     workspaceId,
@@ -113,7 +130,7 @@ async function plant(userId: string, workspaceId: string) {
   });
   await db.update(users).set({ twoFactorEnabled: true }).where(eq(users.id, userId));
   await db.insert(twoFactors).values({ id: uid(), secret: 'planted', backupCodes: 'planted', userId });
-  await db.insert(apiKeys).values({ id: uid(), userId, name: 'planted', prefix: 'tk_pl', keyHash: uid(), createdAt: now() });
+  await db.insert(apiKeys).values({ id: uid(), userId, name: 'planted', prefix: apiKey.prefix, keyHash: apiKey.hash, createdAt: now() });
   await db.insert(accounts).values({
     id: uid(),
     accountId: `gh-${uid()}`,
@@ -123,8 +140,18 @@ async function plant(userId: string, workspaceId: string) {
     updatedAt: now(),
   });
   await db.insert(oauthClients).values({ id: uid(), clientId, redirectUris: ['https://evil.example/cb'], userId, disabled: false });
-  await db.insert(oauthConsents).values({ id: uid(), clientId, userId, scopes: ['read'] });
-  await db.insert(oauthRefreshTokens).values({ id: uid(), token: uid(), clientId, userId, scopes: ['read'] });
+  await db.insert(oauthClients).values({ id: uid(), clientId: grantedClientId, redirectUris: ['https://connector.example/cb'] });
+  await db.insert(oauthConsents).values({ id: uid(), clientId: grantedClientId, userId, scopes: ['read'] });
+  await db.insert(oauthRefreshTokens).values({ id: uid(), token: uid(), clientId: grantedClientId, userId, scopes: ['read'] });
+  await db.insert(oauthAccessTokens).values({
+    id: uid(),
+    token: createHash('sha256').update(accessToken).digest('base64url'),
+    clientId: grantedClientId,
+    userId,
+    expiresAt: new Date(Date.now() + 3_600_000),
+    createdAt: now(),
+    scopes: ['read'],
+  });
   await db.insert(slackUserLinks).values({ userId, teamId: `T${uid()}`, slackUserId: `U${uid()}`, createdAt: now() });
   await db.insert(pushSubscriptions).values({
     id: uid(),
@@ -134,6 +161,7 @@ async function plant(userId: string, workspaceId: string) {
     auth: 'a',
     createdAt: now(),
   });
+  return [apiKey.key, accessToken];
 }
 
 async function planted(userId: string) {
@@ -214,7 +242,8 @@ describe.skipIf(!localDb)('password reset and account claims', () => {
     const { id: squatId } = await userByEmail(victim);
     const { workspaceId } = await workspaceWithSso(`kept-${uid()}.test`, false);
     await db.insert(workspaceMembers).values({ id: uid(), workspaceId, userId: squatId, role: 'member', createdAt: now() });
-    await plant(squatId, workspaceId);
+    const bearers = await plant(squatId, workspaceId);
+    for (const token of bearers) expect(await mcpAccepts(token)).toBe(true);
 
     expect((await requestReset(victim)).status).toBe(200);
     const [mail] = resetMails(victim);
@@ -246,6 +275,8 @@ describe.skipIf(!localDb)('password reset and account claims', () => {
     expect((await signIn(victim, ATTACKER_PASSWORD)).status).toBe(401);
     expect(await sessionOf(attackerCookie)).toBeNull();
     expect(await planted(squatId)).toEqual(NOTHING_PLANTED);
+    // …and neither planted bearer token gets into /mcp any more (JWTs: the consent re-check, consents gone above).
+    for (const token of bearers) expect(await mcpAccepts(token)).toBe(false);
     expect((await accountsOf(squatId)).map((a) => a.providerId)).toEqual(['credential']);
     expect(await userByEmail(victim)).toMatchObject({ id: squatId, emailVerified: true, twoFactorEnabled: false });
     // Kept, as documented: memberships, and the app row (disabled).
@@ -262,6 +293,12 @@ describe.skipIf(!localDb)('password reset and account claims', () => {
     expect(secured.text).not.toContain('Totally the owner');
     const [audit] = await claimAudit(squatId);
     expect(audit.data).toMatchObject({ via: 'password_reset', removed: PLANTED_REPORT, workspaceId });
+    // The audit log's per-viewer redaction (moved-events.ts) leaves a row without an issue as written, even with dropElsewhere.
+    const shown = await queryAuditRows(
+      and(eq(activities.type, 'security.account_claimed'), sql`${activities.data}->>'userId' = ${squatId}`),
+      { limit: 5, viewerId: squatId, dropElsewhere: true },
+    );
+    expect(shown.map((row) => row.type)).toEqual(['security.account_claimed']);
     expect(await takeClaimNotice(squatId)).toMatchObject({ via: 'password_reset', removed: PLANTED_REPORT });
     expect(await takeClaimNotice(squatId)).toBeNull();
 
