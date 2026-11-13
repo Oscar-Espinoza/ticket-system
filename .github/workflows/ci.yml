@@ -1,4 +1,4 @@
-# CI: type-check, lint, build and tests on every push and pull request.
+# CI: type-check, lint, build and tests on every pull request and on pushes to main.
 #
 # No repository secrets are used and nothing here can reach a hosted database:
 # every value below is a dummy or points at the throwaway Postgres service
@@ -6,7 +6,10 @@
 name: CI
 
 on:
+  # Pull requests cover branch work; a push to a PR branch would otherwise run
+  # CI twice (push + pull_request). Pushes to main still run, for merges.
   push:
+    branches: [main]
   pull_request:
 
 permissions:
