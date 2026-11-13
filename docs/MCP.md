@@ -143,6 +143,19 @@ calls; without that the controls are not shown. A comment sent from a card
 carries a `request_id`, so if the app doesn't answer in time the card checks
 whether the comment was posted before it allows sending again.
 
+When you reload a chat, claude.ai and ChatGPT draw each card again from the
+tool result the assistant first got, so a card would show what the issue looked
+like then. To avoid that, a card shows that result at once and, once it is on
+screen, asks the server again (a read: `get_issue` for an issue, the same list or
+overview call for the others) and shows the newer answer, with a small "Updated
+to the latest." under it. It never runs a write again, leaves a card alone while
+you are typing a comment or have loaded more rows, and keeps the first result
+(with a note) if the read fails. If the issue is gone or you no longer have
+access, the card says so instead of showing old data. Search results have no
+refresh (the card does not know the search), and it needs an assistant app that
+forwards tool calls, like the writes. Each reload costs one read per visible
+card, within the 120 calls per minute limit.
+
 ## Connect
 
 ### Claude (claude.ai, Desktop, mobile)

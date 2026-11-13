@@ -2,7 +2,7 @@
   import type { IssueDetail, IssueSummary } from '@/lib/server/mcp/contracts';
   import { toDateString } from '@/lib/dates';
   import { host } from './lib/app.svelte';
-  import { dueTone, plainText, safeColor, shortDate } from './lib/model';
+  import { dueTone, issueRowLabel, plainText, safeColor, shortDate } from './lib/model';
   import Avatar from './Avatar.svelte';
   import Chip from './Chip.svelte';
   import ExpandedIssue from './ExpandedIssue.svelte';
@@ -28,7 +28,9 @@
   const closed = $derived(issue.state.type === 'completed' || issue.state.type === 'canceled');
   const followUpDue = $derived(issue.followUp != null && !closed && issue.followUp <= today);
   const locale = $derived(host.context.locale);
-
+  // One sentence for assistive tech (lib/model.ts): the visible pieces sit side by side with no text between them.
+  const label = $derived(issueRowLabel(issue, { showProject, hideState, today, locale }));
+  const snippet = $derived(issue.snippet ? plainText(issue.snippet) : '');
 </script>
 
 <li class="border-b border-line last:border-b-0">
@@ -36,15 +38,19 @@
     this={expandable ? 'button' : 'div'}
     type={expandable ? 'button' : undefined}
     class="flex w-full items-start gap-2.5 rounded-viewsm px-1.5 py-2 text-left {expandable ? 'hover:bg-bg2' : ''}"
+    role={expandable ? undefined : 'group'}
+    aria-label={expandable ? label : undefined}
+    aria-describedby={expandable && snippet ? `snippet-${issue.id}` : undefined}
     aria-expanded={expandable ? open : undefined}
     aria-controls={expandable ? `row-${issue.id}` : undefined}
     onclick={expandable ? () => (open = !open) : undefined}
   >
-    <span class="mt-0.5"><PriorityIcon priority={issue.priority} /></span>
-    <span class="min-w-0 flex-1">
+    {#if !expandable}<span class="sr-only-text">{label}{snippet ? `. ${snippet}` : ''}</span>{:else if snippet}<span id="snippet-{issue.id}" class="sr-only-text">{snippet}</span>{/if}
+    <span class="mt-0.5" aria-hidden="true"><PriorityIcon priority={issue.priority} /></span>
+    <span class="min-w-0 flex-1" aria-hidden="true">
       <span class="flex min-w-0 items-baseline gap-2">
         <span class="shrink-0 font-code text-fg2">{issue.key}</span>
-        <span class="line-clamp-2 min-w-0 font-medium [overflow-wrap:anywhere]">{issue.title}</span>
+        <span class="min-w-0 font-medium [overflow-wrap:anywhere] {open ? '' : 'line-clamp-2'}" title={issue.title}>{issue.title}</span>
       </span>
       <span class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-fg2">
         {#if !hideState}
@@ -70,7 +76,7 @@
         <span class="mt-1 line-clamp-2 text-fg2 [overflow-wrap:anywhere]">{plainText(issue.snippet)}</span>
       {/if}
     </span>
-    <span class="mt-0.5 flex shrink-0 items-center gap-1.5"><Avatar user={issue.assignee} size={22} />{#if expandable}<Icon name={open ? 'chevron-down' : 'chevron-right'} size={12} />{/if}</span>
+    <span class="mt-0.5 flex shrink-0 items-center gap-1.5" aria-hidden="true"><Avatar user={issue.assignee} size={22} />{#if expandable}<Icon name={open ? 'chevron-down' : 'chevron-right'} size={12} />{/if}</span>
   </svelte:element>
 
   {#if open && expandable}

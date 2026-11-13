@@ -253,6 +253,7 @@ async function existingComment(
   actor: CommentActor,
   ticketId: string,
   id: string,
+  sent: { body: string; parentId: string | null | undefined },
 ): Promise<CommentResult<{ comment: TimelineComment; replayed: true }> | null> {
   const [row] = await db
     .select({
@@ -272,6 +273,9 @@ async function existingComment(
     .limit(1);
   if (!row) return null;
   if (row.ticketId !== ticketId || row.authorId !== actor.userId) return { ok: false, error: COMMENT_ID_IN_USE };
+  // A replay is the same comment again. A different text (or reply target) under the same id is a different comment:
+  // answering "saved" would drop it (the client edited its draft after a timeout and sent it with the old id).
+  if (row.body !== sent.body || (sent.parentId !== undefined && row.parentId !== sent.parentId)) return { ok: false, error: COMMENT_ID_IN_USE };
   return {
     ok: true,
     replayed: true,
@@ -289,8 +293,8 @@ async function existingComment(
 
 /**
  * Adds a comment. `input.id` is an optional client-chosen UUID that makes the
- * create idempotent: the same author on the same issue with the same id gets
- * the existing comment back (`replayed: true`, no second row, activity or
+ * create idempotent: the same author on the same issue with the same id and the
+ * same body gets the existing comment back (`replayed: true`, no second row, activity or
  * notification); any other use of the id is refused.
  */
 export async function createCommentAs(
@@ -322,8 +326,10 @@ export async function createCommentAs(
       .limit(1),
   ]);
   if (!issue) return ISSUE_NOT_FOUND;
+  // Replies join the root's thread; a reply target that no longer exists is not compared.
+  const sent = { body, parentId: parentInput ? (parent ? (parent.parentId ?? parent.id) : undefined) : null };
   if (requestedId) {
-    const replay = await existingComment(actor, issue.id, requestedId);
+    const replay = await existingComment(actor, issue.id, requestedId, sent);
     if (replay) return replay;
   }
   if (parentInput && !parent) return { ok: false, error: 'The comment you replied to was deleted.' };
@@ -364,7 +370,7 @@ export async function createCommentAs(
     // A concurrent attempt with the same client id won the insert (the batch,
     // activity included, rolled back): answer with that comment.
     if (requestedId && isUniqueViolation(err)) {
-      const replay = await existingComment(actor, issue.id, requestedId);
+      const replay = await existingComment(actor, issue.id, requestedId, sent);
       if (replay) return replay;
     }
     throw err;

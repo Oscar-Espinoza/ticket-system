@@ -5,7 +5,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import type { IssueDetail } from '@/lib/server/mcp/contracts';
-import { IssueWriter, newRequestId, type CallFn, type ToolOutcome, type WriteSpec } from '../mcp-ui/lib/write.svelte';
+import { IssueWriter, newRequestId, requestFor, type CallFn, type ToolOutcome, type WriteSpec } from '../mcp-ui/lib/write.svelte';
 
 const issueWith = (comments: string[] = []) =>
   ({ id: 'i1', key: 'WEB-3', comments: comments.map((id) => ({ id, body: 'x' })), assignee: null, state: { id: 's1' } }) as unknown as IssueDetail;
@@ -149,5 +149,13 @@ describe('newRequestId', () => {
     vi.stubGlobal('crypto', { getRandomValues: (a: Uint8Array) => a.fill(255) });
     expect(newRequestId()).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     vi.unstubAllGlobals();
+  });
+});
+
+describe('requestFor', () => {
+  it('keeps the id for the same text and mints a new one once the draft was edited after a send', () => {
+    const first = requestFor(null, 'A');
+    expect(requestFor(first, 'A').id).toBe(first.id);
+    expect(requestFor(first, 'B').id).not.toBe(first.id);
   });
 });

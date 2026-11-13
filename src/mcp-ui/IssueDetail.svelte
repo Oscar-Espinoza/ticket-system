@@ -3,8 +3,8 @@
 
   import type { IssueDetail, ProjectMetadataView } from '@/lib/server/mcp/contracts';
   import { toDateString } from '@/lib/dates';
-  import { callTool, host, projectMetadata, reportChange } from './lib/app.svelte';
-  import { IssueWriter, newRequestId } from './lib/write.svelte';
+  import { callTool, holdRefresh, host, noteWrite, projectMetadata, reportChange } from './lib/app.svelte';
+  import { IssueWriter, requestFor } from './lib/write.svelte';
   import { dueTone, relativeTime, safeColor, shortDate, STATE_TYPE_ORDER } from './lib/model';
   import Avatar from './Avatar.svelte';
   import Chip from './Chip.svelte';
@@ -34,6 +34,7 @@
       issueKey: () => issue.key,
       onIssue: (next) => {
         issue = next;
+        noteWrite();
         onupdate?.(next);
       },
       onChange: reportChange,
@@ -44,8 +45,9 @@
   let metadata = $state.raw<ProjectMetadataView | null>(null);
   let metadataError = $state('');
   let comment = $state('');
-  // One id per draft, kept until the draft is cleared: sending the same draft again (after a timeout, say) can't post it twice.
-  let draftId: string | null = null;
+  // A request id belongs to the exact text it was sent with: sending that text again (after a timeout, say) can't post it
+  // twice, and a draft edited since gets a new id (the server would answer the old comment for the old id).
+  let sent: { id: string; body: string } | null = null;
   let descriptionOpen = $state(false);
   let commentBox = $state<HTMLTextAreaElement | null>(null);
   let stateToggle = $state<HTMLButtonElement | null>(null);
@@ -60,7 +62,20 @@
   const hiddenComments = $derived(issue.commentCount - issue.comments.length);
   const locale = $derived(host.context.locale);
 
-  const assigneeBefore = () => issue.assignee?.id ?? null;
+  // The prop changes when the card refreshes itself (lib/app.svelte.ts): show the newer read, unless a write is
+  // in flight or unconfirmed (its answer is the newer one).
+  $effect(() => {
+    const next = initial;
+    untrack(() => {
+      if (next !== issue && !writer.busy && !writer.unconfirmed) issue = next;
+    });
+  });
+
+  // A draft comment or a write in flight: the card is being used, so a refresh leaves it alone.
+  const inUse = $derived(comment.trim() !== '' || writer.busy !== null || writer.unconfirmed !== null);
+  $effect(() => {
+    if (inUse) return holdRefresh();
+  });
 
   async function toggleStates() {
     statesOpen = !statesOpen;
@@ -99,20 +114,20 @@
   }
 
   function assign(to: 'me' | 'none') {
-    const before = assigneeBefore();
     return writer.write({
       tool: 'update_issue',
       args: { assignee: to },
       label: to === 'me' ? 'Assigning…' : 'Unassigning…',
       summary: to === 'me' ? 'assigned to you' : 'unassigned',
-      applied: to === 'me' ? (i) => i.assignee !== null && i.assignee.id !== before : (i) => i.assignee === null,
+      applied: to === 'me' ? (i) => i.assignee != null && i.assignee.id === i.viewerId : (i) => i.assignee === null,
     });
   }
 
   async function submitComment() {
     const body = comment.trim();
     if (!body || locked) return;
-    const requestId = (draftId ??= newRequestId());
+    sent = requestFor(sent, body);
+    const requestId = sent.id;
     const saved = await writer.write({
       tool: 'add_comment',
       args: { body, request_id: requestId },
@@ -121,7 +136,7 @@
       applied: (i) => i.comments.some((c) => c.id === requestId),
       onSaved: () => {
         comment = '';
-        draftId = null;
+        sent = null;
       },
     });
     if (!saved) commentBox?.focus();
@@ -227,15 +242,15 @@
 
     {#if issue.cycle}
       <dt class="text-fg2">Cycle</dt>
-      <dd class="min-w-0 truncate">Cycle {issue.cycle.number}{issue.cycle.name ? ` · ${issue.cycle.name}` : ''}</dd>
+      <dd class="line-clamp-2 min-w-0 [overflow-wrap:anywhere]">Cycle {issue.cycle.number}{issue.cycle.name ? ` · ${issue.cycle.name}` : ''}</dd>
     {/if}
     {#if issue.epic}
       <dt class="text-fg2">Epic</dt>
-      <dd class="min-w-0 truncate">{issue.epic.name}</dd>
+      <dd class="line-clamp-2 min-w-0 [overflow-wrap:anywhere]">{issue.epic.name}</dd>
     {/if}
     {#if issue.parent}
       <dt class="text-fg2">Parent</dt>
-      <dd class="min-w-0 truncate"><span class="font-code">{issue.parent.key}</span> {issue.parent.title}</dd>
+      <dd class="line-clamp-2 min-w-0 [overflow-wrap:anywhere]"><span class="font-code">{issue.parent.key}</span> {issue.parent.title}</dd>
     {/if}
     {#if issue.dueDate}
       {@const tone = closed ? 'later' : dueTone(issue.dueDate, today)}
@@ -265,7 +280,7 @@
     {/if}
   </div>
   {#if writer.status?.kind === 'error'}
-    <ErrorState title={writer.unconfirmed ? 'Not confirmed' : 'Not saved'} message={writer.status.text} />
+    <ErrorState title={writer.status.title ?? (writer.unconfirmed ? 'Not confirmed' : 'Not saved')} message={writer.status.text} />
     {#if writer.unconfirmed}
       <button type="button" class="min-h-8 rounded-view border border-line2 px-3 font-medium hover:bg-bg2 disabled:opacity-60" disabled={writer.busy !== null} onclick={() => void writer.check()}>Check again</button>
     {/if}
@@ -294,7 +309,7 @@
       <h3 class="mb-1 font-semibold">Sub-issues <span class="font-normal text-fg2">({issue.subIssues.length})</span></h3>
       <ul class="space-y-1">
         {#each issue.subIssues as sub (sub.id)}
-          <li class="flex min-w-0 items-center gap-2"><StateIcon type={sub.state.type} color={sub.state.color} /><span class="font-code text-fg2">{sub.key}</span><span class="truncate">{sub.title}</span></li>
+          <li class="flex min-w-0 items-start gap-2"><span class="mt-0.5"><StateIcon type={sub.state.type} color={sub.state.color} /></span><span class="shrink-0 font-code text-fg2">{sub.key}</span><span class="line-clamp-2 min-w-0 [overflow-wrap:anywhere]">{sub.title}</span></li>
         {/each}
       </ul>
     </section>
@@ -304,7 +319,7 @@
       <h3 class="mb-1 font-semibold">Relations</h3>
       <ul class="space-y-1">
         {#each issue.relations as rel (rel.kind + rel.issue.id)}
-          <li class="flex min-w-0 items-center gap-2"><span class="shrink-0 text-fg2">{rel.kind.replaceAll('_', ' ')}</span><StateIcon type={rel.issue.state.type} color={rel.issue.state.color} /><span class="font-code text-fg2">{rel.issue.key}</span><span class="truncate">{rel.issue.title}</span></li>
+          <li class="flex min-w-0 items-start gap-2"><span class="shrink-0 text-fg2">{rel.kind.replaceAll('_', ' ')}</span><span class="mt-0.5"><StateIcon type={rel.issue.state.type} color={rel.issue.state.color} /></span><span class="shrink-0 font-code text-fg2">{rel.issue.key}</span><span class="line-clamp-2 min-w-0 [overflow-wrap:anywhere]">{rel.issue.title}</span></li>
         {/each}
       </ul>
     </section>

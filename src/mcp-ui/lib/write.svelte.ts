@@ -20,6 +20,8 @@ export interface ToolOutcome {
   content: McpStructuredContent | null;
   text: string;
   indeterminate?: boolean;
+  /** The server answered with a tool error (as opposed to a transport failure or no answer). */
+  refused?: boolean;
 }
 export type CallFn = (tool: string, args: Record<string, unknown>) => Promise<ToolOutcome>;
 
@@ -45,7 +47,7 @@ export interface WriterHooks {
   onChange?: (issueKey: string, changes: string[]) => void;
 }
 
-export type Status = { kind: 'ok' | 'error'; text: string } | null;
+export type Status = { kind: 'ok'; text: string } | { kind: 'error'; text: string; title?: string } | null;
 
 const issueOf = (outcome: ToolOutcome): IssueDetail | null =>
   outcome.ok && outcome.content?.view === 'issue-detail' ? outcome.content.issue : null;
@@ -55,6 +57,8 @@ export class IssueWriter {
   status = $state<Status>(null);
   /** A write that timed out and could not be checked yet: nothing else may be sent. */
   unconfirmed = $state<WriteSpec | null>(null);
+  /** Counts every write, check and refresh: a refresh that finds the count moved on was overtaken and is dropped. */
+  private step = 0;
 
   private hooks: WriterHooks;
 
@@ -68,6 +72,7 @@ export class IssueWriter {
     if (this.busy || this.unconfirmed) return false;
     this.busy = spec.label;
     this.status = null;
+    this.step++;
     const key = this.hooks.issueKey();
     const outcome = await this.hooks.call(spec.tool, { key, ...spec.args });
 
@@ -91,7 +96,7 @@ export class IssueWriter {
     // Committed, but the server could not show the result: say so, then read the issue.
     this.saved(spec, [spec.summary]);
     this.status = { kind: 'ok', text: outcome.text || `${spec.summary}.` };
-    void this.refresh(spec);
+    void this.refresh(spec, this.step);
     return true;
   }
 
@@ -104,6 +109,7 @@ export class IssueWriter {
     if (!spec) return false;
     this.busy = 'Checking whether it was saved…';
     this.status = null;
+    this.step++;
     const read = await this.hooks.call('get_issue', { key: this.hooks.issueKey() });
     const issue = issueOf(read);
     if (!issue) {
@@ -122,14 +128,19 @@ export class IssueWriter {
       return true;
     }
     this.busy = null;
-    this.status = { kind: 'error', text: 'The host did not answer and the change is not there. It was not saved; you can send it again.' };
+    this.status = {
+      kind: 'error',
+      title: 'Not there yet',
+      text: 'The host did not answer and the change is not there yet. It may still arrive; look again before you send it once more.',
+    };
     return false;
   }
 
   /** After a result without details: show the issue as it is now, when it can be read. */
-  private async refresh(spec: WriteSpec) {
+  private async refresh(spec: WriteSpec, started: number) {
     const issue = issueOf(await this.hooks.call('get_issue', { key: this.hooks.issueKey() }));
-    if (!issue) return;
+    // Another write or check started meanwhile: its answer is the newer one.
+    if (!issue || started !== this.step) return;
     this.hooks.onIssue(issue);
     this.status = { kind: 'ok', text: `Done: ${spec.summary}.` };
   }
@@ -139,6 +150,14 @@ export class IssueWriter {
     spec.onSaved?.();
     this.hooks.onChange?.(this.hooks.issueKey(), changes);
   }
+}
+
+/**
+ * The request id to send `body` with. An id belongs to the exact text it was first sent with: the same text again
+ * keeps it (a resend can't post twice), any other text gets a new one (the server answers an old id with the old comment).
+ */
+export function requestFor(sent: { id: string; body: string } | null, body: string): { id: string; body: string } {
+  return sent && sent.body === body ? sent : { id: newRequestId(), body };
 }
 
 /** A fresh `request_id` for a comment draft (a v4 UUID; `randomUUID` only exists in secure contexts). */
