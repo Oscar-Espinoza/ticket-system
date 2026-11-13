@@ -1,7 +1,8 @@
 // Shapes shared by the MCP tools and the MCP Apps views in src/mcp-ui
 // (docs/mcp/PLAN.md D7). Every tool result's `structuredContent`
-// is one of the `*View` types below, picked by `view`; text-only hosts read
-// the Markdown `content` instead. Type-only: no runtime imports, so the view
+// is one of the `*View` types below, picked by `view`, and goes only to hosts
+// that render views (./ui.ts resultFor); every other client gets the Markdown
+// `content` alone. Type-only: no runtime imports, so the view
 // bundle can import it.
 
 import type { ApiScope } from '@/lib/api-auth';
@@ -17,6 +18,13 @@ export interface McpCredential {
   apiKeyId: string | null;
   /** OAuth client name as registered (self-asserted for dynamic clients). */
   clientName: string | null;
+  /**
+   * The OAuth client is a host known to render MCP Apps views (claude.ai,
+   * ChatGPT, MCP_VIEW_REDIRECT_URIS), told by its redirect URIs
+   * (../register.ts rendersViews). False for API keys. Read through
+   * ./ui.ts resultFor, never directly.
+   */
+  viewHost: boolean;
   scopes: ReadonlySet<ApiScope>;
 }
 

@@ -90,6 +90,20 @@ describe.skipIf(!localDb)('MCP authentication', () => {
     expect(rest.ok).toBe(false);
   });
 
+  it("gives structuredContent to a JWT from claude.ai's client and not to a loopback client's", async () => {
+    const claudeAi = 'https://claude.ai/api/mcp/auth_callback';
+    const card = await authorize(user.cookie, await registerPublicClient(claudeAi), 'read', mcpUrl(), claudeAi);
+    const loopback = await authorize(user.cookie, clientId, 'read');
+    const resultOf = async (token: string) =>
+      ((await (await mcpRequest(token, 'tools/call', { name: 'list_projects', arguments: {} })).json()) as {
+        result: { content: unknown[]; structuredContent?: unknown };
+      }).result;
+    expect((await resultOf(card.access_token)).structuredContent).toEqual({ view: 'project-list', projects: [] });
+    const text = await resultOf(loopback.access_token);
+    expect(text).not.toHaveProperty('structuredContent');
+    expect(text.content).toEqual((await resultOf(card.access_token)).content);
+  });
+
   it('rejects JWTs for another audience, expired or tampered', async () => {
     const sign = (payload: Record<string, unknown>) =>
       auth.api.signJWT({ body: { payload } }).then((r) => (r as { token: string }).token);

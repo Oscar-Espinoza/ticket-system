@@ -3,7 +3,7 @@
 import { z } from 'zod';
 
 import { mcpProject } from '../access';
-import { issueListMarkdown, toolError, toolResult } from '../format';
+import { issueListMarkdown, toolError, toolResult, userContentInline } from '../format';
 import { cycleStatus, loadProjectMetadata, resolveCycle } from '../resolve';
 import { defineTool } from './common';
 import { cycleText, overviewFor, projectArg } from './projects';
@@ -50,7 +50,7 @@ export const getCycle = defineTool({
 
     const view = await overviewFor(project, cycle, 'cycle');
     const text = [
-      `${project.name} (${project.key})`,
+      `${userContentInline(project.name)} (key ${project.key}) · ${view.project.url}`,
       cycleText(view.cycle!),
       '',
       issueListMarkdown('Open issues in this cycle', view.issues, null),

@@ -250,8 +250,9 @@ describe('view sources and bundle', () => {
 describe('MCP Apps constants the server copies', () => {
   it('match @modelcontextprotocol/ext-apps (a devDependency; the server does not import it at runtime)', async () => {
     const apps = await import('@modelcontextprotocol/ext-apps/server');
-    const { RESOURCE_MIME_TYPE, RESOURCE_URI_META_KEY } = await import('@/lib/server/mcp/ui');
+    const { EXTENSION_ID, RESOURCE_MIME_TYPE, RESOURCE_URI_META_KEY } = await import('@/lib/server/mcp/ui');
     expect(RESOURCE_MIME_TYPE).toBe(apps.RESOURCE_MIME_TYPE);
     expect(RESOURCE_URI_META_KEY).toBe(apps.RESOURCE_URI_META_KEY);
+    expect(EXTENSION_ID).toBe(apps.EXTENSION_ID);
   });
 });
