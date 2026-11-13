@@ -787,9 +787,9 @@ describe.skipIf(!localDb)('MCP tools over /mcp', () => {
 
     it('refuses a different text under a used request_id instead of reporting it saved', async () => {
       const requestId = crypto.randomUUID();
-      const first = await call(aliceKey, 'add_comment', { key: issueKey, body: 'Text A', request_id: requestId });
+      const first = await call(aliceToken, 'add_comment', { key: issueKey, body: 'Text A', request_id: requestId });
       expect(first.isError).toBeUndefined();
-      const edited = await call(aliceKey, 'add_comment', { key: issueKey, body: 'Text B', request_id: requestId });
+      const edited = await call(aliceToken, 'add_comment', { key: issueKey, body: 'Text B', request_id: requestId });
       expect(edited.isError).toBe(true);
       expect(text(edited)).toMatch(/already in use/);
       expect(await db.select({ body: comments.body }).from(comments).where(eq(comments.id, requestId))).toEqual([{ body: 'Text A' }]);
