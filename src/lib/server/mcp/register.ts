@@ -3,7 +3,7 @@
 // can register themselves; this policy, run from the `hooks.before` in
 // src/lib/auth.ts, narrows what such a client may be:
 //   - redirect URIs only on the allowlist (the vendors' callbacks, loopback for
-//     Claude Code / MCP Inspector, MCP_EXTRA_REDIRECT_URIS);
+//     Claude Code / MCP Inspector, MCP_EXTRA_REDIRECT_URIS, MCP_VIEW_REDIRECT_URIS);
 //   - public clients only (`token_endpoint_auth_method: none`, PKCE): a
 //     request for `client_secret_basic` / `client_secret_post` (claude.ai sends
 //     `client_secret_post`) is registered as public instead, as RFC 7591
@@ -28,6 +28,8 @@ export const CLIENT_NAME_MAX = 100;
 const REDIRECT_URIS_MAX = 10;
 export const DYNAMIC_REGISTRATION = 'dynamic';
 
+// The vendors' callbacks. Both hosts render MCP Apps views (cards), so a
+// client whose redirect URIs are all of these is a view host (rendersViews below).
 const FIXED_REDIRECTS = new Set([
   'https://claude.ai/api/mcp/auth_callback',
   'https://chatgpt.com/connector_platform_oauth_redirect',
@@ -40,13 +42,33 @@ const ALLOWED_SCOPES = new Set<string>(OAUTH_APP_SCOPES);
 // other method (private_key_jwt, …) is refused.
 const DOWNGRADED_AUTH_METHODS = new Set(['client_secret_basic', 'client_secret_post']);
 
+const envList = (value: string | undefined) =>
+  (value ?? '')
+    .split(/[\s,]+/)
+    .map((v) => v.trim())
+    .filter(Boolean);
+
+/** Callbacks of other hosts that render MCP Apps views; each is also allowed for registration. */
+function viewRedirects(): Set<string> {
+  return new Set(envList(process.env.MCP_VIEW_REDIRECT_URIS));
+}
+
 function extraRedirects(): Set<string> {
-  return new Set(
-    (process.env.MCP_EXTRA_REDIRECT_URIS ?? '')
-      .split(/[\s,]+/)
-      .map((v) => v.trim())
-      .filter(Boolean),
-  );
+  return new Set([...envList(process.env.MCP_EXTRA_REDIRECT_URIS), ...viewRedirects()]);
+}
+
+/**
+ * Whether an OAuth client is a host that renders MCP Apps views (cards):
+ * every redirect URI it registered is the claude.ai or ChatGPT callback or
+ * listed in MCP_VIEW_REDIRECT_URIS. A token can only reach a client through one
+ * of its redirect URIs (PKCE, exact match), so this tells which host holds
+ * the token without trusting anything the request says. Loopback clients
+ * (Claude Code, MCP Inspector) and any client with one other URI are not.
+ */
+export function rendersViews(redirectUris: readonly string[] | null | undefined): boolean {
+  if (!redirectUris?.length) return false;
+  const extra = viewRedirects();
+  return redirectUris.every((uri) => FIXED_REDIRECTS.has(uri) || CHATGPT_CALLBACK.test(uri) || extra.has(uri));
 }
 
 /**

@@ -1,4 +1,5 @@
-// Tool output: compact Markdown for the model and text-only hosts (`content`),
+// Tool output: compact Markdown for the model (`content`), complete on its own
+// because clients that don't render views get only that (./ui.ts resultFor),
 // and the typed objects from ./contracts.ts (`structuredContent`). Issue and
 // comment text is user content: it is passed through as data, never as
 // instructions (the server `instructions` say so), and truncated so a result
@@ -141,20 +142,24 @@ export const isFollowUpDue = (issue: Pick<IssueSummary, 'followUp' | 'state'>, n
 /** `follow-up due 2026-11-10` when due, `follow up 2026-11-20` otherwise. */
 const followUpText = (issue: IssueSummary) => `${isFollowUpDue(issue) ? 'follow-up due' : 'follow up'} ${issue.followUp}`;
 
-/** `- **WEB-12** Fix login — In Progress · High · Ana · waiting on Grace · due 2026-11-20 · follow up 2026-11-18 · bug` */
+/** `- **WEB-12** Fix login — In Progress · High · Ana · waiting on Grace · due 2026-11-20 · follow up 2026-11-18 · bug · <url>` */
 export function issueLine(issue: IssueSummary): string {
-  const parts = [issue.state.name];
+  const parts = [userContentInline(issue.state.name)];
   if (issue.priority !== 'none') parts.push(PRIORITY_LABEL[issue.priority as keyof typeof PRIORITY_LABEL] ?? issue.priority);
   parts.push(issue.assignee ? userContentInline(issue.assignee.name) : 'Unassigned');
   if (issue.waitingOn) parts.push(`waiting on ${userContentInline(issue.waitingOn.name)}`);
   if (issue.dueDate) parts.push(`due ${issue.dueDate}`);
   if (issue.followUp) parts.push(followUpText(issue));
   if (issue.estimate != null) parts.push(`${issue.estimate} pt`);
-  if (issue.labels.length) parts.push(issue.labels.map((l) => l.name).join(', '));
+  if (issue.labels.length) parts.push(labelList(issue.labels));
+  parts.push(issue.url);
   let line = `- **${issue.key}** ${userContentInline(issue.title)} — ${parts.join(' · ')}`;
   if (issue.snippet) line += `\n  > ${userContentInline(issue.snippet)}`;
   return line;
 }
+
+/** Label names (written by people) kept inert, comma-separated. */
+export const labelList = (labels: { name: string }[]) => labels.map((l) => userContentInline(l.name)).join(', ');
 
 /**
  * User-written text (descriptions, comment bodies) as a fenced block the text

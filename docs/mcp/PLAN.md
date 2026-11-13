@@ -30,8 +30,8 @@ MCP Events (ChatGPT starts work when something happens in Ticket System).
   3. The host passes the tool result into the iframe over `postMessage`.
   4. The view can call our tools back, for example from a "Move to Done" button.
 
-  The same HTML works in both hosts. Claude Code and text-only clients get the text
-  part of the result.
+  The same HTML works in both hosts. Claude Code and text-only clients get only the
+  text part of the result (see "Text-only clients" under As built).
 - **Events (phase 2, ChatGPT only).** ChatGPT calls `events/subscribe` with a callback
   URL. We then POST signed webhooks when matching things happen, such as "an issue
   was assigned to me", and ChatGPT starts a Work chat to handle it.
@@ -151,8 +151,8 @@ Rules for every tool:
 - **Descriptions.** No cross-tool steering ("call X first"); both reviews reject it. Shared guidance goes in the server `instructions`, sent at initialize: issue keys look like `WEB-123`; `me` works as an assignee; descriptions are Markdown; valid state and label names come from `get_project_metadata`.
 - **Inputs.** Accept human values: a project key (`WEB`) or id; a state name or type; an assignee as `me`, `none`, an email or a name; labels by name. Resolve them server-side (`resolve.ts`). On failure, return an error that lists the valid options.
 - **Outputs.**
-  - `content`: compact Markdown, for the model and text-only hosts.
-  - `structuredContent`: a typed, concise object that the view renders. ChatGPT's model also reads it.
+  - `content`: compact Markdown, for the model and text-only hosts; complete on its own.
+  - `structuredContent`: a typed, concise object that the view renders, sent only to hosts that render views. ChatGPT's model also reads it.
   - `_meta`: UI-only extras such as avatar URLs, permalinks and long description text.
   - Lists default to 25 items (maximum 100) and paginate with a cursor. List rows carry truncated descriptions.
   - Keep each result well under about 100k characters. Claude's limit is about 150k characters, and Claude Code's is 25k tokens.
@@ -508,8 +508,9 @@ Closes the open notes of PR #4's focused re-review and its follow-up list.
 - **Inert text.** `userContentInline` (format.ts) puts titles, people's names,
   search snippets and notification lines on one line, inside a code span longer
   than any backtick run when they contain Markdown; plain text is unchanged.
-  List excerpts and project descriptions appear only in `structuredContent`,
-  never in text, so they needed nothing.
+  List excerpts appear only in `structuredContent`, never in text, so they
+  needed nothing. (Since "Text-only clients" below, project descriptions,
+  label, state, cycle, epic and project names are inert in text too.)
 - **Audit of refused writes** (`src/lib/server/mcp/audit.ts`): every write-tool
   call leaves one `mcp.tool_call` row with `data.outcome` = `success`,
   `denied` (`insufficient_scope`, `forbidden_role`, `connectors_blocked`,
@@ -634,3 +635,31 @@ installed packages; where they differ from the plan, the plan's intent was kept.
 - The issue-detail card has no activity timeline (the contract carries comments
   only), so the "activity in another project" entry from `redactActivityFor`
   never reaches it.
+
+### Text-only clients (2026-11-13, branch `fix/mcp-text-clients`)
+
+- Claude Code (2.1.323, checked against a logging stub) hands the model
+  `structuredContent` as JSON whenever a result has it and ignores `content`;
+  with no `structuredContent` it passes the text, also for a tool that
+  declares an `outputSchema` (no error). Ours declare none.
+- One rule, `resultFor` in `src/lib/server/mcp/ui.ts`, applied in
+  `registerMcpTool` (tools/common.ts) to every successful result: keep
+  `structuredContent` when the credential's OAuth client is a view host
+  (`credential.viewHost`: all its redirect URIs are the claude.ai or ChatGPT
+  callbacks or in `MCP_VIEW_REDIRECT_URIS`; `rendersViews` in register.ts,
+  computed in auth.ts) or the request declares the
+  `io.modelcontextprotocol/ui` extension with our MIME type (2026-07-28
+  requests carry client capabilities in `_meta`; the SDK seeds
+  `getClientCapabilities()` from it). Otherwise drop it. API keys, loopback
+  clients and unknown clients get text.
+- Not used: remembering what a 2025-era client declared at `initialize`
+  (stateless server, several instances on Vercel: a flag in memory would
+  give the same client different shapes; a DB write per initialize for a
+  hint), and User-Agent (spoofable). A declaration can add cards, never
+  remove them from claude.ai or ChatGPT.
+- Text filled to stand alone: issue rows carry their URL; get_issue shows
+  creator, created and updated dates and each comment's id (add_comment's
+  `reply_to`) and parent; list_projects shows the description and URL;
+  get_project_metadata shows member roles and cycle dates; inbox rows not
+  about an issue show their link. Label, state, cycle, epic, project and
+  workspace names go through `userContentInline`.

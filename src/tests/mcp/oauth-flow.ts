@@ -83,13 +83,14 @@ export async function authorize(
   clientId: string,
   scope = 'offline_access read write',
   resource: string | null = mcpUrl(),
+  redirect = LOOPBACK_REDIRECT,
 ): Promise<Tokens> {
   const verifier = randomBytes(32).toString('base64url');
   const challenge = createHash('sha256').update(verifier).digest('base64url');
   const query = new URLSearchParams({
     response_type: 'code',
     client_id: clientId,
-    redirect_uri: LOOPBACK_REDIRECT,
+    redirect_uri: redirect,
     scope,
     state: 'xyz',
     code_challenge: challenge,
@@ -114,7 +115,7 @@ export async function authorize(
   const res = await tokenRequest({
     grant_type: 'authorization_code',
     code,
-    redirect_uri: LOOPBACK_REDIRECT,
+    redirect_uri: redirect,
     client_id: clientId,
     code_verifier: verifier,
     ...(resource && { resource }),

@@ -20,6 +20,7 @@ import { db } from '@/lib/db';
 import { API_KEY_PREFIX, authenticateApiRequest, type ApiScope } from '@/lib/api-auth';
 import { oauthClients, oauthConsents, users } from '@/db/schema';
 import type { McpCredential } from './contracts';
+import { rendersViews } from './register';
 import { MCP_SCOPES, mcpUrl, protectedResourceMetadataUrl } from './urls';
 
 export type McpAuth = { ok: true; credential: McpCredential } | { ok: false; response: Response };
@@ -81,6 +82,7 @@ async function authenticateJwt(token: string): Promise<McpAuth> {
   const [row] = await db
     .select({
       name: oauthClients.name,
+      redirectUris: oauthClients.redirectUris,
       disabled: oauthClients.disabled,
       consentScopes: oauthConsents.scopes,
     })
@@ -105,6 +107,7 @@ async function authenticateJwt(token: string): Promise<McpAuth> {
       clientId,
       apiKeyId: null,
       clientName: row.name,
+      viewHost: rendersViews(row.redirectUris),
       scopes: toScopes(tokenScopes.filter((s) => granted.has(s))),
     },
   };
@@ -122,13 +125,15 @@ export async function authenticateMcpRequest(req: Request): Promise<McpAuth> {
   const result = await authenticateApiRequest(req);
   if (!result.ok) return { ok: false, response: unauthorized(INVALID_TOKEN) };
   let clientName: string | null = null;
+  let viewHost = false;
   if (result.clientId) {
     const [client] = await db
-      .select({ name: oauthClients.name })
+      .select({ name: oauthClients.name, redirectUris: oauthClients.redirectUris })
       .from(oauthClients)
       .where(eq(oauthClients.clientId, result.clientId))
       .limit(1);
     clientName = client?.name ?? null;
+    viewHost = rendersViews(client?.redirectUris);
   }
   return {
     ok: true,
@@ -138,6 +143,7 @@ export async function authenticateMcpRequest(req: Request): Promise<McpAuth> {
       clientId: result.clientId,
       apiKeyId: result.via === 'api_key' ? result.keyId : null,
       clientName,
+      viewHost,
       scopes: result.scopes,
     },
   };

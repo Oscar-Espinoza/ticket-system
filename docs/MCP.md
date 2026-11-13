@@ -71,7 +71,8 @@ the model to treat it as data, text results put descriptions and comment
 bodies in fenced `user-content` blocks the text can't close, and titles,
 people's names, search snippets and notification lines on one line, inside an
 inline code span when they contain Markdown (plain text is left as it is, to
-keep lists compact; `structuredContent` is never altered), and the write
+keep lists compact; `structuredContent` is never altered, and only hosts that
+show cards receive it: see "Text or cards" below), and the write
 limits above apply regardless. One JSON-RPC message per request: batches
 (arrays) are refused with HTTP 400.
 
@@ -81,6 +82,42 @@ In Claude (claude.ai, Desktop, mobile) and ChatGPT, the answers to these tools
 appear as an interactive card under the assistant's message, in the host's
 light or dark theme. Claude Code and other text-only clients get the same
 answer as text and never see a card.
+
+### Text or cards: which clients get what
+
+Every tool result has a compact Markdown text, complete on its own (key,
+title, state, priority, assignee, labels, dates, waiting on, follow-up, cycle,
+epic, link, comment ids, paging cursor and "more available"), with
+user-written text fenced as above. Hosts that show cards also get
+`structuredContent`, the JSON object the card draws. Only they get it, because
+a client that can't show cards may hand the model that JSON instead of the
+text: Claude Code (checked with 2.1.323) does exactly that whenever
+`structuredContent` is present, so its model would read raw JSON, without
+the fencing and at a higher token cost.
+
+A request gets `structuredContent` when either holds:
+
+1. **Its OAuth app is a known card host**: every redirect URI the app
+   registered is `https://claude.ai/api/mcp/auth_callback`, a ChatGPT callback
+   (`https://chatgpt.com/connector_platform_oauth_redirect`,
+   `https://chatgpt.com/connector/oauth/<id>`) or listed in
+   `MCP_VIEW_REDIRECT_URIS`. A token reaches an app only through one of its
+   redirect URIs, so this can't be faked with request headers.
+2. **The request declares MCP Apps support**: clients on protocol revision
+   2026-07-28 send their capabilities with every request, and one that lists
+   the `io.modelcontextprotocol/ui` extension with `text/html;profile=mcp-app`
+   gets cards. (Older clients declare capabilities only once, at
+   `initialize`; `/mcp` keeps no sessions, so it can't see them later.)
+
+Everything else gets text only: personal API keys (`lc_…`), loopback apps
+(Claude Code, MCP Inspector) and any unknown app. Tool lists are the same for
+everyone (tools keep `_meta.ui.resourceUri` and the view resource stays
+listed); no tool declares an `outputSchema`, so a text-only result is valid.
+
+**Another host that shows cards**: add its OAuth callback URL, exactly, to
+`MCP_VIEW_REDIRECT_URIS` (comma- or space-separated). That also allows it to
+register, so it need not be in `MCP_EXTRA_REDIRECT_URIS` too. Its users then
+remove and re-add the connector, so the app registers again with that URI.
 
 | Tool | Card |
 |---|---|
@@ -207,7 +244,7 @@ says `token_endpoint_auth_method: none` (RFC 7591 §3.2.1); other methods and
 - `https://claude.ai/api/mcp/auth_callback`
 - `https://chatgpt.com/connector_platform_oauth_redirect` and `https://chatgpt.com/connector/oauth/<id>`
 - `http://localhost:<port>/…` and `http://127.0.0.1:<port>/…` (Claude Code, MCP Inspector), also with no path (`http://localhost:<port>`)
-- anything listed in `MCP_EXTRA_REDIRECT_URIS` (comma- or space-separated, exact match)
+- anything listed in `MCP_EXTRA_REDIRECT_URIS` or `MCP_VIEW_REDIRECT_URIS` (comma- or space-separated, exact match)
 
 Homepage, logo, terms and privacy URLs (`client_uri`, `logo_uri`, `tos_uri`,
 `policy_uri`) must be absolute `https:` URLs or absent, and
@@ -252,9 +289,11 @@ API keys or assistants gets the allowance once for each.
   header, and that URL must return JSON whose `resource` is exactly the pasted URL.
 - **A project is missing**: you aren't a member, or its workspace blocks AI
   connectors.
-- **Text instead of a card**: the host didn't render the view. Check that the
-  host supports MCP Apps (claude.ai and ChatGPT do; Claude Code and MCP
-  Inspector show text), that the build includes the bundle (`npm run build`
+- **Text instead of a card**: the host didn't render the view, or `/mcp`
+  doesn't know it shows cards. Check that the host supports MCP Apps
+  (claude.ai and ChatGPT do; Claude Code and MCP Inspector show text), that
+  another host is listed in `MCP_VIEW_REDIRECT_URIS` ("Text or cards" above),
+  that the build includes the bundle (`npm run build`
   runs `build:mcp-ui`; `resources/read` on `ui://ticket-system/app.<hash>.html`
   should return `text/html;profile=mcp-app`), and that the connector was
   re-added or refreshed after a deploy (hosts cache tool lists).
@@ -305,7 +344,8 @@ tools; the vendors' clients need a public URL and real accounts:
    see Troubleshooting). Click a row to expand it, **Load more**, change a
    state from the card, **Assign to me**, add a comment, **Open in Ticket
    System** (opens a browser tab), and the full-screen button on a long list.
-   In Claude Code the same prompts show text only.
+   In Claude Code the same prompts show text only, and the model gets the
+   Markdown text (fenced `user-content` blocks), not JSON.
 7. Check the audit log (Integrations) shows the writes with the client
    names, then revoke Claude in Settings → OAuth apps and confirm its next call
    fails.

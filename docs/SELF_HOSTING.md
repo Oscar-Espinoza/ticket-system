@@ -343,7 +343,9 @@ documents and `/api/auth/oauth2/{register,token}` + `/api/auth/jwks` must be on
 public HTTPS, and `APP_URL` must be that public URL; sign-in and consent can
 stay on the VPN. A reverse proxy exposing only those paths, or a
 `cloudflared` tunnel for a test, is enough. Extra OAuth redirect URIs for other
-MCP clients go in `MCP_EXTRA_REDIRECT_URIS`. Set `ADDRESS_HEADER` / `XFF_DEPTH`
+MCP clients go in `MCP_EXTRA_REDIRECT_URIS`, and those of other hosts that show
+cards (MCP Apps) in `MCP_VIEW_REDIRECT_URIS` (see "Text or cards" in
+[MCP.md](MCP.md)). Set `ADDRESS_HEADER` / `XFF_DEPTH`
 (above) so client registration is limited per caller. `MCP_RATE_LIMIT_PER_MINUTE`
 (default 120, `0` = off) caps MCP calls per connection, per replica. Details: [MCP.md](MCP.md).
 
