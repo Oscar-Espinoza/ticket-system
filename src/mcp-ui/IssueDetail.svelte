@@ -114,13 +114,12 @@
   }
 
   function assign(to: 'me' | 'none') {
-    const me = issue.viewerId;
     return writer.write({
       tool: 'update_issue',
       args: { assignee: to },
       label: to === 'me' ? 'Assigning…' : 'Unassigning…',
       summary: to === 'me' ? 'assigned to you' : 'unassigned',
-      applied: to === 'me' ? (i) => i.assignee?.id === me : (i) => i.assignee === null,
+      applied: to === 'me' ? (i) => i.assignee != null && i.assignee.id === i.viewerId : (i) => i.assignee === null,
     });
   }
 
