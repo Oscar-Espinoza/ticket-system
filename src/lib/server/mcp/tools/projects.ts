@@ -68,7 +68,7 @@ export const listProjects = defineTool({
           ...view.projects.map((p) => {
             const workspace = p.workspace ? ` (workspace ${userContentInline(p.workspace.name)})` : '';
             const line = `- **${p.key}** ${userContentInline(p.name)}${workspace} — ${p.openIssues} open, your role: ${p.role} · ${p.url}`;
-            return p.description?.trim() ? `${line}\n  ${userContentInline(p.description)}` : line;
+            return p.description?.trim() ? `${line}\n  Description: ${userContentInline(p.description)}` : line;
           }),
         ].join('\n')
       : 'You have no projects reachable from AI assistants.';

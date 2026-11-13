@@ -52,9 +52,10 @@ const BLOCK_MAX = DESCRIPTION_MAX;
 /**
  * Characters and forms that make text Markdown: emphasis, code, links, HTML,
  * headings, tables, escapes, and what GFM turns into links on its own (bare
- * URLs, `www.` hosts, email addresses).
+ * URLs, `www.` hosts, email addresses), and text that would start a block
+ * where it begins a line (`===`/`---` underlines, `-`/`+`/`1.` list markers).
  */
-const MARKUP = /[`*_[\]<>#|~\\]|[a-z][a-z0-9+.-]*:\/\/|\bwww\.|\S@\S/i;
+const MARKUP = /[`*_[\]<>#|~\\]|[a-z][a-z0-9+.-]*:\/\/|\bwww\.|\S@\S|^\s*(?:[=+-]|\d+[.)](?:\s|$))/i;
 
 /**
  * Short user-written text (a title, a person's name, a search snippet) inert
