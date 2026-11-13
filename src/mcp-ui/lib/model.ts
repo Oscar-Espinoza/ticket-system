@@ -88,6 +88,51 @@ export function relativeTime(iso: string, now: Date = new Date(), locale?: strin
 }
 
 // ---------------------------------------------------------------------------
+// Accessible names
+// ---------------------------------------------------------------------------
+
+export interface RowLabelOptions {
+  /** The list shows the project name in the row (lists across projects). */
+  showProject?: boolean;
+  /** The group header already says the state. */
+  hideState?: boolean;
+  today?: string;
+  locale?: string;
+}
+
+/**
+ * What a screen reader says for an issue row, as one sentence with commas
+ * between the parts: "LIVE-12, Fix login, In Progress, High priority, assigned to
+ * Ana, due Nov 10 (overdue), waiting on Bob". The row's visible pieces sit in
+ * separate inline elements with no text between them, so reading the content
+ * would run them together ("Nov 10 · due waiting on userb").
+ */
+export function issueRowLabel(issue: IssueSummary, options: RowLabelOptions = {}): string {
+  const today = options.today ?? toDateString(new Date());
+  const closed = issue.state.type === 'completed' || issue.state.type === 'canceled';
+  const parts: string[] = [issue.key, issue.title.trim() || 'Untitled'];
+  if (options.showProject) parts.push(`in ${issue.project.name}`);
+  if (!options.hideState) parts.push(issue.state.name);
+  if (issue.priority !== 'none') parts.push(`${PRIORITY_LABEL[issue.priority as Priority] ?? issue.priority} priority`);
+  parts.push(issue.assignee ? `assigned to ${issue.assignee.name}` : 'unassigned');
+  if (issue.labels.length) {
+    const shown = issue.labels.slice(0, 3).map((l) => l.name);
+    const more = issue.labels.length - shown.length;
+    parts.push(`${issue.labels.length === 1 ? 'label' : 'labels'} ${shown.join(' and ')}${more > 0 ? ` and ${more} more` : ''}`);
+  }
+  if (issue.dueDate) {
+    const tone = closed ? 'later' : dueTone(issue.dueDate, today);
+    parts.push(`due ${shortDate(issue.dueDate, options.locale, today)}${tone === 'overdue' ? ' (overdue)' : tone === 'soon' ? ' (due soon)' : ''}`);
+  }
+  if (issue.followUp) {
+    const due = !closed && issue.followUp <= today;
+    parts.push(`follow up ${shortDate(issue.followUp, options.locale, today)}${due ? ' (due)' : ''}`);
+  }
+  if (issue.waitingOn) parts.push(`waiting on ${issue.waitingOn.name}`);
+  return parts.join(', ');
+}
+
+// ---------------------------------------------------------------------------
 // Grouping
 // ---------------------------------------------------------------------------
 

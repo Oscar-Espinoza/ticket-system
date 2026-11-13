@@ -634,3 +634,33 @@ installed packages; where they differ from the plan, the plan's intent was kept.
 - The issue-detail card has no activity timeline (the contract carries comments
   only), so the "activity in another project" entry from `redactActivityFor`
   never reaches it.
+
+### Cards after a chat reload (2026-11-13, branch `fix/mcp-card-refresh`)
+
+- **Refresh.** Hosts re-render a card from the original tool result, so state
+  changed since is gone. After the host delivers the result, the card shows it and
+  then re-reads once (`lib/refresh.ts` decides, `lib/app.svelte.ts` schedules):
+  `get_issue` for every issue result (also those of `create_issue`,
+  `update_issue`, `add_comment`; a write is never repeated), the paged list's
+  own `source` (`list_issues`, `my_work`, `list_inbox`; arguments are the
+  caller's, cursor dropped), `get_project_overview` or `get_cycle {cycle: id}` for
+  an overview, `list_projects`. Search results carry no `source`, so they are not
+  refreshed. Only read tools are on the list the view may call.
+- **When.** Once per delivered result (a re-sent identical result is ignored), only
+  with `hostCapabilities.serverTools`, when the card scrolls into view
+  (`IntersectionObserver`), after a random 0–1.5 s so a page of cards does not
+  call at once. Not while a comment draft, a write in flight or extra pages exist,
+  and a read that was started before such a thing is dropped.
+- **Answer.** Unchanged: nothing. Newer: replaced, with "Updated to the latest."
+  for 5 s. A tool refusal "…not found" (gone or no access): "No longer
+  available" with the server's message. Anything else: the first result stays and
+  a discreet note says the check failed.
+- **Load more.** The button has a spinner, `aria-busy` and "Loading more…". The
+  ~5 s seen in claude.ai was not reproducible here (cold call 0.16 s, warm 10 ms on
+  a local server): what is left is the host relay and, in production, a cold
+  function and database; the view had only a dimmed label as feedback.
+- **Accessibility and narrow widths.** A row's name is one sentence
+  (`issueRowLabel`: key, title, state, priority, assignee, labels, due, waiting on,
+  separated by commas); the list title, parent, sub-issue, relation and
+  project-card titles wrap to two lines instead of one; an expanded row shows its
+  full title.

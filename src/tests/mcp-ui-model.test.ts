@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { CycleView, IssueSummary } from '@/lib/server/mcp/contracts';
 import { rehypeSafe, safeHref } from '../mcp-ui/lib/markdown';
-import { burndownGeometry, dueTone, groupIssues, initials, plainText, relativeTime, safeColor, typeSegments } from '../mcp-ui/lib/model';
+import { burndownGeometry, dueTone, groupIssues, initials, issueRowLabel, plainText, relativeTime, safeColor, typeSegments } from '../mcp-ui/lib/model';
 
 const issue = (key: string, state: [string, string], priority = 'none'): IssueSummary => ({
   id: key,
@@ -85,6 +85,42 @@ describe('text and colour helpers', () => {
     const now = new Date('2026-11-12T12:00:00Z');
     expect(relativeTime('2026-11-09T12:00:00Z', now, 'en')).toBe('3 days ago');
     expect(relativeTime('not a date', now)).toBe('');
+  });
+});
+
+describe('issueRowLabel (a row\'s accessible name)', () => {
+  const full: IssueSummary = {
+    ...issue('LIVE-12', ['In Progress', 'started'], 'high'),
+    title: 'Fix login',
+    assignee: { id: 'u1', name: 'Ana' },
+    waitingOn: { id: 'u2', name: 'Bob' },
+    dueDate: '2026-11-10',
+    labels: [{ id: 'l1', name: 'bug', color: '#e5484d' }],
+  };
+
+  it('is one comma-separated sentence, not the pieces run together', () => {
+    expect(issueRowLabel(full, { today: '2026-11-01', locale: 'en-US' })).toBe(
+      'LIVE-12, Fix login, In Progress, High priority, assigned to Ana, label bug, due Nov 10, waiting on Bob',
+    );
+  });
+
+  it('says overdue and due soon in words, and nothing for a closed issue', () => {
+    expect(issueRowLabel(full, { today: '2026-11-20', locale: 'en-US' })).toContain('due Nov 10 (overdue)');
+    expect(issueRowLabel(full, { today: '2026-11-08', locale: 'en-US' })).toContain('due Nov 10 (due soon)');
+    const done = { ...full, state: { ...full.state, type: 'completed', name: 'Done' } };
+    expect(issueRowLabel(done, { today: '2026-11-20', locale: 'en-US' })).toContain('due Nov 10, waiting');
+  });
+
+  it('leaves out what the row does not show: state under a state group, no priority, and says unassigned', () => {
+    const bare: IssueSummary = { ...issue('WEB-1', ['Todo', 'unstarted']), title: 'Bare' };
+    expect(issueRowLabel(bare, { today: '2026-11-01' })).toBe('WEB-1, Bare, Todo, unassigned');
+    expect(issueRowLabel(full, { hideState: true, today: '2026-11-01', locale: 'en-US' })).not.toContain('In Progress');
+    expect(issueRowLabel(full, { showProject: true, today: '2026-11-01', locale: 'en-US' })).toContain('Fix login, in Web, In Progress');
+  });
+
+  it('caps the labels it reads out and counts the rest', () => {
+    const many = { ...full, labels: ['a', 'b', 'c', 'd', 'e'].map((name) => ({ id: name, name, color: '#888888' })) };
+    expect(issueRowLabel(many, { today: '2026-11-01', locale: 'en-US' })).toContain('labels a and b and c and 2 more');
   });
 });
 

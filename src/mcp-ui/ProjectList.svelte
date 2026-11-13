@@ -29,10 +29,10 @@
             aria-label="Open {project.name} in Ticket System"
             onclick={() => open(project.url)}
           >
-            <span class="flex min-w-0 items-center gap-2">
+            <span class="flex min-w-0 items-start gap-2">
               <span class="shrink-0 rounded-viewsm bg-bg3 px-1.5 py-0.5 font-code font-semibold">{project.key}</span>
-              <span class="min-w-0 flex-1 truncate font-semibold">{project.name}</span>
-              <Icon name="external" size={13} />
+              <span class="line-clamp-2 min-w-0 flex-1 pt-0.5 font-semibold [overflow-wrap:anywhere]">{project.name}</span>
+              <span class="pt-1"><Icon name="external" size={13} /></span>
             </span>
             {#if project.description}
               <span class="line-clamp-2 text-fg2 [overflow-wrap:anywhere]">{project.description}</span>

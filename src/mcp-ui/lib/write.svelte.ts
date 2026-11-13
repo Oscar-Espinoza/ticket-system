@@ -20,6 +20,8 @@ export interface ToolOutcome {
   content: McpStructuredContent | null;
   text: string;
   indeterminate?: boolean;
+  /** The server answered with a tool error (as opposed to a transport failure or no answer). */
+  refused?: boolean;
 }
 export type CallFn = (tool: string, args: Record<string, unknown>) => Promise<ToolOutcome>;
 

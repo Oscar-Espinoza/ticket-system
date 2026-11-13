@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { InboxView, IssueListView, IssueSummary, NotificationRow as Notification, PageSource } from '@/lib/server/mcp/contracts';
-  import { callTool, host, toggleFullscreen, view } from './lib/app.svelte';
+  import { callTool, holdRefresh, host, toggleFullscreen, view } from './lib/app.svelte';
   import ErrorState from './ErrorState.svelte';
   import Icon from './Icon.svelte';
   import IssueRows from './IssueRows.svelte';
@@ -28,6 +28,11 @@
   const fullscreen = $derived(view.displayMode === 'fullscreen');
   const noun = $derived(isInbox ? 'notification' : 'issue');
 
+  // More pages are on screen (or on their way): a refresh would replace the first page under them.
+  $effect(() => {
+    if (extra.length > 0 || loadingMore) return holdRefresh();
+  });
+
   async function loadMore() {
     if (!source || !nextCursor || loadingMore) return;
     loadingMore = true;
@@ -49,9 +54,9 @@
 
 <section class="space-y-2" aria-label={data.title}>
   <header class="flex items-center justify-between gap-2">
-    <h1 class="min-w-0 truncate text-[1.15em] font-semibold [overflow-wrap:anywhere]">{data.title}</h1>
+    <h1 class="line-clamp-2 min-w-0 text-[1.15em] leading-snug font-semibold [overflow-wrap:anywhere]">{data.title}</h1>
     <div class="flex shrink-0 items-center gap-2">
-      <span class="text-fg2">{count}{nextCursor ? '+' : ''} {noun}{count === 1 && !nextCursor ? '' : 's'}</span>
+      <span class="text-right text-fg2">{count}{nextCursor ? '+' : ''} {noun}{count === 1 && !nextCursor ? '' : 's'}</span>
       {#if host.canFullscreen && (fullscreen || count > 6)}
         <button
           type="button"
@@ -89,11 +94,13 @@
     <div class="flex justify-center pt-1">
       <button
         type="button"
-        class="min-h-8 rounded-view border border-line2 px-4 font-medium hover:bg-bg2 disabled:opacity-60"
+        class="inline-flex min-h-8 items-center gap-2 rounded-view border border-line2 px-4 font-medium hover:bg-bg2 disabled:opacity-70"
+        aria-busy={loadingMore}
         disabled={loadingMore}
         onclick={loadMore}
       >
-        {loadingMore ? 'Loading…' : 'Load more'}
+        {#if loadingMore}<span class="size-3.5 animate-spin rounded-full border-2 border-line2 border-t-fg" aria-hidden="true"></span>{/if}
+        {loadingMore ? 'Loading more…' : 'Load more'}
       </button>
     </div>
   {:else if nextCursor}

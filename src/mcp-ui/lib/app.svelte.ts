@@ -3,22 +3,15 @@
 // read `view` and call the functions.
 
 import type { CallToolResult } from '@modelcontextprotocol/server';
+import { untrack } from 'svelte';
 
 import type { McpStructuredContent, ProjectMetadataView } from '@/lib/server/mcp/contracts';
 import { Host, HostTimeoutError, type DisplayMode, type HostContext } from './host';
+import { isStale, planRefresh, runRefresh, type RefreshResult } from './refresh';
 import { applyHostContext } from './theme';
+import type { ToolOutcome } from './write.svelte';
 
 export type Phase = 'loading' | 'ready' | 'error';
-
-export interface ToolOutcome {
-  ok: boolean;
-  /** The structured result of a successful call. */
-  content: McpStructuredContent | null;
-  /** The text of the result, or the error message. */
-  text: string;
-  /** No answer from the host in time: the call may or may not have run (lib/write.ts handles that). */
-  indeterminate?: boolean;
-}
 
 const textOf = (result: CallToolResult): string =>
   (result.content ?? [])
@@ -31,26 +24,127 @@ const structuredOf = (result: CallToolResult): McpStructuredContent | null => {
   return value && typeof value.view === 'string' ? (value as unknown as McpStructuredContent) : null;
 };
 
+/** The title of the error card for a result the host marked as an error. */
+const ERROR_TITLE = 'Ticket System could not do that';
+/** How long the "Updated" hint stays after a refresh found newer data. */
+const UPDATED_HINT_MS = 5000;
+/** A chat with many cards refreshes them all on reload: spread the calls over this long. */
+const REFRESH_SPREAD_MS = 1500;
+
 class ViewState {
   phase = $state<Phase>('loading');
   content = $state.raw<McpStructuredContent | null>(null);
   /** Error text, or the text of a result with no structured content. */
   message = $state('');
+  errorTitle = $state(ERROR_TITLE);
   context = $state.raw<HostContext>({});
   displayMode = $state<DisplayMode>('inline');
+  /** After a refresh: newer data was found ("updated"), or the server could not be asked ("failed"). */
+  refreshNote = $state<'' | 'updated' | 'failed'>('');
+  /** What the user is doing that a refresh must not disturb (a draft comment, a write in flight, more pages loaded). */
+  holds = $state(0);
 }
 
 export const view = new ViewState();
 
+// A write result the user saw, counted: a refresh that started before it must not replace it with an older read.
+let writes = 0;
+export const noteWrite = () => void writes++;
+
+/** The card is being edited until the returned function is called. */
+export function holdRefresh(): () => void {
+  // Called from effects: read-modify-write without making the effect depend on the count.
+  untrack(() => void view.holds++);
+  return () => untrack(() => void view.holds--);
+}
+
+let loadId = 0;
+let cancelRefresh: (() => void) | null = null;
+let hintTimer: ReturnType<typeof setTimeout> | undefined;
+let lastDelivery = '';
+
 function receive(result: CallToolResult) {
+  // The same result again (a host that re-sends it) must not undo a refresh or a change made since.
+  const delivery = JSON.stringify([result.isError === true, result.content, result.structuredContent]);
+  if (delivery === lastDelivery && view.phase !== 'loading') return;
+  lastDelivery = delivery;
+
   const content = structuredOf(result);
   view.message = textOf(result);
+  view.errorTitle = ERROR_TITLE;
+  view.refreshNote = '';
+  clearTimeout(hintTimer);
+  cancelRefresh?.();
+  cancelRefresh = null;
+  loadId++;
   if (result.isError) {
     view.phase = 'error';
     view.content = null;
   } else {
     view.phase = 'ready';
     view.content = content;
+    if (content) cancelRefresh = scheduleRefresh(loadId);
+  }
+}
+
+/** Run `fn` once the card is on screen (at once where the browser cannot tell). Returns a cancel function. */
+function whenVisible(fn: () => void): () => void {
+  if (typeof IntersectionObserver === 'undefined') {
+    fn();
+    return () => {};
+  }
+  const observer = new IntersectionObserver((entries) => {
+    if (!entries.some((entry) => entry.isIntersecting)) return;
+    observer.disconnect();
+    fn();
+  });
+  observer.observe(document.body);
+  return () => observer.disconnect();
+}
+
+/** Once per tool result: when the card is visible, after a random delay so a page of cards does not call at once. */
+function scheduleRefresh(id: number): () => void {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const cancelVisible = whenVisible(() => {
+    timer = setTimeout(() => void refresh(id), Math.random() * REFRESH_SPREAD_MS);
+  });
+  return () => {
+    cancelVisible();
+    clearTimeout(timer);
+  };
+}
+
+async function refresh(id: number) {
+  const current = view.content;
+  const plan = current && id === loadId ? planRefresh(current, { canCallTools: host.canCallTools, holding: view.holds > 0 }) : null;
+  if (!current || !plan) return;
+  const started = { loadId: id, writes };
+  const result = await runRefresh(current, plan, callTool);
+  // A newer result arrived, or the user started something while we waited: leave the card alone.
+  if (isStale(started, { loadId, writes, holds: view.holds })) return;
+  applyRefresh(result);
+}
+
+function applyRefresh(result: RefreshResult) {
+  switch (result.kind) {
+    case 'updated':
+      view.content = result.content;
+      view.refreshNote = 'updated';
+      hintTimer = setTimeout(() => {
+        if (view.refreshNote === 'updated') view.refreshNote = '';
+      }, UPDATED_HINT_MS);
+      break;
+    case 'gone':
+      view.phase = 'error';
+      view.errorTitle = 'No longer available';
+      view.message = `${result.message}\nIt may have been deleted, or you may no longer have access to it.`;
+      view.content = null;
+      break;
+    case 'failed':
+      view.refreshNote = 'failed';
+      break;
+    case 'unchanged':
+      break;
   }
 }
 
@@ -89,7 +183,12 @@ export async function start() {
 export async function callTool(name: string, args: Record<string, unknown>): Promise<ToolOutcome> {
   try {
     const result = await host.callTool(name, args);
-    return { ok: !result.isError, content: result.isError ? null : structuredOf(result), text: textOf(result) };
+    return {
+      ok: !result.isError,
+      content: result.isError ? null : structuredOf(result),
+      text: textOf(result),
+      ...(result.isError && { refused: true }),
+    };
   } catch (error) {
     return {
       ok: false,

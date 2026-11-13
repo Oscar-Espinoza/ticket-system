@@ -3,7 +3,7 @@
 
   import type { IssueDetail, ProjectMetadataView } from '@/lib/server/mcp/contracts';
   import { toDateString } from '@/lib/dates';
-  import { callTool, host, projectMetadata, reportChange } from './lib/app.svelte';
+  import { callTool, holdRefresh, host, noteWrite, projectMetadata, reportChange } from './lib/app.svelte';
   import { IssueWriter, newRequestId } from './lib/write.svelte';
   import { dueTone, relativeTime, safeColor, shortDate, STATE_TYPE_ORDER } from './lib/model';
   import Avatar from './Avatar.svelte';
@@ -34,6 +34,7 @@
       issueKey: () => issue.key,
       onIssue: (next) => {
         issue = next;
+        noteWrite();
         onupdate?.(next);
       },
       onChange: reportChange,
@@ -61,6 +62,21 @@
   const locale = $derived(host.context.locale);
 
   const assigneeBefore = () => issue.assignee?.id ?? null;
+
+  // The prop changes when the card refreshes itself (lib/app.svelte.ts): show the newer read, unless a write is
+  // in flight or unconfirmed (its answer is the newer one).
+  $effect(() => {
+    const next = initial;
+    untrack(() => {
+      if (next !== issue && !writer.busy && !writer.unconfirmed) issue = next;
+    });
+  });
+
+  // A draft comment or a write in flight: the card is being used, so a refresh leaves it alone.
+  const inUse = $derived(comment.trim() !== '' || writer.busy !== null || writer.unconfirmed !== null);
+  $effect(() => {
+    if (inUse) return holdRefresh();
+  });
 
   async function toggleStates() {
     statesOpen = !statesOpen;
@@ -227,15 +243,15 @@
 
     {#if issue.cycle}
       <dt class="text-fg2">Cycle</dt>
-      <dd class="min-w-0 truncate">Cycle {issue.cycle.number}{issue.cycle.name ? ` · ${issue.cycle.name}` : ''}</dd>
+      <dd class="line-clamp-2 min-w-0 [overflow-wrap:anywhere]">Cycle {issue.cycle.number}{issue.cycle.name ? ` · ${issue.cycle.name}` : ''}</dd>
     {/if}
     {#if issue.epic}
       <dt class="text-fg2">Epic</dt>
-      <dd class="min-w-0 truncate">{issue.epic.name}</dd>
+      <dd class="line-clamp-2 min-w-0 [overflow-wrap:anywhere]">{issue.epic.name}</dd>
     {/if}
     {#if issue.parent}
       <dt class="text-fg2">Parent</dt>
-      <dd class="min-w-0 truncate"><span class="font-code">{issue.parent.key}</span> {issue.parent.title}</dd>
+      <dd class="line-clamp-2 min-w-0 [overflow-wrap:anywhere]"><span class="font-code">{issue.parent.key}</span> {issue.parent.title}</dd>
     {/if}
     {#if issue.dueDate}
       {@const tone = closed ? 'later' : dueTone(issue.dueDate, today)}
@@ -294,7 +310,7 @@
       <h3 class="mb-1 font-semibold">Sub-issues <span class="font-normal text-fg2">({issue.subIssues.length})</span></h3>
       <ul class="space-y-1">
         {#each issue.subIssues as sub (sub.id)}
-          <li class="flex min-w-0 items-center gap-2"><StateIcon type={sub.state.type} color={sub.state.color} /><span class="font-code text-fg2">{sub.key}</span><span class="truncate">{sub.title}</span></li>
+          <li class="flex min-w-0 items-start gap-2"><span class="mt-0.5"><StateIcon type={sub.state.type} color={sub.state.color} /></span><span class="shrink-0 font-code text-fg2">{sub.key}</span><span class="line-clamp-2 min-w-0 [overflow-wrap:anywhere]">{sub.title}</span></li>
         {/each}
       </ul>
     </section>
@@ -304,7 +320,7 @@
       <h3 class="mb-1 font-semibold">Relations</h3>
       <ul class="space-y-1">
         {#each issue.relations as rel (rel.kind + rel.issue.id)}
-          <li class="flex min-w-0 items-center gap-2"><span class="shrink-0 text-fg2">{rel.kind.replaceAll('_', ' ')}</span><StateIcon type={rel.issue.state.type} color={rel.issue.state.color} /><span class="font-code text-fg2">{rel.issue.key}</span><span class="truncate">{rel.issue.title}</span></li>
+          <li class="flex min-w-0 items-start gap-2"><span class="shrink-0 text-fg2">{rel.kind.replaceAll('_', ' ')}</span><span class="mt-0.5"><StateIcon type={rel.issue.state.type} color={rel.issue.state.color} /></span><span class="shrink-0 font-code text-fg2">{rel.issue.key}</span><span class="line-clamp-2 min-w-0 [overflow-wrap:anywhere]">{rel.issue.title}</span></li>
         {/each}
       </ul>
     </section>
