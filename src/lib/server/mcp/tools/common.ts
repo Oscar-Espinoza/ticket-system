@@ -6,6 +6,8 @@
 // `insufficient_scope` challenge ChatGPT turns into its re-link prompt).
 // Write tools are audited here when refused or failed (../audit.ts); their
 // successful calls are audited by the tool itself, which knows the issue.
+// Every result leaves through ../ui.ts resultFor, which drops
+// `structuredContent` for clients that don't render views.
 
 import type { CallToolResult, McpServer } from '@modelcontextprotocol/server';
 import type { z } from 'zod';
@@ -14,7 +16,7 @@ import type { ApiScope } from '@/lib/api-auth';
 import type { McpCredential } from '../contracts';
 import { auditRefusal, refusalOf, type Refusal } from '../audit';
 import { toolError } from '../format';
-import { UI_TOOL_META } from '../ui';
+import { resultFor, UI_TOOL_META } from '../ui';
 import { protectedResourceMetadataUrl } from '../urls';
 
 export interface McpTool<S extends z.ZodObject = z.ZodObject> {
@@ -86,7 +88,8 @@ export function registerMcpTool(server: McpServer, credential: McpCredential, to
           reason: 'server_error',
         });
       }
-      return result.isError ? refuse(result, refusalOf(result)) : result;
+      if (result.isError) return refuse(result, refusalOf(result));
+      return resultFor(result, credential, server.server.getClientCapabilities());
     },
   );
 }

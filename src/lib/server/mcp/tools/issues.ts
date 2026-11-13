@@ -21,6 +21,7 @@ import {
   summarizeIssue,
   toolError,
   toolResult,
+  userContentInline,
 } from '../format';
 import { loadProjectMetadata, resolveAssignee, type ProjectMetadata, type Resolved } from '../resolve';
 import { defineTool } from './common';
@@ -150,6 +151,7 @@ export const listIssuesTool = defineTool({
       issues = [...issues].sort((a, b) => rank(a.state.type) - rank(b.state.type) || a.state.name.localeCompare(b.state.name));
     }
     const title = `${project.name} issues`;
+    const textTitle = `${userContentInline(project.name)} issues`;
     const { cursor: _cursor, ...pageArgs } = args;
     const view: IssueListView = {
       view: 'issue-list',
@@ -164,12 +166,12 @@ export const listIssuesTool = defineTool({
       const groups = new Map<string, IssueSummary[]>();
       for (const issue of issues) groups.set(issue.state.name, [...(groups.get(issue.state.name) ?? []), issue]);
       text = [
-        `${title} (${issues.length}${result.nextCursor ? ', more available' : ''}):`,
-        ...[...groups].flatMap(([state, rows]) => [`\n### ${state} (${rows.length})`, ...rows.map(issueLine)]),
+        `${textTitle} (${issues.length}${result.nextCursor ? ', more available' : ''}):`,
+        ...[...groups].flatMap(([state, rows]) => [`\n### ${userContentInline(state)} (${rows.length})`, ...rows.map(issueLine)]),
         ...(result.nextCursor ? [`\nNext page: cursor "${result.nextCursor}".`] : []),
       ].join('\n');
     } else {
-      text = issueListMarkdown(title, issues, result.nextCursor);
+      text = issueListMarkdown(textTitle, issues, result.nextCursor);
     }
     return toolResult(text, view);
   },

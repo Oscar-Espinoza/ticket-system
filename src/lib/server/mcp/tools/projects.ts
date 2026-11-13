@@ -11,7 +11,16 @@ import { activeIssue, queryIssues } from '@/lib/tickets';
 import { openStateType } from '@/lib/workflow-server';
 import { mcpProject, mcpProjects, type McpProject } from '../access';
 import type { CycleView, ProjectListView, ProjectMetadataView, ProjectOverviewView } from '../contracts';
-import { issueListMarkdown, projectRef, projectUrl, summarizeIssue, toolError, toolResult } from '../format';
+import {
+  issueListMarkdown,
+  labelList,
+  projectRef,
+  projectUrl,
+  summarizeIssue,
+  toolError,
+  toolResult,
+  userContentInline,
+} from '../format';
 import { cycleStatus, loadProjectMetadata } from '../resolve';
 import { defineTool } from './common';
 
@@ -56,10 +65,11 @@ export const listProjects = defineTool({
     const text = view.projects.length
       ? [
           `Projects (${view.projects.length}):`,
-          ...view.projects.map(
-            (p) =>
-              `- **${p.key}** ${p.name}${p.workspace ? ` (workspace ${p.workspace.name})` : ''} — ${p.openIssues} open, your role: ${p.role}`,
-          ),
+          ...view.projects.map((p) => {
+            const workspace = p.workspace ? ` (workspace ${userContentInline(p.workspace.name)})` : '';
+            const line = `- **${p.key}** ${userContentInline(p.name)}${workspace} — ${p.openIssues} open, your role: ${p.role} · ${p.url}`;
+            return p.description?.trim() ? `${line}\n  Description: ${userContentInline(p.description)}` : line;
+          }),
         ].join('\n')
       : 'You have no projects reachable from AI assistants.';
     return toolResult(text, view);
@@ -83,7 +93,7 @@ function cycleView(cycle: CycleRow, history: Awaited<ReturnType<typeof loadCycle
 
 export function cycleText(cycle: CycleView): string {
   const t = cycle.totals;
-  const name = `Cycle ${cycle.number}${cycle.name ? ` (${cycle.name})` : ''}`;
+  const name = `Cycle ${cycle.number}${cycle.name ? ` (${userContentInline(cycle.name)})` : ''}`;
   return `${name}, ${cycle.status}, ${cycle.startsAt.slice(0, 10)} → ${cycle.endsAt.slice(0, 10)}: ${t.completed}/${t.scope} issues done, ${t.started} in progress (${t.completedPoints}/${t.scopePoints} points).`;
 }
 
@@ -133,13 +143,15 @@ export const getProjectMetadata = defineTool({
       epics: meta.epics,
       priorities: [...PRIORITY_ORDER],
     };
+    const cycleLine = (c: ProjectMetadataView['cycles'][number]) =>
+      `${c.number}${c.name ? ` (${userContentInline(c.name)})` : ''} [${c.status}, ${c.startsAt.slice(0, 10)} → ${c.endsAt.slice(0, 10)}]`;
     const text = [
-      `${project.name} (${project.key}) — your role: ${project.role}`,
-      `States: ${view.states.map((s) => `${s.name} [${s.type}]`).join(', ')}`,
-      `Labels: ${view.labels.map((l) => l.name).join(', ') || '(none)'}`,
-      `Members: ${view.members.map((m) => (m.email ? `${m.name} <${m.email}>` : m.name)).join(', ')}`,
-      `Current and upcoming cycles: ${view.cycles.map((c) => `${c.number}${c.name ? ` (${c.name})` : ''} [${c.status}]`).join(', ') || '(none)'}`,
-      `Epics: ${view.epics.map((e) => e.name).join(', ') || '(none)'}`,
+      `${userContentInline(project.name)} (key ${project.key}) — your role: ${project.role}`,
+      `States: ${view.states.map((s) => `${userContentInline(s.name)} [${s.type}]`).join(', ')}`,
+      `Labels: ${labelList(view.labels) || '(none)'}`,
+      `Members: ${view.members.map((m) => `${userContentInline(m.email ? `${m.name} <${m.email}>` : m.name)} (${m.role})`).join(', ')}`,
+      `Current and upcoming cycles: ${view.cycles.map(cycleLine).join(', ') || '(none)'}`,
+      `Epics: ${view.epics.map((e) => userContentInline(e.name)).join(', ') || '(none)'}`,
       `Priorities: ${view.priorities.join(', ')}`,
     ].join('\n');
     return toolResult(text, view);
@@ -204,7 +216,7 @@ export const getProjectOverview = defineTool({
       .map(([type, n]) => `${type} ${n}`)
       .join(', ');
     const text = [
-      `${project.name} (${project.key}) · ${view.project.url}`,
+      `${userContentInline(project.name)} (key ${project.key}) · ${view.project.url}`,
       `Issues by state: ${counts || 'none yet'}`,
       view.cycle ? cycleText(view.cycle) : 'No cycle is running.',
       '',

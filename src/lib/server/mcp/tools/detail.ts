@@ -13,7 +13,19 @@ import { listIssueRelations } from '@/lib/relations';
 import { getTicketById, queryIssues } from '@/lib/tickets';
 import type { McpProject } from '../access';
 import type { IssueDetail } from '../contracts';
-import { commentView, descriptionText, isFollowUpDue, projectRef, stateRef, summarizeIssue, truncate, userContentBlock, userContentInline, userRef } from '../format';
+import {
+  commentView,
+  descriptionText,
+  isFollowUpDue,
+  labelList,
+  projectRef,
+  stateRef,
+  summarizeIssue,
+  truncate,
+  userContentBlock,
+  userContentInline,
+  userRef,
+} from '../format';
 
 export const COMMENTS_DEFAULT = 5;
 export const COMMENTS_MAX = 20;
@@ -82,37 +94,46 @@ export function issueDetailMarkdown(detail: IssueDetail, changes?: string[]): st
   if (changes?.length) lines.push(`Updated ${detail.key}: ${changes.map(userContentInline).join('; ')}.`, '');
   lines.push(`# ${detail.key}: ${userContentInline(detail.title)}`);
   const facts = [
-    `State: ${detail.state.name}`,
+    `State: ${userContentInline(detail.state.name)}`,
     `Priority: ${detail.priority}`,
     `Assignee: ${detail.assignee ? userContentInline(detail.assignee.name) : 'Unassigned'}`,
   ];
   if (detail.waitingOn) facts.push(`Waiting on: ${userContentInline(detail.waitingOn.name)}`);
-  if (detail.labels.length) facts.push(`Labels: ${detail.labels.map((l) => l.name).join(', ')}`);
+  if (detail.labels.length) facts.push(`Labels: ${labelList(detail.labels)}`);
   if (detail.estimate != null) facts.push(`Estimate: ${detail.estimate}`);
   if (detail.dueDate) facts.push(`Due: ${detail.dueDate}`);
   if (detail.followUp) facts.push(`Follow-up: ${detail.followUp}${isFollowUpDue(detail) ? ' (due)' : ''}`);
-  if (detail.cycle) facts.push(`Cycle: ${detail.cycle.number}${detail.cycle.name ? ` (${detail.cycle.name})` : ''}`);
-  if (detail.epic) facts.push(`Epic: ${detail.epic.name}`);
+  if (detail.cycle) facts.push(`Cycle: ${detail.cycle.number}${detail.cycle.name ? ` (${userContentInline(detail.cycle.name)})` : ''}`);
+  if (detail.epic) facts.push(`Epic: ${userContentInline(detail.epic.name)}`);
   if (detail.parent) facts.push(`Parent: ${detail.parent.key}`);
   if (detail.archivedAt) facts.push('Archived');
   if (detail.deletedAt) facts.push('In trash');
-  lines.push(facts.join(' · '), `Project: ${detail.project.name} (${detail.project.key}) · ${detail.url}`);
+  const created = `Created ${detail.createdAt.slice(0, 10)}${detail.creator ? ` by ${userContentInline(detail.creator.name)}` : ''}`;
+  lines.push(
+    facts.join(' · '),
+    `Project: ${userContentInline(detail.project.name)} (key ${detail.project.key}) · ${created} · Updated ${detail.updatedAt.slice(0, 10)} · ${detail.url}`,
+  );
   lines.push('', detail.description?.trim() ? `Description:\n${userContentBlock(detail.description)}` : '_No description._');
   if (detail.subIssues.length) {
-    lines.push('', '## Sub-issues', ...detail.subIssues.map((s) => `- **${s.key}** ${userContentInline(s.title)} — ${s.state.name}`));
+    lines.push('', '## Sub-issues', ...detail.subIssues.map((s) => `- **${s.key}** ${userContentInline(s.title)} — ${userContentInline(s.state.name)}`));
   }
   if (detail.relations.length) {
     lines.push(
       '',
       '## Relations',
-      ...detail.relations.map((r) => `- ${RELATION_TEXT[r.kind] ?? r.kind} **${r.issue.key}** ${userContentInline(r.issue.title)} — ${r.issue.state.name}`),
+      ...detail.relations.map((r) => `- ${RELATION_TEXT[r.kind] ?? r.kind} **${r.issue.key}** ${userContentInline(r.issue.title)} — ${userContentInline(r.issue.state.name)}`),
     );
   }
   if (detail.commentCount) {
     const shown = detail.comments.length;
     lines.push('', `## Comments (${shown === detail.commentCount ? shown : `last ${shown} of ${detail.commentCount}`})`);
     for (const c of detail.comments) {
-      lines.push(`**${c.author ? userContentInline(c.author.name) : 'Deleted user'}** (${c.createdAt.slice(0, 10)}):`, userContentBlock(truncate(c.body, 600) ?? ''));
+      // The id is what add_comment's reply_to takes.
+      const reply = c.parentId ? `, reply to ${c.parentId}` : '';
+      lines.push(
+        `**${c.author ? userContentInline(c.author.name) : 'Deleted user'}** (${c.createdAt.slice(0, 10)}, id ${c.id}${reply}):`,
+        userContentBlock(truncate(c.body, 600) ?? ''),
+      );
     }
   }
   return lines.join('\n');

@@ -12,11 +12,12 @@
 
 import { createHash } from 'node:crypto';
 
-import type { McpServer } from '@modelcontextprotocol/server';
+import type { CallToolResult, ClientCapabilities, McpServer } from '@modelcontextprotocol/server';
 
+import type { McpCredential } from './contracts';
 import viewHtml from './ui/app.html?raw';
 
-// Two constants of the MCP Apps spec (2026-01-26) and the one-line
+// Three constants of the MCP Apps spec (2026-01-26) and the one-line
 // `registerResource` call of `registerAppResource`, copied from
 // @modelcontextprotocol/ext-apps 2.0.4 instead of depending on it at runtime:
 // the package pulls in the MCP client, eventsource and pkce-challenge for
@@ -25,6 +26,8 @@ import viewHtml from './ui/app.html?raw';
 /** The legacy flat tool-metadata key hosts that predate `_meta.ui` read. */
 export const RESOURCE_URI_META_KEY = 'ui/resourceUri';
 export const RESOURCE_MIME_TYPE = 'text/html;profile=mcp-app';
+/** The client capability extension a host declares MCP Apps support under. */
+export const EXTENSION_ID = 'io.modelcontextprotocol/ui';
 
 /** `ui://ticket-system/app.<hash of the HTML>.html` */
 export function uiResourceUri(html: string): string {
@@ -68,4 +71,38 @@ export function registerMcpUi(server: McpServer) {
       contents: [{ uri: UI_RESOURCE_URI, mimeType: RESOURCE_MIME_TYPE, text: UI_HTML, _meta: uiResourceMeta() }],
     }),
   );
+}
+
+/**
+ * Whether the client says it renders our views: its capabilities carry the
+ * MCP Apps extension with our MIME type. Only 2026-07-28 requests carry
+ * capabilities (`_meta`, on every request); on 2025-era requests a stateless
+ * server never sees them outside `initialize`, so this is undefined there.
+ */
+export function declaresViews(capabilities: ClientCapabilities | undefined): boolean {
+  const ui = (capabilities?.extensions as Record<string, unknown> | undefined)?.[EXTENSION_ID];
+  const mimeTypes = ui && typeof ui === 'object' ? (ui as { mimeTypes?: unknown }).mimeTypes : undefined;
+  return Array.isArray(mimeTypes) && mimeTypes.includes(RESOURCE_MIME_TYPE);
+}
+
+/**
+ * The one rule for the shape of a tool result. Hosts that render views get it
+ * whole: the Markdown `content` and the `structuredContent` the view draws.
+ * Every other client gets the Markdown alone, because some (Claude Code)
+ * hand the model `structuredContent` instead of the text whenever it is
+ * present, which loses the fencing of user-written text and costs more
+ * tokens. A host renders views when its OAuth client is a known view host
+ * (credential.viewHost, from its redirect URIs) or when the request declares
+ * the MCP Apps extension. Unknown clients get text: the text is complete on
+ * its own. Tools declare no `outputSchema`, so a result without
+ * `structuredContent` is valid for every client.
+ */
+export function resultFor(
+  result: CallToolResult,
+  credential: McpCredential,
+  capabilities: ClientCapabilities | undefined,
+): CallToolResult {
+  if (result.structuredContent === undefined || credential.viewHost || declaresViews(capabilities)) return result;
+  const { structuredContent: _views, ...text } = result;
+  return text;
 }

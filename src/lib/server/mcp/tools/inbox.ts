@@ -63,7 +63,8 @@ export const listInboxTool = defineTool({
           `Inbox (${unread} unread${nextCursor ? ', more available' : ''}):`,
           ...rows.map(
             (r) =>
-              `- ${r.read ? '' : '**[unread]** '}${r.issue ? `**${r.issue.key}** ${userContentInline(r.issue.title)} — ` : ''}${userContentInline(r.sentence)} (${r.at.slice(0, 10)})`,
+              // A row about an issue names its key (get_issue has the link); any other row links to what it is about.
+              `- ${r.read ? '' : '**[unread]** '}${r.issue ? `**${r.issue.key}** ${userContentInline(r.issue.title)} — ` : ''}${userContentInline(r.sentence)} (${r.at.slice(0, 10)}${r.issue ? '' : ` · ${r.url}`})`,
           ),
           ...(nextCursor ? [`\nNext page: cursor "${nextCursor}".`] : []),
         ].join('\n')

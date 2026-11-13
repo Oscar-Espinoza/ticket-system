@@ -3,14 +3,14 @@
 // only, client URLs https only (stored XSS), dynamic clients marked, and
 // unused or stale ones cleaned up daily. Needs a local Postgres
 // (LOCAL_DB_TESTS=1).
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { eq, inArray } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import { auth } from '@/lib/auth';
 import { oauthAccessTokens, oauthClients, oauthConsents } from '@/db/schema';
 import { BATCH as CLEANUP_BATCH, run as cleanup } from '@/lib/cron/jobs/oauth-dcr-cleanup';
-import { DYNAMIC_REGISTRATION, isDynamicClient } from '@/lib/server/mcp/register';
+import { DYNAMIC_REGISTRATION, isDynamicClient, rendersViews } from '@/lib/server/mcp/register';
 import { localDb } from '../local-db/guard';
 import { authRequest, register, signUp } from './oauth-flow';
 
@@ -86,6 +86,26 @@ describe.skipIf(!localDb)('MCP dynamic client registration', () => {
     const res = await register(publicClient(redirect));
     expect(res.status).toBe(400);
     expect(((await res.json()) as { error: string }).error).toBe('invalid_redirect_uri');
+  });
+
+  it('tells card hosts by their redirect URIs; MCP_VIEW_REDIRECT_URIS adds one, which may then register', async () => {
+    expect(rendersViews(['https://claude.ai/api/mcp/auth_callback'])).toBe(true);
+    expect(rendersViews(['https://chatgpt.com/connector_platform_oauth_redirect', 'https://chatgpt.com/connector/oauth/abc'])).toBe(true);
+    // Claude Code, MCP Inspector, and a client that could also take its code on loopback.
+    expect(rendersViews(['http://localhost:53122/callback'])).toBe(false);
+    expect(rendersViews(['https://claude.ai/api/mcp/auth_callback', 'http://localhost:53122/callback'])).toBe(false);
+    expect(rendersViews([])).toBe(false);
+
+    const host = 'https://cards.example/oauth/callback';
+    expect(rendersViews([host])).toBe(false);
+    expect((await register(publicClient(host))).status).toBe(400);
+    vi.stubEnv('MCP_VIEW_REDIRECT_URIS', `https://other.example/cb, ${host}`);
+    try {
+      expect(rendersViews([host])).toBe(true);
+      expect((await register(publicClient(host))).status).toBe(200);
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 
   it('registers a confidential request as a public client (claude.ai sends client_secret_post)', async () => {
