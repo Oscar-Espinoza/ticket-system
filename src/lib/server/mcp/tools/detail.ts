@@ -53,6 +53,7 @@ export async function issueDetail(
   const ref = (row: IssueRow) => ({ id: row.id, key: row.key, title: row.title, state: stateRef(row.state) });
   return {
     ...summarizeIssue(issue, projectRef(project)),
+    viewerId,
     description: descriptionText(issue.description),
     creator: issue.creator ? userRef(issue.creator) : null,
     cycle: cycleRow[0] ?? null,

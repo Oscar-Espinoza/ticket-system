@@ -91,6 +91,8 @@ export interface CommentView {
 }
 
 export interface IssueDetail extends IssueSummary {
+  /** The user this answer was read for (the card compares "assigned to me" against it). */
+  viewerId: string;
   description: string | null;
   creator: UserRef | null;
   cycle: { id: string; number: number; name: string | null } | null;
