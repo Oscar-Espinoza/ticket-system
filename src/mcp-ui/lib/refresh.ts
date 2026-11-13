@@ -109,7 +109,31 @@ export type RefreshResult =
 /** What the view shows: for an issue, the issue (a write's `changes` line is a message, not data). */
 const shownPart = (content: McpStructuredContent) => (content.view === 'issue-detail' ? content.issue : content);
 
-const sameData = (a: McpStructuredContent, b: McpStructuredContent) => JSON.stringify(shownPart(a)) === JSON.stringify(shownPart(b));
+/**
+ * Fields that are not shown: who the answer was read for. A result made before
+ * it existed has none, so it must not make an unchanged card look updated.
+ */
+const NOT_SHOWN = new Set(['viewerId']);
+
+/**
+ * The data with key order and empty fields (null or absent) made irrelevant:
+ * hosts hand the card a re-serialized copy of the original result (claude.ai
+ * drops null fields and may reorder keys), which is the same data.
+ */
+function canonical(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonical);
+  if (value === null || typeof value !== 'object') return value;
+  const out: Record<string, unknown> = {};
+  for (const key of Object.keys(value).sort()) {
+    const v = (value as Record<string, unknown>)[key];
+    if (v === null || v === undefined || NOT_SHOWN.has(key)) continue;
+    out[key] = canonical(v);
+  }
+  return out;
+}
+
+const sameData = (a: McpStructuredContent, b: McpStructuredContent) =>
+  JSON.stringify(canonical(shownPart(a))) === JSON.stringify(canonical(shownPart(b)));
 
 /** Is `next` the same kind of result as `current` (an issue list for a list, the same issue for an issue)? */
 function sameKind(current: McpStructuredContent, next: McpStructuredContent): boolean {

@@ -105,6 +105,19 @@ describe('runRefresh: what the answer means', () => {
     await expect(run(detail('Todo', ['comment added']), ok(detail('Todo'))).result).resolves.toEqual({ kind: 'unchanged' });
   });
 
+  // Live test 3 (2026-11-13): claude.ai showed "Updated to the latest." on an
+  // unchanged card. The host hands the card a re-serialized copy of the result
+  // (null fields dropped, keys reordered), and an older result has no viewerId.
+  it('is unchanged for a re-serialized copy: reordered keys, dropped nulls, no viewerId', async () => {
+    const shown = { ...detail('Todo'), issue: { ...detail('Todo').issue, dueDate: null, cycle: null } };
+    const reserialized = JSON.parse(JSON.stringify(shown, (_k, v) => (v === null ? undefined : v)));
+    reserialized.issue = Object.fromEntries(Object.entries(reserialized.issue).reverse());
+    delete reserialized.issue.viewerId;
+    const fresh = { ...detail('Todo'), issue: { ...detail('Todo').issue, dueDate: null, cycle: null, viewerId: 'u-me' } };
+    expect(JSON.stringify(reserialized)).not.toContain('null');
+    await expect(run(reserialized, ok(fresh)).result).resolves.toEqual({ kind: 'unchanged' });
+  });
+
   it('is updated with the newer content', async () => {
     const newer = detail('Done');
     await expect(run(detail('Todo'), ok(newer)).result).resolves.toEqual({ kind: 'updated', content: newer });
