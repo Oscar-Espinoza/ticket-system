@@ -7,5 +7,5 @@
       <rect x="5" y="15" width="14" height="2.5" rx="1.25" opacity="0.5" />
     </g>
   </svg>
-  <span class="text-sm font-medium tracking-tight text-foreground">Ticket System</span>
+  <span class="text-sm font-medium tracking-tight text-foreground">Ticket System</span><!-- i18n-ignore -->
 </span>

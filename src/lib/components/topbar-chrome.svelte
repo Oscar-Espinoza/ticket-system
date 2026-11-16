@@ -12,22 +12,22 @@
 
   // Linear-style "g then x" navigation. Second keys and their destinations.
   const GO_TO: { key: string; label: string; href: string }[] = [
-    { key: 'i', label: 'Inbox', href: '/dashboard/inbox' },
-    { key: 'm', label: 'My issues', href: '/dashboard/my-issues' },
-    { key: 'v', label: 'Views', href: '/dashboard/views' },
-    { key: 'd', label: 'Drafts', href: '/dashboard/drafts' },
-    { key: 's', label: 'Settings', href: '/dashboard/settings' },
-    { key: 'p', label: 'Projects', href: '/dashboard' },
+    { key: 'i', get label() { return m.common_inbox(); }, href: '/dashboard/inbox' },
+    { key: 'm', get label() { return m.editor_nav_my_issues(); }, href: '/dashboard/my-issues' },
+    { key: 'v', get label() { return m.editor_nav_views(); }, href: '/dashboard/views' },
+    { key: 'd', get label() { return m.editor_nav_drafts(); }, href: '/dashboard/drafts' },
+    { key: 's', get label() { return m.common_settings(); }, href: '/dashboard/settings' },
+    { key: 'p', get label() { return m.editor_nav_projects(); }, href: '/dashboard' },
   ];
   const SEQUENCE_MS = 1000;
 
   const PROJECT_GO_TO = [
-    { segment: '', label: 'Issues' },
-    { segment: 'triage', label: 'Triage' },
-    { segment: 'cycles', label: 'Cycles' },
-    { segment: 'epics', label: 'Epics' },
-    { segment: 'settings/members', label: 'Members' },
-    { segment: 'settings', label: 'Settings' },
+    { segment: '', get label() { return m.editor_nav_issues(); } },
+    { segment: 'triage', get label() { return m.editor_nav_triage(); } },
+    { segment: 'cycles', get label() { return m.editor_nav_cycles(); } },
+    { segment: 'epics', get label() { return m.editor_nav_epics(); } },
+    { segment: 'settings/members', get label() { return m.common_members(); } },
+    { segment: 'settings', get label() { return m.common_settings(); } },
   ];
 </script>
 
@@ -37,6 +37,7 @@
   import SearchIcon from '@lucide/svelte/icons/search';
   import { createSubscriber } from 'svelte/reactivity';
 
+  import { m } from '@/lib/i18n';
   import { projectHref } from '@/lib/components/app-shell/routes';
   import {
     CREATE_PARAM,
@@ -141,7 +142,7 @@
       {
         mod: true,
         key: 'k',
-        description: 'Open command palette',
+        description: m.editor_hotkey_open_palette(),
         allowInInput: true,
         handler: () => {
           triggerRef?.focus();
@@ -150,7 +151,7 @@
       },
       {
         key: '/',
-        description: 'Focus palette search',
+        description: m.editor_hotkey_focus_search(),
         handler: () => {
           triggerRef?.focus();
           handlePaletteOpenChange(true);
@@ -158,7 +159,7 @@
       },
       {
         key: '?',
-        description: 'Show keyboard shortcuts',
+        description: m.editor_hotkey_show_shortcuts(),
         handler: () => (overlayOpen = !overlayOpen),
       },
     ]),
@@ -181,10 +182,10 @@
         ? {
             key: 'c',
             scope: 'Issues',
-            description: 'Create issue',
+            description: m.editor_hotkey_create_issue(),
             handler: () => void goto(`${projectHref(projectId)}?${CREATE_PARAM}=1`),
           }
-        : { key: 'c', description: 'Create project', handler: () => (createOpen = true) },
+        : { key: 'c', description: m.editor_hotkey_create_project(), handler: () => (createOpen = true) },
     ]);
   });
 
@@ -194,28 +195,28 @@
     ...projects.map((project) => ({
       id: `go-${project.id}`,
       label: project.name,
-      section: 'Projects',
+      section: m.editor_palette_section_projects(),
       keywords: ['project', 'go to'],
       run: () => void goto(`/dashboard/projects/${project.id}`),
     })),
     ...GO_TO.map((t) => ({
       id: `goto-${t.key}`,
-      label: `Go to ${t.label.toLowerCase()}`,
-      section: 'Navigation',
+      label: m.editor_palette_go_to({ page: t.label.toLowerCase() }),
+      section: m.editor_palette_section_navigation(),
       keywords: ['go to', 'navigate', t.label.toLowerCase()],
       run: () => void goto(t.href),
     })),
     {
       id: 'goto-search',
-      label: 'Go to search',
-      section: 'Navigation',
+      label: m.editor_palette_go_to_search(),
+      section: m.editor_palette_section_navigation(),
       keywords: ['find', 'full-text'],
       run: () => void goto('/dashboard/search'),
     },
     {
       id: 'goto-appearance',
-      label: 'Appearance settings',
-      section: 'Navigation',
+      label: m.editor_palette_appearance_settings(),
+      section: m.editor_palette_section_navigation(),
       keywords: ['theme', 'density', 'compact'],
       run: () => void goto('/dashboard/settings/appearance'),
     },
@@ -223,29 +224,29 @@
       ? PROJECT_GO_TO.map((target) => ({
           id: `project-${target.segment || 'issues'}-${currentProject.id}`,
           label: `${target.label} — ${currentProject.name}`,
-          section: 'Current project',
+          section: m.editor_palette_section_current_project(),
           keywords: ['project', target.label.toLowerCase()],
           run: () => void goto(projectHref(currentProject.id, target.segment)),
         }))
       : []),
     {
       id: 'new-project',
-      label: 'New project',
-      section: 'Actions',
+      label: m.editor_palette_new_project(),
+      section: m.editor_palette_section_actions(),
       keywords: ['create'],
       run: () => (createOpen = true),
     },
     {
       id: 'toggle-theme',
-      label: dark ? 'Switch to light mode' : 'Switch to dark mode',
-      section: 'Actions',
+      label: dark ? m.editor_palette_switch_to_light() : m.editor_palette_switch_to_dark(),
+      section: m.editor_palette_section_actions(),
       keywords: ['theme', 'dark', 'light'],
       run: () => theme.setTheme(dark ? 'light' : 'dark'),
     },
     {
       id: 'logout',
-      label: 'Log out',
-      section: 'Actions',
+      label: m.editor_shell_log_out(),
+      section: m.editor_palette_section_actions(),
       keywords: ['sign out'],
       run: () => {
         void logout.logout();
@@ -258,12 +259,12 @@
   bind:ref={triggerRef}
   variant="outline"
   size="sm"
-  aria-label="Open command palette"
+  aria-label={m.editor_shell_open_palette()}
   onclick={() => handlePaletteOpenChange(true)}
   class="gap-2 text-muted-foreground"
 >
   <SearchIcon />
-  <span>Search</span>
+  <span>{m.common_search()}</span>
   <kbd
     class="pointer-events-none ml-1 inline-flex h-5 select-none items-center rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground"
   >

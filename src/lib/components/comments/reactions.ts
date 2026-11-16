@@ -1,6 +1,7 @@
 // Non-component exports of the reactions UI (ReactionBar and
 // ReactionPicker are ./reaction-bar.svelte and ./reaction-picker.svelte).
 
+import { m } from '@/lib/i18n';
 import { COMMENT_REACTIONS, type CommentReaction, type ReactionGroup } from '@/lib/timeline';
 
 /** Toggle `userId`'s `emoji` on a comment's groups, keeping COMMENT_REACTIONS order. */
@@ -19,9 +20,13 @@ export function toggleReactionGroups(
 }
 
 export function whoReacted(userIds: string[], viewerId: string, names: Map<string, string>) {
-  const people = userIds.map((id) => (id === viewerId ? 'You' : (names.get(id) ?? 'Former member')));
-  if (people.length <= 3) {
-    return people.length === 1 ? people[0] : `${people.slice(0, -1).join(', ')} and ${people.at(-1)}`;
+  const people = userIds.map((id) =>
+    id === viewerId ? m.editor_comment_you() : (names.get(id) ?? m.editor_comment_former_member()),
+  );
+  if (people.length === 1) return people[0];
+  if (people.length === 2) return m.editor_comment_two_people({ a: people[0], b: people[1] });
+  if (people.length === 3) {
+    return m.editor_comment_three_people({ list: people.slice(0, 2).join(', '), last: people[2] });
   }
-  return `${people.slice(0, 2).join(', ')} and ${people.length - 2} others`;
+  return m.editor_comment_and_others({ list: people.slice(0, 2).join(', '), count: people.length - 2 });
 }

@@ -18,6 +18,7 @@
   import Building2Icon from '@lucide/svelte/icons/building-2';
   import TargetIcon from '@lucide/svelte/icons/target';
 
+  import { m } from '@/lib/i18n';
   import CreateWorkspaceTrigger from '@/lib/components/workspaces/create-workspace-trigger.svelte';
   import SidebarLink from '../sidebar-link.svelte';
   import SidebarSection from '../sidebar-section.svelte';
@@ -26,11 +27,11 @@
 </script>
 
 {#if workspaces.length === 0}
-  <SidebarSection title="Workspaces">
+  <SidebarSection title={m.editor_nav_workspaces()}>
     <CreateWorkspaceTrigger variant="row" />
   </SidebarSection>
 {:else}
-  <SidebarSection title="Workspaces">
+  <SidebarSection title={m.editor_nav_workspaces()}>
     {#snippet action()}<CreateWorkspaceTrigger variant="icon" />{/snippet}
     {#each workspaces as workspace (workspace.id)}
       {@const href = `/dashboard/workspaces/${workspace.slug}`}
@@ -38,7 +39,7 @@
         <SidebarLink {href} label={workspace.name} exact>
           {#snippet icon()}<Building2Icon />{/snippet}
         </SidebarLink>
-        <SidebarLink href={`${href}/initiatives`} label="Initiatives" indent>
+        <SidebarLink href={`${href}/initiatives`} label={m.editor_nav_initiatives()} indent>
           {#snippet icon()}<TargetIcon />{/snippet}
         </SidebarLink>
       </div>

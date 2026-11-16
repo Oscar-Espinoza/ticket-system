@@ -2,6 +2,7 @@
 <script lang="ts">
   import SmilePlus from '@lucide/svelte/icons/smile-plus';
 
+  import { m } from '@/lib/i18n';
   import { Popover, PopoverContent, PopoverTrigger } from '@/lib/components/ui/popover';
   import { COMMENT_REACTIONS, type CommentReaction } from '@/lib/timeline';
 
@@ -14,7 +15,7 @@
       <button
         {...props}
         type="button"
-        aria-label="Add reaction"
+        aria-label={m.editor_comment_add_reaction()}
         {disabled}
         class="flex size-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
       >
@@ -26,7 +27,7 @@
     {#each COMMENT_REACTIONS as emoji (emoji)}
       <button
         type="button"
-        aria-label={`React with ${emoji}`}
+        aria-label={m.editor_comment_react_with({ emoji })}
         onclick={() => onPick(emoji)}
         class="flex size-7 items-center justify-center rounded-md text-base transition-transform hover:scale-110 hover:bg-muted"
       >
