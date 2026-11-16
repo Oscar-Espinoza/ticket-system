@@ -1,6 +1,6 @@
 <!-- One team of the workspace: link or Join, counts, role, remove. -->
 <script lang="ts">
-  import { pluralize } from '@/lib/format';
+  import { m } from '@/lib/i18n';
   import { goto } from '$app/navigation';
   import CornerDownRightIcon from '@lucide/svelte/icons/corner-down-right';
   import EllipsisIcon from '@lucide/svelte/icons/ellipsis';
@@ -46,7 +46,7 @@
         toast.error(result.error);
         return;
       }
-      toast.success(`Joined ${project.name}`);
+      toast.success(m.projects_ws_joined({ name: project.name }));
       void goto(`/dashboard/projects/${project.id}`);
     } finally {
       joining = false;
@@ -59,7 +59,7 @@
       const result = await removeProjectFromWorkspace({ workspaceId, projectId: project.id });
       if (!result) return;
       if (!result.ok) toast.error(result.error);
-      else toast.success(`${project.name} left the workspace`);
+      else toast.success(m.projects_ws_project_left({ name: project.name }));
     } finally {
       isPending = false;
     }
@@ -70,7 +70,7 @@
   <LabelChip dot={false} class="font-mono">{project.ticketKey}</LabelChip>
   <span class="truncate text-sm font-medium">{project.name}</span>
   {#if project.visibility === 'private'}
-    <LockIcon aria-label="Private team" class="size-3 shrink-0 text-muted-foreground" />
+    <LockIcon aria-label={m.projects_ws_private_team()} class="size-3 shrink-0 text-muted-foreground" />
   {/if}
 {/snippet}
 
@@ -92,7 +92,7 @@
     <span class="flex min-w-0 flex-1 items-center gap-2">{@render body()}</span>
   {/if}
   <span class="shrink-0 text-xs text-muted-foreground tabular-nums">
-    {project.openCount !== null ? `${project.openCount} open · ` : ''}{pluralize(project.memberCount, 'member')}
+    {project.openCount !== null ? m.projects_ws_open_count({ count: project.openCount }) : ''}{m.projects_ws_member_count({ count: project.memberCount })}
   </span>
   {#if project.viewerRole !== null}
     <span class="w-16 shrink-0 text-right text-xs text-muted-foreground">
@@ -105,16 +105,16 @@
       class="h-7 w-16 shrink-0"
       disabled={joining}
       onclick={join}
-      aria-label="Join {project.name}"
+      aria-label={m.projects_ws_join_aria({ name: project.name })}
     >
-      {#if joining}<LoaderCircleIcon class="animate-spin" />{:else}Join{/if}
+      {#if joining}<LoaderCircleIcon class="animate-spin" />{:else}{m.projects_ws_join_short()}{/if}
     </Button>
   {/if}
   {#if canRemove}
     <DropdownMenu>
       <DropdownMenuTrigger>
         {#snippet child({ props })}
-          <Button {...props} variant="ghost" size="icon-sm" aria-label="Actions for {project.name}" disabled={isPending}>
+          <Button {...props} variant="ghost" size="icon-sm" aria-label={m.projects_ws_member_actions({ name: project.name })} disabled={isPending}>
             {#if isPending}<LoaderCircleIcon class="animate-spin" />{:else}<EllipsisIcon />{/if}
           </Button>
         {/snippet}
@@ -122,7 +122,7 @@
       <DropdownMenuContent align="end">
         <DropdownMenuItem onSelect={remove}>
           <UnlinkIcon />
-          Remove from workspace
+          {m.projects_ws_remove_from()}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -6,6 +6,7 @@
   in src/lib/server/actions/workspaces.ts.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import UserPlusIcon from '@lucide/svelte/icons/user-plus';
 
   import {
@@ -45,12 +46,12 @@
 <section aria-labelledby="workspace-members">
   <div class="mb-3 flex items-center gap-2">
     <h2 id="workspace-members" class="text-base font-medium">
-      Members <span class="text-muted-foreground">· {members.length}</span>
+      {m.projects_ws_members_heading()} <span class="text-muted-foreground">· {members.length}</span>
     </h2>
     {#if workspaceRoleAllows(role, 'admin')}
       <Button size="sm" variant="outline" class="ml-auto" onclick={() => (inviteOpen = true)}>
         <UserPlusIcon />
-        Invite
+        {m.projects_ws_invite()}
       </Button>
     {/if}
   </div>
@@ -62,7 +63,7 @@
   {#if invitations.length > 0}
     <div class="mt-6">
       <h3 class="mb-2 text-sm font-medium text-muted-foreground">
-        Pending invitations · {invitations.length}
+        {m.projects_invite_pending({ count: invitations.length })}
       </h3>
       <ul class="flex flex-col divide-y divide-border/60 rounded-lg border">
         {#each invitations as invitation (invitation.id)}

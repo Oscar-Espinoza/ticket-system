@@ -1,5 +1,6 @@
 <!-- One pending workspace invitation: resend / copy link / revoke. -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import CopyIcon from '@lucide/svelte/icons/copy';
   import EllipsisIcon from '@lucide/svelte/icons/ellipsis';
   import LoaderCircleIcon from '@lucide/svelte/icons/loader-circle';
@@ -61,7 +62,7 @@
       const result = await revokeWorkspaceInvitation({ workspaceId, invitationId: invitation.id });
       if (!result) return;
       if (!result.ok) toast.error(result.error);
-      else toast.success(`Invitation for ${invitation.email} revoked`);
+      else toast.success(m.projects_invitation_revoked({ email: invitation.email }));
     } finally {
       isPending = false;
     }
@@ -73,13 +74,13 @@
   <span class="min-w-0 flex-1">
     <span class="block truncate text-sm">{invitation.email}</span>
     <span class="block truncate text-xs text-muted-foreground">
-      {expired ? 'Expired' : `Expires ${relativeTime(expiresAt)}`}{invitation.invitedByName
-        ? ` · invited by ${invitation.invitedByName}`
+      {expired ? m.projects_invite_expired() : m.projects_invite_expires({ time: relativeTime(expiresAt) })}{invitation.invitedByName
+        ? m.projects_invite_invited_by({ name: invitation.invitedByName })
         : ''}
     </span>
   </span>
   <LabelChip color={expired ? 'destructive' : 'default'}>
-    {expired ? 'Expired' : WORKSPACE_ROLE_LABEL[invitation.role]}
+    {expired ? m.projects_invite_expired() : WORKSPACE_ROLE_LABEL[invitation.role]}
   </LabelChip>
   <DropdownMenu>
     <DropdownMenuTrigger>
@@ -88,7 +89,7 @@
           {...props}
           variant="ghost"
           size="icon-sm"
-          aria-label="Actions for the invitation to {invitation.email}"
+          aria-label={m.projects_invite_actions({ email: invitation.email })}
           disabled={isPending}
         >
           {#if isPending}<LoaderCircleIcon class="animate-spin" />{:else}<EllipsisIcon />{/if}
@@ -99,18 +100,18 @@
       {#if manageable}
         <DropdownMenuItem onSelect={resend}>
           <SendIcon />
-          {expired ? 'Renew and resend' : 'Resend email'}
+          {expired ? m.projects_invite_renew_resend() : m.projects_invite_resend()}
         </DropdownMenuItem>
       {/if}
-      <DropdownMenuItem onSelect={() => void copyText(invitation.url, 'Invite link')}>
+      <DropdownMenuItem onSelect={() => void copyText(invitation.url, m.projects_invite_link())}>
         <CopyIcon />
-        Copy invite link
+        {m.projects_invite_copy_link()}
       </DropdownMenuItem>
       {#if manageable}
         <DropdownMenuSeparator />
         <DropdownMenuItem variant="destructive" onSelect={revoke}>
           <XIcon />
-          Revoke invitation
+          {m.projects_invite_revoke()}
         </DropdownMenuItem>
       {/if}
     </DropdownMenuContent>

@@ -1,11 +1,5 @@
 {
   "files": {
-    "src/lib/components/workspaces/workspace-invitation-row.svelte": "pending translation (area projects, 3 strings)",
-    "src/lib/components/workspaces/workspace-invite-dialog.svelte": "pending translation (area projects, 4 strings)",
-    "src/lib/components/workspaces/workspace-member-row.svelte": "pending translation (area projects, 5 strings)",
-    "src/lib/components/workspaces/workspace-members.svelte": "pending translation (area projects, 1 strings)",
-    "src/lib/components/workspaces/workspace-project-row.svelte": "pending translation (area projects, 6 strings)",
-    "src/lib/components/workspaces/workspace-projects.svelte": "pending translation (area projects, 2 strings)",
     "src/routes/dashboard/+error.svelte": "pending translation (area projects, 2 strings)",
     "src/routes/dashboard/+page.svelte": "pending translation (area projects, 1 strings)",
     "src/routes/dashboard/projects/+error.svelte": "pending translation (area projects, 3 strings)",

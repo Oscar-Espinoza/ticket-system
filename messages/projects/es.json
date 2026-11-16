@@ -966,5 +966,40 @@
   "projects_ws_new_project": "Proyecto nuevo en el espacio de trabajo",
   "projects_ws_new_project_desc": "Serás el propietario del proyecto.",
   "projects_ws_project_name_placeholder": "App móvil",
-  "projects_ws_delete": "Eliminar espacio de trabajo"
+  "projects_ws_delete": "Eliminar espacio de trabajo",
+  "projects_ws_invite_title": "Invitar al espacio de trabajo",
+  "projects_ws_invite_desc": "Las personas con las que ya compartes un proyecto se añaden al instante; al resto se les envía una invitación por correo válida durante 7 días.",
+  "projects_ws_invite_email": "Correo",
+  "projects_ws_invite_added": "Añadido al espacio de trabajo",
+  "projects_ws_invite": "Invitar",
+  "projects_ws_role_of": "Rol de {name}",
+  "projects_ws_member_now": "{name} ahora es {role}",
+  "projects_ws_member_actions": "Acciones de {name}",
+  "projects_ws_remove_from": "Quitar del espacio de trabajo",
+  "projects_ws_members_heading": "Miembros",
+  "projects_ws_joined": "Te uniste a {name}",
+  "projects_ws_project_left": "{name} salió del espacio de trabajo",
+  "projects_ws_private_team": "Equipo privado",
+  "projects_ws_open_count": "{count} abiertos · ",
+  "projects_ws_member_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} miembro",
+        "countPlural=other": "{count} miembros"
+      }
+    }
+  ],
+  "projects_ws_join_aria": "Unirse a {name}",
+  "projects_ws_join_short": "Unirse",
+  "projects_ws_teams": "Equipos",
+  "projects_ws_new_project_btn": "Proyecto nuevo",
+  "projects_ws_empty_admin": "Añade uno de tus proyectos o crea uno nuevo en este espacio de trabajo.",
+  "projects_ws_empty_member": "Crea un proyecto en este espacio de trabajo para empezar."
 }

@@ -966,5 +966,40 @@
   "projects_ws_new_project": "New project in workspace",
   "projects_ws_new_project_desc": "You’ll be the project’s owner.",
   "projects_ws_project_name_placeholder": "Mobile app",
-  "projects_ws_delete": "Delete workspace"
+  "projects_ws_delete": "Delete workspace",
+  "projects_ws_invite_title": "Invite to workspace",
+  "projects_ws_invite_desc": "People you already share a project with are added right away; anyone else gets an email invitation valid for 7 days.",
+  "projects_ws_invite_email": "Email",
+  "projects_ws_invite_added": "Added to the workspace",
+  "projects_ws_invite": "Invite",
+  "projects_ws_role_of": "Role of {name}",
+  "projects_ws_member_now": "{name} is now {role}",
+  "projects_ws_member_actions": "Actions for {name}",
+  "projects_ws_remove_from": "Remove from workspace",
+  "projects_ws_members_heading": "Members",
+  "projects_ws_joined": "Joined {name}",
+  "projects_ws_project_left": "{name} left the workspace",
+  "projects_ws_private_team": "Private team",
+  "projects_ws_open_count": "{count} open · ",
+  "projects_ws_member_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} member",
+        "countPlural=other": "{count} members"
+      }
+    }
+  ],
+  "projects_ws_join_aria": "Join {name}",
+  "projects_ws_join_short": "Join",
+  "projects_ws_teams": "Teams",
+  "projects_ws_new_project_btn": "New project",
+  "projects_ws_empty_admin": "Add one of your projects or create a new one in this workspace.",
+  "projects_ws_empty_member": "Create a project in this workspace to get started."
 }

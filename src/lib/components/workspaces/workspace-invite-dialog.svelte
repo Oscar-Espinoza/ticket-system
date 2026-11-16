@@ -1,5 +1,6 @@
 <!-- Invite by email to the workspace. -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import LoaderCircleIcon from '@lucide/svelte/icons/loader-circle';
   import { toast } from 'svelte-sonner';
 
@@ -32,8 +33,8 @@
   } = $props();
 
   const ROLE_ITEMS = [
-    { value: 'admin', label: 'Admin' },
-    { value: 'member', label: 'Member' },
+    { value: 'admin', label: m.projects_role_admin() },
+    { value: 'member', label: m.projects_role_member() },
   ];
 
   let email = $state('');
@@ -59,7 +60,7 @@
         error = result.error;
         return;
       }
-      if (result.added) toast.success('Added to the workspace');
+      if (result.added) toast.success(m.projects_ws_invite_added());
       else announceSent(value, result);
       close();
     } finally {
@@ -76,14 +77,13 @@
   <DialogContent class="sm:max-w-md">
     <form onsubmit={submit} class="flex flex-col gap-4">
       <DialogHeader>
-        <DialogTitle>Invite to workspace</DialogTitle>
+        <DialogTitle>{m.projects_ws_invite_title()}</DialogTitle>
         <DialogDescription>
-          People you already share a project with are added right away; anyone else gets an email
-          invitation valid for 7 days.
+          {m.projects_ws_invite_desc()}
         </DialogDescription>
       </DialogHeader>
       <div class="flex flex-col gap-1.5">
-        <Label for="ws-invite-email">Email</Label>
+        <Label for="ws-invite-email">{m.projects_ws_invite_email()}</Label>
         <div class="flex gap-2">
           <Input
             id="ws-invite-email"
@@ -94,18 +94,18 @@
               email = v;
               error = null;
             }}
-            placeholder="name@company.com"
+            placeholder={m.projects_invite_email_placeholder()}
             aria-invalid={error ? true : undefined}
             class="flex-1"
           />
           {#if workspaceRoleAllows(viewerRole, 'owner')}
             <Select items={ROLE_ITEMS} bind:value={() => role, (v) => (role = v as 'admin' | 'member')}>
-              <SelectTrigger class="w-28" aria-label="Role">
+              <SelectTrigger class="w-28" aria-label={m.projects_role()}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="admin">Admin</SelectItem>
-                <SelectItem value="member">Member</SelectItem>
+                <SelectItem value="admin">{m.projects_role_admin()}</SelectItem>
+                <SelectItem value="member">{m.projects_role_member()}</SelectItem>
               </SelectContent>
             </Select>
           {/if}
@@ -115,10 +115,10 @@
         <p role="alert" class="text-sm text-destructive">{error}</p>
       {/if}
       <DialogFooter>
-        <Button type="button" variant="outline" onclick={close}>Cancel</Button>
+        <Button type="button" variant="outline" onclick={close}>{m.common_cancel()}</Button>
         <Button type="submit" disabled={isPending || !email.trim()}>
           {#if isPending}<LoaderCircleIcon class="animate-spin" />{/if}
-          Invite
+          {m.projects_ws_invite()}
         </Button>
       </DialogFooter>
     </form>
