@@ -1,12 +1,14 @@
 <script lang="ts">
   // Settings › Profile › Language. Saved on the account (every device, and
-  // emails), then the page reloads in the new language.
+  // emails); the page data is refreshed and the root layout switches the
+  // interface in place (src/lib/svelte/locale-switch.ts), no reload.
   import { toast } from 'svelte-sonner';
   import { Label } from '@/lib/components/ui/label';
   import { RadioGroup, RadioGroupItem } from '@/lib/components/ui/radio-group';
   import { updateLanguage } from '@/lib/actions/profile';
   import { LOCALES, LOCALE_NAMES, m, toAppLocale, type AppLocale } from '@/lib/i18n';
-  import { cookieMaxAge, cookieName } from '@/lib/paraglide/runtime';
+  import { writeLocaleCookie } from '@/lib/svelte/locale-switch';
+  import { refreshAfterWrite } from '@/lib/svelte/refresh.svelte';
   import { cn } from '@/lib/utils';
 
   let { locale }: { locale: AppLocale | null } = $props();
@@ -34,12 +36,13 @@
       return;
     }
     // This browser's cookie follows the choice (it is what a signed-out page
-    // uses); Automatic removes it. Always reload, also when the language shown
-    // doesn't change, so the page never stays disabled.
-    document.cookie = chosen
-      ? `${cookieName}=${chosen}; path=/; max-age=${cookieMaxAge}; samesite=lax`
-      : `${cookieName}=; path=/; max-age=0`;
-    location.reload();
+    // uses); Automatic removes it.
+    writeLocaleCookie(chosen);
+    // The refreshed page data carries the new locale; the root layout switches
+    // to it. When the language shown doesn't change (Automatic and the browser
+    // already says English), nothing re-renders and the form is simply ready.
+    await refreshAfterWrite();
+    saving = false;
   }
 </script>
 
@@ -50,7 +53,7 @@
     aria-label={m.settings_language_title()}
     {value}
     onValueChange={choose}
-    disabled={saving}
+    aria-busy={saving}
     class="grid-cols-1 sm:grid-cols-3"
   >
     {#each options as option (option.value)}

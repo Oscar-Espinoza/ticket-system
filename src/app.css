@@ -244,3 +244,14 @@
     scroll-behavior: auto !important;
   }
 }
+
+/*
+ * Switching the interface language in place (src/lib/svelte/locale-switch.ts):
+ * a short cross-fade of the whole page. Never runs under reduced motion (the
+ * swap is instant there), and only for this transition.
+ */
+html[data-locale-switch]::view-transition-old(root),
+html[data-locale-switch]::view-transition-new(root) {
+  animation-duration: 180ms;
+  animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}

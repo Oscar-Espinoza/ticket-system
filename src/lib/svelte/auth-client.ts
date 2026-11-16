@@ -12,17 +12,51 @@
 // PUBLIC_APP_URL, which may be another origin.
 
 import { createAuthClient } from 'better-auth/svelte';
+import { goto } from '$app/navigation';
+import { isSafeUrlScheme } from '@better-auth/core/utils/url';
+import type { BetterFetchPlugin } from '@better-fetch/fetch';
 import { twoFactorClient } from 'better-auth/client/plugins';
 import { oauthProviderClient } from '@better-auth/oauth-provider/client';
 import { scimClient } from '@better-auth/scim/client';
 import { ssoClient } from '@better-auth/sso/client';
 
+/**
+ * Better Auth's default redirect plugin, except that a redirect to this app
+ * (email sign-in answers `{ redirect: true, url: callbackURL }`) is a
+ * client-side navigation instead of a document load, so signing in doesn't
+ * reload the page (the interface language then switches in place, see
+ * src/lib/svelte/locale-switch.ts). Other origins (GitHub, Google, SSO
+ * providers) still get a full navigation, as before.
+ */
+const redirectInApp: BetterFetchPlugin = {
+  id: 'redirect-in-app',
+  name: 'Redirect (client-side within the app)',
+  hooks: {
+    onSuccess(context) {
+      const data = context.data as { url?: unknown; redirect?: unknown } | null;
+      if (!data?.redirect || typeof data.url !== 'string' || !isSafeUrlScheme(data.url)) return;
+      const target = new URL(data.url, window.location.href);
+      if (target.origin === window.location.origin) {
+        // eslint-disable-next-line svelte/no-navigation-without-resolve -- same-origin path, no base path
+        void goto(`${target.pathname}${target.search}${target.hash}`, { refreshAll: true });
+      } else {
+        window.location.href = target.href;
+      }
+    },
+  },
+};
+
 export const authClient = createAuthClient({
+  disableDefaultFetchPlugins: true,
+  fetchOptions: { plugins: [redirectInApp] },
   plugins: [
     // Sends the user to /login/two-factor when sign-in needs a second factor.
     twoFactorClient({
+      // Client-side, so the second step opens without loading the document again.
       onTwoFactorRedirect() {
-        window.location.href = `/login/two-factor${window.location.search}`;
+        // Plain path, as in the .svelte files (no base path; eslint.config.mjs).
+        // eslint-disable-next-line svelte/no-navigation-without-resolve
+        void goto(`/login/two-factor${window.location.search}`);
       },
     }),
     ssoClient(),

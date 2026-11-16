@@ -7,12 +7,14 @@
   import { m } from '@/lib/i18n';
   import '../app.css';
 
-  import type { Snippet } from 'svelte';
+  import { untrack, type Snippet } from 'svelte';
 
   import { Toaster } from '@/lib/components/ui/sonner';
   import { TooltipProvider } from '@/lib/components/ui/tooltip';
   import { markAppHydrated } from '@/lib/svelte/hydration';
   import ThemeProvider from '@/lib/svelte/theme-provider.svelte';
+  import { switchLocale } from '@/lib/svelte/locale-switch';
+  import { toAppLocale } from '@/lib/i18n-locales';
   // Lane L1 (PWA)
   import OfflineBanner from '@/lib/components/pwa/offline-banner.svelte';
   import RegisterServiceWorker from '@/lib/components/pwa/register-sw.svelte';
@@ -22,15 +24,24 @@
   // First hydration done: later client-side mounts read browser state directly.
   $effect(() => markAppHydrated());
 
-  // The interface language changed without a document load (signing in to an
-  // account with another saved language, or signing out): everything already
-  // rendered is in the old language and the browser's locale comes from
-  // <html lang> (src/hooks.client.ts), so load the page again.
+  // The language on screen. When the server's locale for the page changes
+  // without a document load (Settings › Language saved and refreshed the data,
+  // or signing in to / out of an account with another language), switch in
+  // place: <html lang> changes and the keyed subtree below renders again in the
+  // new language (src/lib/svelte/locale-switch.ts).
+  let shown = $state(untrack(() => data.locale));
   $effect(() => {
-    if (data.locale !== document.documentElement.lang) location.reload();
+    const next = toAppLocale(data.locale);
+    if (next && next !== untrack(() => shown)) {
+      void switchLocale(next, (locale) => (shown = locale));
+    }
   });
 
-  const description = $derived(m.auth_site_description());
+  // Re-read when the language on screen changes (this layout isn't re-keyed).
+  const description = $derived.by(() => {
+    void shown;
+    return m.auth_site_description();
+  });
 </script>
 
 <svelte:head>
@@ -43,10 +54,14 @@
 </svelte:head>
 
 <ThemeProvider>
-  <TooltipProvider>{@render children()}</TooltipProvider>
+  <TooltipProvider>
+    {#key shown}
+      {@render children()}
+      <OfflineBanner />
+    {/key}
+  </TooltipProvider>
   <!-- Single app-wide Toaster (the React app mounted it in TopbarChrome). -->
   <Toaster position="bottom-right" />
 </ThemeProvider>
 
 <RegisterServiceWorker />
-<OfflineBanner />
