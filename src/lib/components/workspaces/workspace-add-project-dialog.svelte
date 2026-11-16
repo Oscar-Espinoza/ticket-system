@@ -1,5 +1,9 @@
 <!-- Move a project the viewer administers into the workspace. -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
+  // Placeholder swapped for the workspace name in bold (messages can't hold markup).
+  const NAME_MARK = '\u0001';
+
   import LoaderCircleIcon from '@lucide/svelte/icons/loader-circle';
   import { toast } from 'svelte-sonner';
 
@@ -51,7 +55,7 @@
         error = result.error;
         return;
       }
-      toast.success(`${selected?.name ?? 'Project'} added`);
+      toast.success(m.projects_ws_project_added({ name: selected?.name ?? m.common_project() }));
       close();
     } finally {
       isPending = false;
@@ -67,23 +71,23 @@
   <DialogContent class="sm:max-w-md">
     <form onsubmit={submit} class="flex flex-col gap-4">
       <DialogHeader>
-        <DialogTitle>Add project</DialogTitle>
+        <DialogTitle>{m.projects_ws_add_project()}</DialogTitle>
         <DialogDescription>
-          Move a project you own or administer into this workspace. Its members and issues don’t change.
+          {m.projects_ws_add_project_desc()}
         </DialogDescription>
       </DialogHeader>
       {#if eligible.length === 0}
-        <p class="text-sm text-muted-foreground">You don’t administer any project outside this workspace.</p>
+        <p class="text-sm text-muted-foreground">{m.projects_ws_no_eligible()}</p>
       {:else}
         <Select {items} bind:value={projectId}>
-          <SelectTrigger class="w-full" aria-label="Project">
-            <SelectValue placeholder="Choose a project…">
+          <SelectTrigger class="w-full" aria-label={m.common_project()}>
+            <SelectValue placeholder={m.projects_choose_project()}>
               {#snippet children()}
                 {#if selected}
                   <span class="font-mono text-xs text-muted-foreground">{selected.ticketKey}</span>
                   {selected.name}
                 {:else}
-                  Choose a project…
+                  {m.projects_choose_project()}
                 {/if}
               {/snippet}
             </SelectValue>
@@ -100,17 +104,17 @@
       {/if}
       {#if selected?.currentWorkspace}
         <p class="text-sm text-muted-foreground">
-          It will leave <strong class="text-foreground">{selected.currentWorkspace}</strong>.
+          {#each m.projects_ws_will_leave({ name: NAME_MARK }).split(NAME_MARK) as part, i (i)}{#if i > 0}<strong class="text-foreground">{selected.currentWorkspace}</strong>{/if}{part}{/each}
         </p>
       {/if}
       {#if error}
         <p role="alert" class="text-sm text-destructive">{error}</p>
       {/if}
       <DialogFooter>
-        <Button type="button" variant="outline" onclick={close}>Cancel</Button>
+        <Button type="button" variant="outline" onclick={close}>{m.common_cancel()}</Button>
         <Button type="submit" disabled={isPending || !projectId}>
           {#if isPending}<LoaderCircleIcon class="animate-spin" />{/if}
-          Add project
+          {m.projects_ws_add_project()}
         </Button>
       </DialogFooter>
     </form>

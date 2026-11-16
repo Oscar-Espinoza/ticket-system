@@ -1,5 +1,6 @@
 <!-- Thin bar with count + points lines, for sidebars. -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { pointsPercent, progressPercent, type Progress } from '@/lib/epic-model';
 
   let { progress, color }: { progress: Progress; color?: string | null } = $props();
@@ -12,7 +13,7 @@
   <div class="flex items-baseline justify-between text-sm">
     <span class="font-medium tabular-nums">{percent}%</span>
     <span class="text-xs text-muted-foreground tabular-nums">
-      {progress.completed} / {progress.total} issues
+      {m.projects_progress_issues({ completed: progress.completed, total: progress.total })}
     </span>
   </div>
   <div class="h-1.5 overflow-hidden rounded-full bg-muted">
@@ -23,12 +24,12 @@
   </div>
   {#if points !== null}
     <span class="text-xs text-muted-foreground tabular-nums">
-      {progress.completedPoints} / {progress.points} points · {points}%
+      {m.projects_progress_points({ completed: progress.completedPoints, total: progress.points, percent: points })}
     </span>
   {/if}
   {#if progress.started > 0}
     <span class="text-xs text-muted-foreground tabular-nums">
-      {progress.started} in progress
+      {m.projects_progress_started({ count: progress.started })}
     </span>
   {/if}
 </div>

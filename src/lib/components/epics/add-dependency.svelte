@@ -1,5 +1,6 @@
 <!-- Two-step picker (kind → epic) that adds an epic dependency. -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
   import BanIcon from '@lucide/svelte/icons/ban';
   import Link2Icon from '@lucide/svelte/icons/link-2';
@@ -30,9 +31,9 @@
   } satisfies Record<EpicRelationKind, unknown>;
 
   const KIND_PROMPT: Record<EpicRelationKind, string> = {
-    blocked_by: 'Blocked by…',
-    blocks: 'Blocking…',
-    related: 'Related to…',
+    blocked_by: m.projects_epic_blocked_by(),
+    blocks: m.projects_epic_blocking(),
+    related: m.projects_epic_related_to(),
   };
 
   let {
@@ -54,9 +55,9 @@
   {#snippet content(close: () => void)}
     {#if kind === null}
       <Command filter={keywordFilter}>
-        <CommandInput placeholder="Add dependency…" />
+        <CommandInput placeholder={m.projects_epic_add_dependency_placeholder()} />
         <CommandList>
-          <CommandEmpty>No match.</CommandEmpty>
+          <CommandEmpty>{m.projects_epic_no_match()}</CommandEmpty>
           {#each EPIC_RELATION_KINDS as k (k)}
             {@const Icon = KIND_ICON[k]}
             <CommandItem value={k} keywords={[KIND_PROMPT[k]]} onSelect={() => (kind = k)}>
@@ -78,9 +79,9 @@
           }}
         />
         <CommandList>
-          <CommandEmpty>No other epics to link.</CommandEmpty>
+          <CommandEmpty>{m.projects_epic_no_others_to_link()}</CommandEmpty>
           <CommandGroup>
-            <CommandItem value="__back" keywords={['Back']} onSelect={() => (kind = null)}>
+            <CommandItem value="__back" keywords={[m.common_back()]} onSelect={() => (kind = null)}>
               <ArrowLeftIcon class="text-muted-foreground" />
               <span class="text-muted-foreground">{EPIC_RELATION_LABEL[current]}</span>
             </CommandItem>

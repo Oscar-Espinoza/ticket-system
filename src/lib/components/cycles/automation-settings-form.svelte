@@ -1,5 +1,6 @@
 <!-- Settings → Automations: auto-archive and auto-close periods. -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { untrack } from 'svelte';
   import LoaderCircle from '@lucide/svelte/icons/loader-circle';
   import { toast } from 'svelte-sonner';
@@ -41,10 +42,10 @@
   );
 
   const monthItems = [
-    { value: OFF, label: 'Off' },
+    { value: OFF, label: m.projects_automations_off() },
     ...AUTOMATION_MONTHS.map((months) => ({
       value: String(months),
-      label: `After ${months} ${months === 1 ? 'month' : 'months'}`,
+      label: m.projects_automations_after_months({ count: months }),
     })),
   ];
 
@@ -55,11 +56,11 @@
       const snapshot = { ...values };
       const result = await updateAutomationSettings({ projectId, ...snapshot });
       if (!result.ok) {
-        toast.error(actionErrorText(result.error, 'Only admins can change these settings.'));
+        toast.error(actionErrorText(result.error, m.projects_automations_admins_only()));
         return;
       }
       saved = snapshot;
-      toast.success('Automations saved');
+      toast.success(m.projects_automations_saved());
     } finally {
       pending = false;
     }
@@ -87,31 +88,31 @@
 <form onsubmit={save} class="flex flex-col gap-6">
   {#if !canEdit}
     <p class="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
-      Only project owners and admins can change these settings.
+      {m.projects_settings_owners_admins_only()}
     </p>
   {/if}
   <Field
     id="auto-archive"
-    label="Auto-archive closed issues"
-    hint="Completed and canceled issues are archived once they have been closed this long. Archived issues stay searchable and can be restored."
+    label={m.projects_auto_archive_label()}
+    hint={m.projects_auto_archive_hint()}
   >
     {@render monthsSelect('auto-archive', 'autoArchiveMonths')}
   </Field>
   <Field
     id="auto-close"
-    label="Auto-close stale issues"
-    hint="Triage, backlog and unstarted issues that haven't been updated for this long move to Canceled, with a note in their activity."
+    label={m.projects_auto_close_label()}
+    hint={m.projects_auto_close_hint()}
   >
     {@render monthsSelect('auto-close', 'autoCloseMonths')}
   </Field>
   <p class="text-xs text-muted-foreground">
-    Issues in the trash are permanently deleted after 30 days.{#if lastRunAt}<span>{' '}Last run {relativeTime(lastRunAt)}.</span>{/if}
+    {m.projects_trash_purge()}{#if lastRunAt}<span>{' '}{m.projects_last_run({ time: relativeTime(lastRunAt) })}</span>{/if}
   </p>
   {#if canEdit}
     <div>
       <Button type="submit" disabled={pending || !dirty}>
         {#if pending}<LoaderCircle class="animate-spin" />{/if}
-        Save changes
+        {m.common_save_changes()}
       </Button>
     </div>
   {/if}

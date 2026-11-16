@@ -1,6 +1,7 @@
 <!-- Member picker (epic lead, initiative / customer owner). Takes the member list as a prop
      so it also works outside a project (initiatives). -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import UserRoundIcon from '@lucide/svelte/icons/user-round';
 
   import { PickerPopover, keywordFilter, type PickerPopoverProps } from '@/lib/components/issue-pickers';
@@ -20,8 +21,8 @@
     members,
     viewerId,
     onChange,
-    placeholder = 'Set lead…',
-    noneLabel = 'No lead',
+    placeholder = m.projects_set_lead(),
+    noneLabel = m.projects_no_lead(),
     open = $bindable(),
     ...popover
   }: PickerPopoverProps & {
@@ -49,7 +50,7 @@
     <Command filter={keywordFilter}>
       <CommandInput {placeholder} />
       <CommandList>
-        <CommandEmpty>No member found.</CommandEmpty>
+        <CommandEmpty>{m.projects_member_not_found()}</CommandEmpty>
         <CommandGroup>
           <CommandItem
             value="__none"
@@ -70,7 +71,7 @@
               <Avatar name={member.name} src={member.image} size={20} />
               <span class="truncate">{member.name}</span>
               {#if member.id === viewerId}
-                <span class="text-xs text-muted-foreground">(you)</span>
+                <span class="text-xs text-muted-foreground">{m.projects_you()}</span>
               {/if}
             </CommandItem>
           {/each}

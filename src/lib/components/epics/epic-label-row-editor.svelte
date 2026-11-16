@@ -1,5 +1,6 @@
 <!-- One row of the epic-labels dialog. -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import CheckIcon from '@lucide/svelte/icons/check';
   import Trash2Icon from '@lucide/svelte/icons/trash-2';
   import { toast } from 'svelte-sonner';
@@ -56,14 +57,14 @@
     transition(async () => {
       const result = await deleteEpicLabel({ projectId, id: label.id });
       if (!result.ok) toast.error(result.error);
-      else toast.success(`Deleted label “${label.name}”`);
+      else toast.success(m.projects_label_deleted({ name: label.name }));
     });
 </script>
 
 <li class="flex items-center gap-2 rounded-md px-1 py-1 hover:bg-accent/40">
   <ColorButton value={label.color} onChange={(color) => void update({ color })} />
   <Input
-    aria-label={`Rename ${label.name}`}
+    aria-label={m.projects_label_rename({ name: label.name })}
     bind:value={draft}
     maxlength={EPIC_LABEL_NAME_MAX}
     disabled={pending}
@@ -81,21 +82,21 @@
     class="h-7 border-transparent bg-transparent px-1.5 shadow-none hover:border-border dark:bg-transparent"
   />
   <span class="w-16 shrink-0 text-right text-xs text-muted-foreground tabular-nums">
-    {uses} {uses === 1 ? 'epic' : 'epics'}
+    {m.projects_label_epic_count({ count: uses })}
   </span>
   {#if confirming}
     <span class="flex shrink-0 items-center gap-1">
       <Button size="xs" variant="destructive" disabled={pending} onclick={remove}>
         <CheckIcon />
-        Delete
+        {m.common_delete()}
       </Button>
-      <Button size="xs" variant="ghost" onclick={() => (confirming = false)}>Cancel</Button>
+      <Button size="xs" variant="ghost" onclick={() => (confirming = false)}>{m.common_cancel()}</Button>
     </span>
   {:else}
     <Button
       size="icon-sm"
       variant="ghost"
-      aria-label={`Delete ${label.name}`}
+      aria-label={m.projects_label_delete({ name: label.name })}
       class="shrink-0 text-muted-foreground"
       onclick={() => (confirming = true)}
     >

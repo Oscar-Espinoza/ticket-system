@@ -39,6 +39,7 @@
 </script>
 
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import UserRound from '@lucide/svelte/icons/user-round';
 
   import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/lib/components/ui/tabs';
@@ -65,7 +66,7 @@
             label: issue.assignee.name,
             icon: { kind: 'avatar', name: issue.assignee.name, image: issue.assignee.image ?? null },
           }
-        : { id: '__none', label: 'Unassigned', icon: { kind: 'unassigned' } },
+        : { id: '__none', label: m.projects_cycle_unassigned(), icon: { kind: 'unassigned' } },
     ]),
   );
   const labels = $derived(
@@ -100,7 +101,7 @@
             {/if}
             <span class="min-w-0 flex-1 truncate">{b.label}</span>
             <span class="text-xs text-muted-foreground tabular-nums">
-              {b.done}/{b.total}{effective === 'points' ? ' pts' : ''} · {percent(b.done, b.total)}%
+              {b.done}/{b.total}{effective === 'points' ? ` ${m.projects_cycle_points_short()}` : ''} · {percent(b.done, b.total)}%
             </span>
           </div>
           <div aria-hidden="true" class="h-1 w-full overflow-hidden rounded-full bg-muted">
@@ -116,8 +117,8 @@
   <Tabs defaultValue="assignees" class="gap-3">
     <div class="flex items-center gap-2">
       <TabsList variant="line" class="h-7">
-        <TabsTrigger value="assignees" class="text-xs">Assignees</TabsTrigger>
-        <TabsTrigger value="labels" class="text-xs">Labels</TabsTrigger>
+        <TabsTrigger value="assignees" class="text-xs">{m.projects_cycle_assignees()}</TabsTrigger>
+        <TabsTrigger value="labels" class="text-xs">{m.common_labels()}</TabsTrigger>
       </TabsList>
       {#if estimatesEnabled}
         <div class="ml-auto">
@@ -126,10 +127,10 @@
       {/if}
     </div>
     <TabsContent value="assignees">
-      {@render bucketList(assignees, 'No issues in this cycle.')}
+      {@render bucketList(assignees, m.projects_cycle_no_issues())}
     </TabsContent>
     <TabsContent value="labels">
-      {@render bucketList(labels, 'No labeled issues in this cycle.')}
+      {@render bucketList(labels, m.projects_cycle_no_labeled())}
     </TabsContent>
   </Tabs>
 </section>

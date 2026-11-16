@@ -4,6 +4,7 @@
   and a read-only mini timeline of those epics.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import CalendarDaysIcon from '@lucide/svelte/icons/calendar-days';
   import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
   import EllipsisIcon from '@lucide/svelte/icons/ellipsis';
@@ -129,7 +130,7 @@
         toast.error(result.error);
         return;
       }
-      toast.success('Initiative deleted');
+      toast.success(m.projects_initiative_deleted());
       void goto(initiativesPath(slug));
     });
   };
@@ -161,9 +162,9 @@
 </script>
 
 {#snippet sidebar()}
-  <aside aria-label="Initiative properties" class="flex flex-col gap-4">
+  <aside aria-label={m.projects_initiative_properties()} class="flex flex-col gap-4">
     <div class="flex flex-col gap-1">
-      <PropertyRow label="Status">
+      <PropertyRow label={m.common_status()}>
         <InitiativeStatusPicker
           value={initiative.status}
           onChange={(status) => save({ status }, { status })}
@@ -176,13 +177,13 @@
           {/snippet}
         </InitiativeStatusPicker>
       </PropertyRow>
-      <PropertyRow label="Owner">
+      <PropertyRow label={m.projects_initiative_owner()}>
         <MemberPicker
           value={owner?.id ?? null}
           {members}
           {viewerId}
-          placeholder="Set owner…"
-          noneLabel="No owner"
+          placeholder={m.projects_initiative_set_owner()}
+          noneLabel={m.projects_initiative_no_owner()}
           onChange={(ownerId) =>
             save({ ownerId }, { owner: members.find((m) => m.id === ownerId) ?? null })}
         >
@@ -193,16 +194,16 @@
                 <span class="truncate">{owner.name}</span>
               {:else}
                 <UserRoundIcon class="text-muted-foreground" />
-                <span class="text-muted-foreground">No owner</span>
+                <span class="text-muted-foreground">{m.projects_initiative_no_owner()}</span>
               {/if}
             </PropertyButton>
           {/snippet}
         </MemberPicker>
       </PropertyRow>
-      <PropertyRow label="Target date">
+      <PropertyRow label={m.projects_epic_target_date()}>
         <DatePicker
           value={initiative.targetDate}
-          clearLabel="Clear target date"
+          clearLabel={m.projects_epic_clear_target()}
           onChange={(targetDate) => save({ targetDate }, { targetDate })}
         >
           {#snippet children({ props })}
@@ -211,7 +212,7 @@
               {#if initiative.targetDate}
                 {formatDueDate(initiative.targetDate)}
               {:else}
-                <span class="text-muted-foreground">Set target</span>
+                <span class="text-muted-foreground">{m.projects_set_target()}</span>
               {/if}
             </PropertyButton>
           {/snippet}
@@ -220,7 +221,7 @@
     </div>
     <div class="flex flex-col gap-2 border-t border-border pt-4">
       <span class="text-xs text-muted-foreground">
-        Progress · {epics.length} {epics.length === 1 ? 'epic' : 'epics'}
+        {m.projects_progress_epic_count({ count: epics.length })}
       </span>
       <ProgressBlock progress={initiative.progress} />
     </div>
@@ -235,7 +236,7 @@
       {workspace.name}
     </a>
     <ChevronRightIcon class="size-3" />
-    <a href={initiativesPath(workspace.slug)} class="hover:text-foreground">Initiatives</a>
+    <a href={initiativesPath(workspace.slug)} class="hover:text-foreground">{m.projects_initiatives()}</a>
   </div>
 
   <div class="mb-4 flex items-start gap-2">
@@ -246,7 +247,7 @@
         <DropdownMenu>
           <DropdownMenuTrigger>
             {#snippet child({ props })}
-              <Button {...props} variant="ghost" size="icon-sm" aria-label="Initiative actions">
+              <Button {...props} variant="ghost" size="icon-sm" aria-label={m.projects_initiative_actions()}>
                 <EllipsisIcon />
               </Button>
             {/snippet}
@@ -254,7 +255,7 @@
           <DropdownMenuContent align="end">
             <DropdownMenuItem variant="destructive" onSelect={() => (confirmDelete = true)}>
               <Trash2Icon />
-              Delete initiative
+              {m.projects_initiative_delete()}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -271,7 +272,7 @@
 
       <section aria-labelledby="linked-epics" class="flex flex-col gap-2">
         <div class="flex items-center gap-2">
-          <h2 id="linked-epics" class="text-sm font-medium">Epics</h2>
+          <h2 id="linked-epics" class="text-sm font-medium">{m.projects_epics()}</h2>
           <span class="text-xs text-muted-foreground tabular-nums">{epics.length}</span>
           <AddEpicPicker candidates={detail.candidates} onPick={link}>
             {#snippet children({ props })}
@@ -283,7 +284,7 @@
                 disabled={detail.candidates.length === 0}
               >
                 <PlusIcon />
-                Add epic
+                {m.projects_add_epic()}
               </Button>
             {/snippet}
           </AddEpicPicker>
@@ -291,10 +292,10 @@
         {#if epics.length === 0}
           <EmptyState
             icon={noEpicsIcon}
-            title="No epics linked"
+            title={m.projects_no_epics_linked()}
             description={detail.candidates.length > 0
-              ? 'Add epics from this workspace’s projects to track them together.'
-              : 'Epics from projects in this workspace (where you can edit) can be added here.'}
+              ? m.projects_no_epics_linked_add()
+              : m.projects_no_epics_linked_none()}
             class="rounded-md border border-border py-8"
           />
         {:else}
@@ -329,8 +330,8 @@
                   <Button
                     variant="ghost"
                     size="icon-xs"
-                    aria-label={`Remove ${epic.name} from initiative`}
-                    title="Remove from initiative"
+                    aria-label={m.projects_remove_epic_from_initiative({ name: epic.name })}
+                    title={m.projects_remove_from_initiative()}
                     class="opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
                     onclick={() => unlink(epic.id, epic.projectId)}
                   >
@@ -348,7 +349,7 @@
       {#if dated.length > 0}
         <section aria-labelledby="initiative-timeline" class="flex flex-col gap-2">
           <div class="flex items-center gap-2">
-            <h2 id="initiative-timeline" class="text-sm font-medium">Timeline</h2>
+            <h2 id="initiative-timeline" class="text-sm font-medium">{m.projects_timeline()}</h2>
             <ToggleGroup
               type="single"
               size="sm"
@@ -358,7 +359,7 @@
                 () => zoom,
                 (value: string) => ZOOMS.some((z) => z.id === value) && (zoom = value as Zoom)
               }
-              aria-label="Zoom"
+              aria-label={m.projects_zoom()}
               class="ml-auto"
             >
               {#each ZOOMS as z (z.id)}
@@ -376,14 +377,14 @@
   <AlertDialog bind:open={confirmDelete}>
     <AlertDialogContent>
       <AlertDialogHeader>
-        <AlertDialogTitle>Delete “{initiative.name}”?</AlertDialogTitle>
+        <AlertDialogTitle>{m.projects_initiative_delete_title({ name: initiative.name })}</AlertDialogTitle>
         <AlertDialogDescription>
-          Its epics stay in their projects and are simply unlinked. This can’t be undone.
+          {m.projects_initiative_delete_desc()}
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>
-        <AlertDialogCancel>Cancel</AlertDialogCancel>
-        <AlertDialogAction variant="destructive" onclick={remove}>Delete</AlertDialogAction>
+        <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
+        <AlertDialogAction variant="destructive" onclick={remove}>{m.common_delete()}</AlertDialogAction>
       </AlertDialogFooter>
     </AlertDialogContent>
   </AlertDialog>

@@ -4,6 +4,7 @@
   back when the server refuses (the refreshed props win either way).
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import PlusIcon from '@lucide/svelte/icons/plus';
   import { toast } from 'svelte-sonner';
 
@@ -65,7 +66,7 @@
     void optimistic.transition(async () => {
       optimistic.apply(op);
       const result = await action();
-      if (!result.ok) toast.error(result.error ?? 'Something went wrong.');
+      if (!result.ok) toast.error(result.error ?? m.projects_something_went_wrong());
     });
 
   const add = () => {
@@ -105,14 +106,14 @@
 
 <section aria-labelledby="milestones-heading" class="flex flex-col gap-2">
   <div class="flex items-center gap-2">
-    <h2 id="milestones-heading" class="text-sm font-medium">Milestones</h2>
+    <h2 id="milestones-heading" class="text-sm font-medium">{m.projects_milestones()}</h2>
     <span class="text-xs text-muted-foreground tabular-nums">{list.length}</span>
     {#if canWrite && !adding}
       <Button
         variant="ghost"
         size="icon-xs"
         class="ml-auto"
-        aria-label="Add milestone"
+        aria-label={m.projects_add_milestone()}
         onclick={() => (adding = true)}
       >
         <PlusIcon />
@@ -122,10 +123,10 @@
 
   {#if list.length === 0 && !adding}
     <p class="text-sm text-muted-foreground">
-      Break the epic into checkpoints with their own target dates.{#if canWrite}{' '}<button
+      {m.projects_milestones_empty()}{#if canWrite}{' '}<button
           type="button"
           class="text-foreground underline-offset-2 hover:underline"
-          onclick={() => (adding = true)}>Add a milestone</button
+          onclick={() => (adding = true)}>{m.projects_add_a_milestone()}</button
         >{/if}
     </p>
   {/if}
@@ -171,8 +172,8 @@
         autofocus
         bind:value={draft}
         maxlength={80}
-        placeholder="Milestone name — Enter to add, Esc to close"
-        aria-label="New milestone name"
+        placeholder={m.projects_milestone_input_placeholder()}
+        aria-label={m.projects_new_milestone_name()}
         class="h-8"
         onkeydown={(e) => {
           if (e.key === 'Escape') {
@@ -185,7 +186,7 @@
           if (!draft.trim()) adding = false;
         }}
       />
-      <Button type="submit" size="sm" disabled={!draft.trim()}>Add</Button>
+      <Button type="submit" size="sm" disabled={!draft.trim()}>{m.common_add()}</Button>
     </form>
   {/if}
 </section>

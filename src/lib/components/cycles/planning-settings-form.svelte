@@ -12,6 +12,7 @@
 </script>
 
 <script lang="ts">
+  import { m, dateFormat } from '@/lib/i18n';
   import { untrack } from 'svelte';
   import LoaderCircle from '@lucide/svelte/icons/loader-circle';
   import { toast } from 'svelte-sonner';
@@ -64,12 +65,16 @@
 
   const durationItems = CYCLE_DURATIONS.map((weeks) => ({
     value: String(weeks),
-    label: `${weeks} ${weeks === 1 ? 'week' : 'weeks'}`,
+    label: m.projects_planning_weeks({ count: weeks }),
   }));
-  const weekdayItems = WEEKDAYS.map((day, i) => ({ value: String(i), label: day }));
+  // 2024-01-07 is a Sunday, matching WEEKDAYS order.
+  const weekdayItems = WEEKDAYS.map((_, i) => ({
+    value: String(i),
+    label: dateFormat({ weekday: 'long', timeZone: 'UTC' }).format(new Date(Date.UTC(2024, 0, 7 + i))),
+  }));
   const cooldownItems = COOLDOWN_OPTIONS.map((weeks) => ({
     value: String(weeks),
-    label: weeks === 0 ? 'No cooldown' : `${weeks} ${weeks === 1 ? 'week' : 'weeks'}`,
+    label: weeks === 0 ? m.projects_planning_no_cooldown() : m.projects_planning_weeks({ count: weeks }),
   }));
 
   async function save(event: SubmitEvent) {
@@ -79,11 +84,11 @@
       const snapshot = { ...values };
       const result = await updatePlanningSettings({ projectId, ...snapshot });
       if (!result.ok) {
-        toast.error(actionErrorText(result.error, 'Only admins can change these settings.'));
+        toast.error(actionErrorText(result.error, m.projects_automations_admins_only()));
         return;
       }
       saved = snapshot;
-      toast.success('Settings saved');
+      toast.success(m.projects_planning_saved());
     } finally {
       pending = false;
     }
@@ -138,36 +143,36 @@
 <form onsubmit={save} class="flex flex-col gap-6">
   {#if !canEdit}
     <p class="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
-      Only project owners and admins can change these settings.
+      {m.projects_settings_owners_admins_only()}
     </p>
   {/if}
 
   <section class="flex flex-col gap-5">
-    <h2 class="text-base font-medium">Cycles</h2>
+    <h2 class="text-base font-medium">{m.projects_planning_cycles_heading()}</h2>
     {@render toggleRow(
       'cycles-enabled',
-      'Enable cycles',
-      'Plan work in repeating, time-boxed iterations.',
+      m.projects_planning_enable_cycles(),
+      m.projects_planning_enable_cycles_desc(),
       values.cyclesEnabled,
       (checked) => set('cyclesEnabled', checked),
       disabled,
     )}
     <fieldset disabled={disabled || !values.cyclesEnabled} class="flex flex-col gap-5 disabled:opacity-60">
       <div class="grid gap-5 sm:grid-cols-2">
-        <Field id="cycle-duration" label="Duration">
+        <Field id="cycle-duration" label={m.projects_planning_duration()}>
           {@render numberSelect('cycle-duration', durationItems, values.durationWeeks, (v) =>
             set('durationWeeks', v),
           )}
         </Field>
-        <Field id="cycle-start-day" label="Starts on">
+        <Field id="cycle-start-day" label={m.projects_planning_starts_on()}>
           {@render numberSelect('cycle-start-day', weekdayItems, values.startWeekday, (v) =>
             set('startWeekday', v),
           )}
         </Field>
         <Field
           id="cycle-cooldown"
-          label="Cooldown"
-          hint="Free weeks between cycles for planning and unplanned work."
+          label={m.projects_planning_cooldown()}
+          hint={m.projects_planning_cooldown_hint()}
         >
           {@render numberSelect('cycle-cooldown', cooldownItems, values.cooldownWeeks, (v) =>
             set('cooldownWeeks', v),
@@ -176,24 +181,21 @@
       </div>
       {#if cadenceChanged}
         <p class="text-xs text-muted-foreground">
-          Upcoming cycles that haven&rsquo;t started are rescheduled. The current cycle keeps its
-          start and may end a few days later to line up with the new start day.
+          {m.projects_planning_cadence_changed()}
         </p>
       {/if}
       {@render toggleRow(
         'cycle-auto-create',
-        'Auto-create cycles',
-        `Keep the current cycle and the next ${UPCOMING_CYCLES} scheduled automatically.`,
+        m.projects_planning_auto_create(),
+        m.projects_planning_auto_create_desc({ count: UPCOMING_CYCLES }),
         values.autoCreate,
         (checked) => set('autoCreate', checked),
         disabled || !values.cyclesEnabled,
       )}
       {@render toggleRow(
         'cycle-auto-rollover',
-        'Roll over unfinished issues',
-        values.autoRollover
-          ? 'When a cycle ends it is completed automatically and its unfinished issues move to the next cycle.'
-          : 'When a cycle ends it is completed automatically; unfinished issues stay in it.',
+        m.projects_planning_rollover(),
+        values.autoRollover ? m.projects_planning_rollover_on() : m.projects_planning_rollover_off(),
         values.autoRollover,
         (checked) => set('autoRollover', checked),
         disabled || !values.cyclesEnabled,
@@ -204,11 +206,11 @@
   <Separator />
 
   <section class="flex flex-col gap-5">
-    <h2 class="text-base font-medium">Triage</h2>
+    <h2 class="text-base font-medium">{m.projects_planning_triage_heading()}</h2>
     {@render toggleRow(
       'triage-enabled',
-      'Enable triage',
-      'Issues from the intake form, the API and people outside the project land in Triage for review before they reach the backlog.',
+      m.projects_planning_enable_triage(),
+      m.projects_planning_enable_triage_desc(),
       values.triageEnabled,
       (checked) => set('triageEnabled', checked),
       disabled,
@@ -219,7 +221,7 @@
     <div>
       <Button type="submit" disabled={pending || !dirty}>
         {#if pending}<LoaderCircle class="animate-spin" />{/if}
-        Save changes
+        {m.common_save_changes()}
       </Button>
     </div>
   {/if}

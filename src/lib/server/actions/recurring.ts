@@ -1,6 +1,7 @@
 // Recurring issue schedules. Writers (members and up) manage them — the same
 // bar as creating issues; every row is addressed by (projectId, id).
 
+import { m } from '@/lib/i18n';
 import { and, count, eq } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
@@ -60,7 +61,7 @@ async function validate(input: RecurringInput) {
     dueInDays !== null &&
     (!Number.isInteger(dueInDays) || dueInDays < 0 || dueInDays > DUE_IN_DAYS_MAX)
   ) {
-    return fail(`Due in 0 to ${DUE_IN_DAYS_MAX} days, or leave it empty.`, 'dueInDays');
+    return fail(m.projects_err_due_range({ max: DUE_IN_DAYS_MAX }), 'dueInDays');
   }
   // Only ids of this project survive.
   const props = await sanitizeIssueDefaults(input.projectId, raw, TEMPLATE_FIELDS);
@@ -84,7 +85,7 @@ async function findRow(projectId: string, id: unknown): Promise<RecurringRow | n
   return row ?? null;
 }
 
-const NO_RUNS = fail('This schedule never runs — check the start date and repeat settings.', 'schedule');
+const noRuns = () => fail(m.projects_err_no_runs(), 'schedule');
 
 export async function createRecurringIssue(input: RecurringInput): Promise<RecurringResult> {
   const authz = await authorizeProjectAction(input?.projectId, 'write');
@@ -97,12 +98,12 @@ export async function createRecurringIssue(input: RecurringInput): Promise<Recur
     .from(recurringIssues)
     .where(eq(recurringIssues.projectId, input.projectId));
   if (total >= MAX_PER_PROJECT) {
-    return fail(`A project can have at most ${MAX_PER_PROJECT} recurring issues.`);
+    return fail(m.projects_err_recurring_max({ max: MAX_PER_PROJECT }));
   }
 
   const now = new Date();
   const nextRunAt = firstRunFrom(valid.schedule, now, null);
-  if (!nextRunAt) return NO_RUNS;
+  if (!nextRunAt) return noRuns();
   const [row] = await db
     .insert(recurringIssues)
     .values({
@@ -130,7 +131,7 @@ export async function updateRecurringIssue(
   const authz = await authorizeProjectAction(input?.projectId, 'write');
   if (!authz.ok) return authz;
   const existing = await findRow(input.projectId, input.id);
-  if (!existing) return fail('Recurring issue not found.');
+  if (!existing) return fail(m.projects_err_recurring_not_found());
   const valid = await validate(input);
   if (!valid.ok) return valid;
 
@@ -140,7 +141,7 @@ export async function updateRecurringIssue(
   let nextRunAt = existing.nextRunAt;
   if (cadenceChanged) {
     const next = firstRunFrom(valid.schedule, new Date(), existing.lastRunAt);
-    if (!next) return NO_RUNS;
+    if (!next) return noRuns();
     nextRunAt = next;
   }
   const [row] = await db
@@ -155,7 +156,7 @@ export async function updateRecurringIssue(
     })
     .where(and(eq(recurringIssues.projectId, input.projectId), eq(recurringIssues.id, existing.id)))
     .returning();
-  if (!row) return fail('Recurring issue not found.');
+  if (!row) return fail(m.projects_err_recurring_not_found());
   refreshesData();
   return { ok: true, recurring: toRecurringIssue(row) };
 }
@@ -168,7 +169,7 @@ export async function setRecurringIssueEnabled(input: {
   const authz = await authorizeProjectAction(input?.projectId, 'write');
   if (!authz.ok) return authz;
   const existing = await findRow(input.projectId, input.id);
-  if (!existing) return fail('Recurring issue not found.');
+  if (!existing) return fail(m.projects_err_recurring_not_found());
   const enabled = input.enabled === true;
 
   let nextRunAt = existing.nextRunAt;
@@ -176,7 +177,7 @@ export async function setRecurringIssueEnabled(input: {
     // Resuming doesn't back-fill the paused period.
     const parsed = normalizeSchedule(existing.schedule);
     const next = parsed.ok ? firstRunFrom(parsed.schedule, new Date(), existing.lastRunAt) : null;
-    if (!next) return NO_RUNS;
+    if (!next) return noRuns();
     nextRunAt = next;
   }
   const [row] = await db
@@ -184,7 +185,7 @@ export async function setRecurringIssueEnabled(input: {
     .set({ enabled, nextRunAt, updatedAt: new Date() })
     .where(and(eq(recurringIssues.projectId, input.projectId), eq(recurringIssues.id, existing.id)))
     .returning();
-  if (!row) return fail('Recurring issue not found.');
+  if (!row) return fail(m.projects_err_recurring_not_found());
   refreshesData();
   return { ok: true, recurring: toRecurringIssue(row) };
 }
@@ -195,12 +196,12 @@ export async function deleteRecurringIssue(input: {
 }): Promise<ActionResult> {
   const authz = await authorizeProjectAction(input?.projectId, 'write');
   if (!authz.ok) return authz;
-  if (typeof input.id !== 'string' || !input.id) return fail('Recurring issue not found.');
+  if (typeof input.id !== 'string' || !input.id) return fail(m.projects_err_recurring_not_found());
   const [row] = await db
     .delete(recurringIssues)
     .where(and(eq(recurringIssues.projectId, input.projectId), eq(recurringIssues.id, input.id)))
     .returning({ id: recurringIssues.id });
-  if (!row) return fail('Recurring issue not found.');
+  if (!row) return fail(m.projects_err_recurring_not_found());
   refreshesData();
   return { ok: true };
 }
@@ -213,7 +214,7 @@ export async function runRecurringIssueNow(input: {
   const authz = await authorizeProjectAction(input?.projectId, 'write');
   if (!authz.ok) return authz;
   const existing = await findRow(input.projectId, input.id);
-  if (!existing) return fail('Recurring issue not found.');
+  if (!existing) return fail(m.projects_err_recurring_not_found());
 
   // Created as the person clicking, like any manual create.
   const result = await createFromSchedule(

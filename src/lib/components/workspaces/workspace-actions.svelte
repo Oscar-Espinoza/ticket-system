@@ -3,6 +3,10 @@
   confirm by typing the name). Leave and delete redirect server-side.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
+  // Placeholder swapped for the workspace name in bold (messages can't hold markup).
+  const NAME_MARK = '\u0001';
+
   import EllipsisIcon from '@lucide/svelte/icons/ellipsis';
   import LoaderCircleIcon from '@lucide/svelte/icons/loader-circle';
   import LogOutIcon from '@lucide/svelte/icons/log-out';
@@ -62,7 +66,7 @@
         error = result.error;
         return;
       }
-      toast.success('Workspace renamed');
+      toast.success(m.projects_ws_renamed());
       dialog = null;
     } finally {
       isPending = false;
@@ -73,7 +77,7 @@
 <DropdownMenu>
   <DropdownMenuTrigger>
     {#snippet child({ props })}
-      <Button {...props} variant="ghost" size="icon-sm" aria-label="Workspace actions">
+      <Button {...props} variant="ghost" size="icon-sm" aria-label={m.projects_ws_actions()}>
         <EllipsisIcon />
       </Button>
     {/snippet}
@@ -82,20 +86,20 @@
     {#if isAdmin}
       <DropdownMenuItem onSelect={() => open('rename')}>
         <PencilIcon />
-        Rename…
+        {m.projects_ws_rename_item()}
       </DropdownMenuItem>
     {/if}
     {#if role !== 'owner'}
       <DropdownMenuItem onSelect={() => open('leave')}>
         <LogOutIcon />
-        Leave workspace…
+        {m.projects_ws_leave_item()}
       </DropdownMenuItem>
     {/if}
     {#if role === 'owner'}
       {#if isAdmin}<DropdownMenuSeparator />{/if}
       <DropdownMenuItem variant="destructive" onSelect={() => open('delete')}>
         <Trash2Icon />
-        Delete workspace…
+        {m.projects_ws_delete_item()}
       </DropdownMenuItem>
     {/if}
   </DropdownMenuContent>
@@ -117,17 +121,17 @@
       <DialogHeader>
         <DialogTitle>
           {dialog === 'rename'
-            ? 'Rename workspace'
+            ? m.projects_ws_rename_title()
             : dialog === 'delete'
-              ? `Delete ${workspace.name}?`
-              : `Leave ${workspace.name}?`}
+              ? m.projects_ws_delete_title({ name: workspace.name })
+              : m.projects_ws_leave_title({ name: workspace.name })}
         </DialogTitle>
         <DialogDescription>
           {dialog === 'rename'
-            ? 'The URL stays the same.'
+            ? m.projects_ws_rename_desc()
             : dialog === 'delete'
-              ? 'Its projects stay intact but leave the workspace. Initiatives are deleted. This can’t be undone.'
-              : 'You’ll lose access to the workspace and its initiatives. Your project memberships don’t change.'}
+              ? m.projects_ws_delete_desc()
+              : m.projects_ws_leave_desc()}
         </DialogDescription>
       </DialogHeader>
 
@@ -135,9 +139,9 @@
         <div class="flex flex-col gap-1.5">
           <Label for="workspace-dialog-input">
             {#if dialog === 'delete'}
-              Type <strong>{workspace.name}</strong> to confirm
+              {#each m.projects_ws_type_to_confirm({ name: NAME_MARK }).split(NAME_MARK) as part, i (i)}{#if i > 0}<strong>{workspace.name}</strong>{/if}{part}{/each}
             {:else}
-              Name
+              {m.common_name()}
             {/if}
           </Label>
           <Input
@@ -157,7 +161,7 @@
       {/if}
 
       <DialogFooter>
-        <Button type="button" variant="outline" onclick={() => (dialog = null)}>Cancel</Button>
+        <Button type="button" variant="outline" onclick={() => (dialog = null)}>{m.common_cancel()}</Button>
         <Button
           type="submit"
           variant={dialog === 'rename' ? 'default' : 'destructive'}
@@ -166,7 +170,7 @@
             (dialog === 'rename' && !value.trim())}
         >
           {#if isPending}<LoaderCircleIcon class="animate-spin" />{/if}
-          {dialog === 'rename' ? 'Save' : dialog === 'delete' ? 'Delete workspace' : 'Leave'}
+          {dialog === 'rename' ? m.common_save() : dialog === 'delete' ? m.projects_ws_delete() : m.projects_ws_leave()}
         </Button>
       </DialogFooter>
     </form>

@@ -7,6 +7,7 @@
 </script>
 
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import BanIcon from '@lucide/svelte/icons/ban';
   import LoaderCircleIcon from '@lucide/svelte/icons/loader-circle';
 
@@ -47,9 +48,9 @@
       onChange(id);
     }}
     <Command filter={keywordFilter}>
-      <CommandInput placeholder="Set epic…" />
+      <CommandInput placeholder={m.projects_set_epic()} />
       <CommandList>
-        <CommandEmpty>No epic found.</CommandEmpty>
+        <CommandEmpty>{m.projects_epic_not_found()}</CommandEmpty>
         <CommandItem
           value="__none"
           keywords={['No epic', 'Remove']}
@@ -57,7 +58,7 @@
           onSelect={() => pick(null)}
         >
           <BanIcon class="text-muted-foreground" />
-          No epic
+          {m.projects_no_epic()}
         </CommandItem>
         {#each epics as epic (epic.id)}
           <CommandItem
@@ -71,7 +72,7 @@
           </CommandItem>
         {/each}
         {#each otherProjects as { project, epics: projectEpics } (project.id)}
-          <CommandGroup heading={`Epics in ${project.name}`}>
+          <CommandGroup heading={m.projects_epics_in_project({ name: project.name })}>
             {#each projectEpics as epic (epic.id)}
               <CommandItem
                 value={epic.id}
@@ -91,7 +92,7 @@
         {#if loadingOthers}
           <div class="flex items-center gap-2 px-2 py-1.5 text-xs text-muted-foreground">
             <LoaderCircleIcon class="size-3.5 animate-spin" />
-            Loading other projects…
+            {m.projects_loading_other_projects()}
           </div>
         {/if}
       </CommandList>

@@ -3,6 +3,7 @@
   Posting also sets the epic's health (server-side, in the same batch).
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import MessageSquareTextIcon from '@lucide/svelte/icons/message-square-text';
   import { toast } from 'svelte-sonner';
 
@@ -52,13 +53,13 @@
   {/if}
   {#if feed.length === 0}
     <EmptyState
-      title="No updates yet"
-      description="Post a short update to tell everyone how this epic is going. The latest update sets its health."
+      title={m.projects_no_updates_yet()}
+      description={m.projects_no_updates_desc()}
     >
       {#snippet icon()}<MessageSquareTextIcon />{/snippet}
     </EmptyState>
   {:else}
-    <ol class="flex flex-col gap-4" aria-label="Updates">
+    <ol class="flex flex-col gap-4" aria-label={m.projects_updates()}>
       {#each feed as update (update.id)}
         <li>
           <UpdateCard

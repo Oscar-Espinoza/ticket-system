@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import CheckCircleIcon from '@lucide/svelte/icons/circle-check-big';
   import CircleOffIcon from '@lucide/svelte/icons/circle-off';
 
@@ -11,7 +12,7 @@
 </script>
 
 <svelte:head>
-  <title>Projects · Ticket System</title>
+  <title>{m.projects_page_title_projects()}</title>
 </svelte:head>
 
 <DashboardGreeting name={data.name} />
@@ -20,12 +21,12 @@
   {#if data.githubConnected}
     <LabelChip color="primary" dot={false}>
       <CheckCircleIcon class="size-3 text-primary" />
-      GitHub connected
+      {m.projects_github_connected()}
     </LabelChip>
   {:else}
     <LabelChip dot={false}>
       <CircleOffIcon class="size-3" />
-      GitHub not connected
+      {m.projects_github_not_connected()}
     </LabelChip>
   {/if}
 </div>

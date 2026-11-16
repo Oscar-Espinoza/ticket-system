@@ -4,6 +4,7 @@
   of the next runs.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { goto } from '$app/navigation';
   import Plus from '@lucide/svelte/icons/plus';
   import Repeat from '@lucide/svelte/icons/repeat';
@@ -50,7 +51,7 @@
 
   async function act(run: () => Promise<{ ok: boolean; error?: string }>, success?: string) {
     const result = await run();
-    if (!result.ok) toast.error(result.error ?? 'Something went wrong.');
+    if (!result.ok) toast.error(result.error ?? m.projects_something_went_wrong());
     else if (success) toast.success(success);
   }
 
@@ -60,8 +61,8 @@
       toast.error(result.error);
       return;
     }
-    toast.success(`Created ${result.key}`, {
-      action: { label: 'Open', onClick: () => void goto(issuePath(projectId, result.key)) },
+    toast.success(m.projects_recurring_created_key({ key: result.key }), {
+      action: { label: m.projects_open(), onClick: () => void goto(issuePath(projectId, result.key)) },
     });
   }
 
@@ -71,7 +72,7 @@
 {#snippet newButton()}
   <Button size="sm" onclick={() => (editing = 'new')}>
     <Plus />
-    New recurring issue
+    {m.projects_recurring_new()}
   </Button>
 {/snippet}
 
@@ -80,9 +81,13 @@
 <div class="flex flex-col gap-4">
   {#if !cronConfigured}
     <p class="rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-      Scheduled runs need the daily cron: set <code class="font-mono">CRON_SECRET</code> in
-      the deployment (Vercel Cron calls <code class="font-mono">/api/cron/daily</code>).
-      Until then, due issues are created whenever someone opens this page.
+      {#each m
+        .projects_recurring_cron({ secret: '\uE000', path: '\uE001' })
+        .split(/([\uE000\uE001])/) as part, i (i)}
+        {#if part === '\uE000'}<code class="font-mono">{'CRON_SECRET'}</code>{:else if part === '\uE001'}<code
+            class="font-mono">{'/api/cron/daily'}</code
+          >{:else}{part}{/if}
+      {/each}
     </p>
   {/if}
   {#if canEdit && items.length > 0}
@@ -92,8 +97,8 @@
   {#if items.length === 0}
     <EmptyState
       icon={repeatIcon}
-      title="No recurring issues"
-      description="Create issues on a schedule — weekly reviews, monthly reports, daily checks."
+      title={m.projects_recurring_empty_title()}
+      description={m.projects_recurring_empty_desc()}
       action={canEdit ? newButton : undefined}
     />
   {:else}
@@ -107,7 +112,7 @@
           onToggle={() =>
             void act(
               () => setRecurringIssueEnabled({ projectId, id: item.id, enabled: !item.enabled }),
-              item.enabled ? 'Paused' : 'Resumed',
+              item.enabled ? m.projects_recurring_paused() : m.projects_recurring_resumed(),
             )}
           onDelete={() => (deleting = item)}
         />
@@ -127,24 +132,24 @@
   <AlertDialog bind:open={() => deleting !== null, (open) => !open && (deleting = null)}>
     <AlertDialogContent size="sm">
       <AlertDialogHeader>
-        <AlertDialogTitle>Delete “{deleting?.title}”?</AlertDialogTitle>
+        <AlertDialogTitle>{m.projects_recurring_delete_title({ title: deleting?.title ?? '' })}</AlertDialogTitle>
         <AlertDialogDescription>
-          No more issues are created from it. Issues it already created stay.
+          {m.projects_recurring_delete_desc()}
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>
-        <AlertDialogCancel>Cancel</AlertDialogCancel>
+        <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
         <AlertDialogAction
           variant="destructive"
           onclick={() => {
             const item = deleting;
             deleting = null;
             if (item) {
-              void act(() => deleteRecurringIssue({ projectId, id: item.id }), 'Recurring issue deleted');
+              void act(() => deleteRecurringIssue({ projectId, id: item.id }), m.projects_recurring_deleted());
             }
           }}
         >
-          Delete
+          {m.common_delete()}
         </AlertDialogAction>
       </AlertDialogFooter>
     </AlertDialogContent>

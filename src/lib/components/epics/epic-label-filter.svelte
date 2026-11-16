@@ -1,5 +1,6 @@
 <!-- Epics-list filter: matches epics with any selected label. -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import Settings2Icon from '@lucide/svelte/icons/settings-2';
   import TagIcon from '@lucide/svelte/icons/tag';
 
@@ -52,18 +53,18 @@
       >
         <TagIcon />
         {active.length === 0
-          ? 'Labels'
+          ? m.common_labels()
           : active.length === 1
             ? active[0].name
-            : `${active.length} labels`}
+            : m.projects_label_count({ count: active.length })}
       </Button>
     {/snippet}
   </PopoverTrigger>
   <PopoverContent align="start" class="w-60 gap-0 p-0">
     <Command filter={keywordFilter}>
-      <CommandInput placeholder="Filter by label…" />
+      <CommandInput placeholder={m.projects_label_filter_placeholder()} />
       <CommandList>
-        <CommandEmpty>{labels.length ? 'No labels found.' : 'No epic labels yet.'}</CommandEmpty>
+        <CommandEmpty>{labels.length ? m.projects_no_labels_found() : m.projects_no_epic_labels()}</CommandEmpty>
         {#if labels.length > 0}
           <CommandGroup>
             {#each labels as label (label.id)}
@@ -91,7 +92,7 @@
           <CommandGroup>
             {#if value.length > 0}
               <CommandItem value="__clear" keywords={['Clear']} onSelect={() => onChange([])}>
-                Clear label filter
+                {m.projects_clear_label_filter()}
               </CommandItem>
             {/if}
             {#if onManage}
@@ -104,7 +105,7 @@
                 }}
               >
                 <Settings2Icon />
-                Manage labels…
+                {m.projects_manage_labels()}
               </CommandItem>
             {/if}
           </CommandGroup>

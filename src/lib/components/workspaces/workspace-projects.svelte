@@ -6,6 +6,7 @@
   Sub-teams are listed under their parent.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import FolderPlusIcon from '@lucide/svelte/icons/folder-plus';
   import PlusIcon from '@lucide/svelte/icons/plus';
 
@@ -75,18 +76,18 @@
 <section aria-labelledby="workspace-projects">
   <div class="mb-3 flex items-center gap-2">
     <h2 id="workspace-projects" class="text-base font-medium">
-      Teams <span class="text-muted-foreground">· {tree.length}</span>
+      {m.projects_ws_teams()} <span class="text-muted-foreground">· {tree.length}</span>
     </h2>
     <div class="ml-auto flex gap-2">
       {#if isAdmin}
         <Button variant="outline" size="sm" onclick={() => (dialog = 'add')}>
           <FolderPlusIcon />
-          Add project
+          {m.projects_ws_add_project()}
         </Button>
       {/if}
       <Button size="sm" onclick={() => (dialog = 'create')}>
         <PlusIcon />
-        New project
+        {m.projects_ws_new_project_btn()}
       </Button>
     </div>
   </div>
@@ -94,10 +95,8 @@
   {#if tree.length === 0}
     <EmptyState
       class="rounded-lg border"
-      title="No projects yet"
-      description={isAdmin
-        ? 'Add one of your projects or create a new one in this workspace.'
-        : 'Create a project in this workspace to get started.'}
+      title={m.projects_list_empty_title()}
+      description={isAdmin ? m.projects_ws_empty_admin() : m.projects_ws_empty_member()}
     >
       {#snippet icon()}<FolderPlusIcon />{/snippet}
     </EmptyState>

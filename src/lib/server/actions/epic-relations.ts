@@ -4,6 +4,7 @@
 // the swapped `blocks` row. One relation per pair, no self links, and no
 // cycles among `blocks` edges.
 
+import { m } from '@/lib/i18n';
 import { and, eq, inArray } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
@@ -44,11 +45,11 @@ export async function addEpicRelation(input: {
   const authz = await authorizeProjectAction(input?.projectId, 'write');
   if (!authz.ok) return authz;
   const { projectId, epicId, otherEpicId, kind } = input;
-  if (!isEpicRelationKind(kind)) return fail('Invalid relation.');
+  if (!isEpicRelationKind(kind)) return fail(m.projects_err_invalid_relation());
   if (typeof epicId !== 'string' || typeof otherEpicId !== 'string' || !epicId || !otherEpicId) {
-    return fail('Epic not found.');
+    return fail(m.projects_err_epic_not_found());
   }
-  if (epicId === otherEpicId) return fail('An epic can’t depend on itself.');
+  if (epicId === otherEpicId) return fail(m.projects_err_self_dependency());
 
   const [found, edges] = await db.batch([
     db
@@ -64,18 +65,18 @@ export async function addEpicRelation(input: {
   ]);
   const epic = found.find((e) => e.id === epicId);
   const other = found.find((e) => e.id === otherEpicId);
-  if (!epic || !other) return fail('Epic not found.');
+  if (!epic || !other) return fail(m.projects_err_epic_not_found());
 
   const pairTaken = edges.some(
     (e) => (e.from === epicId && e.to === otherEpicId) || (e.from === otherEpicId && e.to === epicId),
   );
-  if (pairTaken) return fail('These epics are already linked — remove that dependency first.');
+  if (pairTaken) return fail(m.projects_err_already_linked_remove());
 
   const [blocker, blocked] = kind === 'blocked_by' ? [other, epic] : [epic, other];
   if (kind !== 'related') {
     const blocks = edges.filter((e) => e.type === 'blocks');
     if (reaches(blocks, blocked.id, blocker.id)) {
-      return fail(`${blocked.name} already blocks ${blocker.name} (directly or through other epics).`);
+      return fail(m.projects_err_already_blocks({ blocked: blocked.name, blocker: blocker.name }));
     }
   }
 
@@ -114,7 +115,7 @@ export async function addEpicRelation(input: {
       ],
     );
   } catch (err) {
-    if (isUniqueViolation(err)) return fail('These epics are already linked.');
+    if (isUniqueViolation(err)) return fail(m.projects_err_already_linked());
     throw err;
   }
   refreshesData();
@@ -127,7 +128,7 @@ export async function removeEpicRelation(input: {
 }): Promise<EpicRelationActionResult> {
   const authz = await authorizeProjectAction(input?.projectId, 'write');
   if (!authz.ok) return authz;
-  if (typeof input.id !== 'string' || !input.id) return fail('Dependency not found.');
+  if (typeof input.id !== 'string' || !input.id) return fail(m.projects_err_dependency_not_found());
 
   // Both ends must be the project's epics.
   const [relation] = await db
@@ -150,7 +151,7 @@ export async function removeEpicRelation(input: {
       ),
     )
     .limit(1);
-  if (!relation) return fail('Dependency not found.');
+  if (!relation) return fail(m.projects_err_dependency_not_found());
 
   await commitWithEvents(
     [db.delete(epicRelations).where(eq(epicRelations.id, relation.id))],

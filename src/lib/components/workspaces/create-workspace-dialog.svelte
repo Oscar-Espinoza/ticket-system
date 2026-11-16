@@ -4,6 +4,7 @@
   is the sidebar entry point that also registers the palette command.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { goto } from '$app/navigation';
   import LoaderCircleIcon from '@lucide/svelte/icons/loader-circle';
   import { toast } from 'svelte-sonner';
@@ -61,7 +62,7 @@
         errors = { [field]: result.error };
         return;
       }
-      toast.success('Workspace created');
+      toast.success(m.projects_ws_created());
       setOpen(false);
       reset();
       void goto(`/dashboard/workspaces/${result.slug}`);
@@ -79,12 +80,12 @@
 >
   <DialogContent class="sm:max-w-md">
     <DialogHeader>
-      <DialogTitle>Create workspace</DialogTitle>
-      <DialogDescription>Group related projects (teams) and plan initiatives across them.</DialogDescription>
+      <DialogTitle>{m.projects_ws_create()}</DialogTitle>
+      <DialogDescription>{m.projects_ws_create_desc()}</DialogDescription>
     </DialogHeader>
     <form onsubmit={submit} class="flex flex-col gap-4">
       <div class="flex flex-col gap-1.5">
-        <Label for="{uid}-name">Name</Label>
+        <Label for="{uid}-name">{m.common_name()}</Label>
         <Input
           id="{uid}-name"
           autofocus
@@ -93,15 +94,15 @@
             errors = {};
           }}
           maxlength={60}
-          placeholder="Acme Inc."
+          placeholder={m.projects_ws_name_placeholder()}
           aria-invalid={errors.name ? true : undefined}
         />
         {#if errors.name}<p class="text-sm text-destructive">{errors.name}</p>{/if}
       </div>
       <div class="flex flex-col gap-1.5">
-        <Label for="{uid}-slug">URL</Label>
+        <Label for="{uid}-slug">{m.projects_ws_url()}</Label>
         <div class="flex items-center gap-1 text-sm text-muted-foreground">
-          <span class="shrink-0">/workspaces/</span>
+          <span class="shrink-0">{m.projects_ws_url_prefix()}</span>
           <Input
             id="{uid}-slug"
             value={effectiveSlug}
@@ -110,11 +111,11 @@
               slug = event.currentTarget.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
               errors = {};
               // Controlled: write the result back even when the
-              // state didn't change (a rejected keystroke leaves slug as is).
+              // state did not change (a rejected keystroke leaves slug as is).
               event.currentTarget.value = slug;
             }}
             maxlength={40}
-            placeholder="acme"
+            placeholder={m.projects_ws_slug_placeholder()}
             aria-invalid={errors.slug ? true : undefined}
             class="font-mono"
           />
@@ -123,10 +124,10 @@
       </div>
       {#if errors.server}<p class="text-sm text-destructive">{errors.server}</p>{/if}
       <DialogFooter>
-        <Button type="button" variant="outline" onclick={() => setOpen(false)}>Cancel</Button>
+        <Button type="button" variant="outline" onclick={() => setOpen(false)}>{m.common_cancel()}</Button>
         <Button type="submit" disabled={isPending || !name.trim()}>
           {#if isPending}<LoaderCircleIcon class="animate-spin" />{/if}
-          Create workspace
+          {m.projects_ws_create()}
         </Button>
       </DialogFooter>
     </form>

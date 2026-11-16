@@ -3,6 +3,7 @@
   the plain not-found text instead of the error state.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import TriangleAlertIcon from '@lucide/svelte/icons/triangle-alert';
@@ -27,9 +28,9 @@
     <!-- A page's error message names the miss ("Profile not found"); otherwise
          the plain not-found title. -->
     {#if specificMessage}
-      <title>{specificMessage} · Ticket System</title>
+      <title>{m.projects_page_title_named({ name: specificMessage })}</title>
     {:else}
-      <title>404: This page could not be found.</title>
+      <title>{m.projects_page_title_not_found()}</title>
     {/if}
   {/if}
 </svelte:head>
@@ -38,14 +39,14 @@
   <div class="flex flex-col items-center justify-center py-24 text-center">
     <div class="flex items-center">
       <h1 class="mr-5 border-r border-foreground/30 pr-6 text-2xl leading-[49px] font-medium">404</h1>
-      <h2 class="text-sm leading-[49px] font-normal">This page could not be found.</h2>
+      <h2 class="text-sm leading-[49px] font-normal">{m.projects_page_not_found()}</h2>
     </div>
   </div>
 {:else}
-  <EmptyState title="Something went wrong" description="This page failed to load. Try again, or come back in a moment.">
+  <EmptyState title={m.projects_error_title()} description={m.projects_error_desc()}>
     {#snippet icon()}<TriangleAlertIcon />{/snippet}
     {#snippet action()}
-      <Button size="sm" variant="outline" onclick={() => void retry()}>Try again</Button>
+      <Button size="sm" variant="outline" onclick={() => void retry()}>{m.common_retry()}</Button>
     {/snippet}
   </EmptyState>
 {/if}

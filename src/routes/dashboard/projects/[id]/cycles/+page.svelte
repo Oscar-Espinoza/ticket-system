@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import IterationCw from '@lucide/svelte/icons/iteration-cw';
 
   import CyclesList from '@/lib/components/cycles/cycles-list.svelte';
@@ -8,7 +9,7 @@
   let { data }: PageProps = $props();
 </script>
 
-<svelte:head><title>Cycles</title></svelte:head>
+<svelte:head><title>{m.projects_cycles()}</title></svelte:head>
 
 {#snippet icon()}<IterationCw />{/snippet}
 
@@ -16,8 +17,8 @@
   <FeatureOffState
     projectId={data.projectId}
     {icon}
-    title="Cycles are off"
-    description="Plan work in time-boxed iterations with progress, burndown and velocity."
+    title={m.projects_cycles_off_title()}
+    description={m.projects_cycles_off_desc()}
     canEnable={data.canEnable}
   />
 {:else}

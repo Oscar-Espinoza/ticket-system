@@ -3,6 +3,8 @@
   delete theirs; shared templates from workspaces are read-only here.
 -->
 <script module lang="ts">
+  import { m } from '@/lib/i18n';
+
   import type { ProjectTemplateRow } from '@/lib/actions/project-templates';
   import { ESTIMATE_SCALE_LABEL } from '@/lib/estimates';
 
@@ -11,19 +13,19 @@
   function summaryParts(t: ProjectTemplateRow): string[] {
     const s = t.summary;
     return [
-      pluralize(s.states, 'state'),
-      pluralize(s.labels, 'label'),
-      s.issueTemplates > 0 && pluralize(s.issueTemplates, 'issue template'),
-      s.estimateScale !== 'none' && `${ESTIMATE_SCALE_LABEL[s.estimateScale]} estimates`,
-      s.cyclesEnabled && 'Cycles',
-      s.triageEnabled && 'Triage',
-      s.sla && 'SLAs',
-    ].filter((part): part is string => typeof part === 'string');
+      m.projects_template_states({ count: s.states }),
+      m.projects_template_labels({ count: s.labels }),
+      s.issueTemplates > 0 && m.projects_template_issue_templates({ count: s.issueTemplates }),
+      s.estimateScale !== 'none' &&
+        m.projects_template_estimates({ scale: ESTIMATE_SCALE_LABEL[s.estimateScale] }),
+      s.cyclesEnabled && m.projects_cycles(),
+      s.triageEnabled && m.projects_planning_triage_heading(),
+      s.sla && m.projects_template_sla(),
+    ].filter((part) => typeof part === 'string').map(String);
   }
 </script>
 
 <script lang="ts">
-  import { pluralize } from '@/lib/format';
   import EllipsisIcon from '@lucide/svelte/icons/ellipsis';
   import LayoutTemplateIcon from '@lucide/svelte/icons/layout-template';
   import PencilIcon from '@lucide/svelte/icons/pencil';
@@ -59,31 +61,30 @@
 
 <div class="mx-auto flex w-full max-w-3xl flex-col">
   <div class="mb-1 flex items-center gap-2">
-    <h1 class="text-xl font-medium">Project templates</h1>
+    <h1 class="text-xl font-medium">{m.projects_templates_title()}</h1>
     {#if templates.length > 0}
       <span class="text-sm tabular-nums text-muted-foreground">{templates.length}</span>
     {/if}
     <Button size="sm" class="ml-auto" onclick={() => (dialog = { kind: 'create' })}>
       <PlusIcon />
-      New template
+      {m.projects_template_new()}
     </Button>
   </div>
   <p class="mb-6 text-sm text-muted-foreground">
-    Start new projects with a ready-made workflow, labels and settings. Pick a template in the
-    “Create project” dialog.
+    {m.projects_templates_intro()}
   </p>
 
   {#if templates.length === 0}
     <EmptyState
       class="rounded-lg border"
-      title="No templates yet"
-      description="Save a project you administer as a template to reuse its setup."
+      title={m.projects_templates_empty_title()}
+      description={m.projects_templates_empty_desc()}
     >
       {#snippet icon()}<LayoutTemplateIcon />{/snippet}
       {#snippet action()}
         <Button size="sm" variant="outline" onclick={() => (dialog = { kind: 'create' })}>
           <PlusIcon />
-          New template
+          {m.projects_template_new()}
         </Button>
       {/snippet}
     </EmptyState>
@@ -110,7 +111,7 @@
             </p>
           </div>
           <span class="mt-0.5 shrink-0 text-xs text-muted-foreground">
-            {template.isOwner ? '' : `${template.ownerName ?? 'Someone'} · `}
+            {template.isOwner ? '' : `${template.ownerName ?? m.projects_template_someone()} · `}
             {relativeTime(new Date(template.updatedAt))}
           </span>
           {#if template.isOwner}
@@ -121,7 +122,7 @@
                     {...props}
                     variant="ghost"
                     size="icon-sm"
-                    aria-label="Actions for {template.name}"
+                    aria-label={m.projects_template_actions({ name: template.name })}
                   >
                     <EllipsisIcon />
                   </Button>
@@ -130,11 +131,11 @@
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onSelect={() => (dialog = { kind: 'edit', template })}>
                   <PencilIcon />
-                  Edit…
+                  {m.projects_template_edit_item()}
                 </DropdownMenuItem>
                 <DropdownMenuItem variant="destructive" onSelect={() => (deleting = template)}>
                   <Trash2Icon />
-                  Delete…
+                  {m.projects_template_delete_item()}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

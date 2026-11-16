@@ -1,5 +1,6 @@
 <!-- One member row of MemberList. -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import CrownIcon from '@lucide/svelte/icons/crown';
   import MoreHorizontalIcon from '@lucide/svelte/icons/ellipsis';
   import UserMinusIcon from '@lucide/svelte/icons/user-minus';
@@ -50,6 +51,9 @@
   const canTransfer = $derived(perms.isOwner && !isSelf);
   const roleItems = $derived(perms.assignableRoles.map((role) => ({ value: role, label: PROJECT_ROLE_LABEL[role] })));
 
+  // Placeholder swapped for the member's name in bold (messages can't hold markup).
+  const NAME_MARK = '\u0001';
+
   async function transition(task: () => Promise<void>) {
     running++;
     try {
@@ -63,7 +67,7 @@
     void transition(async () => {
       const result = await updateMemberRole({ projectId, memberId: member.id, role: role as ProjectRole });
       if (!result.ok) toast.error(result.error);
-      else toast.success(`${member.name} is now ${PROJECT_ROLE_LABEL[role as ProjectRole].toLowerCase()}`);
+      else toast.success(m.projects_member_now_role({ name: member.name, role: PROJECT_ROLE_LABEL[role as ProjectRole].toLowerCase() }));
     });
   }
 
@@ -74,7 +78,7 @@
       formData.set('memberId', member.id);
       const result = await removeMember({}, formData);
       if (result.errors?.server) toast.error(result.errors.server);
-      else toast.success(`${member.name} was removed`);
+      else toast.success(m.projects_member_removed({ name: member.name }));
     });
   }
 
@@ -82,10 +86,12 @@
     void transition(async () => {
       const result = await transferOwnership({ projectId, memberId: member.id });
       if (!result.ok) toast.error(result.error);
-      else toast.success(`${member.name} now owns this project`);
+      else toast.success(m.projects_member_now_owns({ name: member.name }));
     });
   }
 </script>
+
+{#snippet boldName(text: string)}{#each text.split(NAME_MARK) as part, i (i)}{#if i > 0}<strong>{member.name}</strong>{/if}{part}{/each}{/snippet}
 
 <li class="flex min-h-12 items-center gap-3 px-3 py-2">
   <a
@@ -95,7 +101,7 @@
     <Avatar name={member.name} src={member.image} />
     <span class="min-w-0">
       <span class="block truncate text-sm font-medium hover:underline">
-        {member.name}{#if isSelf}<span class="ml-1.5 font-normal text-muted-foreground">(you)</span>{/if}
+        {member.name}{#if isSelf}<span class="ml-1.5 font-normal text-muted-foreground">{m.projects_you()}</span>{/if}
       </span>
       {#if member.email}
         <span class="block truncate text-xs text-muted-foreground">{member.email}</span>
@@ -110,7 +116,7 @@
       bind:value={() => member.role, (v) => v && v !== member.role && changeRole(v)}
       disabled={isPending}
     >
-      <SelectTrigger size="sm" class="w-28" aria-label={`Role of ${member.name}`}>
+      <SelectTrigger size="sm" class="w-28" aria-label={m.projects_member_role_of({ name: member.name })}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent align="end">
@@ -135,7 +141,7 @@
             {...props}
             variant="ghost"
             size="icon-sm"
-            aria-label={`More actions for ${member.name}`}
+            aria-label={m.projects_member_more_actions({ name: member.name })}
             disabled={isPending}
           >
             <MoreHorizontalIcon />
@@ -146,13 +152,13 @@
         {#if canTransfer}
           <DropdownMenuItem onSelect={() => (dialog = 'transfer')}>
             <CrownIcon />
-            Transfer ownership
+            {m.projects_transfer_ownership()}
           </DropdownMenuItem>
         {/if}
         {#if canManage}
           <DropdownMenuItem variant="destructive" onSelect={() => (dialog = 'remove')}>
             <UserMinusIcon />
-            Remove from project
+            {m.projects_remove_from_project()}
           </DropdownMenuItem>
         {/if}
       </DropdownMenuContent>
@@ -166,28 +172,26 @@
     <AlertDialogContent>
       {#if dialog === 'transfer'}
         <AlertDialogHeader>
-          <AlertDialogTitle>Transfer ownership?</AlertDialogTitle>
+          <AlertDialogTitle>{m.projects_transfer_title()}</AlertDialogTitle>
           <AlertDialogDescription>
-            <strong>{member.name}</strong> becomes the owner of this project and you become an admin.
-            Only the new owner can transfer it back.
+            {@render boldName(m.projects_transfer_desc({ name: NAME_MARK }))}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onclick={transfer} disabled={isPending}>Transfer ownership</AlertDialogAction>
+          <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
+          <AlertDialogAction onclick={transfer} disabled={isPending}>{m.projects_transfer_ownership()}</AlertDialogAction>
         </AlertDialogFooter>
       {:else}
         <AlertDialogHeader>
-          <AlertDialogTitle>Remove member?</AlertDialogTitle>
+          <AlertDialogTitle>{m.projects_remove_member_title()}</AlertDialogTitle>
           <AlertDialogDescription>
-            <strong>{member.name}</strong> will immediately lose access to this project. You can invite
-            them again later.
+            {@render boldName(m.projects_remove_member_desc({ name: NAME_MARK }))}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
           <AlertDialogAction variant="destructive" onclick={remove} disabled={isPending}>
-            Remove member
+            {m.projects_remove_member()}
           </AlertDialogAction>
         </AlertDialogFooter>
       {/if}

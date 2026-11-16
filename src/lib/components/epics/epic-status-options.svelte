@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { digitShortcut, keywordFilter } from '@/lib/components/issue-pickers';
   import {
     Command,
@@ -34,9 +35,9 @@
     return Boolean(status);
   })}
 >
-  <CommandInput bind:value={search} placeholder="Change status…" />
+  <CommandInput bind:value={search} placeholder={m.projects_change_status()} />
   <CommandList>
-    <CommandEmpty>No status found.</CommandEmpty>
+    <CommandEmpty>{m.projects_status_not_found()}</CommandEmpty>
     {#each EPIC_STATUSES as status, index (status)}
       <CommandItem
         value={status}

@@ -4,6 +4,7 @@
   a side list of epics that have no dates yet.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import CalendarRangeIcon from '@lucide/svelte/icons/calendar-range';
   import PlusIcon from '@lucide/svelte/icons/plus';
   import TriangleAlertIcon from '@lucide/svelte/icons/triangle-alert';
@@ -116,14 +117,14 @@
 
 {#if epics.length === 0}
   <EmptyState
-    title="Nothing on the roadmap yet"
-    description="Create epics with start and target dates to see them on a timeline."
+    title={m.projects_roadmap_empty_title()}
+    description={m.projects_roadmap_empty_desc()}
   >
     {#snippet icon()}<CalendarRangeIcon />{/snippet}
     {#snippet action()}
       <Button size="sm" href={`/dashboard/projects/${project.id}/epics`}>
         <PlusIcon />
-        Go to epics
+        {m.projects_go_to_epics()}
       </Button>
     {/snippet}
   </EmptyState>
@@ -136,7 +137,7 @@
         variant="outline"
         spacing={0}
         bind:value={() => zoom, (value: string) => setZoom(value)}
-        aria-label="Zoom"
+        aria-label={m.projects_zoom()}
       >
         {#each ZOOMS as z (z.id)}
           <ToggleGroupItem value={z.id} class="px-2.5 text-xs">{z.label}</ToggleGroupItem>
@@ -144,7 +145,7 @@
       </ToggleGroup>
       {#if canWrite}
         <span class="text-xs text-muted-foreground">
-          Drag bars or their edges to reschedule (snaps to weeks)
+          {m.projects_roadmap_drag_hint()}
         </span>
       {/if}
       {#if conflicts.length > 0}
@@ -153,12 +154,15 @@
           title={conflicts
             .map(
               (dep) =>
-                `${byId.get(dep.blockedId)?.name} starts before ${byId.get(dep.blockerId)?.name} ends`,
+                m.projects_roadmap_conflict_title({
+                  blocked: byId.get(dep.blockedId)?.name ?? '',
+                  blocker: byId.get(dep.blockerId)?.name ?? '',
+                }),
             )
             .join('\n')}
         >
           <TriangleAlertIcon class="size-3.5" />
-          {conflicts.length} scheduling {conflicts.length === 1 ? 'conflict' : 'conflicts'}
+          {m.projects_roadmap_conflicts({ count: conflicts.length })}
         </span>
       {/if}
     </div>
@@ -174,8 +178,8 @@
           />
         {:else}
           <EmptyState
-            title="No dated epics"
-            description="Give an epic a start or target date to place it on the timeline."
+            title={m.projects_roadmap_no_dated_title()}
+            description={m.projects_roadmap_no_dated_desc()}
             class="rounded-md border border-border"
           >
             {#snippet icon()}<CalendarRangeIcon />{/snippet}
@@ -186,7 +190,7 @@
       {#if undated.length > 0}
         <aside aria-labelledby="undated-heading" class="flex shrink-0 flex-col gap-2 xl:w-64">
           <h2 id="undated-heading" class="text-xs font-medium text-muted-foreground">
-            No dates · {undated.length}
+            {m.projects_roadmap_no_dates({ count: undated.length })}
           </h2>
           <ul class="flex flex-col rounded-md border border-border">
             {#each undated as epic (epic.id)}

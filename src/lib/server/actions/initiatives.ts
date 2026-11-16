@@ -3,6 +3,7 @@
 // owner). Linking an epic also needs write access to the epic's project, and
 // the project must sit in the initiative's workspace.
 
+import { m } from '@/lib/i18n';
 import { and, eq } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
@@ -64,12 +65,12 @@ async function validate(
   if (input.description !== undefined) {
     const value = input.description;
     if (value !== null && (typeof value !== 'string' || value.length > INITIATIVE_DESCRIPTION_MAX)) {
-      return fail('Description is too long.', 'description');
+      return fail(m.projects_err_description_long(), 'description');
     }
     changes.description = value?.trim() ? value : null;
   }
   if (input.status !== undefined) {
-    if (!isInitiativeStatus(input.status)) return fail('Invalid status.', 'status');
+    if (!isInitiativeStatus(input.status)) return fail(m.projects_err_invalid_status(), 'status');
     changes.status = input.status;
   }
   if (input.ownerId !== undefined) {
@@ -77,13 +78,13 @@ async function validate(
       input.ownerId !== null &&
       (typeof input.ownerId !== 'string' || !(await isWorkspaceMember(workspaceId, input.ownerId)))
     ) {
-      return fail('The owner must be a workspace member.', 'ownerId');
+      return fail(m.projects_err_owner_member(), 'ownerId');
     }
     changes.ownerId = input.ownerId;
   }
   if (input.targetDate !== undefined) {
     if (input.targetDate !== null && !isDateString(input.targetDate)) {
-      return fail('Invalid date.', 'targetDate');
+      return fail(m.projects_err_invalid_date(), 'targetDate');
     }
     changes.targetDate = input.targetDate;
   }
@@ -133,7 +134,7 @@ export async function updateInitiative(input: {
     .set({ ...changes, updatedAt: new Date() })
     .where(and(eq(initiatives.id, input.id), eq(initiatives.workspaceId, workspaceId)))
     .returning({ id: initiatives.id });
-  if (updated.length === 0) return fail('Initiative not found.');
+  if (updated.length === 0) return fail(m.projects_err_initiative_not_found());
   refreshesData();
   return { ok: true, id: input.id };
 }
@@ -152,9 +153,9 @@ export async function deleteInitiative(input: {
     .from(initiatives)
     .where(and(eq(initiatives.id, input.id), eq(initiatives.workspaceId, workspaceId)))
     .limit(1);
-  if (!initiative) return fail('Initiative not found.');
+  if (!initiative) return fail(m.projects_err_initiative_not_found());
   if (!workspaceRoleAllows(role, 'admin') && initiative.ownerId !== userId) {
-    return fail('Only the owner or a workspace admin can delete this initiative.');
+    return fail(m.projects_err_initiative_delete_forbidden());
   }
   await db.delete(initiatives).where(eq(initiatives.id, initiative.id));
   refreshesData();
@@ -179,11 +180,11 @@ export async function setEpicInitiative(input: {
     .innerJoin(projects, eq(epics.projectId, projects.id))
     .where(and(eq(epics.id, input.epicId), eq(epics.projectId, input.projectId)))
     .limit(1);
-  if (!epic) return fail('Epic not found.');
+  if (!epic) return fail(m.projects_err_epic_not_found());
 
   if (input.initiativeId !== null) {
     if (typeof input.initiativeId !== 'string' || !epic.workspaceId) {
-      return fail('This project is not in a workspace.');
+      return fail(m.projects_err_project_no_workspace());
     }
     const [initiative] = await db
       .select({ id: initiatives.id, workspaceId: initiatives.workspaceId })
@@ -193,7 +194,7 @@ export async function setEpicInitiative(input: {
       )
       .limit(1);
     if (!initiative || !(await isWorkspaceMember(initiative.workspaceId, authz.userId))) {
-      return fail('Initiative not found.');
+      return fail(m.projects_err_initiative_not_found());
     }
   }
 

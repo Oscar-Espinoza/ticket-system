@@ -1,5 +1,6 @@
 <!-- Picker that adds an epic to an initiative. -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import EpicIcon from '@/lib/components/epics/epic-icon.svelte';
   import { PickerPopover, keywordFilter, type PickerPopoverProps } from '@/lib/components/issue-pickers';
   import {
@@ -25,9 +26,9 @@
 <PickerPopover align="end" class="w-72" {children}>
   {#snippet content(close: () => void)}
     <Command filter={keywordFilter}>
-      <CommandInput placeholder="Add epic…" />
+      <CommandInput placeholder={m.projects_add_epic_placeholder()} />
       <CommandList>
-        <CommandEmpty>No epic found.</CommandEmpty>
+        <CommandEmpty>{m.projects_epic_not_found()}</CommandEmpty>
         {#each candidates as epic (epic.id)}
           <CommandItem
             value={epic.id}
@@ -40,7 +41,7 @@
             <EpicIcon color={epic.color} />
             <span class="truncate">{epic.name}</span>
             <span class="ml-auto font-mono text-[10px] text-muted-foreground">
-              {epic.projectKey}{epic.initiativeId ? ' · moves' : ''}
+              {epic.projectKey}{epic.initiativeId ? m.projects_add_epic_moves() : ''}
             </span>
           </CommandItem>
         {/each}

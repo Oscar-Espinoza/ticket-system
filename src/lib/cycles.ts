@@ -7,6 +7,7 @@
 // its scope, burndown and velocity. Membership intervals come from the
 // `issue.updated` activity rows whose changes include a `cycleId` change.
 
+import { m } from '@/lib/i18n';
 import {
   and,
   asc,
@@ -284,7 +285,7 @@ export async function completeCycle(
     .set({ completedAt })
     .where(and(eq(cycles.id, cycleId), eq(cycles.projectId, projectId), isNull(cycles.completedAt)))
     .returning();
-  if (!cycle) return { ok: false, error: 'Cycle not found or already completed.' };
+  if (!cycle) return { ok: false, error: m.projects_err_cycle_not_found_or_completed() };
   if (!rollover) return { ok: true, moved: 0, next: null };
 
   const next = await findNextCycle(projectId, cycle);

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import InitiativesList from '@/lib/components/initiatives/initiatives-list.svelte';
   import type { PageProps } from './$types';
 
@@ -6,7 +7,7 @@
 </script>
 
 <svelte:head>
-  <title>Initiatives · {data.workspace.name} · Ticket System</title>
+  <title>{m.projects_initiatives_page_title({ name: data.workspace.name })}</title>
 </svelte:head>
 
 {#key data.workspace.id}

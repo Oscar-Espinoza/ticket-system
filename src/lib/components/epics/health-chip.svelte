@@ -1,5 +1,6 @@
 <!-- "● On track"; renders a muted "No updates" when health is null and `showEmpty`. -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { cn } from '@/lib/utils';
   import { HEALTH_COLOR, HEALTH_LABEL, type Health } from '@/lib/epic-model';
   import HealthDot from './health-dot.svelte';
@@ -17,7 +18,7 @@
 
 {#if !health}
   {#if showEmpty}
-    <span class={cn('text-xs text-muted-foreground', className)}>No updates</span>
+    <span class={cn('text-xs text-muted-foreground', className)}>{m.projects_no_updates()}</span>
   {/if}
 {:else}
   <span

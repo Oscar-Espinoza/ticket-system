@@ -5,15 +5,16 @@
   there is no client-side navigation here.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
 
   import { joinProject, type JoinProjectState } from '@/lib/actions/join';
   import { Button } from '@/lib/components/ui/button';
 
   const ERROR_MESSAGE: Record<NonNullable<JoinProjectState['error']>, string> = {
-    invalid: 'Unable to join. The invitation may have expired or already been used.',
-    'wrong-account': 'This invitation was sent to a different email address.',
-    'Not authenticated': 'Your session expired. Sign in again to join.',
+    invalid: m.projects_join_error_invalid(),
+    'wrong-account': m.projects_join_error_wrong_account(),
+    'Not authenticated': m.projects_join_error_session(),
   };
 
   let { token }: { token: string } = $props();
@@ -40,9 +41,9 @@
   <Button type="submit" class="mt-6 w-full" disabled={isPending}>
     {#if isPending}
       <Loader2Icon class="mr-2 h-4 w-4 animate-spin" />
-      Joining&hellip;
+      {m.projects_joining()}
     {:else}
-      Join project
+      {m.projects_join_project()}
     {/if}
   </Button>
   {#if actionState.error}

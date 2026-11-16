@@ -1,5 +1,6 @@
 <!-- Health toggle + markdown body, ⌘Enter to post. -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { toast } from 'svelte-sonner';
 
   import { postEpicUpdate } from '@/lib/actions/epics';
@@ -41,7 +42,7 @@
         return;
       }
       body = '';
-      toast.success('Update posted');
+      toast.success(m.projects_update_posted());
     } finally {
       pending = false;
     }
@@ -61,7 +62,7 @@
     variant="outline"
     spacing={0}
     bind:value={() => health, (value: string) => isHealth(value) && (health = value)}
-    aria-label="Health"
+    aria-label={m.projects_health()}
   >
     {#each HEALTHS as h (h)}
       <ToggleGroupItem value={h} class="gap-1.5 px-2.5 text-xs">
@@ -71,17 +72,17 @@
     {/each}
   </ToggleGroup>
   <RichTextEditor
-    aria-label="Update"
+    aria-label={m.projects_update()}
     value={body}
     onChange={(next) => (body = next)}
     onSubmit={submit}
-    placeholder="What changed since the last update? Markdown supported."
+    placeholder={m.projects_update_placeholder()}
     maxLength={UPDATE_BODY_MAX}
   />
   <div class="flex items-center gap-2">
-    <span class="text-xs text-muted-foreground">⌘Enter to post</span>
+    <span class="text-xs text-muted-foreground">{m.projects_update_shortcut()}</span>
     <Button type="submit" size="sm" class="ml-auto" disabled={!body.trim() || pending}>
-      Post update
+      {m.projects_post_update()}
     </Button>
   </div>
 </form>

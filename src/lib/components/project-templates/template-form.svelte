@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { untrack } from 'svelte';
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
   import { toast } from 'svelte-sonner';
@@ -54,7 +55,7 @@
     return {
       editing: !!template,
       projectId: fixedProject?.id ?? '',
-      name: template?.name ?? (fixedProject ? `${fixedProject.name} template` : ''),
+      name: template?.name ?? (fixedProject ? m.projects_template_name_default({ name: fixedProject.name }) : ''),
       description: template?.description ?? '',
       workspaceId:
         initialWorkspace && workspaces.some((w) => w.id === initialWorkspace)
@@ -74,8 +75,8 @@
 
   const projectItems = untrack(() => projects).map((p) => ({ value: p.id, label: `${p.ticketKey} ${p.name}` }));
   const workspaceItems = [
-    { value: PRIVATE, label: 'Only me' },
-    ...untrack(() => workspaces).map((w) => ({ value: w.id, label: `Everyone in ${w.name}` })),
+    { value: PRIVATE, label: m.projects_template_only_me() },
+    ...untrack(() => workspaces).map((w) => ({ value: w.id, label: m.projects_template_everyone_in({ name: w.name }) })),
   ];
   const selectedProject = $derived(projects.find((p) => p.id === projectId));
   const selectedWorkspace = $derived(workspaces.find((w) => w.id === workspaceId));
@@ -91,7 +92,7 @@
           ? await updateProjectTemplate({ id: template.id, name, description, workspaceId: shared })
           : await createProjectTemplate({ projectId, name, description, workspaceId: shared });
       } catch {
-        errors = { server: 'Something went wrong. Try again.' };
+        errors = { server: m.common_error_generic() };
         return;
       }
       if (!result.ok) {
@@ -99,7 +100,7 @@
         return;
       }
       invalidateProjectTemplates();
-      toast.success(editing ? 'Template updated' : `Saved template “${name.trim()}”`);
+      toast.success(editing ? m.projects_template_updated() : m.projects_template_saved({ name: name.trim() }));
       onDone(result.template);
     } finally {
       pending = false;
@@ -109,32 +110,30 @@
 
 <form onsubmit={submit} class="flex flex-col gap-4" novalidate>
   <DialogHeader>
-    <DialogTitle>{editing ? 'Edit template' : 'Save as template'}</DialogTitle>
+    <DialogTitle>{editing ? m.projects_template_edit() : m.projects_template_save_as()}</DialogTitle>
     <DialogDescription>
-      {editing
-        ? 'Rename the template or change who can use it.'
-        : 'Copies the workflow states, labels, estimates, cycle and triage settings, SLAs and issue templates. Issues and members aren’t copied.'}
+      {editing ? m.projects_template_edit_desc() : m.projects_template_save_desc()}
     </DialogDescription>
   </DialogHeader>
 
   {#if !editing && !fixedProject}
     <div class="flex flex-col gap-1.5">
-      <Label for="template-project">Project</Label>
+      <Label for="template-project">{m.common_project()}</Label>
       {#if projects.length === 0}
         <p class="text-sm text-muted-foreground">
-          You need to be an owner or admin of a project to save it as a template.
+          {m.projects_template_need_admin()}
         </p>
       {:else}
         <Select bind:value={projectId} items={projectItems}>
           <SelectTrigger id="template-project" class="w-full">
-            <SelectValue placeholder="Choose a project…">
+            <SelectValue placeholder={m.projects_choose_project()}>
               {#if selectedProject}
                 <span class="font-mono text-xs text-muted-foreground">
                   {selectedProject.ticketKey}
                 </span>
                 {selectedProject.name}
               {:else}
-                <span class="text-muted-foreground">Choose a project…</span>
+                <span class="text-muted-foreground">{m.projects_choose_project()}</span>
               {/if}
             </SelectValue>
           </SelectTrigger>
@@ -155,47 +154,47 @@
   {/if}
 
   <div class="flex flex-col gap-1.5">
-    <Label for="template-name">Name</Label>
+    <Label for="template-name">{m.common_name()}</Label>
     <Input
       id="template-name"
       bind:value={name}
       maxlength={60}
       {@attach focusOnMount}
-      placeholder="Engineering team"
+      placeholder={m.projects_template_name_placeholder()}
       aria-invalid={errors.name ? true : undefined}
     />
     {#if errors.name}<p class="text-sm text-destructive">{errors.name}</p>{/if}
   </div>
 
   <div class="flex flex-col gap-1.5">
-    <Label for="template-description">Description</Label>
+    <Label for="template-description">{m.common_description()}</Label>
     <Textarea
       id="template-description"
       bind:value={description}
       maxlength={500}
       rows={2}
-      placeholder="What kind of team is this for?"
+      placeholder={m.projects_template_description_placeholder()}
     />
     {#if errors.description}<p class="text-sm text-destructive">{errors.description}</p>{/if}
   </div>
 
   <div class="flex flex-col gap-1.5">
-    <Label for="template-share">Available to</Label>
+    <Label for="template-share">{m.projects_template_available_to()}</Label>
     <Select bind:value={workspaceId} items={workspaceItems}>
       <SelectTrigger id="template-share" class="w-full">
         <SelectValue>
           {#if selectedWorkspace}
-            Everyone in {selectedWorkspace.name}
+            {m.projects_template_everyone_in({ name: selectedWorkspace.name })}
           {:else}
-            Only me
+            {m.projects_template_only_me()}
           {/if}
         </SelectValue>
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value={PRIVATE}>Only me</SelectItem>
+        <SelectItem value={PRIVATE}>{m.projects_template_only_me()}</SelectItem>
         {#each workspaces as workspace (workspace.id)}
           <SelectItem value={workspace.id}>
-            Everyone in {workspace.name}
+            {m.projects_template_everyone_in({ name: workspace.name })}
           </SelectItem>
         {/each}
       </SelectContent>
@@ -210,10 +209,10 @@
   {/if}
 
   <DialogFooter>
-    <Button type="button" variant="outline" onclick={onCancel}>Cancel</Button>
+    <Button type="button" variant="outline" onclick={onCancel}>{m.common_cancel()}</Button>
     <Button type="submit" disabled={pending || !name.trim() || (!editing && !projectId)}>
       {#if pending}<Loader2Icon class="animate-spin" />{/if}
-      {editing ? 'Save' : 'Save template'}
+      {editing ? m.common_save() : m.projects_template_save()}
     </Button>
   </DialogFooter>
 </form>
