@@ -82,7 +82,7 @@ function blankExpressions(source: string): string {
 const blank = (s: string) => s.replace(/[^\n]/g, ' ');
 
 const WORD = /[A-Za-z]{2,}/;
-const TEXT_ATTRS = /\s(?:placeholder|aria-label|aria-description|title|alt|label)="([^"]*)"/g;
+const TEXT_ATTRS = /\s(?:placeholder|aria-label|aria-description|title|alt|label)=(?:"([^"]*)"|'([^']*)')/g;
 const TOAST = /\btoast(?:\.\w+)?\(\s*(['"`])((?:(?!\1).)*[A-Za-z]{2,}(?:(?!\1).)*)\1/g;
 
 export type Finding = { line: number; text: string };
@@ -111,11 +111,13 @@ export function findHardcoded(source: string): Finding[] {
   markup = blankExpressions(markup);
 
   for (const a of markup.matchAll(TEXT_ATTRS)) {
-    if (WORD.test(a[1])) add(a.index!, a[1], markup);
+    const value = a[1] ?? a[2];
+    if (WORD.test(value)) add(a.index!, value, markup);
   }
   // Text between tags (tags themselves, with their attributes, are skipped).
   const textOnly = markup.replace(/<[^>]*>/g, (tag) => blank(tag));
-  for (const t of textOnly.matchAll(/[^\s<>][^<>]*/g)) {
+  // One finding per line, so an `i18n-ignore` covers only its own line.
+  for (const t of textOnly.matchAll(/[^\s<>][^<>\n]*/g)) {
     const text = t[0];
     if (WORD.test(text) && !/^&[a-z]+;$/.test(text.trim())) add(t.index!, text, textOnly);
   }

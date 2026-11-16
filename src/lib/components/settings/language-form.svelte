@@ -5,8 +5,8 @@
   import { Label } from '@/lib/components/ui/label';
   import { RadioGroup, RadioGroupItem } from '@/lib/components/ui/radio-group';
   import { updateLanguage } from '@/lib/actions/profile';
-  import { LOCALES, LOCALE_NAMES, m, setLocale, toAppLocale, type AppLocale } from '@/lib/i18n';
-  import { cookieName } from '@/lib/paraglide/runtime';
+  import { LOCALES, LOCALE_NAMES, m, toAppLocale, type AppLocale } from '@/lib/i18n';
+  import { cookieMaxAge, cookieName } from '@/lib/paraglide/runtime';
   import { cn } from '@/lib/utils';
 
   let { locale }: { locale: AppLocale | null } = $props();
@@ -33,14 +33,13 @@
       toast.error(result.error ?? m.settings_language_save_failed());
       return;
     }
-    if (chosen) {
-      // Also sets this browser's cookie, then reloads in the new language.
-      setLocale(chosen);
-    } else {
-      // Back to the browser's language: drop this browser's saved choice too.
-      document.cookie = `${cookieName}=; path=/; max-age=0`;
-      location.reload();
-    }
+    // This browser's cookie follows the choice (it is what a signed-out page
+    // uses); Automatic removes it. Always reload, also when the language shown
+    // doesn't change, so the page never stays disabled.
+    document.cookie = chosen
+      ? `${cookieName}=${chosen}; path=/; max-age=${cookieMaxAge}; samesite=lax`
+      : `${cookieName}=; path=/; max-age=0`;
+    location.reload();
   }
 </script>
 
