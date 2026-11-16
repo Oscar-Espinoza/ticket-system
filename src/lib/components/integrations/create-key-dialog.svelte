@@ -1,5 +1,6 @@
 <!-- Name a new API key. Mounted while open. -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import LoaderCircleIcon from '@lucide/svelte/icons/loader-circle';
   import { toast } from 'svelte-sonner';
 
@@ -51,10 +52,10 @@
   <DialogContent>
     <form onsubmit={submit} novalidate class="flex flex-col gap-5">
       <DialogHeader>
-        <DialogTitle>Create API key</DialogTitle>
-        <DialogDescription>The key acts as you, with your project roles.</DialogDescription>
+        <DialogTitle>{m.settings_int_create_key_title()}</DialogTitle>
+        <DialogDescription>{m.settings_int_create_key_desc()}</DialogDescription>
       </DialogHeader>
-      <Field id="api-key-name" label="Name" hint="Where it’s used, e.g. “CI bot”." {error}>
+      <Field id="api-key-name" label={m.common_name()} hint={m.settings_int_key_name_hint()} {error}>
         <Input
           id="api-key-name"
           bind:value={() => name, (v) => {
@@ -69,10 +70,10 @@
         />
       </Field>
       <DialogFooter>
-        <Button type="button" variant="ghost" onclick={onClose}>Cancel</Button>
+        <Button type="button" variant="ghost" onclick={onClose}>{m.common_cancel()}</Button>
         <Button type="submit" disabled={pending || !name.trim()}>
           {#if pending}<LoaderCircleIcon class="animate-spin" />{/if}
-          Create key
+          {m.settings_int_create_key()}
         </Button>
       </DialogFooter>
     </form>

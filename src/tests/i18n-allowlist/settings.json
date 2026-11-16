@@ -1,11 +1,5 @@
 {
   "files": {
-    "src/lib/components/integrations/api-key-settings.svelte": "pending translation (area settings, 4 strings)",
-    "src/lib/components/integrations/copy-field.svelte": "pending translation (area settings, 3 strings)",
-    "src/lib/components/integrations/create-key-dialog.svelte": "pending translation (area settings, 2 strings)",
-    "src/lib/components/integrations/intake-form-body.svelte": "pending translation (area settings, 6 strings)",
-    "src/lib/components/integrations/intake-settings.svelte": "pending translation (area settings, 3 strings)",
-    "src/lib/components/integrations/slack-settings.svelte": "pending translation (area settings, 4 strings)",
     "src/lib/components/integrations/webhook-deliveries.svelte": "pending translation (area settings, 5 strings)",
     "src/lib/components/integrations/webhook-dialog.svelte": "pending translation (area settings, 3 strings)",
     "src/lib/components/integrations/webhook-settings.svelte": "pending translation (area settings, 7 strings)",

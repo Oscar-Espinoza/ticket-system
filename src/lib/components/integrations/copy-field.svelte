@@ -4,6 +4,7 @@
   unavailable (insecure origins, some embedded browsers).
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import CopyIcon from '@lucide/svelte/icons/copy';
   import { toast } from 'svelte-sonner';
 
@@ -15,7 +16,7 @@
   let {
     id,
     value,
-    label = 'Text',
+    label = m.settings_int_copy_default_label(),
     multiline = false,
     class: className,
   }: {
@@ -33,10 +34,10 @@
   async function copy() {
     try {
       await navigator.clipboard.writeText(value);
-      toast.success(`${label} copied`);
+      toast.success(m.settings_int_copied_toast({ label }));
     } catch {
       (multiline ? textarea : input)?.select();
-      toast.error('Copy failed — the text is selected, copy it manually');
+      toast.error(m.settings_int_copy_failed_toast());
     }
   }
 
@@ -58,7 +59,7 @@
   {:else}
     <Input {id} bind:ref={input} {value} readonly spellcheck={false} onfocus={select} class="font-mono text-xs" />
   {/if}
-  <Button type="button" variant="outline" size="icon" onclick={copy} aria-label="Copy {label.toLowerCase()}">
+  <Button type="button" variant="outline" size="icon" onclick={copy} aria-label={m.settings_int_copy_aria({ label: label.toLowerCase() })}>
     <CopyIcon />
   </Button>
 </div>

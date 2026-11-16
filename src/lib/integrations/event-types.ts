@@ -1,20 +1,71 @@
 // Event vocabularies for Slack and outgoing webhooks. Client-safe (the settings
 // UI renders these lists), so no imports from events.ts (which pulls in the db).
 
+import { m } from '@/lib/i18n';
 import { ISSUE_EVENT } from '@/lib/event-names';
 
 /** Issue event types a webhook can subscribe to. An empty selection = all types. */
 export const WEBHOOK_EVENT_TYPES = [
-  { type: ISSUE_EVENT.created, label: 'Issue created' },
-  { type: ISSUE_EVENT.updated, label: 'Issue updated' },
-  { type: ISSUE_EVENT.commentCreated, label: 'Comment created' },
-  { type: ISSUE_EVENT.commentUpdated, label: 'Comment edited' },
-  { type: ISSUE_EVENT.commentDeleted, label: 'Comment deleted' },
-  { type: ISSUE_EVENT.archived, label: 'Issue archived' },
-  { type: ISSUE_EVENT.unarchived, label: 'Issue unarchived' },
-  { type: ISSUE_EVENT.deleted, label: 'Issue moved to trash' },
-  { type: ISSUE_EVENT.restored, label: 'Issue restored' },
-  { type: ISSUE_EVENT.purged, label: 'Issue permanently deleted' },
+  {
+    type: ISSUE_EVENT.created,
+    get label() {
+      return m.settings_ev_issue_created();
+    },
+  },
+  {
+    type: ISSUE_EVENT.updated,
+    get label() {
+      return m.settings_ev_issue_updated();
+    },
+  },
+  {
+    type: ISSUE_EVENT.commentCreated,
+    get label() {
+      return m.settings_ev_comment_created();
+    },
+  },
+  {
+    type: ISSUE_EVENT.commentUpdated,
+    get label() {
+      return m.settings_ev_comment_edited();
+    },
+  },
+  {
+    type: ISSUE_EVENT.commentDeleted,
+    get label() {
+      return m.settings_ev_comment_deleted();
+    },
+  },
+  {
+    type: ISSUE_EVENT.archived,
+    get label() {
+      return m.settings_ev_issue_archived();
+    },
+  },
+  {
+    type: ISSUE_EVENT.unarchived,
+    get label() {
+      return m.settings_ev_issue_unarchived();
+    },
+  },
+  {
+    type: ISSUE_EVENT.deleted,
+    get label() {
+      return m.settings_ev_issue_trashed();
+    },
+  },
+  {
+    type: ISSUE_EVENT.restored,
+    get label() {
+      return m.settings_ev_issue_restored();
+    },
+  },
+  {
+    type: ISSUE_EVENT.purged,
+    get label() {
+      return m.settings_ev_issue_purged();
+    },
+  },
 ] as const;
 
 export type WebhookEventType = (typeof WEBHOOK_EVENT_TYPES)[number]['type'];
@@ -26,10 +77,30 @@ export function isWebhookEventType(value: unknown): value is WebhookEventType {
 }
 
 export const SLACK_EVENTS = [
-  { kind: 'created', label: 'Issue created' },
-  { kind: 'completed', label: 'Issue completed' },
-  { kind: 'canceled', label: 'Issue canceled' },
-  { kind: 'commented', label: 'New comment' },
+  {
+    kind: 'created',
+    get label() {
+      return m.settings_ev_issue_created();
+    },
+  },
+  {
+    kind: 'completed',
+    get label() {
+      return m.settings_ev_issue_completed();
+    },
+  },
+  {
+    kind: 'canceled',
+    get label() {
+      return m.settings_ev_issue_canceled();
+    },
+  },
+  {
+    kind: 'commented',
+    get label() {
+      return m.settings_ev_new_comment();
+    },
+  },
 ] as const;
 
 export type SlackEventKind = (typeof SLACK_EVENTS)[number]['kind'];
