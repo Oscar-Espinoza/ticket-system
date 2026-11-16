@@ -55,6 +55,8 @@
     }
   }
 
+  const customersParts = $derived(m.settings_int_intake_customers({ link: '\u0000' }).split('\u0000'));
+
   const embed = $derived(
     url
       ? `<iframe src="${url}" title="Submit a request" width="100%" height="720" style="border:0"></iframe>`
@@ -81,8 +83,7 @@
         {triageEnabled ? m.settings_int_intake_accept_triage() : m.settings_int_intake_accept_default()}
       </p>
       <p class="mt-1 text-sm text-muted-foreground">
-        {@const parts = m.settings_int_intake_customers({ link: '\u0000' }).split('\u0000')}
-        {parts[0]}<a href={customersPath(projectId)} class="underline-offset-2 hover:underline">{m.settings_int_intake_customers_link()}</a>{parts[1]}
+        {customersParts[0]}<a href={customersPath(projectId)} class="underline-offset-2 hover:underline">{m.settings_int_intake_customers_link()}</a>{customersParts[1]}
       </p>
     </div>
   </div>

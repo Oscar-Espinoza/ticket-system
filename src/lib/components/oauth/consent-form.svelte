@@ -15,6 +15,7 @@
 </script>
 
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import CheckIcon from '@lucide/svelte/icons/check';
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
   import TriangleAlertIcon from '@lucide/svelte/icons/triangle-alert';
@@ -59,7 +60,7 @@
     const target = data?.url ?? data?.redirect_uri;
     if (failure || !target) {
       pending = null;
-      error = 'This authorization request expired or is invalid. Start again from the app.';
+      error = m.settings_oauth_consent_expired();
       return;
     }
     window.location.assign(target);
@@ -76,10 +77,10 @@
     <CardHeader>
       <CardTitle class="flex items-center gap-2">
         <TriangleAlertIcon class="size-4 text-amber-500" />
-        Invalid authorization request
+        {m.settings_oauth_invalid_request()}
       </CardTitle>
       <CardDescription>
-        The link expired or the app no longer exists. Go back to the app and try connecting again.
+        {m.settings_oauth_invalid_request_desc()}
       </CardDescription>
     </CardHeader>
   </Card>
@@ -88,18 +89,17 @@
     <CardHeader class="items-center text-center">
       <AppIcon name={app.name} src={app.icon} size="lg" class="mx-auto" />
       <CardTitle class="mt-3 text-base">
-        {#if homepage}<a
+        {@const title = m.settings_oauth_wants_access({ app: '\u0000' }).split('\u0000')}
+        {title[0]}{#if homepage}<a
             href={homepage}
             target="_blank"
             rel="noopener noreferrer nofollow"
             class="hover:underline">{app.name}</a
-          >{:else}{app.name}{/if}{#if redirectHost}<span class="font-normal text-muted-foreground"> · {redirectHost}</span>{/if}
-        wants to access your account
+          >{:else}{app.name}{/if}{#if redirectHost}<span class="font-normal text-muted-foreground"> · {redirectHost}</span>{/if}{title[1]}
       </CardTitle>
       {#if app.dynamic}
         <p class="text-xs text-amber-600 dark:text-amber-500">
-          This app registered itself. Its name isn’t verified: only continue if you started this
-          from {redirectHost ?? 'the app'}.
+          {m.settings_oauth_dynamic_warning({ where: redirectHost ?? m.settings_oauth_the_app() })}
         </p>
       {/if}
       <CardDescription class="flex items-center justify-center gap-2">
@@ -108,7 +108,7 @@
       </CardDescription>
     </CardHeader>
     <CardContent>
-      <p class="mb-2 text-xs font-medium text-muted-foreground">This will allow it to:</p>
+      <p class="mb-2 text-xs font-medium text-muted-foreground">{m.settings_oauth_will_allow()}</p>
       <ul class="flex flex-col gap-2 text-sm">
         {#each visible.length ? visible : ['openid'] as scope (scope)}
           <li class="flex items-start gap-2">
@@ -127,25 +127,25 @@
       <div class="flex w-full gap-2">
         <Button variant="outline" class="flex-1" disabled={pending !== null} onclick={() => answer(false)}>
           {#if pending === 'deny'}<Loader2Icon class="animate-spin" />{/if}
-          Deny
+          {m.settings_oauth_deny()}
         </Button>
         <Button class="flex-1" disabled={pending !== null} onclick={() => answer(true)} autofocus>
           {#if pending === 'allow'}<Loader2Icon class="animate-spin" />{/if}
-          Allow
+          {m.settings_oauth_allow()}
         </Button>
       </div>
       <p class="text-center text-xs text-muted-foreground">
-        {#if redirectHost}You’ll be sent to <span class="font-medium text-foreground">{redirectHost}</span
-          >.{' '}{/if}Revoke access anytime in Settings → OAuth apps.{#if policy || tos}{' '}{#if policy}<a
+        {#if redirectHost}{@const sent = m.settings_oauth_sent_to({ host: '\u0000' }).split('\u0000')}{sent[0]}<span class="font-medium text-foreground">{redirectHost}</span
+          >{sent[1]}{' '}{/if}{m.settings_oauth_revoke_anytime()}{#if policy || tos}{' '}{#if policy}<a
               href={policy}
               target="_blank"
               rel="noopener noreferrer nofollow"
-              class="underline">Privacy</a
+              class="underline">{m.settings_oauth_privacy()}</a
             >{/if}{#if policy && tos}{' · '}{/if}{#if tos}<a
               href={tos}
               target="_blank"
               rel="noopener noreferrer nofollow"
-              class="underline">Terms</a
+              class="underline">{m.settings_oauth_terms()}</a
             >{/if}{/if}
       </p>
     </CardFooter>

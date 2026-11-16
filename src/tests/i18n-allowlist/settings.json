@@ -1,10 +1,5 @@
 {
   "files": {
-    "src/lib/components/oauth/authorized-apps.svelte": "pending translation (area settings, 3 strings)",
-    "src/lib/components/oauth/connect-ai-assistant.svelte": "pending translation (area settings, 5 strings)",
-    "src/lib/components/oauth/consent-form.svelte": "pending translation (area settings, 1 strings)",
-    "src/lib/components/oauth/oauth-app-register-dialog.svelte": "pending translation (area settings, 8 strings)",
-    "src/lib/components/oauth/oauth-app-settings.svelte": "pending translation (area settings, 10 strings)",
     "src/lib/components/security/ai-connectors-settings.svelte": "pending translation (area settings, 1 strings)",
     "src/lib/components/security/backup-codes.svelte": "pending translation (area settings, 4 strings)",
     "src/lib/components/security/scim-notes.svelte": "pending translation (area settings, 3 strings)",

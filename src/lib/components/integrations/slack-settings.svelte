@@ -64,6 +64,8 @@
     }
   }
 
+  const postParts = $derived(m.settings_int_slack_post_desc({ link: '\u0000' }).split('\u0000'));
+
   const toggle = (kind: SlackEventKind, on: boolean) =>
     (events = on ? [...events, kind] : events.filter((k) => k !== kind));
 </script>
@@ -72,13 +74,12 @@
   <div>
     <h2 class="text-base font-medium">Slack</h2> <!-- i18n-ignore -->
     <p class="mt-1 text-sm text-muted-foreground">
-      {@const parts = m.settings_int_slack_post_desc({ link: '\u0000' }).split('\u0000')}
-      {parts[0]}<a
+      {postParts[0]}<a
         href="https://api.slack.com/messaging/webhooks"
         target="_blank"
         rel="noreferrer"
         class="underline underline-offset-2 hover:text-foreground">{m.settings_int_slack_webhook_link()}</a
-      >{parts[1]}
+      >{postParts[1]}
     </p>
   </div>
 
