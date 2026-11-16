@@ -5,6 +5,7 @@
   issue in its own project, where it's edited.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { Avatar, EmptyState, PriorityIcon, StateIcon } from '@/lib/components/ui-icons';
   import { issuePath } from '@/lib/issue-links';
   import { PRIORITY_LABEL, PRIORITY_ORDER, STATE_TYPE_ORDER, type IssueRow } from '@/lib/issue-model';
@@ -25,13 +26,13 @@
 </script>
 
 {#if issues.length === 0}
-  <EmptyState title="No issues" description={`No active issues from ${project.name}.`} />
+  <EmptyState title={m.projects_no_issues()} description={m.projects_foreign_no_active({ name: project.name })} />
 {:else}
   <div class="flex flex-col">
     <p class="mb-2 text-xs text-muted-foreground">
-      Issues from {project.name} — open one to edit it in its own project.
+      {m.projects_foreign_intro({ name: project.name })}
     </p>
-    <ul aria-label={`Issues from ${project.name}`} class="flex flex-col border-t border-border">
+    <ul aria-label={m.projects_foreign_list({ name: project.name })} class="flex flex-col border-t border-border">
       {#each sorted as issue (issue.id)}
         <li class="border-b border-border">
           <a

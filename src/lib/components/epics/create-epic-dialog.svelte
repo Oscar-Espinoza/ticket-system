@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import CalendarDaysIcon from '@lucide/svelte/icons/calendar-days';
   import CalendarRangeIcon from '@lucide/svelte/icons/calendar-range';
   import UserRoundIcon from '@lucide/svelte/icons/user-round';
@@ -94,7 +95,7 @@
         error = result.error;
         return;
       }
-      toast.success(`Created epic “${name.trim()}”`);
+      toast.success(m.projects_epic_created({ name: name.trim() }));
       reset();
       setOpen(false);
       if (openAfter && result.id) void goto(epicPath(projectId, result.id));
@@ -115,9 +116,9 @@
 >
   <DialogContent class="sm:max-w-xl">
     <DialogHeader>
-      <DialogTitle>New epic</DialogTitle>
+      <DialogTitle>{m.projects_epic_new()}</DialogTitle>
       <DialogDescription>
-        A larger piece of work made of many {data.project.ticketKey} issues.
+        {m.projects_epic_new_desc({ key: data.project.ticketKey })}
       </DialogDescription>
     </DialogHeader>
     <!-- ⌘Enter submits -->
@@ -130,12 +131,12 @@
       class="flex flex-col gap-4"
     >
       <div class="flex flex-col gap-1.5">
-        <Label for={`${uid}-name`}>Name</Label>
+        <Label for={`${uid}-name`}>{m.common_name()}</Label>
         <!-- svelte-ignore a11y_autofocus -->
         <Input
           id={`${uid}-name`}
           bind:value={name}
-          placeholder="Epic name"
+          placeholder={m.projects_epic_name_placeholder()}
           maxlength={EPIC_NAME_MAX}
           autofocus
           aria-invalid={error ? true : undefined}
@@ -143,24 +144,24 @@
         />
       </div>
       <div class="flex flex-col gap-1.5">
-        <span class="text-sm font-medium">Description</span>
+        <span class="text-sm font-medium">{m.common_description()}</span>
         <RichTextEditor
-          aria-label="Description"
+          aria-label={m.common_description()}
           value={description}
           onChange={(next) => (description = next)}
-          placeholder="What is this epic about? Markdown supported."
+          placeholder={m.projects_epic_description_placeholder()}
           maxLength={EPIC_DESCRIPTION_MAX}
         />
       </div>
       <div class="flex flex-col gap-1.5">
-        <span class="text-sm font-medium">Color</span>
+        <span class="text-sm font-medium">{m.projects_color()}</span>
         <ColorSwatches value={color} onChange={(next) => (color = next)} />
       </div>
 
-      <div role="group" aria-label="Properties" class="flex flex-wrap gap-1.5">
+      <div role="group" aria-label={m.projects_properties()} class="flex flex-wrap gap-1.5">
         <EpicStatusPicker value={status} onChange={(next) => (status = next)}>
           {#snippet children({ props })}
-            <Chip {...props} aria-label={`Status: ${EPIC_STATUS_LABEL[status]}`}>
+            <Chip {...props} aria-label={m.projects_epic_status_chip({ status: EPIC_STATUS_LABEL[status] })}>
               <EpicStatusIcon {status} />
               <span class="text-foreground">{EPIC_STATUS_LABEL[status]}</span>
             </Chip>
@@ -173,25 +174,25 @@
           onChange={(next) => (leadId = next)}
         >
           {#snippet children({ props })}
-            <Chip {...props} aria-label={`Lead: ${lead?.name ?? 'none'}`}>
+            <Chip {...props} aria-label={m.projects_epic_lead_chip({ name: lead?.name ?? m.projects_epic_lead_none() })}>
               {#if lead}
                 <Avatar name={lead.name} src={lead.image} size={20} class="-my-1 size-4" />
                 <span class="truncate text-foreground">{lead.name}</span>
               {:else}
                 <UserRoundIcon />
-                Lead
+                {m.projects_epic_lead()}
               {/if}
             </Chip>
           {/snippet}
         </MemberPicker>
-        <DatePicker value={startDate} onChange={(next) => (startDate = next)} clearLabel="Clear start date">
+        <DatePicker value={startDate} onChange={(next) => (startDate = next)} clearLabel={m.projects_epic_clear_start()}>
           {#snippet children({ props })}
-            <Chip {...props} aria-label="Start date">
+            <Chip {...props} aria-label={m.projects_epic_start_date()}>
               <CalendarRangeIcon />
               {#if startDate}
-                <span class="text-foreground">Start {formatDueDate(startDate)}</span>
+                <span class="text-foreground">{m.projects_epic_start_on({ date: formatDueDate(startDate) })}</span>
               {:else}
-                Start date
+                {m.projects_epic_start_date()}
               {/if}
             </Chip>
           {/snippet}
@@ -199,15 +200,15 @@
         <DatePicker
           value={targetDate}
           onChange={(next) => (targetDate = next)}
-          clearLabel="Clear target date"
+          clearLabel={m.projects_epic_clear_target()}
         >
           {#snippet children({ props })}
-            <Chip {...props} aria-label="Target date">
+            <Chip {...props} aria-label={m.projects_epic_target_date()}>
               <CalendarDaysIcon />
               {#if targetDate}
-                <span class="text-foreground">Target {formatDueDate(targetDate)}</span>
+                <span class="text-foreground">{m.projects_epic_target_on({ date: formatDueDate(targetDate) })}</span>
               {:else}
-                Target date
+                {m.projects_epic_target_date()}
               {/if}
             </Chip>
           {/snippet}
@@ -218,16 +219,16 @@
         <p id={`${uid}-error`} role="alert" class="text-sm text-destructive">{error}</p>
       {/if}
       <DialogFooter>
-        <Button type="button" variant="outline" onclick={() => setOpen(false)}>Cancel</Button>
+        <Button type="button" variant="outline" onclick={() => setOpen(false)}>{m.common_cancel()}</Button>
         <Button
           type="button"
           variant="outline"
           disabled={!name.trim() || pending}
           onclick={() => void submit(undefined, true)}
         >
-          Create and open
+          {m.projects_create_and_open()}
         </Button>
-        <Button type="submit" disabled={!name.trim() || pending}>Create epic</Button>
+        <Button type="submit" disabled={!name.trim() || pending}>{m.projects_epic_create()}</Button>
       </DialogFooter>
     </form>
   </DialogContent>

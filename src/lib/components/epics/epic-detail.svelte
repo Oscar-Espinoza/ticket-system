@@ -39,6 +39,7 @@
 </script>
 
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import ArchiveIcon from '@lucide/svelte/icons/archive';
   import ArchiveRestoreIcon from '@lucide/svelte/icons/archive-restore';
   import CalendarDaysIcon from '@lucide/svelte/icons/calendar-days';
@@ -182,11 +183,11 @@
       const action = archived ? unarchiveEpic : archiveEpic;
       const result = await action({ projectId: project.id, id });
       if (!result.ok) toast.error(result.error);
-      else toast.success(archived ? 'Epic restored' : 'Epic archived');
+      else toast.success(archived ? m.projects_epic_restored() : m.projects_epic_archived());
     });
   };
 
-  const copyLink = () => copyToClipboard(window.location.href.split('?')[0], 'epic link');
+  const copyLink = () => copyToClipboard(window.location.href.split('?')[0], m.projects_epic_link());
 
   const lead = $derived(epic.lead);
   const initiative = $derived(initiatives?.find((i) => i.id === epic.initiativeId) ?? null);
@@ -208,7 +209,7 @@
     {#if epic.health}
       <HealthChip health={epic.health} class="text-sm" />
     {:else}
-      <span class="text-muted-foreground">No updates</span>
+      <span class="text-muted-foreground">{m.projects_no_updates()}</span>
     {/if}
   </PropertyButton>
 {/snippet}
@@ -220,7 +221,7 @@
       <span class="truncate">{lead.name}</span>
     {:else}
       <UserRoundIcon class="text-muted-foreground" />
-      <span class="text-muted-foreground">No lead</span>
+      <span class="text-muted-foreground">{m.projects_no_lead()}</span>
     {/if}
   </PropertyButton>
 {/snippet}
@@ -236,7 +237,7 @@
       />
     {:else}
       <TagIcon class="text-muted-foreground" />
-      <span class="text-muted-foreground">Add labels</span>
+      <span class="text-muted-foreground">{m.projects_add_labels()}</span>
     {/if}
   </PropertyButton>
 {/snippet}
@@ -247,7 +248,7 @@
     {#if epic.startDate}
       {formatDueDate(epic.startDate)}
     {:else}
-      <span class="text-muted-foreground">Set start</span>
+      <span class="text-muted-foreground">{m.projects_set_start()}</span>
     {/if}
   </PropertyButton>
 {/snippet}
@@ -258,7 +259,7 @@
     {#if epic.targetDate}
       {formatDueDate(epic.targetDate)}
     {:else}
-      <span class="text-muted-foreground">Set target</span>
+      <span class="text-muted-foreground">{m.projects_set_target()}</span>
     {/if}
   </PropertyButton>
 {/snippet}
@@ -270,16 +271,16 @@
       <span class="truncate">{initiative.name}</span>
     {:else}
       <span class="text-muted-foreground">
-        {options.length ? 'Add to initiative' : 'No initiatives'}
+        {options.length ? m.projects_add_to_initiative() : m.projects_no_initiatives()}
       </span>
     {/if}
   </PropertyButton>
 {/snippet}
 
 {#snippet sidebar()}
-  <aside aria-label="Epic properties" class="flex flex-col gap-4">
+  <aside aria-label={m.projects_epic_properties()} class="flex flex-col gap-4">
     <div class="flex flex-col gap-1">
-      <PropertyRow label="Status">
+      <PropertyRow label={m.common_status()}>
         {#if canWrite}
           <EpicStatusPicker value={epic.status} onChange={(status) => save({ status }, { status })}>
             {#snippet children({ props })}{@render statusTrigger(props)}{/snippet}
@@ -288,7 +289,7 @@
           {@render statusTrigger({})}
         {/if}
       </PropertyRow>
-      <PropertyRow label="Health">
+      <PropertyRow label={m.projects_health()}>
         {#if canWrite}
           <HealthPicker value={epic.health} onChange={(health) => save({ health }, { health })}>
             {#snippet children({ props })}{@render healthTrigger(props)}{/snippet}
@@ -297,7 +298,7 @@
           {@render healthTrigger({})}
         {/if}
       </PropertyRow>
-      <PropertyRow label="Lead">
+      <PropertyRow label={m.projects_epic_lead()}>
         {#if canWrite}
           <MemberPicker
             value={lead?.id ?? null}
@@ -317,7 +318,7 @@
           {@render leadTrigger({})}
         {/if}
       </PropertyRow>
-      <PropertyRow label="Labels">
+      <PropertyRow label={m.common_labels()}>
         {#if canWrite}
           <EpicLabelPicker
             projectId={project.id}
@@ -332,11 +333,11 @@
           {@render labelsTrigger({})}
         {/if}
       </PropertyRow>
-      <PropertyRow label="Start date">
+      <PropertyRow label={m.projects_epic_start_date()}>
         {#if canWrite}
           <DatePicker
             value={epic.startDate}
-            clearLabel="Clear start date"
+            clearLabel={m.projects_epic_clear_start()}
             onChange={(startDate) => save({ startDate }, { startDate })}
           >
             {#snippet children({ props })}{@render startTrigger(props)}{/snippet}
@@ -345,11 +346,11 @@
           {@render startTrigger({})}
         {/if}
       </PropertyRow>
-      <PropertyRow label="Target date">
+      <PropertyRow label={m.projects_epic_target_date()}>
         {#if canWrite}
           <DatePicker
             value={epic.targetDate}
-            clearLabel="Clear target date"
+            clearLabel={m.projects_epic_clear_target()}
             onChange={(targetDate) => save({ targetDate }, { targetDate })}
           >
             {#snippet children({ props })}{@render targetTrigger(props)}{/snippet}
@@ -359,7 +360,7 @@
         {/if}
       </PropertyRow>
       {#if initiatives}
-        <PropertyRow label="Initiative">
+        <PropertyRow label={m.projects_initiative()}>
           {#if canWrite}
             <InitiativePicker value={epic.initiativeId} {initiatives} onChange={setInitiative}>
               {#snippet children({ props })}{@render initiativeTrigger(props, initiatives)}{/snippet}
@@ -368,18 +369,18 @@
             {@render initiativeTrigger({}, initiatives)}
           {/if}{#if initiative && workspaceSlug}<a
               href={`/dashboard/workspaces/${workspaceSlug}/initiatives/${initiative.id}`}
-              class="ml-1 text-xs text-muted-foreground hover:text-foreground">Open</a
+              class="ml-1 text-xs text-muted-foreground hover:text-foreground">{m.projects_open()}</a
             >{/if}
         </PropertyRow>
       {/if}
-      <PropertyRow label="Color">
+      <PropertyRow label={m.projects_color()}>
         {#if canWrite}
           <Popover>
             <PopoverTrigger>
               {#snippet child({ props })}
                 <PropertyButton {...props}>
                   <EpicIcon color={epic.color} />
-                  <span class="text-muted-foreground">Change</span>
+                  <span class="text-muted-foreground">{m.projects_change()}</span>
                 </PropertyButton>
               {/snippet}
             </PopoverTrigger>
@@ -397,7 +398,7 @@
       </PropertyRow>
     </div>
     <div class="flex flex-col gap-2 border-t border-border pt-4">
-      <span class="text-xs text-muted-foreground">Progress</span>
+      <span class="text-xs text-muted-foreground">{m.projects_progress()}</span>
       <ProgressBlock progress={epic.progress} color={epic.color} />
     </div>
   </aside>
@@ -405,7 +406,7 @@
 
 <div class="flex min-h-0 flex-1 flex-col">
   <div class="mb-2 flex items-center gap-1 text-xs text-muted-foreground">
-    <a href={`/dashboard/projects/${project.id}/epics`} class="hover:text-foreground">Epics</a>
+    <a href={`/dashboard/projects/${project.id}/epics`} class="hover:text-foreground">{m.projects_epics()}</a>
     <ChevronRightIcon class="size-3" />
     <span class="truncate text-foreground">{epic.name}</span>
   </div>
@@ -418,7 +419,7 @@
       <DropdownMenu>
         <DropdownMenuTrigger>
           {#snippet child({ props })}
-            <Button {...props} variant="ghost" size="icon-sm" aria-label="Epic actions">
+            <Button {...props} variant="ghost" size="icon-sm" aria-label={m.projects_epic_actions()}>
               <EllipsisIcon />
             </Button>
           {/snippet}
@@ -426,13 +427,13 @@
         <DropdownMenuContent align="end" class="w-48">
           <DropdownMenuItem onSelect={copyLink}>
             <Link2Icon />
-            Copy link
+            {m.projects_copy_link()}
           </DropdownMenuItem>
           {#if canWrite}
             <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={toggleArchive}>
               {#if epic.archivedAt}<ArchiveRestoreIcon />{:else}<ArchiveIcon />{/if}
-              {epic.archivedAt ? 'Unarchive' : 'Archive'}
+              {epic.archivedAt ? m.projects_unarchive() : m.projects_archive()}
             </DropdownMenuItem>
           {/if}
         </DropdownMenuContent>
@@ -443,9 +444,9 @@
   {#if epic.archivedAt}
     <div class="mb-3 flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
       <ArchiveIcon class="size-4" />
-      <span>This epic is archived — it’s hidden from pickers and the roadmap.</span>
+      <span>{m.projects_epic_archived_notice()}</span>
       {#if canWrite}
-        <Button size="xs" variant="outline" class="ml-auto" onclick={toggleArchive}>Unarchive</Button>
+        <Button size="xs" variant="outline" class="ml-auto" onclick={toggleArchive}>{m.projects_unarchive()}</Button>
       {/if}
     </div>
   {/if}
@@ -455,15 +456,15 @@
     class="flex min-h-0 flex-1 flex-col"
   >
     <TabsList variant="line" class="mb-3">
-      <TabsTrigger value="overview">Overview</TabsTrigger>
+      <TabsTrigger value="overview">{m.projects_overview()}</TabsTrigger>
       <TabsTrigger value="updates">
-        Updates
+        {m.projects_updates()}
         {#if updates.length > 0}
           <span class="text-xs text-muted-foreground tabular-nums">{updates.length}</span>
         {/if}
       </TabsTrigger>
       <TabsTrigger value="issues">
-        Issues
+        {m.projects_issues()}
         <span class="text-xs text-muted-foreground tabular-nums">{issues.length}</span>
       </TabsTrigger>
     </TabsList>
@@ -479,13 +480,13 @@
           {#if updates[0]}
             <section aria-labelledby="latest-update" class="flex flex-col gap-2">
               <div class="flex items-center gap-2">
-                <h2 id="latest-update" class="text-sm font-medium">Latest update</h2>
+                <h2 id="latest-update" class="text-sm font-medium">{m.projects_latest_update()}</h2>
                 <button
                   type="button"
                   class="ml-auto text-xs text-muted-foreground hover:text-foreground"
                   onclick={() => setTabParam('updates')}
                 >
-                  All updates
+                  {m.projects_all_updates()}
                 </button>
               </div>
               <UpdateCard update={updates[0]} compact />
@@ -536,7 +537,7 @@
               () => foreignProject?.id ?? project.id,
               (value: string) => value && setParam('project', value === project.id ? null : value)
             }
-            aria-label="Issues by project"
+            aria-label={m.projects_issues_by_project()}
             class="mb-3 flex-wrap"
           >
             {#each switcherProjects as p (p.id)}

@@ -1,5 +1,6 @@
 <!-- One milestone row. -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import ArrowDownIcon from '@lucide/svelte/icons/arrow-down';
   import ArrowUpIcon from '@lucide/svelte/icons/arrow-up';
   import CalendarDaysIcon from '@lucide/svelte/icons/calendar-days';
@@ -94,7 +95,7 @@
         {@attach (node: HTMLElement) => node.focus()}
         bind:value={name}
         maxlength={80}
-        aria-label="Milestone name"
+        aria-label={m.projects_milestone_name()}
         class="h-7"
         onblur={commit}
         onkeydown={(e) => {
@@ -135,7 +136,7 @@
           class="w-24 justify-start font-normal text-muted-foreground"
         >
           <CalendarDaysIcon />
-          {milestone.targetDate ? formatDueDate(milestone.targetDate) : 'Target'}
+          {milestone.targetDate ? formatDueDate(milestone.targetDate) : m.projects_milestone_target()}
         </Button>
       {/snippet}
     </DatePicker>
@@ -153,7 +154,7 @@
             {...props}
             variant="ghost"
             size="icon-xs"
-            aria-label={`Actions for ${milestone.name}`}
+            aria-label={m.projects_milestone_actions({ name: milestone.name })}
             class="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 aria-expanded:opacity-100"
           >
             <EllipsisIcon />
@@ -163,18 +164,18 @@
       <DropdownMenuContent align="end" class="w-44">
         <DropdownMenuItem disabled={isFirst} onSelect={() => onMove(-1)}>
           <ArrowUpIcon />
-          Move up
-          <span class="ml-auto text-xs text-muted-foreground">Alt ↑</span>
+          {m.projects_move_up()}
+          <span class="ml-auto text-xs text-muted-foreground">{m.projects_alt_up()}</span>
         </DropdownMenuItem>
         <DropdownMenuItem disabled={isLast} onSelect={() => onMove(1)}>
           <ArrowDownIcon />
-          Move down
-          <span class="ml-auto text-xs text-muted-foreground">Alt ↓</span>
+          {m.projects_move_down()}
+          <span class="ml-auto text-xs text-muted-foreground">{m.projects_alt_down()}</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem variant="destructive" onSelect={onDelete}>
           <Trash2Icon />
-          Delete
+          {m.common_delete()}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

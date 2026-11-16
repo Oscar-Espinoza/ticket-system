@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import XIcon from '@lucide/svelte/icons/x';
 
   import { PickerPopover, keywordFilter, type PickerPopoverProps } from '@/lib/components/issue-pickers';
@@ -29,9 +30,9 @@
       onChange(health);
     }}
     <Command filter={keywordFilter}>
-      <CommandInput placeholder="Set health…" />
+      <CommandInput placeholder={m.projects_set_health()} />
       <CommandList>
-        <CommandEmpty>No match.</CommandEmpty>
+        <CommandEmpty>{m.projects_epic_no_match()}</CommandEmpty>
         {#each HEALTHS as health, index (health)}
           <CommandItem
             value={health}
@@ -47,7 +48,7 @@
         {#if value}
           <CommandItem value="none" keywords={['No health', 'Clear']} onSelect={() => pick(null)}>
             <XIcon class="text-muted-foreground" />
-            Clear health
+            {m.projects_clear_health()}
           </CommandItem>
         {/if}
       </CommandList>

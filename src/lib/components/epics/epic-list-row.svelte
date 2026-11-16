@@ -1,5 +1,6 @@
 <!-- One row of the epics list, with its context menu. -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import ArchiveIcon from '@lucide/svelte/icons/archive';
   import ArchiveRestoreIcon from '@lucide/svelte/icons/archive-restore';
   import Link2Icon from '@lucide/svelte/icons/link-2';
@@ -56,10 +57,10 @@
     const action = archived ? unarchiveEpic : archiveEpic;
     const result = await action({ projectId, id: epic.id });
     if (!result.ok) toast.error(result.error);
-    else toast.success(archived ? 'Epic restored' : 'Epic archived');
+    else toast.success(archived ? m.projects_epic_restored() : m.projects_epic_archived());
   };
 
-  const copyLink = () => copyToClipboard(new URL(href, window.location.origin).toString(), 'epic link');
+  const copyLink = () => copyToClipboard(new URL(href, window.location.origin).toString(), m.projects_epic_link());
 </script>
 
 <ContextMenu>
@@ -79,7 +80,7 @@
           <EpicIcon color={epic.color} />
           <span class="truncate font-medium">{epic.name}</span>
           {#if epic.archivedAt}
-            <span class="shrink-0 text-xs text-muted-foreground">Archived</span>
+            <span class="shrink-0 text-xs text-muted-foreground">{m.projects_archived()}</span>
           {/if}
           <EpicLabelChips
             {labels}
@@ -91,7 +92,7 @@
         <span class="hidden w-24 md:block">
           <HealthChip health={epic.health} />
         </span>
-        <span class="hidden w-6 md:block" title={epic.lead ? `Lead: ${epic.lead.name}` : 'No lead'}>
+        <span class="hidden w-6 md:block" title={epic.lead ? m.projects_epic_lead_title({ name: epic.lead.name }) : m.projects_no_lead()}>
           {#if epic.lead}
             <Avatar name={epic.lead.name} src={epic.lead.image} size={20} />
           {/if}
@@ -106,7 +107,7 @@
         <EpicProgress progress={epic.progress} color={epic.color} class="w-24" />
         <span class="hidden w-16 text-right text-xs text-muted-foreground tabular-nums lg:block">
           {epic.progress.points > 0
-            ? `${epic.progress.completedPoints}/${epic.progress.points} pts`
+            ? m.projects_points_progress({ done: epic.progress.completedPoints, total: epic.progress.points })
             : ''}
         </span>
         <span class="hidden w-12 text-right text-xs text-muted-foreground tabular-nums sm:block">
@@ -118,18 +119,18 @@
   <ContextMenuContent class="w-48">
     <ContextMenuItem>
       {#snippet child({ props })}
-        <a {...props} {href}>Open</a>
+        <a {...props} {href}>{m.projects_open()}</a>
       {/snippet}
     </ContextMenuItem>
     <ContextMenuItem onSelect={copyLink}>
       <Link2Icon />
-      Copy link
+      {m.projects_copy_link()}
     </ContextMenuItem>
     {#if canWrite && labels.length > 0}
       <ContextMenuSub>
         <ContextMenuSubTrigger>
           <TagIcon />
-          Labels
+          {m.common_labels()}
         </ContextMenuSubTrigger>
         <ContextMenuSubContent class="max-h-72 w-48 overflow-y-auto">
           <!-- Keep the menu open to toggle several (in bits-ui, preventDefault in onSelect would also cancel the toggle). -->
@@ -155,7 +156,7 @@
       <ContextMenuSeparator />
       <ContextMenuItem onSelect={toggleArchive}>
         {#if epic.archivedAt}<ArchiveRestoreIcon />{:else}<ArchiveIcon />{/if}
-        {epic.archivedAt ? 'Unarchive' : 'Archive'}
+        {epic.archivedAt ? m.projects_unarchive() : m.projects_archive()}
       </ContextMenuItem>
     {/if}
   </ContextMenuContent>

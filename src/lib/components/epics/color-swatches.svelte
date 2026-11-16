@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import CheckIcon from '@lucide/svelte/icons/check';
 
   import { cn } from '@/lib/utils';
@@ -15,7 +16,7 @@
   } = $props();
 </script>
 
-<div role="radiogroup" aria-label="Color" class={cn('flex flex-wrap gap-1.5', className)}>
+<div role="radiogroup" aria-label={m.projects_color()} class={cn('flex flex-wrap gap-1.5', className)}>
   {#each EPIC_COLORS as color (color)}
     <button
       type="button"

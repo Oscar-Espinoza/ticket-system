@@ -4,6 +4,7 @@
   follows the focused link), a create dialog and the epic-labels dialog.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import BoxesIcon from '@lucide/svelte/icons/boxes';
   import PlusIcon from '@lucide/svelte/icons/plus';
   import SearchXIcon from '@lucide/svelte/icons/search-x';
@@ -25,13 +26,21 @@
   import { Optimistic } from './optimistic.svelte';
 
   const FILTERS = [
-    { id: 'all', label: 'All' },
-    { id: 'active', label: 'Active' },
-    { id: 'planned', label: 'Planned' },
-    { id: 'completed', label: 'Completed' },
-    { id: 'archived', label: 'Archived' },
+    { id: 'all', label: m.projects_filter_all() },
+    { id: 'active', label: m.projects_filter_active() },
+    { id: 'planned', label: m.projects_filter_planned() },
+    { id: 'completed', label: m.projects_filter_completed() },
+    { id: 'archived', label: m.projects_filter_archived() },
   ] as const;
   type FilterId = (typeof FILTERS)[number]['id'];
+  const noEpicsText = (id: FilterId) =>
+    ({
+      all: m.projects_epics_none_all,
+      active: m.projects_epics_none_active,
+      planned: m.projects_epics_none_planned,
+      completed: m.projects_epics_none_completed,
+      archived: m.projects_epics_none_archived,
+    })[id]();
 
   const FILTER_STATUSES: Record<Exclude<FilterId, 'all' | 'archived'>, EpicStatus[]> = {
     active: ['started', 'paused'],
@@ -99,15 +108,15 @@
     return registerPaletteCommands([
       {
         id: 'new-epic',
-        label: 'New epic',
-        section: 'Epics',
+        label: m.projects_epics_new_palette(),
+        section: m.projects_epics_section(),
         keywords: ['create', 'project'],
         run: () => (creating = true),
       },
       {
         id: 'manage-epic-labels',
-        label: 'Manage epic labels',
-        section: 'Epics',
+        label: m.projects_epics_manage_labels_palette(),
+        section: m.projects_epics_section(),
         keywords: ['project labels', 'tags'],
         run: () => (managing = true),
       },
@@ -124,8 +133,8 @@
       rows[Math.max(0, Math.min(rows.length - 1, next))]?.focus();
     };
     return registerHotkeys([
-      { key: 'j', description: 'Next epic', scope: 'Epics', handler: () => move(1) },
-      { key: 'k', description: 'Previous epic', scope: 'Epics', handler: () => move(-1) },
+      { key: 'j', description: m.projects_hotkey_next_epic(), scope: m.projects_epics_section(), handler: () => move(1) },
+      { key: 'k', description: m.projects_hotkey_prev_epic(), scope: m.projects_epics_section(), handler: () => move(-1) },
     ]);
   });
 
@@ -154,7 +163,7 @@
 {#snippet newEpicAction()}
   <Button size="sm" onclick={() => (creating = true)}>
     <PlusIcon />
-    New epic
+    {m.projects_epic_new()}
   </Button>
 {/snippet}
 
@@ -166,7 +175,7 @@
       variant="outline"
       spacing={0}
       bind:value={() => filter, (value: string) => value && setFilter(value)}
-      aria-label="Filter epics by status"
+      aria-label={m.projects_epics_filter_by_status()}
     >
       {#each FILTERS as f (f.id)}
         <ToggleGroupItem value={f.id} class="gap-1.5 px-2.5 text-xs">
@@ -187,25 +196,23 @@
     {#if canWrite}
       <Button size="sm" class="ml-auto" onclick={() => (creating = true)}>
         <PlusIcon />
-        New epic
+        {m.projects_epic_new()}
       </Button>
     {/if}
   </div>
 
   {#if epics.length === 0}
     <EmptyState
-      title="No epics yet"
-      description="Epics group related issues into a larger piece of work with milestones, dates and progress."
+      title={m.projects_epics_empty_title()}
+      description={m.projects_epics_empty_desc()}
       action={canWrite ? newEpicAction : undefined}
     >
       {#snippet icon()}<BoxesIcon />{/snippet}
     </EmptyState>
   {:else if shown.length === 0}
     <EmptyState
-      title="No epics here"
-      description={labelFilter.length
-        ? 'No epics match these filters.'
-        : `No ${FILTERS.find((f) => f.id === filter)?.label.toLowerCase()} epics.`}
+      title={m.projects_epics_here_title()}
+      description={labelFilter.length ? m.projects_epics_none_filters() : noEpicsText(filter)}
     >
       {#snippet icon()}<SearchXIcon />{/snippet}
       {#snippet action()}
@@ -217,24 +224,24 @@
             setLabelFilter([]);
           }}
         >
-          Show all epics
+          {m.projects_show_all_epics()}
         </Button>
       {/snippet}
     </EmptyState>
   {:else}
-    <div role="list" aria-label="Epics" class="flex flex-col border-t border-border">
+    <div role="list" aria-label={m.projects_epics_section()} class="flex flex-col border-t border-border">
       <div
         aria-hidden="true"
         class="hidden items-center gap-3 border-b border-border px-3 py-1.5 text-xs text-muted-foreground md:flex"
       >
-        <span class="flex-1">Name</span>
-        <span class="w-24">Health</span>
-        <span class="w-6">Lead</span>
-        <span class="w-20">Target</span>
-        <span class="w-28">Status</span>
-        <span class="w-24">Progress</span>
-        <span class="hidden w-16 text-right lg:block">Points</span>
-        <span class="w-12 text-right">Issues</span>
+        <span class="flex-1">{m.projects_col_name()}</span>
+        <span class="w-24">{m.projects_col_health()}</span>
+        <span class="w-6">{m.projects_col_lead()}</span>
+        <span class="w-20">{m.projects_col_target()}</span>
+        <span class="w-28">{m.projects_col_status()}</span>
+        <span class="w-24">{m.projects_col_progress()}</span>
+        <span class="hidden w-16 text-right lg:block">{m.projects_col_points()}</span>
+        <span class="w-12 text-right">{m.projects_col_issues()}</span>
       </div>
       {#each shown as epic (epic.id)}
         <EpicListRow

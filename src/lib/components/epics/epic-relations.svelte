@@ -6,6 +6,7 @@
  
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import PlusIcon from '@lucide/svelte/icons/plus';
   import TriangleAlertIcon from '@lucide/svelte/icons/triangle-alert';
   import XIcon from '@lucide/svelte/icons/x';
@@ -70,13 +71,13 @@
 
 <section aria-labelledby="dependencies-heading" class="flex flex-col gap-2">
   <div class="flex items-center gap-2">
-    <h2 id="dependencies-heading" class="text-sm font-medium">Dependencies</h2>
+    <h2 id="dependencies-heading" class="text-sm font-medium">{m.projects_dependencies()}</h2>
     {#if canWrite}
       <AddDependency candidates={available} disabled={optimistic.pending} onAdd={add}>
         {#snippet children({ props })}
           <Button {...props} variant="ghost" size="xs" class="ml-auto text-muted-foreground">
             <PlusIcon />
-            Add dependency
+            {m.projects_add_dependency()}
           </Button>
         {/snippet}
       </AddDependency>
@@ -85,7 +86,7 @@
 
   {#if relations.length === 0}
     <p class="text-sm text-muted-foreground">
-      No dependencies. Mark epics this one is blocked by or blocking to see them on the roadmap.
+      {m.projects_no_dependencies()}
     </p>
   {:else}
     <div class="flex flex-col gap-3">
@@ -111,18 +112,18 @@
                     <EpicIcon color={relation.epic.color} />
                     <span class="truncate">{relation.epic.name}</span>
                     {#if relation.epic.archivedAt}
-                      <span class="shrink-0 text-xs text-muted-foreground">Archived</span>
+                      <span class="shrink-0 text-xs text-muted-foreground">{m.projects_archived()}</span>
                     {/if}
                   </a>
                   {#if conflict}
                     <span
                       class="flex shrink-0 items-center gap-1 text-xs text-destructive"
                       title={kind === 'blocked_by'
-                        ? 'This epic starts before its blocker’s target date.'
-                        : 'The blocked epic starts before this epic’s target date.'}
+                        ? m.projects_dependency_conflict_blocked_by()
+                        : m.projects_dependency_conflict_blocks()}
                     >
                       <TriangleAlertIcon class="size-3.5" />
-                      <span class="hidden sm:inline">Schedule conflict</span>
+                      <span class="hidden sm:inline">{m.projects_schedule_conflict()}</span>
                     </span>
                   {/if}
                   {#if relation.epic.targetDate}
@@ -135,7 +136,7 @@
                     <Button
                       variant="ghost"
                       size="icon-xs"
-                      aria-label={`Remove dependency on ${relation.epic.name}`}
+                      aria-label={m.projects_remove_dependency({ name: relation.epic.name })}
                       class="shrink-0 text-muted-foreground opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
                       onclick={() => remove(relation)}
                     >

@@ -13,6 +13,7 @@
 </script>
 
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import PlusIcon from '@lucide/svelte/icons/plus';
   import { toast } from 'svelte-sonner';
 
@@ -51,7 +52,7 @@
     try {
       const result = await createEpicLabel({ projectId, name, color: randomColor() });
       if (!result.ok || !result.label) {
-        toast.error(result.ok ? 'Could not create the label.' : result.error);
+        toast.error(result.ok ? m.projects_label_create_failed() : result.error);
         return;
       }
       const label = result.label;
@@ -65,9 +66,9 @@
 </script>
 
 <Command filter={keywordFilter}>
-  <CommandInput bind:value={search} placeholder="Add labels…" />
+  <CommandInput bind:value={search} placeholder={m.projects_add_labels_placeholder()} />
   <CommandList>
-    <CommandEmpty>{canCreate ? 'Type a name to create a label.' : 'No labels found.'}</CommandEmpty>
+    <CommandEmpty>{canCreate ? m.projects_label_type_to_create() : m.projects_no_labels_found()}</CommandEmpty>
     <CommandGroup>
       {#each all as label (label.id)}
         <CommandItem
@@ -87,7 +88,7 @@
       {#if canCreate && name && !exact}
         <CommandItem value={CREATE} forceMount disabled={creating} onSelect={create}>
           <PlusIcon />
-          <span class="truncate">Create label “{name.slice(0, EPIC_LABEL_NAME_MAX)}”</span>
+          <span class="truncate">{m.projects_label_create({ name: name.slice(0, EPIC_LABEL_NAME_MAX) })}</span>
         </CommandItem>
       {/if}
     </CommandGroup>

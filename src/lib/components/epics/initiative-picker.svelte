@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import CircleDashedIcon from '@lucide/svelte/icons/circle-dashed';
   import TargetIcon from '@lucide/svelte/icons/target';
 
@@ -31,9 +32,9 @@
       onChange(id);
     }}
     <Command filter={keywordFilter}>
-      <CommandInput placeholder="Set initiative…" />
+      <CommandInput placeholder={m.projects_set_initiative()} />
       <CommandList>
-        <CommandEmpty>No initiative found.</CommandEmpty>
+        <CommandEmpty>{m.projects_initiative_not_found()}</CommandEmpty>
         <CommandItem
           value="__none"
           keywords={['No initiative', 'Remove']}
@@ -41,7 +42,7 @@
           onSelect={() => pick(null)}
         >
           <CircleDashedIcon class="text-muted-foreground" />
-          No initiative
+          {m.projects_no_initiative()}
         </CommandItem>
         {#each initiatives as initiative (initiative.id)}
           <CommandItem
