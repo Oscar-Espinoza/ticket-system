@@ -3,28 +3,13 @@
 
 import { m } from '@/lib/i18n';
 import { lazyLabels } from '@/lib/lazy-labels';
+import type { Priority, StateType } from '@/lib/issue-enums';
 
 // ---------------------------------------------------------------------------
 // Workflow states
 // ---------------------------------------------------------------------------
 
-/** Linear's workflow state categories — mirrors the workflow_state_type DB enum. */
-export type StateType =
-  | 'triage'
-  | 'backlog'
-  | 'unstarted'
-  | 'started'
-  | 'completed'
-  | 'canceled';
-
-export const STATE_TYPE_ORDER: StateType[] = [
-  'triage',
-  'backlog',
-  'unstarted',
-  'started',
-  'completed',
-  'canceled',
-];
+export { STATE_TYPE_ORDER, type StateType } from '@/lib/issue-enums';
 
 export const STATE_TYPE_LABEL: Record<StateType, string> = lazyLabels({
   triage: m.common_state_type_triage,
@@ -54,11 +39,7 @@ export interface WorkflowState {
 // Priority
 // ---------------------------------------------------------------------------
 
-/** Mirrors the issue_priority DB enum. */
-export type Priority = 'none' | 'urgent' | 'high' | 'medium' | 'low';
-
-/** Display / sort order: most urgent first, "No priority" last. */
-export const PRIORITY_ORDER: Priority[] = ['urgent', 'high', 'medium', 'low', 'none'];
+export { PRIORITY_ORDER, type Priority } from '@/lib/issue-enums';
 
 export const PRIORITY_LABEL: Record<Priority, string> = lazyLabels({
   none: m.common_priority_none,
