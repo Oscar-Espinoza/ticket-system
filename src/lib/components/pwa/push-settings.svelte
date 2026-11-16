@@ -7,6 +7,8 @@
 <script module lang="ts">
   import { dev } from '$app/env';
 
+  import { m } from '@/lib/i18n';
+
   export interface PushDevice {
     id: string;
     endpoint: string;
@@ -76,7 +78,7 @@
             ? 'Chrome'
             : /Safari\//.test(ua)
               ? 'Safari'
-              : 'Browser';
+              : m.auth_push_browser();
     const os = /iPhone|iPad|iPod/.test(ua)
       ? 'iOS'
       : /Android/.test(ua)
@@ -90,12 +92,12 @@
               : /Linux/.test(ua)
                 ? 'Linux'
                 : null;
-    return { name: os ? `${browser} on ${os}` : browser, mobile: /iPhone|iPod|Android.*Mobile/.test(ua) };
+    return { name: os ? m.auth_push_browser_on_os({ browser, os }) : browser, mobile: /iPhone|iPod|Android.*Mobile/.test(ua) };
   }
 </script>
 
 <script lang="ts">
-  import { pluralize } from '@/lib/format';
+  import { m } from '@/lib/i18n';
   import BellOffIcon from '@lucide/svelte/icons/bell-off';
   import BellRingIcon from '@lucide/svelte/icons/bell-ring';
   import LaptopIcon from '@lucide/svelte/icons/laptop';
@@ -147,7 +149,7 @@
       .then((result) => {
         if (result?.ok) return;
         enabled = !on;
-        toast.error(result?.error ?? 'Could not save your settings');
+        toast.error(result?.error ?? m.auth_push_save_failed());
       });
   }
 
@@ -167,7 +169,7 @@
         const permission = await Notification.requestPermission();
         if (permission !== 'granted') {
           device = permission === 'denied' ? { status: 'denied' } : { status: 'ready', endpoint: null };
-          if (permission === 'denied') toast.error('Notifications are blocked for this site');
+          if (permission === 'denied') toast.error(m.auth_push_blocked_toast());
           return;
         }
         const registration = await ensureRegistration();
@@ -179,11 +181,11 @@
         });
         if (!response.ok) throw new Error(`save failed (${response.status})`);
         device = { status: 'ready', endpoint: subscription.endpoint };
-        toast.success('Desktop notifications enabled on this device');
+        toast.success(m.auth_push_enabled_toast());
         await refreshAfterWrite();
       } catch (err) {
         console.error('[push] enable failed', err);
-        toast.error('Could not enable notifications on this device');
+        toast.error(m.auth_push_enable_failed());
       }
     });
 
@@ -205,7 +207,7 @@
         await refreshAfterWrite();
       } catch (err) {
         console.error('[push] remove failed', err);
-        toast.error('Could not remove the device');
+        toast.error(m.auth_push_remove_failed());
       }
     });
 
@@ -213,11 +215,11 @@
     testing = true;
     try {
       const result = await sendTestPush().catch(() => null);
-      if (!result?.ok) toast.error(result?.error ?? 'Could not send a test notification');
-      else if (result.sent === 0) toast.error('No device accepted the notification. Try enabling it again.');
+      if (!result?.ok) toast.error(result?.error ?? m.auth_push_test_failed());
+      else if (result.sent === 0) toast.error(m.auth_push_test_none());
       else
         toast.success(
-          `Test notification sent to ${result.sent} of ${pluralize(result.devices, 'device')}`,
+          m.auth_push_test_sent({ sent: result.sent, devices: m.auth_push_devices({ count: result.devices }) }),
         );
     } finally {
       testing = false;
@@ -230,14 +232,14 @@
 
 {#if !configured || !publicKey}
   <div class="rounded-lg border border-dashed border-border p-4 text-sm">
-    <p class="font-medium">Push notifications aren’t configured on this server</p>
+    <p class="font-medium">{m.auth_push_not_configured()}</p>
     <p class="mt-1 text-muted-foreground">
-      Generate a key pair with
+      {m.auth_push_cfg_generate()}
       <code class="rounded bg-muted px-1 py-0.5 font-mono text-xs">npx web-push generate-vapid-keys</code>
-      and set <code class="font-mono text-xs">PUBLIC_VAPID_PUBLIC_KEY</code>,
-      <code class="font-mono text-xs">VAPID_PRIVATE_KEY</code> and
-      <code class="font-mono text-xs">VAPID_SUBJECT</code> (e.g.
-      <code class="font-mono text-xs">mailto:you@example.com</code>), then redeploy.
+      {m.auth_push_cfg_set()} <code class="font-mono text-xs">PUBLIC_VAPID_PUBLIC_KEY</code>,
+      <code class="font-mono text-xs">VAPID_PRIVATE_KEY</code> {m.auth_push_cfg_and()}
+      <code class="font-mono text-xs">VAPID_SUBJECT</code> {m.auth_push_cfg_eg()}
+      <code class="font-mono text-xs">mailto:you@example.com</code>{m.auth_push_cfg_redeploy()}
     </p>
   </div>
 {:else}
@@ -245,8 +247,8 @@
   <div class="flex flex-col gap-4">
     <SwitchRow
       id="notify-push"
-      label="Push notifications"
-      description="Show a system notification on your subscribed devices for everything that reaches your inbox."
+      label={m.auth_push_title()}
+      description={m.auth_push_description()}
       checked={enabled}
       onChange={togglePush}
     />
@@ -256,33 +258,33 @@
         <!-- nothing until the browser state is known -->
       {:else if device.status === 'unsupported'}
         <p class="text-muted-foreground">
-          This browser doesn’t support push notifications.{#if device.ios}{' On iPhone and iPad, add this app to your Home Screen first, then open it from there.'}{/if}
+          {m.auth_push_unsupported()}{#if device.ios}{m.auth_push_ios_hint()}{/if}
         </p>
       {:else if device.status === 'denied'}
         <p class="text-muted-foreground">
-          Notifications are blocked for this site. Allow them in your browser’s site settings, then reload.
+          {m.auth_push_denied()}
         </p>
       {:else if localSaved && localEndpoint}
         {@const endpoint = localEndpoint}
         <span class="flex items-center gap-1.5 text-muted-foreground">
           <BellRingIcon class="size-4" />
-          This device receives notifications.
+          {m.auth_push_device_receives()}
         </span>
         <Button variant="ghost" size="sm" disabled={busy} onclick={() => remove({ endpoint })}>
           <BellOffIcon />
-          Disable on this device
+          {m.auth_push_disable()}
         </Button>
       {:else}
         <Button variant="outline" size="sm" onclick={() => enable(key)} disabled={busy}>
           <BellRingIcon />
-          {busy ? 'Enabling…' : 'Enable desktop notifications'}
+          {busy ? m.auth_push_enabling() : m.auth_push_enable()}
         </Button>
       {/if}
     </div>
 
     {#if devices.length > 0}
       <div class="flex flex-col gap-2">
-        <ul class="flex flex-col divide-y divide-border rounded-lg border border-border" aria-label="Devices">
+        <ul class="flex flex-col divide-y divide-border rounded-lg border border-border" aria-label={m.auth_push_devices_label()}>
           {#each devices as d (d.id)}
             {@const label = deviceLabel(d.userAgent)}
             {@const Icon = label.mobile ? SmartphoneIcon : LaptopIcon}
@@ -291,18 +293,18 @@
               <span class="min-w-0 flex-1 truncate">
                 {label.name}
                 {#if d.endpoint === localEndpoint}
-                  <span class="ml-2 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">This device</span>
+                  <span class="ml-2 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">{m.auth_push_this_device()}</span>
                 {/if}
               </span>
               <!-- Hydration keeps the server text. -->
               <span class="shrink-0 text-xs text-muted-foreground">
-                Added {relativeTime(new Date(d.createdAt))}
+                {m.auth_push_added({ when: relativeTime(new Date(d.createdAt)) })}
               </span>
               <Button
                 variant="ghost"
                 size="icon-sm"
-                aria-label={`Remove ${label.name}`}
-                title="Remove device"
+                aria-label={m.auth_push_remove_aria({ name: label.name })}
+                title={m.auth_push_remove_title()}
                 disabled={busy}
                 onclick={() => remove({ id: d.id, endpoint: d.endpoint })}
               >
@@ -314,7 +316,7 @@
         <div>
           <Button variant="outline" size="sm" onclick={test} disabled={testing}>
             <SendIcon />
-            {testing ? 'Sending…' : 'Send test notification'}
+            {testing ? m.auth_push_sending() : m.auth_push_send_test()}
           </Button>
         </div>
       </div>

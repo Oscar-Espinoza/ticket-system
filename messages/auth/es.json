@@ -420,5 +420,184 @@
   "auth_docs_new_from_template": "Nuevo doc desde una plantilla",
   "auth_docs_new_document": "Nuevo documento",
   "auth_docs_new_from_template_palette": "Nuevo documento desde plantilla…",
-  "auth_docs_palette_section": "Documentos"
+  "auth_docs_palette_section": "Documentos",
+  "auth_import_token_label": "Token de acceso personal de {provider}",
+  "auth_import_token_note": "El token solo se usa para esta importación y no se guarda.",
+  "auth_import_asana_help": "Créalo en Asana, en",
+  "auth_import_asana_help_link": "Mi configuración → Apps → Aplicaciones para desarrolladores",
+  "auth_import_shortcut_help": "Crea un token de API en Shortcut, en",
+  "auth_import_shortcut_help_link": "Configuración → Tu cuenta → Tokens de API",
+  "auth_import_workspace": "Espacio de trabajo",
+  "auth_import_pick_workspace": "Elige un espacio de trabajo",
+  "auth_import_pick_workspace_first": "Elige primero un espacio de trabajo",
+  "auth_import_pick_project": "Elige un proyecto",
+  "auth_import_no_projects": "No hay proyectos",
+  "auth_import_this_project": "Este proyecto",
+  "auth_import_this_source": "Este origen",
+  "auth_import_fetch_tasks": "Obtener tareas",
+  "auth_import_import_from": "Importar desde",
+  "auth_import_pick_source": "Elige un flujo de trabajo o un proyecto",
+  "auth_import_workflows": "Flujos de trabajo",
+  "auth_import_projects": "Proyectos",
+  "auth_import_fetch_stories": "Obtener historias",
+  "auth_import_include_completed": "Incluir completados",
+  "auth_import_empty_tasks_title": "No hay tareas para importar",
+  "auth_import_empty_stories_title": "No hay historias para importar",
+  "auth_import_empty_open_tasks": "{source} no tiene tareas abiertas.",
+  "auth_import_empty_tasks": "{source} no tiene tareas.",
+  "auth_import_empty_open_stories": "{source} no tiene historias abiertas.",
+  "auth_import_empty_stories": "{source} no tiene historias.",
+  "auth_import_preview": "Vista previa",
+  "auth_import_stat_open": "{count} abiertos",
+  "auth_import_stat_completed": "{count} completados",
+  "auth_import_stat_closed": "{count} cerrados",
+  "auth_import_stat_children": "{count} como subtickets",
+  "auth_import_stat_capped": "limitado a los primeros {count}",
+  "auth_import_preview_note": "Los elementos completados pasan al primer estado completado; los demás, al estado con el mismo nombre si existe, o al predeterminado. Los responsables se emparejan con los miembros por correo, las etiquetas de origen se convierten en etiquetas, y cada ticket enlaza a su origen; los elementos ya importados se omiten.",
+  "auth_import_button": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Importar {count} ticket",
+        "countPlural=other": "Importar {count} tickets"
+      }
+    }
+  ],
+  "auth_import_progress": "Importando {done} de {total}…",
+  "auth_import_progress_label": "Progreso de la importación",
+  "auth_import_result_summary": "{created} de {total} importados",
+  "auth_import_result_skipped": "{count} omitidos: ya estaban importados en este proyecto.",
+  "auth_import_result_failed": "{count} fallaron:",
+  "auth_import_result_row": "Fila {row}",
+  "auth_import_view_issues": "Ver tickets",
+  "auth_import_more": "Importar más",
+  "auth_import_connect_title": "Conecta GitHub para importar tickets",
+  "auth_import_connect_description": "Las importaciones usan tu propia cuenta de GitHub. Inicia sesión con GitHub o vincula tu cuenta de GitHub en Configuración → GitHub y vuelve aquí.",
+  "auth_import_open_github_settings": "Abrir la configuración de GitHub",
+  "auth_import_repository": "Repositorio",
+  "auth_import_repo_placeholder": "propietario/nombre",
+  "auth_import_include_closed": "Incluir tickets cerrados",
+  "auth_import_fetch_issues": "Obtener tickets",
+  "auth_import_empty_issues_title": "No hay tickets para importar",
+  "auth_import_empty_open_issues": "{repo} no tiene tickets abiertos (se omiten las solicitudes de cambios).",
+  "auth_import_empty_all_issues": "{repo} no tiene tickets (se omiten las solicitudes de cambios).",
+  "auth_import_github_note": "Los tickets abiertos pasan al estado predeterminado y los cerrados, al primer estado completado. Las etiquetas se crean con sus colores de GitHub; cada ticket enlaza a GitHub y los ya importados se omiten.",
+  "auth_import_csv_too_big": "Ese archivo pesa más de 10 MB: divídelo en archivos más pequeños.",
+  "auth_import_csv_no_rows": "No se encontraron filas. La primera línea debe ser la fila de encabezados.",
+  "auth_import_csv_max_rows": "Máximo {max} filas por importación: divide el archivo.",
+  "auth_import_drop_jira": "Suelta tu exportación CSV de Jira o haz clic para elegirla",
+  "auth_import_drop_csv": "Suelta un archivo CSV o haz clic para elegirlo",
+  "auth_import_hint_jira": "En Jira: Filtros → tus tickets → Exportar → Exportar CSV (todos los campos).",
+  "auth_import_hint_csv": "La primera fila es el encabezado. El título es obligatorio; todo lo demás es opcional.",
+  "auth_import_rows_columns": "{rows} · {columns} columnas",
+  "auth_import_rows": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} fila",
+        "countPlural=other": "{count} filas"
+      }
+    }
+  ],
+  "auth_import_choose_another": "Elegir otro archivo",
+  "auth_import_map_columns": "Asignar columnas",
+  "auth_import_column_n": "Columna {n}",
+  "auth_import_column_empty": "vacía",
+  "auth_import_field_for": "Campo para {column}",
+  "auth_import_column_lower_n": "columna {n}",
+  "auth_import_csv_note": "Los estados se emparejan con tu flujo de trabajo por nombre (los desconocidos usan el estado predeterminado). Los responsables se emparejan con los miembros del proyecto por correo. Las etiquetas que falten se crean. Las filas con un ID de origen ya importado se omiten.",
+  "auth_import_untitled_skipped": "Se omitirán {count} filas sin título",
+  "auth_import_issue_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} ticket",
+        "countPlural=other": "{count} tickets"
+      }
+    }
+  ],
+  "auth_import_map_title": "Asigna una columna a Título para continuar.",
+  "auth_import_export": "Exportar",
+  "auth_import_export_description": "Todos los tickets de este proyecto, incluidos los archivados (sin los de la papelera), con todas sus propiedades.",
+  "auth_import_download_csv": "Descargar CSV",
+  "auth_import_download_json": "Descargar JSON",
+  "auth_import_import": "Importar",
+  "auth_import_import_description": "Trae tickets desde una hoja de cálculo, Jira, GitHub, Asana o Shortcut. Los tickets importados se crean a tu nombre y aparecen en la actividad como cualquier otro.",
+  "auth_import_tab_github": "GitHub Issues",
+  "auth_import_guests": "Los invitados pueden exportar, pero no importar. Pide ayuda a un administrador o miembro del proyecto.",
+  "auth_import_rec_title": "Título",
+  "auth_import_rec_due": "Vence",
+  "auth_import_rec_closed": "Cerrado → primer estado completado",
+  "auth_import_rec_default": "Predeterminado",
+  "auth_import_rec_more": "…y {count} más",
+  "auth_people_local_time": "Hora local: {time}",
+  "auth_people_same_time": "la misma hora que tú",
+  "auth_people_ahead": "{hours} por delante",
+  "auth_people_behind": "{hours} por detrás",
+  "auth_offline_banner": "Sin conexión: los cambios se guardan en este dispositivo y se sincronizan cuando vuelvas a conectarte.",
+  "auth_push_save_failed": "No se pudieron guardar tus ajustes",
+  "auth_push_blocked_toast": "Las notificaciones están bloqueadas para este sitio",
+  "auth_push_enabled_toast": "Notificaciones de escritorio activadas en este dispositivo",
+  "auth_push_enable_failed": "No se pudieron activar las notificaciones en este dispositivo",
+  "auth_push_remove_failed": "No se pudo quitar el dispositivo",
+  "auth_push_test_failed": "No se pudo enviar una notificación de prueba",
+  "auth_push_test_none": "Ningún dispositivo aceptó la notificación. Intenta activarla de nuevo.",
+  "auth_push_test_sent": "Notificación de prueba enviada a {sent} de {devices}",
+  "auth_push_devices": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} dispositivo",
+        "countPlural=other": "{count} dispositivos"
+      }
+    }
+  ],
+  "auth_push_not_configured": "Las notificaciones push no están configuradas en este servidor",
+  "auth_push_cfg_generate": "Genera un par de claves con",
+  "auth_push_cfg_set": "y define",
+  "auth_push_cfg_and": "y",
+  "auth_push_cfg_eg": "(p. ej.",
+  "auth_push_cfg_redeploy": "), y vuelve a desplegar.",
+  "auth_push_title": "Notificaciones push",
+  "auth_push_description": "Muestra una notificación del sistema en tus dispositivos suscritos por todo lo que llegue a tu bandeja de entrada.",
+  "auth_push_unsupported": "Este navegador no admite notificaciones push.",
+  "auth_push_ios_hint": " En iPhone y iPad, primero añade esta app a tu pantalla de inicio y ábrela desde ahí.",
+  "auth_push_denied": "Las notificaciones están bloqueadas para este sitio. Permítelas en los ajustes de sitios de tu navegador y recarga la página.",
+  "auth_push_device_receives": "Este dispositivo recibe notificaciones.",
+  "auth_push_disable": "Desactivar en este dispositivo",
+  "auth_push_enabling": "Activando…",
+  "auth_push_enable": "Activar notificaciones de escritorio",
+  "auth_push_devices_label": "Dispositivos",
+  "auth_push_this_device": "Este dispositivo",
+  "auth_push_added": "Añadido {when}",
+  "auth_push_remove_aria": "Quitar {name}",
+  "auth_push_remove_title": "Quitar dispositivo",
+  "auth_push_sending": "Enviando…",
+  "auth_push_send_test": "Enviar notificación de prueba",
+  "auth_push_browser": "Navegador",
+  "auth_push_browser_on_os": "{browser} en {os}"
 }

@@ -3,6 +3,7 @@
   component state only — it's sent with each server call and never stored.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import type { Snippet } from 'svelte';
   import KeyRoundIcon from '@lucide/svelte/icons/key-round';
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
@@ -36,15 +37,15 @@
 >
   <div class="flex flex-wrap items-end gap-3">
     <div class="flex min-w-64 flex-1 flex-col gap-1.5">
-      <Label for={id}>{provider} personal access token</Label>
+      <Label for={id}>{m.auth_import_token_label({ provider })}</Label>
       <Input {id} type="password" autocomplete="off" bind:value={token} disabled={pending} />
     </div>
     <Button type="submit" variant="outline" disabled={pending || !token.trim()}>
       {#if pending}<Loader2Icon class="animate-spin" />{:else}<KeyRoundIcon />{/if}
-      Continue
+      {m.common_continue()}
     </Button>
   </div>
   <p class="text-xs text-muted-foreground">
-    {@render help()} The token is only used for this import and isn&apos;t saved.
+    {@render help()} {m.auth_import_token_note()}
   </p>
 </form>

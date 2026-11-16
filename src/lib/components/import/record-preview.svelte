@@ -1,5 +1,6 @@
 <!-- First rows as they'll be created (state/assignee resolve on the server). -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { LabelChip, PriorityIcon } from '@/lib/components/ui-icons';
   import {
     Table,
@@ -21,13 +22,13 @@
   <Table>
     <TableHeader>
       <TableRow>
-        <TableHead>Title</TableHead>
-        <TableHead>Status</TableHead>
-        <TableHead>Priority</TableHead>
-        <TableHead>Assignee</TableHead>
-        <TableHead>Labels</TableHead>
-        <TableHead>Estimate</TableHead>
-        <TableHead>Due</TableHead>
+        <TableHead>{m.auth_import_rec_title()}</TableHead>
+        <TableHead>{m.common_status()}</TableHead>
+        <TableHead>{m.common_priority()}</TableHead>
+        <TableHead>{m.common_assignee()}</TableHead>
+        <TableHead>{m.common_labels()}</TableHead>
+        <TableHead>{m.auth_import_field_estimate()}</TableHead>
+        <TableHead>{m.auth_import_rec_due()}</TableHead>
       </TableRow>
     </TableHeader>
     <TableBody>
@@ -35,7 +36,7 @@
         <TableRow>
           <TableCell class="max-w-64 truncate font-medium">{r.title}</TableCell>
           <TableCell class="text-muted-foreground">
-            {r.state ?? (r.closed ? 'Closed → first done state' : 'Default')}
+            {r.state ?? (r.closed ? m.auth_import_rec_closed() : m.auth_import_rec_default())}
           </TableCell>
           <TableCell>
             {#if r.priority}
@@ -68,7 +69,7 @@
   </Table>
   {#if records.length > rows.length}
     <p class="border-t border-border px-3 py-2 text-xs text-muted-foreground">
-      …and {records.length - rows.length} more
+      {m.auth_import_rec_more({ count: records.length - rows.length })}
     </p>
   {/if}
 </div>

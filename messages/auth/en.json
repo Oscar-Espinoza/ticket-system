@@ -420,5 +420,184 @@
   "auth_docs_new_from_template": "New doc from a template",
   "auth_docs_new_document": "New document",
   "auth_docs_new_from_template_palette": "New document from template…",
-  "auth_docs_palette_section": "Docs"
+  "auth_docs_palette_section": "Docs",
+  "auth_import_token_label": "{provider} personal access token",
+  "auth_import_token_note": "The token is only used for this import and isn't saved.",
+  "auth_import_asana_help": "Create one in Asana under",
+  "auth_import_asana_help_link": "My settings → Apps → Developer apps",
+  "auth_import_shortcut_help": "Create an API token in Shortcut under",
+  "auth_import_shortcut_help_link": "Settings → Your account → API tokens",
+  "auth_import_workspace": "Workspace",
+  "auth_import_pick_workspace": "Pick a workspace",
+  "auth_import_pick_workspace_first": "Pick a workspace first",
+  "auth_import_pick_project": "Pick a project",
+  "auth_import_no_projects": "No projects",
+  "auth_import_this_project": "This project",
+  "auth_import_this_source": "This source",
+  "auth_import_fetch_tasks": "Fetch tasks",
+  "auth_import_import_from": "Import from",
+  "auth_import_pick_source": "Pick a workflow or project",
+  "auth_import_workflows": "Workflows",
+  "auth_import_projects": "Projects",
+  "auth_import_fetch_stories": "Fetch stories",
+  "auth_import_include_completed": "Include completed",
+  "auth_import_empty_tasks_title": "No tasks to import",
+  "auth_import_empty_stories_title": "No stories to import",
+  "auth_import_empty_open_tasks": "{source} has no open tasks.",
+  "auth_import_empty_tasks": "{source} has no tasks.",
+  "auth_import_empty_open_stories": "{source} has no open stories.",
+  "auth_import_empty_stories": "{source} has no stories.",
+  "auth_import_preview": "Preview",
+  "auth_import_stat_open": "{count} open",
+  "auth_import_stat_completed": "{count} completed",
+  "auth_import_stat_closed": "{count} closed",
+  "auth_import_stat_children": "{count} as sub-issues",
+  "auth_import_stat_capped": "capped at the first {count}",
+  "auth_import_preview_note": "Completed items land in the first completed state; others in the state with the same name when there is one, else the default. Assignees match members by email, tags become labels, and each issue links back to its source — items imported before are skipped.",
+  "auth_import_button": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Import {count} issue",
+        "countPlural=other": "Import {count} issues"
+      }
+    }
+  ],
+  "auth_import_progress": "Importing {done} of {total}…",
+  "auth_import_progress_label": "Import progress",
+  "auth_import_result_summary": "{created} of {total} imported",
+  "auth_import_result_skipped": "{count} skipped — already imported into this project.",
+  "auth_import_result_failed": "{count} failed:",
+  "auth_import_result_row": "Row {row}",
+  "auth_import_view_issues": "View issues",
+  "auth_import_more": "Import more",
+  "auth_import_connect_title": "Connect GitHub to import issues",
+  "auth_import_connect_description": "Imports use your own GitHub account. Sign in with GitHub, or link your GitHub account in Settings → GitHub, then come back here.",
+  "auth_import_open_github_settings": "Open GitHub settings",
+  "auth_import_repository": "Repository",
+  "auth_import_repo_placeholder": "owner/name",
+  "auth_import_include_closed": "Include closed issues",
+  "auth_import_fetch_issues": "Fetch issues",
+  "auth_import_empty_issues_title": "No issues to import",
+  "auth_import_empty_open_issues": "{repo} has no open issues (pull requests are skipped).",
+  "auth_import_empty_all_issues": "{repo} has no issues (pull requests are skipped).",
+  "auth_import_github_note": "Open issues land in the default state, closed ones in the first completed state. Labels are created with their GitHub colours; each issue links back to GitHub, and issues imported before are skipped.",
+  "auth_import_csv_too_big": "That file is over 10 MB — split it into smaller files.",
+  "auth_import_csv_no_rows": "No rows found. The first line should be a header row.",
+  "auth_import_csv_max_rows": "At most {max} rows per import — split the file.",
+  "auth_import_drop_jira": "Drop your Jira CSV export or click to choose",
+  "auth_import_drop_csv": "Drop a CSV file or click to choose",
+  "auth_import_hint_jira": "In Jira: Filters → your issues → Export → Export CSV (all fields).",
+  "auth_import_hint_csv": "First row is the header. Title is required; everything else is optional.",
+  "auth_import_rows_columns": "{rows} · {columns} columns",
+  "auth_import_rows": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} row",
+        "countPlural=other": "{count} rows"
+      }
+    }
+  ],
+  "auth_import_choose_another": "Choose another file",
+  "auth_import_map_columns": "Map columns",
+  "auth_import_column_n": "Column {n}",
+  "auth_import_column_empty": "empty",
+  "auth_import_field_for": "Field for {column}",
+  "auth_import_column_lower_n": "column {n}",
+  "auth_import_csv_note": "Statuses match your workflow by name (unknown ones use the default state). Assignees match project members by email. Missing labels are created. Rows with a source ID that were imported before are skipped.",
+  "auth_import_untitled_skipped": "{count} rows without a title will be skipped",
+  "auth_import_issue_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} issue",
+        "countPlural=other": "{count} issues"
+      }
+    }
+  ],
+  "auth_import_map_title": "Map a column to Title to continue.",
+  "auth_import_export": "Export",
+  "auth_import_export_description": "Every issue in this project, archived ones included (trash excluded), with all properties.",
+  "auth_import_download_csv": "Download CSV",
+  "auth_import_download_json": "Download JSON",
+  "auth_import_import": "Import",
+  "auth_import_import_description": "Bring issues in from a spreadsheet, Jira, GitHub, Asana or Shortcut. Imported issues are created by you and show up in activity like any other.",
+  "auth_import_tab_github": "GitHub Issues",
+  "auth_import_guests": "Guests can export but not import. Ask a project admin or member.",
+  "auth_import_rec_title": "Title",
+  "auth_import_rec_due": "Due",
+  "auth_import_rec_closed": "Closed → first done state",
+  "auth_import_rec_default": "Default",
+  "auth_import_rec_more": "…and {count} more",
+  "auth_people_local_time": "{time} local time",
+  "auth_people_same_time": "same time as you",
+  "auth_people_ahead": "{hours} ahead",
+  "auth_people_behind": "{hours} behind",
+  "auth_offline_banner": "You're offline — changes are saved on this device and sync when you reconnect.",
+  "auth_push_save_failed": "Could not save your settings",
+  "auth_push_blocked_toast": "Notifications are blocked for this site",
+  "auth_push_enabled_toast": "Desktop notifications enabled on this device",
+  "auth_push_enable_failed": "Could not enable notifications on this device",
+  "auth_push_remove_failed": "Could not remove the device",
+  "auth_push_test_failed": "Could not send a test notification",
+  "auth_push_test_none": "No device accepted the notification. Try enabling it again.",
+  "auth_push_test_sent": "Test notification sent to {sent} of {devices}",
+  "auth_push_devices": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} device",
+        "countPlural=other": "{count} devices"
+      }
+    }
+  ],
+  "auth_push_not_configured": "Push notifications aren’t configured on this server",
+  "auth_push_cfg_generate": "Generate a key pair with",
+  "auth_push_cfg_set": "and set",
+  "auth_push_cfg_and": "and",
+  "auth_push_cfg_eg": "(e.g.",
+  "auth_push_cfg_redeploy": "), then redeploy.",
+  "auth_push_title": "Push notifications",
+  "auth_push_description": "Show a system notification on your subscribed devices for everything that reaches your inbox.",
+  "auth_push_unsupported": "This browser doesn’t support push notifications.",
+  "auth_push_ios_hint": " On iPhone and iPad, add this app to your Home Screen first, then open it from there.",
+  "auth_push_denied": "Notifications are blocked for this site. Allow them in your browser’s site settings, then reload.",
+  "auth_push_device_receives": "This device receives notifications.",
+  "auth_push_disable": "Disable on this device",
+  "auth_push_enabling": "Enabling…",
+  "auth_push_enable": "Enable desktop notifications",
+  "auth_push_devices_label": "Devices",
+  "auth_push_this_device": "This device",
+  "auth_push_added": "Added {when}",
+  "auth_push_remove_aria": "Remove {name}",
+  "auth_push_remove_title": "Remove device",
+  "auth_push_sending": "Sending…",
+  "auth_push_send_test": "Send test notification",
+  "auth_push_browser": "Browser",
+  "auth_push_browser_on_os": "{browser} on {os}"
 }
