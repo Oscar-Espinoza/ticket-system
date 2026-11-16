@@ -40,6 +40,8 @@ export const users = pgTable('user', {
   image: text('image'),
   /** Better Auth twoFactor plugin. */
   twoFactorEnabled: boolean('two_factor_enabled').default(false),
+  /** Interface language ('en' | 'es', src/lib/i18n.ts); null = follow the browser. */
+  locale: text('locale'),
   createdAt: timestamp('created_at').notNull(),
   updatedAt: timestamp('updated_at').notNull(),
 });

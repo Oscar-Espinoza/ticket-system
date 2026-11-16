@@ -10,6 +10,7 @@ import { userProfiles } from '@/db/schema';
 import { formField as field, refreshesData } from '@/lib/server/action-kit';
 import { getSession } from '@/lib/session';
 import { NAME_RULE_MESSAGE, validUserName } from '@/lib/auth-rules';
+import { m, toAppLocale } from '@/lib/i18n';
 
 export type ProfileState = {
   errors?: {
@@ -93,4 +94,23 @@ export async function updateProfile(
 
   refreshesData();
   return { success: true };
+}
+
+/**
+ * Interface language: 'en' | 'es', or null to follow the browser
+ * (Accept-Language). Through Better Auth's updateUser so the session cookie
+ * cache — which the language hook reads (src/lib/server/i18n.ts) — follows at
+ * once. The browser reloads after this (language-form.svelte).
+ */
+export async function updateLanguage(locale: string | null): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session?.user) return { ok: false, error: m.error_not_authenticated() };
+  const value = locale === null ? null : toAppLocale(locale);
+  if (locale !== null && !value) return { ok: false, error: m.settings_language_unknown() };
+  try {
+    await auth.api.updateUser({ body: { locale: value }, headers: await headers() });
+  } catch {
+    return { ok: false, error: m.settings_language_save_failed() };
+  }
+  return { ok: true };
 }

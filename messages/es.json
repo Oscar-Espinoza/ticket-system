@@ -1,0 +1,70 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "common_add": "Añadir",
+  "common_assignee": "Responsable",
+  "common_back": "Volver",
+  "common_backlog": "Pendientes",
+  "common_cancel": "Cancelar",
+  "common_close": "Cerrar",
+  "common_confirm": "Confirmar",
+  "common_continue": "Continuar",
+  "common_copied": "Copiado",
+  "common_copy": "Copiar",
+  "common_create": "Crear",
+  "common_cycle": "Ciclo",
+  "common_delete": "Eliminar",
+  "common_description": "Descripción",
+  "common_done": "Listo",
+  "common_due_date": "Fecha de vencimiento",
+  "common_edit": "Editar",
+  "common_error_generic": "Algo salió mal. Inténtalo de nuevo.",
+  "common_inbox": "Bandeja de entrada",
+  "common_issue": "Ticket",
+  "common_issue_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} ticket",
+        "countPlural=other": "{count} tickets"
+      }
+    }
+  ],
+  "common_labels": "Etiquetas",
+  "common_loading": "Cargando…",
+  "common_members": "Miembros",
+  "common_more_actions": "Más acciones",
+  "common_name": "Nombre",
+  "common_no_results": "Sin resultados",
+  "common_none": "Ninguno",
+  "common_open": "Abrir",
+  "common_optional": "Opcional",
+  "common_priority": "Prioridad",
+  "common_project": "Proyecto",
+  "common_remove": "Quitar",
+  "common_retry": "Reintentar",
+  "common_save": "Guardar",
+  "common_save_changes": "Guardar cambios",
+  "common_saved": "Guardado",
+  "common_saving": "Guardando…",
+  "common_search": "Buscar",
+  "common_search_placeholder": "Buscar…",
+  "common_settings": "Configuración",
+  "common_status": "Estado",
+  "common_today": "Hoy",
+  "common_tomorrow": "Mañana",
+  "common_yesterday": "Ayer",
+  "error_not_authenticated": "No has iniciado sesión",
+  "settings_language_auto": "Automático",
+  "settings_language_auto_hint": "Usa el idioma de tu navegador",
+  "settings_language_description": "El idioma de la interfaz y de los correos que recibes. Lo que escribe tu equipo no se traduce.",
+  "settings_language_save_failed": "No se pudo guardar tu idioma. Inténtalo de nuevo.",
+  "settings_language_title": "Idioma",
+  "settings_language_unknown": "Idioma desconocido.",
+  "time_just_now": "justo ahora"
+}

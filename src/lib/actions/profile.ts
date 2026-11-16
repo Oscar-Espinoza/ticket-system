@@ -9,4 +9,7 @@ import type * as impl from '@/lib/server/actions/profile';
 export async function updateProfile(prev: Parameters<typeof impl.updateProfile>[0], fd: FormData): Promise<Awaited<ReturnType<typeof impl.updateProfile>>> {
   return settle(await untrack(() => remote.updateProfile([prev, entries(fd)])), true);
 }
+export async function updateLanguage(...args: Parameters<typeof impl.updateLanguage>): Promise<Awaited<ReturnType<typeof impl.updateLanguage>>> {
+  return settle(await untrack(() => remote.updateLanguage(args)), false);
+}
 export type { ProfileState } from '@/lib/server/actions/profile';

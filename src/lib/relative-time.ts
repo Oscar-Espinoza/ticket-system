@@ -1,4 +1,6 @@
-// Short relative timestamps ("3h ago", "in 2d", "just now") shared by every list and feed.
+// Short relative timestamps ("3h ago", "in 2d", "just now") shared by every list and feed,
+// in the interface language (src/lib/i18n.ts).
+import { m, relativeTimeFormat } from '@/lib/i18n';
 
 const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
   ['year', 31_536_000],
@@ -8,12 +10,13 @@ const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
   ['hour', 3_600],
   ['minute', 60],
 ];
-const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto', style: 'short' });
 
 export function relativeTime(date: Date, now = Date.now()): string {
   const seconds = (new Date(date).getTime() - now) / 1000;
   for (const [unit, size] of UNITS) {
-    if (Math.abs(seconds) >= size) return rtf.format(Math.round(seconds / size), unit);
+    if (Math.abs(seconds) >= size) {
+      return relativeTimeFormat({ numeric: 'auto', style: 'short' }).format(Math.round(seconds / size), unit);
+    }
   }
-  return 'just now';
+  return m.time_just_now();
 }

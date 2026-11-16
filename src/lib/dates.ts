@@ -1,6 +1,8 @@
 // Calendar-date helpers for due dates (YYYY-MM-DD strings). Dates are compared
 // as strings in the viewer's local calendar — no timezone shifting.
 
+import { dateFormat } from '@/lib/i18n';
+
 const DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
 
 /** A real calendar date in YYYY-MM-DD form (rejects 2026-02-30). */
@@ -46,17 +48,12 @@ export function dueStatus(dueDate: string, today: string = toDateString(new Date
   return 'upcoming';
 }
 
-const shortFormat = new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric' });
-const longFormat = new Intl.DateTimeFormat('en', {
-  month: 'short',
-  day: 'numeric',
-  year: 'numeric',
-});
-
 /** "Mar 4", or "Mar 4, 2027" outside the current year. */
 export function formatDueDate(value: string): string {
   const date = fromDateString(value);
-  return (date.getFullYear() === new Date().getFullYear() ? shortFormat : longFormat).format(
-    date,
-  );
+  return dateFormat(
+    date.getFullYear() === new Date().getFullYear()
+      ? { month: 'short', day: 'numeric' }
+      : { month: 'short', day: 'numeric', year: 'numeric' },
+  ).format(date);
 }

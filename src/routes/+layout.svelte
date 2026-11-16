@@ -16,10 +16,18 @@
   import OfflineBanner from '@/lib/components/pwa/offline-banner.svelte';
   import RegisterServiceWorker from '@/lib/components/pwa/register-sw.svelte';
 
-  let { children }: { children: Snippet } = $props();
+  let { children, data }: { children: Snippet; data: { locale: string } } = $props();
 
   // First hydration done: later client-side mounts read browser state directly.
   $effect(() => markAppHydrated());
+
+  // The interface language changed without a document load (signing in to an
+  // account with another saved language, or signing out): everything already
+  // rendered is in the old language and the browser's locale comes from
+  // <html lang> (src/hooks.client.ts), so load the page again.
+  $effect(() => {
+    if (data.locale !== document.documentElement.lang) location.reload();
+  });
 
   const description = 'A Linear-style ticket tracker whose status stays in sync with GitHub work.';
 </script>

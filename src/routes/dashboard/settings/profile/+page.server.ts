@@ -3,6 +3,7 @@
 import { getProfileSettings } from '@/lib/account-settings-read';
 import { emailVerificationAvailable } from '@/lib/email-verification';
 import { requireUser } from '@/lib/session';
+import { toAppLocale } from '@/lib/i18n-locales';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async () => {
@@ -20,6 +21,8 @@ export const load: PageServerLoad = async () => {
       timezone: profile?.timezone ?? '',
       timezones: Intl.supportedValuesOf('timeZone'),
     },
+    /** Saved interface language; null = follow the browser. */
+    locale: toAppLocale((user as { locale?: unknown }).locale),
     hasPassword,
     emailVerified: user.emailVerified,
     verificationAvailable: emailVerificationAvailable(),

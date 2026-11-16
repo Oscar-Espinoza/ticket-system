@@ -30,7 +30,9 @@ import { jwt, twoFactor } from 'better-auth/plugins';
 import { oauthProvider } from '@better-auth/oauth-provider';
 import { scim } from '@better-auth/scim';
 import { sso } from '@better-auth/sso';
+import { z } from 'zod';
 import { MIN_PASSWORD_LENGTH } from '@/lib/auth-rules';
+import { LOCALES } from '@/lib/i18n-locales';
 import { after } from '@/lib/kit/request';
 import { socialProviderOptions } from '@/lib/auth-providers';
 import {
@@ -180,6 +182,18 @@ export const auth = betterAuth({
     // deliberate change (a new address must be verified before it replaces
     // the old one, or account linking could follow it).
     changeEmail: { enabled: false },
+    // Interface language (src/lib/i18n.ts). Part of the session user so every
+    // request knows it without a query; set through updateLanguage
+    // (src/lib/server/actions/profile.ts), which goes through updateUser so the
+    // session cookie cache follows.
+    additionalFields: {
+      locale: {
+        type: 'string',
+        required: false,
+        input: true,
+        validator: { input: z.enum(LOCALES).nullable() },
+      },
+    },
   },
   // Better Auth always requests read:user + user:email for GitHub; `scope`
   // below only restates them (least privilege at sign-in). Tokens are read

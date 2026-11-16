@@ -4,6 +4,8 @@ import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import adapterNode from '@sveltejs/adapter-node';
 import adapterVercel from '@sveltejs/adapter-vercel';
+import { paraglideVitePlugin } from '@inlang/paraglide-js';
+import { PARAGLIDE_OPTIONS } from './paraglide.options.js';
 import { sveltekit } from '@sveltejs/kit/vite';
 import tailwindcss from '@tailwindcss/vite';
 import { loadEnv, type Plugin } from 'vite';
@@ -59,6 +61,9 @@ export default defineConfig(async ({ mode, command }) => {
   return {
     plugins: [
       mcpUiBundle(command),
+      // Interface language (src/lib/i18n.ts, messages/*.json); options and
+      // locale order in paraglide.options.js.
+      paraglideVitePlugin(PARAGLIDE_OPTIONS),
       tailwindcss(),
       await sveltekit({
         adapter: process.env.VERCEL ? adapterVercel({ runtime: 'nodejs24.x' }) : adapterNode(),

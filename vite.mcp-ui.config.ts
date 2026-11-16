@@ -7,6 +7,8 @@ import { svelte } from '@sveltejs/vite-plugin-svelte';
 import tailwindcss from '@tailwindcss/vite';
 import { viteSingleFile } from 'vite-plugin-singlefile';
 import { defineConfig } from 'vite';
+import { paraglideVitePlugin } from '@inlang/paraglide-js';
+import { PARAGLIDE_OPTIONS } from './paraglide.options.js';
 
 const here = (path: string) => fileURLToPath(new URL(path, import.meta.url));
 
@@ -14,6 +16,8 @@ export default defineConfig({
   root: here('./src/mcp-ui'),
   base: './',
   plugins: [
+    // Shared helpers (src/lib/dates.ts) format through src/lib/i18n.ts.
+    paraglideVitePlugin({ ...PARAGLIDE_OPTIONS, project: here('./project.inlang'), outdir: here('./src/lib/paraglide') }),
     tailwindcss(),
     svelte({
       configFile: false,

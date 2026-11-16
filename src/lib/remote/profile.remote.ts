@@ -7,3 +7,6 @@ import * as impl from '@/lib/server/actions/profile';
 export const updateProfile = command('unchecked', (input: [Parameters<typeof impl.updateProfile>[0], [string, string][]]) =>
   run(() => impl.updateProfile(input[0], formData(input[1]))),
 );
+export const updateLanguage = command('unchecked', (args: Parameters<typeof impl.updateLanguage>) =>
+  run(() => impl.updateLanguage(...args)),
+);

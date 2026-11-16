@@ -55,6 +55,12 @@ ignored without email) also blocks password sign-in until the address is
 verified. Details, the steps for existing users and the admin fallback without
 email: [docs/SELF_HOSTING.md](docs/SELF_HOSTING.md#email-verification).
 
+**Interface language:** English and Spanish (Paraglide JS; `messages/`). Each
+person picks theirs in Settings → Profile → Language (default: the browser's
+language, else English); emails follow the recipient's choice. Rules, terms and
+how to add strings: [messages/GLOSSARY.md](messages/GLOSSARY.md). Migration 0014
+adds the `user.locale` column.
+
 API reference: [docs/API.md](docs/API.md).
 
 **AI assistants (MCP):** Claude, ChatGPT and Claude Code connect to
