@@ -5,6 +5,7 @@
 
 import { and, eq } from 'drizzle-orm';
 
+import { m } from '@/lib/i18n';
 import { db } from '@/lib/db';
 import { projectMembers, uploads } from '@/db/schema';
 import {
@@ -43,14 +44,14 @@ export async function createUpload(
   input: { name: string; type: string; bytes: Uint8Array },
 ): Promise<UploadResult> {
   const size = input.bytes.byteLength;
-  if (size === 0) return { ok: false, error: 'The file is empty.' };
-  if (size > MAX_ATTACHMENT_BYTES) return { ok: false, error: `Images can be at most ${MAX_ATTACHMENT_LABEL}.` };
+  if (size === 0) return { ok: false, error: m.editor_err_file_empty() };
+  if (size > MAX_ATTACHMENT_BYTES) return { ok: false, error: m.editor_ed_upload_size({ max: MAX_ATTACHMENT_LABEL }) };
 
   const claimed = normalizeContentType(input.type);
   const sniffed = SIGNATURES.find((s) => s.test(input.bytes))?.type;
   // SVG and anything else that isn't a raster image are refused outright.
   if (!isPreviewableImage(claimed) || !sniffed) {
-    return { ok: false, error: 'Only PNG, JPEG, GIF, WebP, AVIF or BMP images can be uploaded.' };
+    return { ok: false, error: m.editor_err_upload_type() };
   }
 
   const id = crypto.randomUUID();

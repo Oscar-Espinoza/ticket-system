@@ -5,6 +5,7 @@
 <script lang="ts">
   import ExternalLink from '@lucide/svelte/icons/external-link';
 
+  import { m } from '@/lib/i18n';
   import { cn } from '@/lib/utils';
   import { EMBED_ALLOW, EMBED_SANDBOX, type Embed } from '@/lib/components/editor/embeds';
 
@@ -50,7 +51,7 @@
       class="inline-flex shrink-0 items-center gap-1 rounded px-1 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
     >
       <ExternalLink class="size-3" aria-hidden="true" />
-      Open
+      {m.common_open()}
     </a>
   </figcaption>
 </figure>

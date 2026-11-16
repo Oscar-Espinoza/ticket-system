@@ -5,6 +5,7 @@
 // configuration as before; only the node view renderer (Svelte) and
 // the icon components (@lucide/svelte) differ.
 
+import { m } from '@/lib/i18n';
 import { Extension, Node, type AnyExtension, type Editor } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import { Markdown } from '@tiptap/markdown';
@@ -71,18 +72,18 @@ interface SlashAction extends SlashCommand {
 }
 
 const SLASH: SlashAction[] = [
-  { id: 'h1', label: 'Heading 1', keywords: 'title h1', icon: Heading1, hint: '#', run: (e) => e.chain().focus().setHeading({ level: 1 }).run() },
-  { id: 'h2', label: 'Heading 2', keywords: 'subtitle h2', icon: Heading2, hint: '##', run: (e) => e.chain().focus().setHeading({ level: 2 }).run() },
-  { id: 'h3', label: 'Heading 3', keywords: 'h3', icon: Heading3, hint: '###', run: (e) => e.chain().focus().setHeading({ level: 3 }).run() },
-  { id: 'bullet', label: 'Bulleted list', keywords: 'unordered ul', icon: List, hint: '-', run: (e) => e.chain().focus().toggleBulletList().run() },
-  { id: 'numbered', label: 'Numbered list', keywords: 'ordered ol', icon: ListOrdered, hint: '1.', run: (e) => e.chain().focus().toggleOrderedList().run() },
-  { id: 'task', label: 'Checklist', keywords: 'todo task checkbox', icon: ListTodo, hint: '[]', run: (e) => e.chain().focus().toggleTaskList().run() },
-  { id: 'quote', label: 'Quote', keywords: 'blockquote', icon: Quote, hint: '>', run: (e) => e.chain().focus().toggleBlockquote().run() },
-  { id: 'code', label: 'Code block', keywords: 'snippet pre', icon: Code2, hint: '```', run: (e) => e.chain().focus().toggleCodeBlock().run() },
-  { id: 'divider', label: 'Divider', keywords: 'rule hr line separator', icon: Minus, hint: '---', run: (e) => e.chain().focus().setHorizontalRule().run() },
-  { id: 'image', label: 'Image', keywords: 'picture photo upload screenshot', icon: ImageIcon, needsUpload: true, run: (_e, rt) => rt.pickImage() },
-  { id: 'mention', label: 'Mention', keywords: 'person user teammate', icon: AtSign, hint: '@', run: (e) => e.chain().focus().insertContent('@').run() },
-  { id: 'issue', label: 'Issue reference', keywords: 'link ticket', icon: Hash, hint: '#', run: (e) => e.chain().focus().insertContent('#').run() },
+  { id: 'h1', get label() { return m.editor_ed_heading_1(); }, keywords: 'title h1', icon: Heading1, hint: '#', run: (e) => e.chain().focus().setHeading({ level: 1 }).run() },
+  { id: 'h2', get label() { return m.editor_ed_heading_2(); }, keywords: 'subtitle h2', icon: Heading2, hint: '##', run: (e) => e.chain().focus().setHeading({ level: 2 }).run() },
+  { id: 'h3', get label() { return m.editor_ed_heading_3(); }, keywords: 'h3', icon: Heading3, hint: '###', run: (e) => e.chain().focus().setHeading({ level: 3 }).run() },
+  { id: 'bullet', get label() { return m.editor_ed_bulleted(); }, keywords: 'unordered ul', icon: List, hint: '-', run: (e) => e.chain().focus().toggleBulletList().run() },
+  { id: 'numbered', get label() { return m.editor_ed_numbered(); }, keywords: 'ordered ol', icon: ListOrdered, hint: '1.', run: (e) => e.chain().focus().toggleOrderedList().run() },
+  { id: 'task', get label() { return m.editor_ed_checklist(); }, keywords: 'todo task checkbox', icon: ListTodo, hint: '[]', run: (e) => e.chain().focus().toggleTaskList().run() },
+  { id: 'quote', get label() { return m.editor_ed_quote(); }, keywords: 'blockquote', icon: Quote, hint: '>', run: (e) => e.chain().focus().toggleBlockquote().run() },
+  { id: 'code', get label() { return m.editor_ed_code_block(); }, keywords: 'snippet pre', icon: Code2, hint: '```', run: (e) => e.chain().focus().toggleCodeBlock().run() },
+  { id: 'divider', get label() { return m.editor_ed_divider(); }, keywords: 'rule hr line separator', icon: Minus, hint: '---', run: (e) => e.chain().focus().setHorizontalRule().run() },
+  { id: 'image', get label() { return m.editor_ed_image(); }, keywords: 'picture photo upload screenshot', icon: ImageIcon, needsUpload: true, run: (_e, rt) => rt.pickImage() },
+  { id: 'mention', get label() { return m.editor_ed_mention(); }, keywords: 'person user teammate', icon: AtSign, hint: '@', run: (e) => e.chain().focus().insertContent('@').run() },
+  { id: 'issue', get label() { return m.editor_ed_issue_ref(); }, keywords: 'link ticket', icon: Hash, hint: '#', run: (e) => e.chain().focus().insertContent('#').run() },
 ];
 
 function slashItems(runtime: EditorRuntime, query: string): SuggestionEntry[] {
@@ -291,7 +292,7 @@ function placeholderAt(state: EditorState, id: object): number | null {
 function uploadingWidget() {
   const el = document.createElement('span');
   el.className = 'inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-1 text-xs text-muted-foreground animate-pulse';
-  el.textContent = 'Uploading image…';
+  el.textContent = m.editor_ed_uploading();
   return el;
 }
 

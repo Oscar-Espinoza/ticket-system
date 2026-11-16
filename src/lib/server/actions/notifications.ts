@@ -6,6 +6,7 @@
 import { and, eq, gt, inArray, isNotNull, isNull, sql } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
+import { m } from '@/lib/i18n';
 import { notifications, projects, tickets, userProfiles } from '@/db/schema';
 import { authorizeProjectAction } from '@/lib/action-auth';
 import { fail, NOT_AUTHENTICATED, refreshesData, type ActionResult } from '@/lib/server/action-kit';
@@ -38,7 +39,7 @@ function futureDate(value: unknown): Date | null {
   return date;
 }
 
-const INVALID = fail('Invalid request');
+const invalid = () => fail(m.editor_err_invalid_request());
 
 export async function getUnreadNotificationCount(): Promise<number> {
   const userId = await sessionUserId();
@@ -53,7 +54,7 @@ export async function markNotificationsRead(input: {
   const userId = await sessionUserId();
   if (!userId) return NOT_AUTHENTICATED;
   const ids = idList(input?.ids);
-  if (!ids || typeof input.read !== 'boolean') return INVALID;
+  if (!ids || typeof input.read !== 'boolean') return invalid();
 
   await db
     .update(notifications)
@@ -79,7 +80,7 @@ export async function archiveNotifications(input: {
   const userId = await sessionUserId();
   if (!userId) return NOT_AUTHENTICATED;
   const ids = idList(input?.ids);
-  if (!ids || typeof input.archived !== 'boolean') return INVALID;
+  if (!ids || typeof input.archived !== 'boolean') return invalid();
 
   await db
     .update(notifications)
@@ -108,7 +109,7 @@ export async function snoozeNotifications(input: {
   if (!userId) return NOT_AUTHENTICATED;
   const ids = idList(input?.ids);
   const until = input?.until === null ? null : futureDate(input?.until);
-  if (!ids || (input.until !== null && !until)) return INVALID;
+  if (!ids || (input.until !== null && !until)) return invalid();
 
   await db
     .update(notifications)
@@ -127,10 +128,10 @@ export async function updateNotificationPrefs(input: {
   if (!userId) return NOT_AUTHENTICATED;
 
   const email = input?.email;
-  if (email !== undefined && typeof email !== 'boolean') return INVALID;
+  if (email !== undefined && typeof email !== 'boolean') return invalid();
   const prefs: Record<string, boolean> = {};
   for (const [type, on] of Object.entries(input?.prefs ?? {})) {
-    if (!PREF_TYPES.has(type) || typeof on !== 'boolean') return INVALID;
+    if (!PREF_TYPES.has(type) || typeof on !== 'boolean') return invalid();
     prefs[type] = on;
   }
 
@@ -195,7 +196,7 @@ export async function getIssueReminder(
 ): Promise<ActionResult<{ remindAt: string | null }>> {
   const auth = await authorizeProjectAction(input?.projectId, 'read');
   if (!auth.ok) return auth;
-  if (typeof input.ticketId !== 'string' || !input.ticketId) return INVALID;
+  if (typeof input.ticketId !== 'string' || !input.ticketId) return invalid();
 
   // Rows are the caller's own and carry the project id, so no ticket lookup is needed.
   const [row] = await db
@@ -213,9 +214,9 @@ export async function setIssueReminder(
   const auth = await authorizeProjectAction(input?.projectId, 'read');
   if (!auth.ok) return auth;
   const remindAt = futureDate(input.remindAt);
-  if (!remindAt) return fail('Pick a time in the future.');
+  if (!remindAt) return fail(m.editor_err_future_time());
   const issue = await issueInProject(input.projectId, input.ticketId);
-  if (!issue) return fail('Issue not found');
+  if (!issue) return fail(m.editor_err_issue_not_found());
 
   // One pending reminder per issue: setting a new time replaces it.
   await createNotifications(
@@ -240,7 +241,7 @@ export async function setIssueReminder(
 export async function cancelIssueReminder(input: ReminderInput): Promise<ActionResult> {
   const auth = await authorizeProjectAction(input?.projectId, 'read');
   if (!auth.ok) return auth;
-  if (typeof input.ticketId !== 'string' || !input.ticketId) return INVALID;
+  if (typeof input.ticketId !== 'string' || !input.ticketId) return invalid();
   await db.delete(notifications).where(pendingReminder(auth.userId, input.ticketId));
   return { ok: true };
 }
