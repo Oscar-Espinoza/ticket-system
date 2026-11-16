@@ -151,7 +151,7 @@ export async function submitIntakeRequest(
   });
   if (!result.ok) {
     console.error('[intake] createIssue failed', result.error);
-    return { values, errors: { server: m.common_error_generic() } };
+    return { values, errors: { server: m.auth_login_generic() } };
   }
 
   // A known customer's domain links the request to them. Best effort: the

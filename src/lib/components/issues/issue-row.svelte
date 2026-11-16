@@ -19,6 +19,7 @@
 </script>
 
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import UserRoundIcon from '@lucide/svelte/icons/user-round';
 
   import { rowAttr } from '@/lib/components/issues/issue-dom';
@@ -124,7 +125,7 @@
       onCloseAutoFocus={refocusRow}
     >
       {#snippet children({ props })}
-        <RowButton {...props} label={`Change priority (${PRIORITY_LABEL[issue.priority]})`}>
+        <RowButton {...props} label={m.shared_table_change_priority({ priority: PRIORITY_LABEL[issue.priority] })}>
           <PriorityIcon priority={issue.priority} size={14} />
         </RowButton>
       {/snippet}
@@ -145,7 +146,7 @@
       onCloseAutoFocus={refocusRow}
     >
       {#snippet children({ props })}
-        <RowButton {...props} label={`Change status (${issue.state.name})`}>
+        <RowButton {...props} label={m.shared_table_change_status({ state: issue.state.name })}>
           <StateIcon state={issue.state} size={14} />
         </RowButton>
       {/snippet}
@@ -181,7 +182,7 @@
       onCloseAutoFocus={refocusRow}
     >
       {#snippet children({ props })}
-        <RowButton {...props} label={issue.assignee ? `Assigned to ${issue.assignee.name}` : 'Assign'}>
+        <RowButton {...props} label={issue.assignee ? m.shared_table_assigned_to({ name: issue.assignee.name }) : m.shared_table_assign()}>
           {#if issue.assignee}
             <Avatar name={issue.assignee.name} src={issue.assignee.image} size={20} />
           {:else}

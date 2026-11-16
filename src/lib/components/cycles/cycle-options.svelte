@@ -89,12 +89,12 @@
     {/if}
     {#if groups.upcoming.length > 0}
       <CommandGroup heading={m.projects_cycle_upcoming()}>
-        {#each groups.upcoming as c (c.id)}{@render item(c, 'upcoming next')}{/each}
+        {#each groups.upcoming as c (c.id)}{@render item(c, 'upcoming next')}{/each}<!-- i18n-ignore: search keywords -->
       </CommandGroup>
     {/if}
     {#if groups.past.length > 0}
       <CommandGroup heading={m.projects_cycle_past()}>
-        {#each groups.past as c (c.id)}{@render item(c, 'past previous')}{/each}
+        {#each groups.past as c (c.id)}{@render item(c, 'past previous')}{/each}<!-- i18n-ignore: search keywords -->
       </CommandGroup>
     {/if}
   </CommandList>

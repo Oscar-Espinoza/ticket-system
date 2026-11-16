@@ -52,11 +52,16 @@ function svelteFiles(dir: string, out: string[] = []): string[] {
 
 const blank = (s: string) => s.replace(/[^\n]/g, ' ');
 
-/** Replaces `{ ... }` expressions (nested braces, strings) with spaces, keeping line breaks. */
-function blankExpressions(source: string): string {
+/**
+ * Replaces `{ ... }` expressions (nested braces, strings) with spaces, keeping
+ * line breaks. Reports each string literal found inside an expression to
+ * `onLiteral` (its text and the index of its opening quote).
+ */
+function blankExpressions(source: string, onLiteral?: (text: string, index: number) => void): string {
   let out = '';
   let depth = 0;
   let quote: string | null = null;
+  let literalStart = -1;
   for (let i = 0; i < source.length; i++) {
     const c = source[i];
     if (depth === 0) {
@@ -72,7 +77,10 @@ function blankExpressions(source: string): string {
         i++;
         continue;
       }
-      if (c === quote) quote = null;
+      if (c === quote) {
+        quote = null;
+        onLiteral?.(source.slice(literalStart + 1, i), literalStart);
+      }
     } else if (c === '/' && source[i + 1] === '/') {
       // A line comment inside an expression: its apostrophes aren't quotes.
       const end = source.indexOf('\n', i);
@@ -86,7 +94,10 @@ function blankExpressions(source: string): string {
       out += blank(source.slice(i, stop));
       i = stop - 1;
       continue;
-    } else if (c === '"' || c === "'" || c === '`') quote = c;
+    } else if (c === '"' || c === "'" || c === '`') {
+      quote = c;
+      literalStart = i;
+    }
     else if (c === '{') depth++;
     else if (c === '}') depth--;
     out += c === '\n' ? '\n' : ' ';
@@ -96,6 +107,17 @@ function blankExpressions(source: string): string {
 
 
 const WORD = /[A-Za-z]{2,}/;
+/**
+ * A string literal inside a markup expression that reads as interface text:
+ * capitalised words with a space (`'Select all issues'`, `` `Assigned to ${x}` ``),
+ * or a lowercase phrase glued to a value (`` ` points` ``). Class lists, ids
+ * and single words (enum values, keys) don't match.
+ */
+const SENTENCE = /(^|[^A-Za-z-])[A-Z][a-z’']+(?: [A-Za-z’']+)+|^ ?[a-z]{3,}(?: [a-z]{2,})* ?$/;
+const isUiLiteral = (text: string) => {
+  const plain = text.replace(/\$\{[^}]*\}/g, ' ').trim();
+  return plain.includes(' ') || /^ /.test(text) ? SENTENCE.test(text.replace(/\$\{[^}]*\}/g, '')) && !/[:=;]|\b(?:px|rem|var|calc)\b|\/\//.test(plain) : false;
+};
 const TEXT_ATTRS = /\s(?:placeholder|aria-label|aria-description|title|alt|label)=(?:"([^"]*)"|'([^']*)')/g;
 const TOAST = /\btoast(?:\.\w+)?\(\s*(['"`])((?:(?!\1).)*[A-Za-z]{2,}(?:(?!\1).)*)\1/g;
 
@@ -122,7 +144,16 @@ export function findHardcoded(source: string): Finding[] {
     .replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, blank)
     .replace(/<style\b[^>]*>[\s\S]*?<\/style>/g, blank)
     .replace(/<!--[\s\S]*?-->/g, blank);
-  markup = blankExpressions(markup);
+  const literals: { text: string; index: number }[] = [];
+  markup = blankExpressions(markup, (text, index) => literals.push({ text, index }));
+  // Literals inside expressions: `label={x ? 'Assign' : `Assigned to ${n}`}`.
+  // Search keywords (`keywords={[…]}`) are matched against English input on
+  // purpose and are skipped.
+  for (const l of literals) {
+    const lineStart = markup.lastIndexOf('\n', l.index) + 1;
+    if (/\bkeywords=\{/.test(source.slice(lineStart, l.index))) continue;
+    if (isUiLiteral(l.text)) add(l.index, l.text, markup);
+  }
 
   for (const a of markup.matchAll(TEXT_ATTRS)) {
     const value = a[1] ?? a[2];

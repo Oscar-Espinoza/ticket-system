@@ -171,8 +171,13 @@
   "settings_language_unknown": "Unknown language.",
   "shared_add_to_epic": "Add to epic",
   "shared_archived_epic": "Archived epic",
+  "shared_capacity_over": "Over capacity: {text}",
+  "shared_capacity_over_sr": "Over capacity:",
+  "shared_capacity_scope_vs": "Scope vs capacity: {text}",
+  "shared_capacity_sr": "Capacity:",
+  "shared_chart_aria": "{title}. Use the arrow keys to read values.",
   "shared_clear_date": "Clear date",
-  "shared_command_palette": "Command palette",
+  "shared_command_palette": "Command Palette",
   "shared_customer_find": "Find customer…",
   "shared_customer_find_or_create": "Find or create customer…",
   "shared_customer_none_found": "No customers found.",
@@ -188,6 +193,22 @@
   "shared_due_today": "Due today",
   "shared_editor_no_images": "Images can't be added here.",
   "shared_epic_in_project": "Epic in {project}",
+  "shared_estimate_point_suffix": [
+    {
+      "declarations": [
+        "input count",
+        "input label",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{label} point",
+        "countPlural=other": "{label} points"
+      }
+    }
+  ],
   "shared_followup_date": "Follow-up date",
   "shared_followup_overdue": "Follow-up overdue",
   "shared_followup_today": "Follow up today",
@@ -204,6 +225,7 @@
   "shared_greeting_morning": "Good morning",
   "shared_greeting_named": "{greeting}, {name}",
   "shared_greeting_welcome": "Welcome back",
+  "shared_importance_aria": "{importance} importance",
   "shared_issue_noun": [
     {
       "declarations": [
@@ -228,6 +250,7 @@
   "shared_login_signup_disabled": "Sign-ups through single sign-on are disabled.",
   "shared_login_sso_required": "Your workspace requires single sign-on. Continue with SSO.",
   "shared_name_rule": "Name must be 1 to {max} characters on one line.",
+  "shared_no_importance": "No importance",
   "shared_point_count": [
     {
       "declarations": [
@@ -313,6 +336,11 @@
   "shared_slack_not_installed": "Add the app to that Slack workspace first, then link your account.",
   "shared_slack_session": "Sign in as the account that started the Slack authorization and try again.",
   "shared_slack_state": "That Slack authorization expired or was started in another browser. Try again.",
+  "shared_table_assign": "Assign",
+  "shared_table_assigned_to": "Assigned to {name}",
+  "shared_table_change_priority": "Change priority ({priority})",
+  "shared_table_change_status": "Change status ({state})",
+  "shared_table_select_issue": "Select {key}",
   "shared_unknown_project": "Unknown project",
   "shared_unknown_requester": "Unknown requester",
   "shared_vcs_err_401": "{provider} rejected the access token. Check it hasn't expired and has the required scopes.",

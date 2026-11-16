@@ -35,7 +35,7 @@ export type WorkflowStateResult = ActionResult<{ id?: string }, WorkflowStateFie
 
 const NAME_MAX = 40;
 const DESCRIPTION_MAX = 200;
-const DUPLICATE = fail(m.settings_err_state_exists(), 'name');
+const DUPLICATE = () => fail(m.settings_err_state_exists(), 'name');
 
 async function nameTaken(projectId: string, name: string, exceptId?: string) {
   const [row] = await db
@@ -80,7 +80,7 @@ export async function createWorkflowState(input: {
   if (input.type === 'triage' && sameType.length > 0) {
     return fail(m.settings_err_one_triage(), 'type');
   }
-  if (states.some((s) => s.name.toLowerCase() === name.toLowerCase())) return DUPLICATE;
+  if (states.some((s) => s.name.toLowerCase() === name.toLowerCase())) return DUPLICATE();
 
   const id = crypto.randomUUID();
   const position = sameType.reduce((max, s) => Math.max(max, s.position), -1) + 1;
@@ -108,7 +108,7 @@ export async function createWorkflowState(input: {
       ],
     );
   } catch (err) {
-    if (isUniqueViolation(err)) return DUPLICATE;
+    if (isUniqueViolation(err)) return DUPLICATE();
     throw err;
   }
   refreshesData();
@@ -133,7 +133,7 @@ export async function updateWorkflowState(input: {
     const name = requiredText(input.name, 'name', NAME_MAX);
     if (isFail(name)) return name;
     if (name !== current.name) {
-      if (await nameTaken(input.projectId, name, input.id)) return DUPLICATE;
+      if (await nameTaken(input.projectId, name, input.id)) return DUPLICATE();
       changes.name = name;
     }
   }
@@ -169,7 +169,7 @@ export async function updateWorkflowState(input: {
       ],
     );
   } catch (err) {
-    if (isUniqueViolation(err)) return DUPLICATE;
+    if (isUniqueViolation(err)) return DUPLICATE();
     throw err;
   }
   refreshesData();

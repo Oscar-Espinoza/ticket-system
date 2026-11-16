@@ -171,6 +171,11 @@
   "settings_language_unknown": "Idioma desconocido.",
   "shared_add_to_epic": "Añadir a una épica",
   "shared_archived_epic": "Épica archivada",
+  "shared_capacity_over": "Por encima de la capacidad: {text}",
+  "shared_capacity_over_sr": "Por encima de la capacidad:",
+  "shared_capacity_scope_vs": "Alcance frente a capacidad: {text}",
+  "shared_capacity_sr": "Capacidad:",
+  "shared_chart_aria": "{title}. Usa las flechas para leer los valores.",
   "shared_clear_date": "Quitar fecha",
   "shared_command_palette": "Paleta de comandos",
   "shared_customer_find": "Busca un cliente…",
@@ -188,6 +193,22 @@
   "shared_due_today": "Vence hoy",
   "shared_editor_no_images": "Aquí no se pueden añadir imágenes.",
   "shared_epic_in_project": "Épica de {project}",
+  "shared_estimate_point_suffix": [
+    {
+      "declarations": [
+        "input count",
+        "input label",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{label} punto",
+        "countPlural=other": "{label} puntos"
+      }
+    }
+  ],
   "shared_followup_date": "Fecha de seguimiento",
   "shared_followup_overdue": "Seguimiento vencido",
   "shared_followup_today": "Seguimiento hoy",
@@ -204,6 +225,7 @@
   "shared_greeting_morning": "Buenos días",
   "shared_greeting_named": "{greeting}, {name}",
   "shared_greeting_welcome": "Hola de nuevo",
+  "shared_importance_aria": "Importancia {importance}",
   "shared_issue_noun": [
     {
       "declarations": [
@@ -228,6 +250,7 @@
   "shared_login_signup_disabled": "El registro mediante inicio de sesión único está desactivado.",
   "shared_login_sso_required": "Tu espacio de trabajo requiere inicio de sesión único. Continúa con SSO.",
   "shared_name_rule": "El nombre debe tener entre 1 y {max} caracteres en una sola línea.",
+  "shared_no_importance": "Sin importancia",
   "shared_point_count": [
     {
       "declarations": [
@@ -313,6 +336,11 @@
   "shared_slack_not_installed": "Primero añade la app a ese espacio de Slack y luego vincula tu cuenta.",
   "shared_slack_session": "Inicia sesión con la cuenta que inició la autorización de Slack e inténtalo de nuevo.",
   "shared_slack_state": "Esa autorización de Slack caducó o se inició en otro navegador. Inténtalo de nuevo.",
+  "shared_table_assign": "Asignar",
+  "shared_table_assigned_to": "Asignado a {name}",
+  "shared_table_change_priority": "Cambiar prioridad ({priority})",
+  "shared_table_change_status": "Cambiar estado ({state})",
+  "shared_table_select_issue": "Seleccionar {key}",
   "shared_unknown_project": "Proyecto desconocido",
   "shared_unknown_requester": "Solicitante desconocido",
   "shared_vcs_err_401": "{provider} rechazó el token de acceso. Comprueba que no haya caducado y que tenga los permisos necesarios.",

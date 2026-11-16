@@ -46,7 +46,9 @@
           onSelect={() => onSelect(option.value)}
         >
           <TriangleIcon />
-          {option.label}{option.label !== String(option.value) ? '' : ` point${option.value === 1 ? '' : 's'}`}
+          {option.label !== String(option.value)
+            ? option.label
+            : m.shared_estimate_point_suffix({ count: option.value, label: option.label })}
         </CommandItem>
       {/each}
     </CommandList>

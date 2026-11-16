@@ -23,7 +23,7 @@ import {
 
 export type LabelActionResult = ActionResult<{ label?: IssueLabel }, 'name' | 'color' | 'description'>;
 
-const DUPLICATE = fail(m.settings_err_label_exists(), 'name');
+const DUPLICATE = () => fail(m.settings_err_label_exists(), 'name');
 
 export async function createLabel(input: {
   projectId: string;
@@ -42,7 +42,7 @@ export async function createLabel(input: {
   if (isFail(description)) return description;
 
   const created = await createProjectLabel(input.projectId, { name, color, description });
-  if (!created.ok) return DUPLICATE;
+  if (!created.ok) return DUPLICATE();
   refreshesData();
   return { ok: true, label: created.label };
 }
@@ -61,7 +61,7 @@ export async function updateLabel(input: {
   if (input.name !== undefined) {
     const name = requiredText(input.name, 'name', LABEL_NAME_MAX);
     if (isFail(name)) return name;
-    if (await labelNameTaken(input.projectId, name, input.id)) return DUPLICATE;
+    if (await labelNameTaken(input.projectId, name, input.id)) return DUPLICATE();
     changes.name = name;
   }
   if (input.color !== undefined) {
@@ -77,7 +77,7 @@ export async function updateLabel(input: {
   if (Object.keys(changes).length === 0) return { ok: true };
 
   const updated = await updateProjectLabel(input.projectId, input.id, changes);
-  if (!updated.ok) return updated.reason === 'duplicate' ? DUPLICATE : fail(m.settings_err_label_not_found());
+  if (!updated.ok) return updated.reason === 'duplicate' ? DUPLICATE() : fail(m.settings_err_label_not_found());
   refreshesData();
   return { ok: true, label: updated.label };
 }

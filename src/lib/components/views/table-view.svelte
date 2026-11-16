@@ -219,7 +219,7 @@
     {#if edit.canEdit}
       <StatePicker value={issue.stateId} onChange={(stateId: string) => edit.update({ stateId })} onCloseAutoFocus={edit.refocus}>
         {#snippet children({ props }: { props: Record<string, unknown> })}
-          <TableCellButton {...props} label={`Change status (${issue.state.name})`}>
+          <TableCellButton {...props} label={m.shared_table_change_status({ state: issue.state.name })}>
             {@render statusContent(issue)}
           </TableCellButton>
         {/snippet}
@@ -237,7 +237,7 @@
         onCloseAutoFocus={edit.refocus}
       >
         {#snippet children({ props }: { props: Record<string, unknown> })}
-          <TableCellButton {...props} label={`Change priority (${PRIORITY_LABEL[issue.priority]})`}>
+          <TableCellButton {...props} label={m.shared_table_change_priority({ priority: PRIORITY_LABEL[issue.priority] })}>
             {@render priorityContent(issue)}
           </TableCellButton>
         {/snippet}
@@ -253,7 +253,7 @@
         onCloseAutoFocus={edit.refocus}
       >
         {#snippet children({ props }: { props: Record<string, unknown> })}
-          <TableCellButton {...props} label={issue.assignee ? `Assigned to ${issue.assignee.name}` : 'Assign'}>
+          <TableCellButton {...props} label={issue.assignee ? m.shared_table_assigned_to({ name: issue.assignee.name }) : m.shared_table_assign()}>
             {@render assigneeContent(issue)}
           </TableCellButton>
         {/snippet}
@@ -438,7 +438,7 @@
                 {#if selectable}
                   <SelectCheckbox
                     {checked}
-                    label={`Select ${issue.key}`}
+                    label={m.shared_table_select_issue({ key: issue.key })}
                     onToggle={(event) =>
                       event.shiftKey ? selection.extendTo(issue.id, event.currentTarget) : selection.toggle(issue.id)}
                     class={cn(
