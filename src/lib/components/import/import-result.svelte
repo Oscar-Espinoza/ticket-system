@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import AlertTriangleIcon from '@lucide/svelte/icons/triangle-alert';
   import CheckCircle2Icon from '@lucide/svelte/icons/circle-check';
 
@@ -26,20 +27,20 @@
     {:else}
       <AlertTriangleIcon class="size-4 text-status-in-progress" />
     {/if}
-    {summary.created} of {summary.total} imported
+    {m.auth_import_result_summary({ created: summary.created, total: summary.total })}
   </div>
   <ul class="flex flex-col gap-1 text-sm text-muted-foreground">
     {#if summary.duplicates > 0}
-      <li>{summary.duplicates} skipped — already imported into this project.</li>
+      <li>{m.auth_import_result_skipped({ count: summary.duplicates })}</li>
     {/if}
-    {#if summary.failed.length > 0}<li>{summary.failed.length} failed:</li>{/if}
+    {#if summary.failed.length > 0}<li>{m.auth_import_result_failed({ count: summary.failed.length })}</li>{/if}
     {#if summary.error}<li class="text-destructive">{summary.error}</li>{/if}
   </ul>
   {#if summary.failed.length > 0}
     <ul class="max-h-40 overflow-y-auto rounded border border-border text-xs">
       {#each summary.failed.slice(0, 100) as f (f.row)}
         <li class="flex gap-3 border-b border-border px-2 py-1 last:border-0">
-          <span class="w-12 shrink-0 text-muted-foreground">Row {f.row}</span>
+          <span class="w-12 shrink-0 text-muted-foreground">{m.auth_import_result_row({ row: f.row })}</span>
           <span class="truncate">{f.title || '—'}</span>
           <span class="ml-auto shrink-0 text-destructive">{f.error}</span>
         </li>
@@ -47,7 +48,7 @@
     </ul>
   {/if}
   <div class="flex gap-2">
-    <Button size="sm" href={projectHref(projectId)}>View issues</Button>
-    <Button size="sm" variant="ghost" onclick={onReset}>Import more</Button>
+    <Button size="sm" href={projectHref(projectId)}>{m.auth_import_view_issues()}</Button>
+    <Button size="sm" variant="ghost" onclick={onReset}>{m.auth_import_more()}</Button>
   </div>
 </div>

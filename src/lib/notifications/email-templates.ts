@@ -3,6 +3,7 @@
 // single column that degrades to readable text.
 
 import { appUrl } from '@/lib/integrations/app-url';
+import { dateFormat, m } from '@/lib/i18n';
 
 export interface EmailItem {
   /** "Ana assigned you" */
@@ -38,7 +39,7 @@ function layout(body: string, settingsUrl: string): string {
 ${body}
 </div>
 <p style="max-width:560px;margin:12px auto 0;color:#8a8a93;font-size:12px;${FONT}">
-You get these emails because of your notification settings. <a href="${escapeHtml(settingsUrl)}" style="color:#8a8a93">Change them</a>.
+${m.email_footer({ link: `<a href="${escapeHtml(settingsUrl)}" style="color:#8a8a93">${m.email_footer_change()}</a>` })}
 </p>
 </body></html>`;
 }
@@ -67,7 +68,9 @@ export function notificationEmail(items: EmailItem[], settingsUrl: string): Rend
   const issueCount = new Set(items.map((item) => item.key)).size;
   const subject = single
     ? `${first.key} ${first.title} — ${first.sentence}`
-    : `${items.length} updates on ${issueCount === 1 ? first.key : `${issueCount} issues`}`;
+    : issueCount === 1
+      ? m.email_notification_subject_one_issue({ count: items.length, key: first.key })
+      : m.email_notification_subject_issues({ count: items.length, issues: issueCount });
 
   const heading = single ? '' : `<p style="margin:0 0 8px;font-weight:600">${escapeHtml(subject)}</p>`;
   const html = layout(`${heading}${items.map(itemHtml).join('')}`, settingsUrl);
@@ -75,7 +78,7 @@ export function notificationEmail(items: EmailItem[], settingsUrl: string): Rend
     ...(single ? [] : [subject, '']),
     items.map(itemText).join('\n\n'),
     '',
-    `Notification settings: ${settingsUrl}`,
+    m.email_notification_settings({ url: settingsUrl }),
   ].join('\n');
   return { subject, text, html };
 }
@@ -91,14 +94,16 @@ export interface DigestGroup {
   more: number;
 }
 
-const digestDate = new Intl.DateTimeFormat('en-US', {
-  month: 'short',
-  day: 'numeric',
-  hour: 'numeric',
-  minute: '2-digit',
-  timeZone: 'UTC',
-  timeZoneName: 'short',
-});
+/** "Nov 15, 10:00 PM UTC": in the language of the email being built (call it inside withLocale). */
+const digestDate = (at: Date) =>
+  dateFormat({
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZone: 'UTC',
+    timeZoneName: 'short',
+  }).format(at);
 
 export function digestEmail(input: {
   frequency: 'daily' | 'weekly';
@@ -110,9 +115,10 @@ export function digestEmail(input: {
 }): RenderedEmail {
   const { groups, total } = input;
   const issues = groups.filter((group) => group.key).length;
-  const updates = `${total} update${total === 1 ? '' : 's'}`;
-  const scope = issues > 0 ? ` on ${issues} issue${issues === 1 ? '' : 's'}` : '';
-  const subject = `Your ${input.frequency} digest — ${updates}${scope}`;
+  const subject =
+    issues > 0
+      ? m.email_digest_subject({ frequency: input.frequency, updates: total, issues })
+      : m.email_digest_subject_no_issues({ frequency: input.frequency, updates: total });
   const listed = groups.reduce((sum, group) => sum + group.items.length + group.more, 0);
   const unlisted = total - listed;
 
@@ -123,25 +129,25 @@ export function digestEmail(input: {
     const items = group.items
       .map(
         (item) => `<li style="margin:4px 0;color:#55555c">${escapeHtml(item.sentence)}
-<span style="color:#8a8a93;font-size:12px"> · ${escapeHtml(digestDate.format(item.at))}</span>${
+<span style="color:#8a8a93;font-size:12px"> · ${escapeHtml(digestDate(item.at))}</span>${
           item.excerpt
             ? `<div style="margin-top:2px;padding-left:8px;border-left:2px solid #e6e6e9;color:#8a8a93">${escapeHtml(item.excerpt)}</div>`
             : ''
         }</li>`,
       )
       .join('');
-    const more = group.more > 0 ? `<li style="margin:4px 0;color:#8a8a93">+${group.more} more</li>` : '';
+    const more = group.more > 0 ? `<li style="margin:4px 0;color:#8a8a93">${m.email_digest_more({ count: group.more })}</li>` : '';
     return `<div style="padding:12px 0;border-top:1px solid #f0f0f2">
 <a href="${escapeHtml(group.url)}" style="color:#1b1b1f;font-weight:600;text-decoration:none">${heading}</a>
 <ul style="margin:6px 0 0;padding-left:18px">${items}${more}</ul>
 </div>`;
   };
 
-  const footer = `${unlisted > 0 ? `${unlisted} more in your inbox. ` : ''}`;
+  const footer = unlisted > 0 ? `${m.email_digest_more_in_inbox({ count: unlisted })} ` : '';
   const html = layout(
     `<p style="margin:0 0 8px;font-weight:600">${escapeHtml(subject)}</p>
 ${groups.map(groupHtml).join('')}
-<p style="margin:16px 0 0">${escapeHtml(footer)}<a href="${escapeHtml(input.inboxUrl)}" style="color:#1b1b1f">Open your inbox</a></p>`,
+<p style="margin:16px 0 0">${escapeHtml(footer)}<a href="${escapeHtml(input.inboxUrl)}" style="color:#1b1b1f">${m.email_digest_open_inbox()}</a></p>`,
     input.settingsUrl,
   );
 
@@ -153,28 +159,28 @@ ${groups.map(groupHtml).join('')}
         [
           group.key ? `${group.key} ${group.title}` : group.title,
           ...group.items.map((item) => {
-            const line = `  - ${item.sentence} (${digestDate.format(item.at)})`;
+            const line = `  - ${item.sentence} (${digestDate(item.at)})`;
             return item.excerpt ? `${line}\n      "${item.excerpt}"` : line;
           }),
-          ...(group.more > 0 ? [`  - +${group.more} more`] : []),
+          ...(group.more > 0 ? [`  - ${m.email_digest_more({ count: group.more })}`] : []),
           `  ${group.url}`,
         ].join('\n'),
       )
       .join('\n\n'),
     '',
-    `${footer}Inbox: ${input.inboxUrl}`,
-    `Notification settings: ${input.settingsUrl}`,
+    `${footer}${m.email_digest_inbox({ url: input.inboxUrl })}`,
+    m.email_notification_settings({ url: input.settingsUrl }),
   ].join('\n');
 
   return { subject, text, html };
 }
 
 export function testEmail(name: string, settingsUrl: string): RenderedEmail {
-  const subject = 'Test notification email';
-  const body = `Hi ${name}, this is a test. Notification emails will look like this and link back to the issue.`;
+  const subject = m.email_test_subject();
+  const body = m.email_test_body({ name });
   return {
     subject,
-    text: `${body}\n\nNotification settings: ${settingsUrl}`,
+    text: `${body}\n\n${m.email_notification_settings({ url: settingsUrl })}`,
     html: layout(`<p style="margin:0">${escapeHtml(body)}</p>`, settingsUrl),
   };
 }

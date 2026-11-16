@@ -6,6 +6,7 @@
   the way back (e.g. account_not_linked) land on /login?error=, which explains them.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { authClient } from '@/lib/svelte/auth-client';
   import { Button } from '@/lib/components/ui/button';
   import { authHref } from '@/lib/safe-redirect';
@@ -25,11 +26,11 @@
       callbackURL: redirectTo,
       errorCallbackURL: authHref('/login', redirectTo),
     });
-    if (error) onerror('Google sign-in failed. Try again or use email and password.');
+    if (error) onerror(m.auth_google_failed());
   }
 </script>
 
 <Button type="button" variant="outline" class="w-full" onclick={signIn}>
   <GoogleMark class="size-4" />
-  Continue with Google
+  {m.auth_continue_google()}
 </Button>

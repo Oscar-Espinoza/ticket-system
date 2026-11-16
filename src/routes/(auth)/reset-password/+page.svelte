@@ -15,6 +15,7 @@
   two-factor is still asked for at the next sign-in of a verified account.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { onMount } from 'svelte';
   import { replaceState } from '$app/navigation';
   import { page } from '$app/state';
@@ -30,7 +31,7 @@
     ACCOUNT_CLAIM_ACK_FIELD,
     ACCOUNT_CLAIM_FAILED,
     ACCOUNT_CLAIM_NOT_ACKNOWLEDGED,
-    CLAIM_ITEM_LABEL,
+    claimItemLabel,
     type ClaimReport,
     parseClaimReport,
     RESET_CLAIM_ITEMS,
@@ -84,7 +85,7 @@
     const present = removes ? RESET_CLAIM_ITEMS.filter((item) => removes[item] > 0) : [...RESET_CLAIM_ITEMS];
     return present.map((item) => ({
       item,
-      label: CLAIM_ITEM_LABEL[item],
+      label: claimItemLabel(item),
       count: removes?.[item] ?? 0,
     }));
   });
@@ -94,15 +95,15 @@
     formError = null;
     if (!token) return;
     if (password.length < MIN_PASSWORD_LENGTH) {
-      formError = `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`;
+      formError = m.auth_password_min({ min: MIN_PASSWORD_LENGTH });
       return;
     }
     if (password !== confirm) {
-      formError = 'The passwords don’t match.';
+      formError = m.auth_reset_passwords_dont_match();
       return;
     }
     if (preview?.claim && !acknowledged) {
-      formError = 'Confirm that you understand what will be removed.';
+      formError = m.auth_reset_confirm_removal();
       return;
     }
     loading = true;
@@ -130,19 +131,19 @@
     } else if (code === 'INVALID_TOKEN') {
       token = null;
     } else if (code === 'SSO_REQUIRED') {
-      formError = 'Your workspace requires single sign-on, so this account can’t use a password. Sign in with SSO.';
+      formError = m.auth_reset_sso();
     } else if (code === 'PASSWORD_TOO_LONG') {
-      formError = 'That password is too long.';
+      formError = m.auth_reset_too_long();
     } else if (error.status === 429) {
-      formError = 'Too many attempts. Wait a moment and try again.';
+      formError = m.auth_login_too_many();
     } else {
-      formError = 'Couldn’t reset the password. Try again.';
+      formError = m.auth_reset_failed();
     }
   }
 </script>
 
 <svelte:head>
-  <title>Choose a new password · Ticket System</title>
+  <title>{m.auth_reset_page_title()}</title>
   <meta name="referrer" content="no-referrer" />
 </svelte:head>
 
@@ -153,49 +154,41 @@
       <CardHeader>
         <CardTitle class="flex items-center gap-2">
           <CircleCheckIcon class="size-5 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
-          Password changed
+          {m.auth_reset_changed()}
         </CardTitle>
-        <CardDescription>
-          Every session of this account was signed out, and its email address is verified. Sign in with the new
-          password.
-        </CardDescription>
+        <CardDescription>{m.auth_reset_changed_description()}</CardDescription>
       </CardHeader>
       <CardContent class="flex flex-col gap-4">
         {#if done.claimed}
           <AccountSecuredNotice removed={done.claimed} via="password_reset" dismissible={false} />
         {/if}
-        <Button href="/login" class="w-full">Sign in</Button>
+        <Button href="/login" class="w-full">{m.auth_sign_in()}</Button>
       </CardContent>
     {:else if claimFailed}
       <CardHeader>
-        <CardTitle>Almost done</CardTitle>
-        <CardDescription>
-          Your new password is set and every session was signed out, but securing the account didn’t finish. Ask
-          for a new reset link and use it to finish.
-        </CardDescription>
+        <CardTitle>{m.auth_reset_almost()}</CardTitle>
+        <CardDescription>{m.auth_reset_almost_description()}</CardDescription>
       </CardHeader>
       <CardContent>
-        <Button href="/forgot-password" class="w-full">Email me a new link</Button>
+        <Button href="/forgot-password" class="w-full">{m.auth_reset_new_link()}</Button>
       </CardContent>
     {:else if checked && !token}
       <CardHeader>
-        <CardTitle>This link doesn’t work</CardTitle>
-        <CardDescription>
-          Reset links work once, for an hour, and only the newest one. Ask for a new link.
-        </CardDescription>
+        <CardTitle>{m.auth_reset_bad_link()}</CardTitle>
+        <CardDescription>{m.auth_reset_bad_link_description()}</CardDescription>
       </CardHeader>
       <CardContent>
-        <Button href="/forgot-password" class="w-full">Email me a new link</Button>
+        <Button href="/forgot-password" class="w-full">{m.auth_reset_new_link()}</Button>
       </CardContent>
     {:else}
       <CardHeader>
-        <CardTitle>Choose a new password</CardTitle>
-        <CardDescription>This signs out every session of the account, including this browser’s.</CardDescription>
+        <CardTitle>{m.auth_reset_choose()}</CardTitle>
+        <CardDescription>{m.auth_reset_choose_description()}</CardDescription>
       </CardHeader>
       <CardContent>
         {#if checked && !preview}
           <p class="text-muted-foreground flex items-center gap-2 text-sm">
-            <Loader2Icon class="size-4 animate-spin" aria-hidden="true" /> Checking the link…
+            <Loader2Icon class="size-4 animate-spin" aria-hidden="true" /> {m.auth_reset_checking()}
           </p>
         {:else}
           <form onsubmit={handleSubmit} class="flex flex-col gap-4" novalidate>
@@ -206,12 +199,10 @@
               >
                 <p class="flex items-center gap-2 font-medium">
                   <TriangleAlertIcon class="size-4 shrink-0 text-amber-700 dark:text-amber-400" aria-hidden="true" />
-                  This also removes things from the account
+                  {m.auth_reset_warning_title()}
                 </p>
                 <p>
-                  This account’s email address was never verified, so we can’t tell whether whoever set it up owns
-                  the address. Setting a password from this link secures it: every session is signed out and
-                  {warnings.length > 0 ? 'these are removed:' : 'anything a previous holder set up is removed.'}
+                  {warnings.length > 0 ? m.auth_reset_warning_body_list() : m.auth_reset_warning_body_all()}
                 </p>
                 {#if warnings.length > 0}
                   <ul class="list-disc pl-5" data-claim-warning-list>
@@ -220,11 +211,11 @@
                     {/each}
                   </ul>
                 {/if}
-                <p>You’ll set up what you use again afterwards; your issues, projects and memberships stay.</p>
+                <p>{m.auth_reset_warning_after()}</p>
                 <p>
-                  If you still know your password, <a href="/login" class="font-medium underline underline-offset-2"
-                    >sign in</a
-                  > and verify your email first — then nothing is removed.
+                  {m.auth_reset_warning_know_before()} <a href="/login" class="font-medium underline underline-offset-2"
+                    >{m.auth_reset_warning_know_link()}</a
+                  > {m.auth_reset_warning_know_after()}
                 </p>
                 <label class="flex items-start gap-2 pt-1 font-medium">
                   <input
@@ -233,22 +224,22 @@
                     class="mt-0.5 size-4 shrink-0 accent-current"
                     bind:checked={acknowledged}
                   />
-                  I understand: remove these and secure the account.
+                  {m.auth_reset_acknowledge()}
                 </label>
               </div>
             {/if}
             <div class="flex flex-col gap-2">
-              <Label for="new-password">New password</Label>
+              <Label for="new-password">{m.auth_reset_new_password()}</Label>
               <Input id="new-password" type="password" autocomplete="new-password" bind:value={password} />
             </div>
             <div class="flex flex-col gap-2">
-              <Label for="confirm-password">Repeat it</Label>
+              <Label for="confirm-password">{m.auth_reset_repeat()}</Label>
               <Input id="confirm-password" type="password" autocomplete="new-password" bind:value={confirm} />
             </div>
             {#if formError}<p role="alert" class="text-destructive text-sm">{formError}</p>{/if}
             <Button type="submit" class="w-full" disabled={loading || !token || (preview?.claim && !acknowledged)}>
               {#if loading}<Loader2Icon class="animate-spin" />{/if}
-              {loading ? 'Saving…' : preview?.claim ? 'Secure the account and set the password' : 'Set new password'}
+              {loading ? m.common_saving() : preview?.claim ? m.auth_reset_secure_and_set() : m.auth_reset_set()}
             </Button>
           </form>
         {/if}

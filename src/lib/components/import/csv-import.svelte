@@ -14,7 +14,7 @@
 </script>
 
 <script lang="ts">
-  import { pluralize } from '@/lib/format';
+  import { m } from '@/lib/i18n';
   import FileUpIcon from '@lucide/svelte/icons/file-up';
   import XIcon from '@lucide/svelte/icons/x';
   import { toast } from 'svelte-sonner';
@@ -31,7 +31,7 @@
   import {
     buildRecords,
     detectMapping,
-    IMPORT_FIELDS,
+    importFields,
     type CsvPreset,
     type ImportField,
   } from '@/lib/import/mapping';
@@ -57,17 +57,17 @@
   async function load(picked: File | undefined) {
     if (!picked) return;
     if (picked.size > MAX_BYTES) {
-      toast.error('That file is over 10 MB — split it into smaller files.');
+      toast.error(m.auth_import_csv_too_big());
       return;
     }
     const rows = parseCsv(await picked.text());
     const [headers, ...data] = rows;
     if (!headers || data.length === 0) {
-      toast.error('No rows found. The first line should be a header row.');
+      toast.error(m.auth_import_csv_no_rows());
       return;
     }
     if (data.length > IMPORT_MAX_ROWS) {
-      toast.error(`At most ${IMPORT_MAX_ROWS} rows per import — split the file.`);
+      toast.error(m.auth_import_csv_max_rows({ max: IMPORT_MAX_ROWS }));
       return;
     }
     const trimmed = headers.map((h) => h.trim());
@@ -83,7 +83,8 @@
     if (inputEl) inputEl.value = '';
   }
 
-  const fieldItems = IMPORT_FIELDS.map((f) => ({ value: f.value, label: f.label }));
+  const fields = $derived(importFields());
+  const fieldItems = $derived(fields.map((f) => ({ value: f.value, label: f.label })));
 </script>
 
 {#if runner.progress}
@@ -110,12 +111,12 @@
   >
     <FileUpIcon class="size-5 text-muted-foreground" aria-hidden="true" />
     <span class="font-medium">
-      {preset === 'jira' ? 'Drop your Jira CSV export' : 'Drop a CSV file'} or click to choose
+      {preset === 'jira' ? m.auth_import_drop_jira() : m.auth_import_drop_csv()}
     </span>
     <span class="text-xs text-muted-foreground">
       {preset === 'jira'
-        ? 'In Jira: Filters → your issues → Export → Export CSV (all fields).'
-        : 'First row is the header. Title is required; everything else is optional.'}
+        ? m.auth_import_hint_jira()
+        : m.auth_import_hint_csv()}
     </span>
     <input
       bind:this={inputEl}
@@ -131,28 +132,31 @@
     <div class="flex items-center gap-2 text-sm">
       <span class="font-medium">{file.name}</span>
       <span class="text-muted-foreground">
-        {pluralize(file.rows.length, 'row')} · {file.headers.length} columns
+        {m.auth_import_rows_columns({
+          rows: m.auth_import_rows({ count: file.rows.length }),
+          columns: file.headers.length,
+        })}
       </span>
       <Button
         variant="ghost"
         size="icon-xs"
         class="ml-auto"
         onclick={clear}
-        aria-label="Choose another file"
+        aria-label={m.auth_import_choose_another()}
       >
         <XIcon />
       </Button>
     </div>
 
     <section class="flex flex-col gap-2">
-      <h3 class="text-sm font-medium">Map columns</h3>
+      <h3 class="text-sm font-medium">{m.auth_import_map_columns()}</h3>
       <div class="divide-y divide-border rounded-md border border-border">
         {#each file.headers as header, i (i)}
           <div class="flex items-center gap-3 px-3 py-1.5">
             <div class="min-w-0 flex-1">
-              <div class="truncate text-sm">{header || `Column ${i + 1}`}</div>
+              <div class="truncate text-sm">{header || m.auth_import_column_n({ n: i + 1 })}</div>
               <div class="truncate text-xs text-muted-foreground">
-                {file.rows.find((r) => r[i]?.trim())?.[i]?.slice(0, 80) ?? 'empty'}
+                {file.rows.find((r) => r[i]?.trim())?.[i]?.slice(0, 80) ?? m.auth_import_column_empty()}
               </div>
             </div>
             <Select
@@ -165,12 +169,14 @@
               <SelectTrigger
                 size="sm"
                 class="w-52"
-                aria-label="Field for {header || `column ${i + 1}`}"
+                aria-label={m.auth_import_field_for({
+                  column: header || m.auth_import_column_lower_n({ n: i + 1 }),
+                })}
               >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {#each IMPORT_FIELDS as f (f.value)}
+                {#each fields as f (f.value)}
                   <SelectItem value={f.value}>
                     {f.label}
                   </SelectItem>
@@ -180,26 +186,22 @@
           </div>
         {/each}
       </div>
-      <p class="text-xs text-muted-foreground">
-        Statuses match your workflow by name (unknown ones use the default state). Assignees match
-        project members by email. Missing labels are created. Rows with a source ID that were
-        imported before are skipped.
-      </p>
+      <p class="text-xs text-muted-foreground">{m.auth_import_csv_note()}</p>
     </section>
 
     {#if hasTitle && built}
       <section class="flex flex-col gap-2">
         <h3 class="text-sm font-medium">
-          Preview{' '}
+          {m.auth_import_preview()}{' '}
           <span class="font-normal text-muted-foreground">
-            {pluralize(built.records.length, 'issue')}
-            {built.untitled > 0 ? ` · ${built.untitled} rows without a title will be skipped` : ''}
+            {m.auth_import_issue_count({ count: built.records.length })}
+            {built.untitled > 0 ? ` · ${m.auth_import_untitled_skipped({ count: built.untitled })}` : ''}
           </span>
         </h3>
         <RecordPreview records={built.records} />
       </section>
     {:else}
-      <p class="text-sm text-muted-foreground">Map a column to Title to continue.</p>
+      <p class="text-sm text-muted-foreground">{m.auth_import_map_title()}</p>
     {/if}
 
     <div class="flex gap-2">
@@ -207,9 +209,9 @@
         disabled={!hasTitle || !built?.records.length}
         onclick={() => built && void runner.run(built.records)}
       >
-        Import {pluralize(built?.records.length ?? 0, 'issue')}
+        {m.auth_import_button({ count: built?.records.length ?? 0 })}
       </Button>
-      <Button variant="ghost" onclick={clear}>Cancel</Button>
+      <Button variant="ghost" onclick={clear}>{m.common_cancel()}</Button>
     </div>
   </div>
 {/if}

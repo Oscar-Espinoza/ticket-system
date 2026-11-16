@@ -4,7 +4,7 @@
   chunked pipeline as CSV.
 -->
 <script lang="ts">
-  import { pluralize } from '@/lib/format';
+  import { m } from '@/lib/i18n';
   import GitBranchIcon from '@lucide/svelte/icons/git-branch';
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
   import { toast } from 'svelte-sonner';
@@ -97,13 +97,13 @@
   <Skeleton class="h-24" variant="card" />
 {:else if repos.status === 'no-token'}
   <EmptyState
-    title="Connect GitHub to import issues"
-    description="Imports use your own GitHub account. Sign in with GitHub, or link your GitHub account in Settings → GitHub, then come back here."
+    title={m.auth_import_connect_title()}
+    description={m.auth_import_connect_description()}
   >
     {#snippet icon()}<GitBranchIcon />{/snippet}
     {#snippet action()}
       <Button size="sm" variant="outline" href={projectHref(projectId, 'settings/github')}>
-        Open GitHub settings
+        {m.auth_import_open_github_settings()}
       </Button>
     {/snippet}
   </EmptyState>
@@ -111,11 +111,11 @@
   <div class="flex flex-col gap-6">
     <div class="flex flex-wrap items-end gap-4">
       <div class="flex min-w-64 flex-1 flex-col gap-1.5">
-        <Label for={repoId}>Repository</Label>
+        <Label for={repoId}>{m.auth_import_repository()}</Label>
         <Input
           id={repoId}
           list="{repoId}-list"
-          placeholder="owner/name"
+          placeholder={m.auth_import_repo_placeholder()}
           bind:value={repo}
           autocomplete="off"
           oninput={() => (fetched = null)}
@@ -140,39 +140,40 @@
             }
           }
         />
-        <Label for={closedId} class="font-normal">Include closed issues</Label>
+        <Label for={closedId} class="font-normal">{m.auth_import_include_closed()}</Label>
       </div>
       <Button variant="outline" disabled={!repo.trim() || fetching} onclick={fetchIssues}>
         {#if fetching}<Loader2Icon class="animate-spin" />{/if}
-        Fetch issues
+        {m.auth_import_fetch_issues()}
       </Button>
     </div>
 
     {#if fetched}
       {#if fetched.records.length === 0}
         <EmptyState
-          title="No issues to import"
-          description="{fetched.repo} has no {includeClosed ? '' : 'open '}issues (pull requests are skipped)."
+          title={m.auth_import_empty_issues_title()}
+          description={includeClosed
+            ? m.auth_import_empty_all_issues({ repo: fetched.repo })
+            : m.auth_import_empty_open_issues({ repo: fetched.repo })}
         />
       {:else}
         <section class="flex flex-col gap-2">
           <h3 class="text-sm font-medium">
-            Preview{' '}
+            {m.auth_import_preview()}{' '}
             <span class="font-normal text-muted-foreground">
-              {fetched.open} open{includeClosed ? ` · ${fetched.closed} closed` : ''}
-              {fetched.truncated ? ` · capped at the first ${GITHUB_IMPORT_CAP}` : ''}
+              {[
+                m.auth_import_stat_open({ count: fetched.open }),
+                ...(includeClosed ? [m.auth_import_stat_closed({ count: fetched.closed })] : []),
+                ...(fetched.truncated ? [m.auth_import_stat_capped({ count: GITHUB_IMPORT_CAP })] : []),
+              ].join(' · ')}
             </span>
           </h3>
           <RecordPreview records={fetched.records} />
-          <p class="text-xs text-muted-foreground">
-            Open issues land in the default state, closed ones in the first completed state. Labels
-            are created with their GitHub colours; each issue links back to GitHub, and issues
-            imported before are skipped.
-          </p>
+          <p class="text-xs text-muted-foreground">{m.auth_import_github_note()}</p>
         </section>
         <div>
           <Button onclick={() => fetched && void runner.run(fetched.records)}>
-            Import {pluralize(fetched.records.length, 'issue')}
+            {m.auth_import_button({ count: fetched.records.length })}
           </Button>
         </div>
       {/if}

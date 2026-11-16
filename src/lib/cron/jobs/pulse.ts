@@ -16,6 +16,8 @@ import type { ChannelNotification } from '@/lib/notifications/channels';
 import { createNotifications } from '@/lib/notifications/create';
 import { prefEnabled } from '@/lib/notifications/types';
 import { DAY_MS } from '@/lib/time';
+import { recipientLocales, withLocale } from '@/lib/server/i18n';
+import { m } from '@/lib/i18n';
 import { describePulse, getPulse, type PulseProjectStats } from '@/lib/pulse';
 
 const PULSE_URL = '/dashboard/dashboards?tab=pulse';
@@ -45,10 +47,10 @@ async function sendPulses(now: Date): Promise<string> {
   const last = new Map(lastPulses.flatMap((r) => (r.at ? [[r.userId, new Date(r.at).getTime()] as const] : [])));
   const prefs = new Map(profiles.map((p) => [p.userId, p.prefs]));
   const projectsByUser = new Map<string, string[]>();
-  for (const m of memberships) {
-    const list = projectsByUser.get(m.userId) ?? [];
-    list.push(m.projectId);
-    projectsByUser.set(m.userId, list);
+  for (const membership of memberships) {
+    const list = projectsByUser.get(membership.userId) ?? [];
+    list.push(membership.projectId);
+    projectsByUser.set(membership.userId, list);
   }
 
   const due = [...projectsByUser.keys()].filter((userId) => {
@@ -66,6 +68,7 @@ async function sendPulses(now: Date): Promise<string> {
   const statsById = new Map(pulse.projects.map((p) => [p.projectId, p]));
 
   const rows: ChannelNotification[] = [];
+  const locales = await recipientLocales(due);
   for (const userId of due) {
     const mine = new Set(projectsByUser.get(userId));
     const stats: PulseProjectStats[] = [];
@@ -85,7 +88,7 @@ async function sendPulses(now: Date): Promise<string> {
       actorId: null,
       type: 'pulse',
       data: {
-        title: 'Weekly pulse',
+        title: await withLocale(locales.get(userId)!, () => m.email_pulse_title()),
         summary,
         lines,
         url: PULSE_URL,

@@ -2,6 +2,7 @@
   Member profile. The dashboard layout shows the navigation progress indicator.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import ActivityIcon from '@lucide/svelte/icons/activity';
   import CircleDotIcon from '@lucide/svelte/icons/circle-dot';
   import FolderKanbanIcon from '@lucide/svelte/icons/folder-kanban';
@@ -21,7 +22,7 @@
 </script>
 
 <svelte:head>
-  <title>{person.name ?? 'Profile'} · Ticket System</title>
+  <title>{m.auth_page_title({ page: person.name ?? m.auth_person_profile() })}</title>
 </svelte:head>
 
 <div class="mx-auto flex max-w-3xl flex-col gap-10">
@@ -44,7 +45,7 @@
     {#if isSelf}
       <Button variant="outline" size="sm" href="/dashboard/settings/profile">
         <PencilIcon />
-        Edit profile
+        {m.auth_person_edit_profile()}
       </Button>
     {/if}
   </header>
@@ -55,11 +56,11 @@
 
   <section aria-labelledby="person-projects">
     <h2 id="person-projects" class="mb-3 text-base font-medium">
-      {isSelf ? 'Your projects' : 'Shared projects'}
+      {isSelf ? m.auth_person_your_projects() : m.auth_person_shared_projects()}
       <span class="text-muted-foreground">· {data.shared.length}</span>
     </h2>
     {#if data.shared.length === 0}
-      <EmptyState class="rounded-lg border py-8" title="No projects yet">
+      <EmptyState class="rounded-lg border py-8" title={m.auth_person_no_projects()}>
         {#snippet icon()}<FolderKanbanIcon />{/snippet}
       </EmptyState>
     {:else}
@@ -86,15 +87,15 @@
 
   <section aria-labelledby="person-issues">
     <h2 id="person-issues" class="mb-3 text-base font-medium">
-      Assigned issues <span class="text-muted-foreground">· {data.assigned.length}</span>
+      {m.auth_person_assigned()} <span class="text-muted-foreground">· {data.assigned.length}</span>
     </h2>
     {#if data.assigned.length === 0}
       <EmptyState
         class="rounded-lg border py-8"
-        title="No open issues"
+        title={m.auth_person_no_open()}
         description={isSelf
-          ? 'Nothing is assigned to you right now.'
-          : `Nothing open is assigned to ${person.name} in projects you share.`}
+          ? m.auth_person_none_self()
+          : m.auth_person_none_other({ name: person.name ?? '' })}
       >
         {#snippet icon()}<CircleDotIcon />{/snippet}
       </EmptyState>
@@ -123,12 +124,12 @@
   </section>
 
   <section aria-labelledby="person-activity">
-    <h2 id="person-activity" class="mb-3 text-base font-medium">Recent activity</h2>
+    <h2 id="person-activity" class="mb-3 text-base font-medium">{m.auth_person_recent()}</h2>
     {#if data.recent.length === 0}
       <EmptyState
         class="rounded-lg border py-8"
-        title="No recent activity"
-        description="Changes they make in projects you share show up here."
+        title={m.auth_person_no_recent()}
+        description={m.auth_person_no_recent_description()}
       >
         {#snippet icon()}<ActivityIcon />{/snippet}
       </EmptyState>
@@ -143,7 +144,7 @@
                     >{item.key}{#if item.title}<span class="font-normal">{' '}{item.title}</span>{/if}</a
                   >{:else}<span class="font-medium"
                     >{item.key}{#if item.title}<span class="font-normal">{' '}{item.title}</span>{/if}</span
-                  >{/if}{:else}<span class="text-muted-foreground">{' '}in {item.projectName}</span>{/if}
+                  >{/if}{:else}<span class="text-muted-foreground">{' '}{m.auth_person_in_project({ project: item.projectName })}</span>{/if}
             </span>
             <time datetime={item.createdAt} class="shrink-0 text-xs text-muted-foreground">
               {item.ago}

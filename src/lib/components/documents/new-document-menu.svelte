@@ -4,11 +4,12 @@
   hook is ./use-create-document.svelte.ts.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import ChevronDown from '@lucide/svelte/icons/chevron-down';
   import FileText from '@lucide/svelte/icons/file-text';
   import Plus from '@lucide/svelte/icons/plus';
 
-  import { DOCUMENT_TEMPLATES } from '@/lib/document-model';
+  import { documentTemplates } from '@/lib/document-model';
   import { Button } from '@/lib/components/ui/button';
   import {
     DropdownMenu,
@@ -41,15 +42,15 @@
     registerPaletteCommands([
       {
         id: 'new-document',
-        label: 'New document',
-        section: 'Docs',
+        label: m.auth_docs_new_document(),
+        section: m.auth_docs_palette_section(),
         keywords: ['create', 'doc', 'page', 'write'],
         run: () => doc.create('blank'),
       },
       {
         id: 'new-document-template',
-        label: 'New document from template…',
-        section: 'Docs',
+        label: m.auth_docs_new_from_template_palette(),
+        section: m.auth_docs_palette_section(),
         keywords: ['spec', 'rfc', 'meeting notes', 'template'],
         run: () => {
           open = true;
@@ -64,7 +65,7 @@
     <div class="flex items-center">
       <Button size="sm" class="rounded-r-none" disabled={doc.pending} onclick={() => doc.create('blank')}>
         <Plus />
-        New doc
+        {m.auth_docs_new_doc()}
       </Button>
       <DropdownMenuTrigger>
         {#snippet child({ props })}
@@ -73,7 +74,7 @@
             size="sm"
             class="rounded-l-none border-l border-primary-foreground/20 px-1.5"
             disabled={doc.pending}
-            aria-label="New doc from a template"
+            aria-label={m.auth_docs_new_from_template()}
           >
             <ChevronDown />
           </Button>
@@ -81,8 +82,8 @@
       </DropdownMenuTrigger>
     </div>
     <DropdownMenuContent align="end" class="w-64">
-      <DropdownMenuLabel class="text-xs text-muted-foreground">New document</DropdownMenuLabel>
-      {#each DOCUMENT_TEMPLATES as template, index (template.id)}
+      <DropdownMenuLabel class="text-xs text-muted-foreground">{m.auth_docs_new_document()}</DropdownMenuLabel>
+      {#each documentTemplates() as template, index (template.id)}
         <div>
           {#if index === 1}
             <DropdownMenuSeparator />

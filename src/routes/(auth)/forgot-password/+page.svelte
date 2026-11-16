@@ -6,6 +6,7 @@
   enforce SSO get SSO_REQUIRED, the same as on the sign-in form.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
 
   import Wordmark from '@/lib/components/wordmark.svelte';
@@ -24,7 +25,7 @@
     e.preventDefault();
     formError = null;
     if (!email.includes('@')) {
-      formError = 'Enter your email address.';
+      formError = m.auth_forgot_enter_email();
       return;
     }
     loading = true;
@@ -34,32 +35,29 @@
     if (!error) {
       sentTo = email;
     } else if (error.code === 'SSO_REQUIRED') {
-      formError = 'Your workspace requires single sign-on, so there is no password to reset. Sign in with SSO.';
+      formError = m.auth_forgot_sso();
     } else if (error.status === 429) {
-      formError = 'Too many requests. Wait a minute and try again.';
+      formError = m.auth_too_many_requests();
     } else {
-      formError = 'Couldn’t send the email. Try again.';
+      formError = m.auth_email_send_failed();
     }
   }
 </script>
 
 <svelte:head>
-  <title>Reset your password · Ticket System</title>
+  <title>{m.auth_forgot_page_title()}</title>
 </svelte:head>
 
 <div class="flex min-h-screen flex-col items-center justify-center gap-6 px-6 py-12">
   <Wordmark />
   <Card class="w-full max-w-sm">
     <CardHeader>
-      <CardTitle>{sentTo ? 'Check your email' : 'Reset your password'}</CardTitle>
+      <CardTitle>{sentTo ? m.auth_forgot_check_email() : m.auth_forgot_title()}</CardTitle>
       <CardDescription>
         {#if sentTo}
-          If <span class="font-medium break-all">{sentTo}</span> has an account, a link to choose a new password is on
-          its way. It works once, for an hour. Check your spam folder too; you can ask again in a minute.
+          {m.auth_forgot_sent({ email: sentTo })}
         {:else}
-          We’ll email you a link to choose a new password. Resetting signs out every session of the account and
-          verifies its address. If the address was never verified, it also removes two-factor, API keys and
-          connected apps; the link’s page lists them before you confirm.
+          {m.auth_forgot_intro()}
         {/if}
       </CardDescription>
     </CardHeader>
@@ -67,18 +65,18 @@
       {#if !sentTo}
         <form onsubmit={handleSubmit} class="flex flex-col gap-4" novalidate>
           <div class="flex flex-col gap-2">
-            <Label for="email">Email</Label>
-            <Input id="email" type="email" autocomplete="email" placeholder="you@example.com" bind:value={email} />
+            <Label for="email">{m.auth_email()}</Label>
+            <Input id="email" type="email" autocomplete="email" placeholder={m.auth_email_placeholder()} bind:value={email} />
           </div>
           {#if formError}<p role="alert" class="text-destructive text-sm">{formError}</p>{/if}
           <Button type="submit" class="w-full" disabled={loading}>
             {#if loading}<Loader2Icon class="animate-spin" />{/if}
-            {loading ? 'Sending…' : 'Email me a reset link'}
+            {loading ? m.auth_forgot_sending() : m.auth_forgot_send()}
           </Button>
         </form>
       {/if}
       <p class="text-center text-sm text-muted-foreground">
-        <a href="/login" class="underline underline-offset-4">Back to sign in</a>
+        <a href="/login" class="underline underline-offset-4">{m.auth_back_to_sign_in()}</a>
       </p>
     </CardContent>
   </Card>

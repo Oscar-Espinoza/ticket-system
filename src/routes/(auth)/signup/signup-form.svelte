@@ -23,6 +23,7 @@
   default from the email local-part.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { goto } from '$app/navigation';
   // lucide 1.17 dropped the `Github` brand icon; GitBranch stands in.
   import GitBranchIcon from '@lucide/svelte/icons/git-branch';
@@ -69,7 +70,7 @@
       errorCallbackURL: authHref('/login', redirectTo),
     });
     if (error) {
-      formError = 'GitHub sign-in failed. Try again or use email and password.';
+      formError = m.auth_login_github_failed();
     }
   }
 
@@ -80,11 +81,11 @@
     formError = null;
 
     if (!email) {
-      emailError = 'Email is required.';
+      emailError = m.auth_login_email_required();
       return;
     }
     if (!password) {
-      passwordError = 'Password is required.';
+      passwordError = m.auth_login_password_required();
       return;
     }
 
@@ -108,11 +109,11 @@
         return;
       }
       if (error.code?.startsWith('USER_ALREADY_EXISTS')) {
-        emailError = 'An account with this email already exists. Sign in instead.';
+        emailError = m.auth_signup_exists();
       } else if (error.code === 'PASSWORD_TOO_SHORT') {
-        passwordError = `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`;
+        passwordError = m.auth_password_min({ min: MIN_PASSWORD_LENGTH });
       } else {
-        formError = 'Something went wrong. Please try again.';
+        formError = m.auth_login_generic();
       }
       return;
     }
@@ -131,29 +132,27 @@
 {#if checkInbox}
 <Card class="w-full max-w-sm">
   <CardHeader>
-    <CardTitle>Check your email</CardTitle>
+    <CardTitle>{m.auth_signup_check_email()}</CardTitle>
     <CardDescription>
-      We sent a link to <span class="font-medium break-all">{checkInbox}</span> to verify the address. Open it
-      and sign in on the page it opens with the password you just chose. Already have an account with this email?
-      Just sign in.
+      {m.auth_signup_check_description({ email: checkInbox })}
     </CardDescription>
   </CardHeader>
   <CardContent>
-    <Button href={authHref('/login', redirectTo)} class="w-full">Go to sign in</Button>
+    <Button href={authHref('/login', redirectTo)} class="w-full">{m.auth_signup_go_sign_in()}</Button>
   </CardContent>
 </Card>
 {:else}
 <Card class="w-full max-w-sm">
   <CardHeader>
-    <CardTitle>Create account</CardTitle>
-    <CardDescription>Start managing your tickets</CardDescription>
+    <CardTitle>{m.auth_signup_title()}</CardTitle>
+    <CardDescription>{m.auth_signup_subtitle()}</CardDescription>
   </CardHeader>
   <CardContent class="flex flex-col gap-4">
     <!-- GitHub OAuth (AUTH-02). Redirects the browser to GitHub on click. -->
     {#if githubEnabled}
       <Button type="button" variant="default" class="w-full" onclick={handleGitHubSignIn}>
         <GitBranchIcon />
-        Continue with GitHub
+        {m.auth_continue_github()}
       </Button>
     {/if}
     {#if googleEnabled}
@@ -163,18 +162,18 @@
     {#if githubEnabled || googleEnabled}
       <div class="flex items-center gap-2">
         <Separator class="flex-1" />
-        <span class="text-xs text-muted-foreground">or</span>
+        <span class="text-xs text-muted-foreground">{m.auth_or()}</span>
         <Separator class="flex-1" />
       </div>
     {/if}
 
     <form onsubmit={handleSubmit} class="flex flex-col gap-4" novalidate>
       <div class="flex flex-col gap-2">
-        <Label for="email">Email</Label>
+        <Label for="email">{m.auth_email()}</Label>
         <Input
           id="email"
           type="email"
-          placeholder="you@example.com"
+          placeholder={m.auth_email_placeholder()}
           bind:value={email}
           aria-invalid={emailError ? true : undefined}
           aria-describedby={emailError ? 'email-error' : undefined}
@@ -191,7 +190,7 @@
       </div>
 
       <div class="flex flex-col gap-2">
-        <Label for="password">Password</Label>
+        <Label for="password">{m.auth_password()}</Label>
         <Input
           id="password"
           type="password"
@@ -214,13 +213,13 @@
 
       <Button type="submit" class="w-full" disabled={loading}>
         {#if loading}<Loader2Icon class="animate-spin" />{/if}
-        {loading ? 'Creating account…' : 'Create account'}
+        {loading ? m.auth_signup_creating() : m.auth_signup_title()}
       </Button>
     </form>
 
     <p class="text-center text-sm text-muted-foreground">
-      Already have an account?
-      <a href={authHref('/login', redirectTo)} class="underline underline-offset-4">Sign in</a>
+      {m.auth_signup_have_account()}
+      <a href={authHref('/login', redirectTo)} class="underline underline-offset-4">{m.auth_sign_in()}</a>
     </p>
   </CardContent>
 </Card>

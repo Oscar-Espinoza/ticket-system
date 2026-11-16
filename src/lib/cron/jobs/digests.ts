@@ -11,6 +11,7 @@ import { and, desc, eq, gt, inArray, isNull, lte, or } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { notifications, projectMembers, userProfiles, users } from '@/db/schema';
 import { sendEmail } from '@/lib/email';
+import { recipientLocale, withLocale } from '@/lib/server/i18n';
 import { appUrl } from '@/lib/integrations/app-url';
 import { WEEKLY_MIN_GAP_MS, isMondayUtc } from '@/lib/cron/cadence';
 import { DAY_MS, HOUR_MS, WEEK_MS } from '@/lib/time';
@@ -153,35 +154,38 @@ async function sendDigest(recipient: Recipient, now: Date): Promise<'sent' | 'em
   if (included.length === 0) return 'empty';
 
   const origin = appUrl();
-  const groups = new Map<string, DigestGroup>();
-  for (const row of included.slice(0, MAX_LISTED)) {
-    const data = notificationData(row.data);
-    const sentence = describeNotification(row.type, data, row.actorName ?? null);
-    const groupKey = row.ticketId ?? row.id;
-    let group = groups.get(groupKey);
-    if (!group) {
-      group = {
-        key: row.ticketId ? (data.key ?? '') : '',
-        title: data.title ?? sentence,
-        url: `${origin}${notificationPath(row.projectId, data)}`,
-        items: [],
-        more: 0,
-      };
-      groups.set(groupKey, group);
+  // The whole email is built in the recipient's language.
+  const message = await withLocale(await recipientLocale(userId), () => {
+    const groups = new Map<string, DigestGroup>();
+    for (const row of included.slice(0, MAX_LISTED)) {
+      const data = notificationData(row.data);
+      const sentence = describeNotification(row.type, data, row.actorName ?? null);
+      const groupKey = row.ticketId ?? row.id;
+      let group = groups.get(groupKey);
+      if (!group) {
+        group = {
+          key: row.ticketId ? (data.key ?? '') : '',
+          title: data.title ?? sentence,
+          url: `${origin}${notificationPath(row.projectId, data)}`,
+          items: [],
+          more: 0,
+        };
+        groups.set(groupKey, group);
+      }
+      if (group.items.length < MAX_PER_GROUP) {
+        group.items.push({ sentence, at: row.createdAt, excerpt: data.excerpt });
+      } else {
+        group.more++;
+      }
     }
-    if (group.items.length < MAX_PER_GROUP) {
-      group.items.push({ sentence, at: row.createdAt, excerpt: data.excerpt });
-    } else {
-      group.more++;
-    }
-  }
 
-  const message = digestEmail({
-    frequency: recipient.frequency,
-    groups: [...groups.values()],
-    total: included.length,
-    inboxUrl: `${origin}/dashboard/inbox`,
-    settingsUrl: settingsUrl(),
+    return digestEmail({
+      frequency: recipient.frequency,
+      groups: [...groups.values()],
+      total: included.length,
+      inboxUrl: `${origin}/dashboard/inbox`,
+      settingsUrl: settingsUrl(),
+    });
   });
 
   if (!(await sendEmail({ to: recipient.email, ...message }))) {

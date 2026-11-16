@@ -3,6 +3,7 @@
   (subtasks follow their parent) → preview → the shared chunked import.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
   import { toast } from 'svelte-sonner';
 
@@ -84,7 +85,7 @@
       else toast.error(res.error);
     });
 
-  const projectName = $derived(projects?.find((p) => p.gid === project)?.name ?? 'This project');
+  const projectName = $derived(projects?.find((p) => p.gid === project)?.name ?? m.auth_import_this_project());
 </script>
 
 {#if runner.progress}
@@ -101,14 +102,14 @@
 {:else if !token}
   <TokenForm provider="Asana" {pending} onSubmit={connect}>
     {#snippet help()}
-      Create one in Asana under
+      {m.auth_import_asana_help()}
       <a
         href="https://app.asana.com/0/my-apps"
         target="_blank"
         rel="noreferrer"
         class="underline underline-offset-2"
       >
-        My settings → Apps → Developer apps
+        {m.auth_import_asana_help_link()}
       </a>.
     {/snippet}
   </TokenForm>
@@ -116,14 +117,14 @@
   <div class="flex flex-col gap-6">
     <div class="flex flex-wrap items-end gap-4">
       <div class="flex min-w-48 flex-col gap-1.5">
-        <Label>Workspace</Label>
+        <Label>{m.auth_import_workspace()}</Label>
         <Select
           bind:value={() => workspace, (value) => void loadProjects(value, token!)}
           items={workspaces.map((w) => ({ value: w.gid, label: w.name }))}
           disabled={pending}
         >
           <SelectTrigger class="w-56">
-            <SelectValue placeholder="Pick a workspace" />
+            <SelectValue placeholder={m.auth_import_pick_workspace()} />
           </SelectTrigger>
           <SelectContent>
             {#each workspaces as w (w.gid)}
@@ -135,7 +136,7 @@
         </Select>
       </div>
       <div class="flex min-w-48 flex-col gap-1.5">
-        <Label>Project</Label>
+        <Label>{m.common_project()}</Label>
         <Select
           bind:value={
             () => project,
@@ -150,12 +151,12 @@
           <SelectTrigger class="w-64">
             <SelectValue
               placeholder={!workspace
-                ? 'Pick a workspace first'
+                ? m.auth_import_pick_workspace_first()
                 : projects === null
-                  ? 'Loading…'
+                  ? m.common_loading()
                   : projects.length
-                    ? 'Pick a project'
-                    : 'No projects'}
+                    ? m.auth_import_pick_project()
+                    : m.auth_import_no_projects()}
             />
           </SelectTrigger>
           <SelectContent>
@@ -177,7 +178,7 @@
       />
       <Button variant="outline" disabled={!project || pending} onclick={fetchTasks}>
         {#if pending}<Loader2Icon class="animate-spin" />{/if}
-        Fetch tasks
+        {m.auth_import_fetch_tasks()}
       </Button>
     </div>
     {#if fetched}

@@ -47,6 +47,9 @@ import {
 } from '@/lib/workspace-access';
 import { inviteRolesFor, workspaceRoleAllows } from '@/lib/workspace-types';
 import { sendEmail } from '@/lib/email';
+import { m } from '@/lib/i18n';
+import { inviteLocale } from '@/lib/server/invite-locale';
+import { withLocale } from '@/lib/server/i18n';
 import { isValidSlug, slugify } from '@/lib/workspace-slug';
 
 export type WorkspaceField =
@@ -81,7 +84,7 @@ export async function createWorkspace(input: {
   if (isFail(name)) return name;
   const slug = (typeof input.slug === 'string' && input.slug.trim()) || slugify(name);
   if (!isValidSlug(slug)) {
-    return fail('URL must be 2–40 lowercase letters, numbers or dashes.', 'slug');
+    return fail(m.auth_ws_slug_invalid(), 'slug');
   }
 
   const id = crypto.randomUUID();
@@ -106,7 +109,7 @@ export async function createWorkspace(input: {
     ]);
   } catch (err) {
     if (isUniqueViolation(err)) {
-      return fail('This URL is taken. Try another one.', 'slug');
+      return fail(m.auth_ws_slug_taken(), 'slug');
     }
     throw err;
   }
@@ -140,7 +143,7 @@ export async function deleteWorkspace(input: {
   const authz = await authorizeWorkspaceAction(input?.workspaceId, 'owner');
   if (!authz.ok) return authz;
   if ((input.confirm ?? '').trim() !== authz.membership.name) {
-    return fail('Type the workspace name exactly to confirm.', 'confirm');
+    return fail(m.auth_ws_confirm_name(), 'confirm');
   }
 
   await db.delete(workspaces).where(eq(workspaces.id, authz.membership.workspaceId));
@@ -152,7 +155,7 @@ export async function leaveWorkspace(input: { workspaceId: string }): Promise<Wo
   const authz = await authorizeWorkspaceAction(input?.workspaceId, 'member');
   if (!authz.ok) return authz;
   if (authz.membership.role === 'owner') {
-    return fail('The owner can’t leave. Delete the workspace instead.');
+    return fail(m.auth_ws_owner_cant_leave());
   }
 
   await db
@@ -179,7 +182,7 @@ export async function addProjectToWorkspace(input: {
   if (!authz.ok) return authz;
   const project = await authorizeProjectAction(input.projectId, 'admin');
   if (!project.ok) {
-    return fail('You need to be an admin of that project.', 'projectId');
+    return fail(m.auth_ws_need_project_admin(), 'projectId');
   }
 
   // Sub-team links never cross workspaces: the project leaves its old parent
@@ -213,7 +216,7 @@ export async function removeProjectFromWorkspace(input: {
     .set({ workspaceId: null, parentId: null, updatedAt: new Date() })
     .where(and(eq(projects.id, projectId), eq(projects.workspaceId, authz.membership.workspaceId)))
     .returning({ id: projects.id });
-  if (updated.length === 0) return fail('Project not found in this workspace.');
+  if (updated.length === 0) return fail(m.auth_ws_project_not_in_ws());
   // Only once the project is confirmed to have been in this workspace.
   await detachSubTeams(projectId, null);
 
@@ -283,7 +286,7 @@ export async function joinWorkspaceProject(input: {
       ),
     )
     .limit(1);
-  if (!project) return fail('Project not found.', 'projectId');
+  if (!project) return fail(m.auth_project_not_found(), 'projectId');
 
   await db
     .insert(projectMembers)
@@ -321,7 +324,7 @@ export async function inviteWorkspaceMember(input: {
   if (isFail(email)) return email;
   const role = input.role;
   if ((role !== 'admin' && role !== 'member') || !inviteRolesFor(authz.membership.role).includes(role)) {
-    return fail('You can’t invite people with that role.', 'role');
+    return fail(m.auth_invite_role_not_allowed(), 'role');
   }
   const workspaceId = authz.membership.workspaceId;
 
@@ -340,7 +343,7 @@ export async function inviteWorkspaceMember(input: {
       .from(workspaceMembers)
       .where(and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.userId, target.id)))
       .limit(1);
-    if (existing) return fail(`${target.name} is already a member.`, 'email');
+    if (existing) return fail(m.auth_ws_already_member({ name: target.name }), 'email');
     try {
       await db.insert(workspaceMembers).values({
         id: crypto.randomUUID(),
@@ -382,7 +385,7 @@ export async function inviteWorkspaceMember(input: {
       }),
     ]);
   } catch (err) {
-    if (isUniqueViolation(err)) return fail('Could not create the invitation, try again.');
+    if (isUniqueViolation(err)) return fail(m.auth_invite_create_failed());
     throw err;
   }
 
@@ -409,18 +412,21 @@ async function sendWorkspaceInviteEmail(opts: {
     .from(users)
     .where(eq(users.id, opts.inviterId))
     .limit(1);
-  const inviterName = inviter?.name ?? 'A teammate';
-  return sendEmail({
-    to: opts.to,
-    subject: `${inviterName} invited you to the ${opts.workspaceName} workspace`,
-    text: [
-      `${inviterName} invited you to join the ${opts.workspaceName} workspace as ${opts.role === 'admin' ? 'an admin' : 'a member'}.`,
-      '',
-      `Accept the invitation: ${workspaceInviteUrl(opts.token)}`,
-      '',
-      `Sign in (or sign up) with ${opts.to} to accept. The link expires in 7 days.`,
-    ].join('\n'),
+  // In the invitee's language (the inviter's when the address has no account yet).
+  const message = await withLocale(await inviteLocale(opts.to), () => {
+    const params = { inviter: inviter?.name ?? m.email_invite_fallback_inviter(), workspace: opts.workspaceName };
+    return {
+      subject: m.email_invite_workspace_subject(params),
+      text: [
+        opts.role === 'admin' ? m.email_invite_workspace_admin(params) : m.email_invite_workspace_member(params),
+        '',
+        m.email_invite_accept({ url: workspaceInviteUrl(opts.token) }),
+        '',
+        m.email_invite_sign_in({ email: opts.to }),
+      ].join('\n'),
+    };
   });
+  return sendEmail({ to: opts.to, ...message });
 }
 
 /** A pending invitation of the caller's workspace that the caller may manage. */
@@ -457,7 +463,7 @@ export async function resendWorkspaceInvitation(input: {
   const authz = await authorizeWorkspaceAction(input?.workspaceId, 'admin');
   if (!authz.ok) return authz;
   const invitation = await manageableInvitation(authz, input.invitationId);
-  if (!invitation) return fail('Invitation not found.');
+  if (!invitation) return fail(m.auth_invite_not_found());
 
   await db
     .update(workspaceInvitations)
@@ -486,7 +492,7 @@ export async function revokeWorkspaceInvitation(input: {
   const authz = await authorizeWorkspaceAction(input?.workspaceId, 'admin');
   if (!authz.ok) return authz;
   const invitation = await manageableInvitation(authz, input.invitationId);
-  if (!invitation) return fail('Invitation not found.');
+  if (!invitation) return fail(m.auth_invite_not_found());
 
   await db
     .delete(workspaceInvitations)
@@ -509,9 +515,9 @@ export async function updateWorkspaceMemberRole(input: {
   const authz = await authorizeWorkspaceAction(input?.workspaceId, 'owner');
   if (!authz.ok) return authz;
   if (input.role !== 'admin' && input.role !== 'member') {
-    return fail('Pick admin or member.', 'role');
+    return fail(m.auth_ws_pick_role(), 'role');
   }
-  if (input.userId === authz.userId) return fail('You can’t change your own role.');
+  if (input.userId === authz.userId) return fail(m.auth_ws_own_role());
 
   const updated = await db
     .update(workspaceMembers)
@@ -524,7 +530,7 @@ export async function updateWorkspaceMemberRole(input: {
       ),
     )
     .returning({ id: workspaceMembers.id });
-  if (updated.length === 0) return fail('Member not found.');
+  if (updated.length === 0) return fail(m.auth_member_not_found());
 
   await recordWorkspaceEvent(authz.membership.workspaceId, {
     actorId: authz.userId,
@@ -544,7 +550,7 @@ export async function removeWorkspaceMember(input: {
   const authz = await authorizeWorkspaceAction(input?.workspaceId, 'admin');
   if (!authz.ok) return authz;
   if (input.userId === authz.userId) {
-    return fail('Use “Leave workspace” to remove yourself.');
+    return fail(m.auth_ws_use_leave());
   }
 
   const workspaceId = authz.membership.workspaceId;
@@ -558,8 +564,8 @@ export async function removeWorkspaceMember(input: {
       ),
     )
     .limit(1);
-  if (!target) return fail('Member not found.');
-  if (target.role === 'owner') return fail('The owner can’t be removed.');
+  if (!target) return fail(m.auth_member_not_found());
+  if (target.role === 'owner') return fail(m.auth_ws_owner_cant_remove());
   if (target.role === 'admin' && authz.membership.role !== 'owner') return FORBIDDEN;
 
   await db

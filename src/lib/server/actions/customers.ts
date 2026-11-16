@@ -37,12 +37,12 @@ import {
   type Importance,
   type IssueCustomerRequest,
 } from '@/lib/customer-model';
+import { formatNumber, m } from '@/lib/i18n';
 import { formatIssueKey } from '@/lib/tickets';
 
 export type CustomerActionResult<T = object> = ActionResult<T>;
 
-const deny = (error: string) =>
-  fail(error === 'Forbidden' ? "You don't have permission to do that in this project." : error);
+const deny = (error: string) => fail(error === 'Forbidden' ? m.auth_customers_forbidden() : error);
 
 const isId = (value: unknown): value is string =>
   typeof value === 'string' && value.length > 0 && value.length <= 64;
@@ -73,11 +73,11 @@ type CustomerChanges = Partial<{
   notes: string | null;
 }>;
 
-function validAmount(value: unknown, field: string, label: string): number | null | Fail {
+function validAmount(value: unknown, field: 'revenue' | 'size'): number | null | Fail {
   if (value == null || value === '') return null;
-  if (typeof value !== 'number' || !Number.isFinite(value)) return fail(`${label} must be a number.`, field);
+  if (typeof value !== 'number' || !Number.isFinite(value)) return fail(field === 'revenue' ? m.auth_customers_revenue_not_number() : m.auth_customers_size_not_number(), field);
   const rounded = Math.round(value);
-  if (rounded < 0 || rounded > INT_MAX) return fail(`${label} is out of range.`, field);
+  if (rounded < 0 || rounded > INT_MAX) return fail(field === 'revenue' ? m.auth_customers_revenue_out_of_range() : m.auth_customers_size_out_of_range(), field);
   return rounded;
 }
 
@@ -86,19 +86,19 @@ async function validDomains(
   value: unknown,
   exceptId: string | null,
 ): Promise<string[] | Fail> {
-  if (!Array.isArray(value)) return fail('Invalid domains.', 'domains');
+  if (!Array.isArray(value)) return fail(m.auth_customers_invalid_domains(), 'domains');
   const domains: string[] = [];
   for (const raw of value) {
-    if (typeof raw !== 'string') return fail('Invalid domains.', 'domains');
+    if (typeof raw !== 'string') return fail(m.auth_customers_invalid_domains(), 'domains');
     const domain = normalizeDomain(raw);
-    if (!domain) return fail(`“${raw.slice(0, 60)}” isn't a valid domain.`, 'domains');
+    if (!domain) return fail(m.auth_customers_domain_invalid({ domain: raw.slice(0, 60) }), 'domains');
     if (isPublicMailDomain(domain)) {
-      return fail(`${domain} is a public email provider — use the company's own domain.`, 'domains');
+      return fail(m.auth_customers_domain_public({ domain }), 'domains');
     }
     if (!domains.includes(domain)) domains.push(domain);
   }
   if (domains.length > CUSTOMER_DOMAINS_MAX) {
-    return fail(`At most ${CUSTOMER_DOMAINS_MAX} domains per customer.`, 'domains');
+    return fail(m.auth_customers_domains_max({ max: CUSTOMER_DOMAINS_MAX }), 'domains');
   }
   if (domains.length === 0) return domains;
 
@@ -116,7 +116,7 @@ async function validDomains(
     .limit(1);
   if (taken) {
     const clash = domains.find((d) => taken.domains.includes(d));
-    return fail(`${clash} already belongs to ${taken.name}.`, 'domains');
+    return fail(m.auth_customers_domain_clash({ domain: clash ?? '', customer: taken.name }), 'domains');
   }
   return domains;
 }
@@ -127,7 +127,7 @@ async function validateCustomerInput(
   input: CustomerInput,
   exceptId: string | null,
 ): Promise<CustomerChanges | Fail> {
-  if (typeof input !== 'object' || input === null) return fail('Invalid input.');
+  if (typeof input !== 'object' || input === null) return fail(m.auth_customers_invalid_input());
   const changes: CustomerChanges = {};
   if (input.name !== undefined) {
     const value = requiredText(input.name, 'name', CUSTOMER_NAME_MAX);
@@ -135,38 +135,38 @@ async function validateCustomerInput(
     changes.name = value;
   }
   if (input.status !== undefined) {
-    if (!isCustomerStatus(input.status)) return fail('Invalid status.', 'status');
+    if (!isCustomerStatus(input.status)) return fail(m.auth_customers_invalid_status(), 'status');
     changes.status = input.status;
   }
   if (input.tier !== undefined) {
-    if (input.tier !== null && typeof input.tier !== 'string') return fail('Invalid tier.', 'tier');
+    if (input.tier !== null && typeof input.tier !== 'string') return fail(m.auth_customers_invalid_tier(), 'tier');
     const tier = input.tier?.trim() ?? '';
     if (tier.length > CUSTOMER_TIER_MAX) {
-      return fail(`Tier must be ${CUSTOMER_TIER_MAX} characters or fewer.`, 'tier');
+      return fail(m.auth_customers_tier_max({ max: CUSTOMER_TIER_MAX }), 'tier');
     }
     changes.tier = tier || null;
   }
   if (input.revenue !== undefined) {
-    const value = validAmount(input.revenue, 'revenue', 'Revenue');
+    const value = validAmount(input.revenue, 'revenue');
     if (isFail(value)) return value;
     changes.revenue = value;
   }
   if (input.size !== undefined) {
-    const value = validAmount(input.size, 'size', 'Size');
+    const value = validAmount(input.size, 'size');
     if (isFail(value)) return value;
     changes.size = value;
   }
   if (input.notes !== undefined) {
-    if (input.notes !== null && typeof input.notes !== 'string') return fail('Invalid notes.', 'notes');
+    if (input.notes !== null && typeof input.notes !== 'string') return fail(m.auth_customers_invalid_notes(), 'notes');
     if ((input.notes?.length ?? 0) > CUSTOMER_NOTES_MAX) {
-      return fail(`Notes must be ${CUSTOMER_NOTES_MAX.toLocaleString('en')} characters or fewer.`, 'notes');
+      return fail(m.auth_customers_notes_max({ max: formatNumber(CUSTOMER_NOTES_MAX) }), 'notes');
     }
     changes.notes = input.notes?.trim() ? input.notes : null;
   }
   if (input.ownerId !== undefined) {
-    if (input.ownerId !== null && !isId(input.ownerId)) return fail('Invalid owner.', 'ownerId');
+    if (input.ownerId !== null && !isId(input.ownerId)) return fail(m.auth_customers_invalid_owner(), 'ownerId');
     if (input.ownerId && !(await getMemberProject(projectId, input.ownerId))) {
-      return fail('The owner must be a member of this project.', 'ownerId');
+      return fail(m.auth_customers_owner_not_member(), 'ownerId');
     }
     changes.ownerId = input.ownerId;
   }
@@ -230,7 +230,7 @@ export async function updateCustomer(input: {
   const gate = await authorizeProjectAction(input?.projectId, 'write');
   if (!gate.ok) return deny(gate.error);
   const customer = await loadCustomer(input.projectId, input.id);
-  if (!customer) return fail('Customer not found.');
+  if (!customer) return fail(m.auth_customers_not_found());
 
   const changes = await validateCustomerInput(input.projectId, input.patch, customer.id);
   if (isFail(changes)) return changes;
@@ -252,7 +252,7 @@ export async function deleteCustomer(input: {
   const gate = await authorizeProjectAction(input?.projectId, 'admin');
   if (!gate.ok) return deny(gate.error);
   const customer = await loadCustomer(input.projectId, input.id);
-  if (!customer) return fail('Customer not found.');
+  if (!customer) return fail(m.auth_customers_not_found());
   await db
     .delete(customers)
     .where(and(eq(customers.id, customer.id), eq(customers.projectId, input.projectId)));
@@ -287,7 +287,7 @@ export async function getIssueCustomers(input: {
   const gate = await authorizeProjectAction(input?.projectId, 'read');
   if (!gate.ok) return deny(gate.error);
   const ticket = await loadTicket(input.projectId, input.ticketId);
-  if (!ticket) return fail('Issue not found.');
+  if (!ticket) return fail(m.auth_customers_issue_not_found());
   const [requests, options] = await Promise.all([
     getIssueCustomerRequests(input.projectId, ticket.id),
     getCustomerOptions(input.projectId),
@@ -310,13 +310,13 @@ export async function addCustomerRequest(input: {
   const { projectId } = input;
 
   const ticket = await loadTicket(projectId, input.ticketId);
-  if (!ticket) return fail('Issue not found.');
+  if (!ticket) return fail(m.auth_customers_issue_not_found());
   if (input.importance != null && !isImportance(input.importance)) {
-    return fail('Invalid importance.', 'importance');
+    return fail(m.auth_customers_invalid_importance(), 'importance');
   }
   const body = typeof input.body === 'string' ? input.body.trim() : '';
   if (body.length > REQUEST_BODY_MAX) {
-    return fail(`Keep the note under ${REQUEST_BODY_MAX.toLocaleString('en')} characters.`, 'body');
+    return fail(m.auth_customers_note_max({ max: formatNumber(REQUEST_BODY_MAX) }), 'body');
   }
 
   const now = new Date();
@@ -324,7 +324,7 @@ export async function addCustomerRequest(input: {
   let customer: { id: string; name: string } | null = null;
   if (input.customerId) {
     customer = await loadCustomer(projectId, input.customerId);
-    if (!customer) return fail('Customer not found.', 'customerId');
+    if (!customer) return fail(m.auth_customers_not_found(), 'customerId');
   } else {
     const name = requiredText(input.newCustomerName, 'name', CUSTOMER_NAME_MAX);
     if (isFail(name)) return name;
@@ -403,19 +403,19 @@ export async function updateCustomerRequest(input: {
   const gate = await authorizeProjectAction(input?.projectId, 'write');
   if (!gate.ok) return deny(gate.error);
   const request = await loadRequest(input.projectId, input.id);
-  if (!request) return fail('Request not found.');
+  if (!request) return fail(m.auth_customers_request_not_found());
 
   const changes: { importance?: Importance | null; customerId?: string | null } = {};
   if (input.importance !== undefined) {
     if (input.importance !== null && !isImportance(input.importance)) {
-      return fail('Invalid importance.', 'importance');
+      return fail(m.auth_customers_invalid_importance(), 'importance');
     }
     changes.importance = input.importance;
   }
   if (input.customerId !== undefined) {
     if (input.customerId !== null) {
       const customer = await loadCustomer(input.projectId, input.customerId);
-      if (!customer) return fail('Customer not found.', 'customerId');
+      if (!customer) return fail(m.auth_customers_not_found(), 'customerId');
     }
     changes.customerId = input.customerId;
   }
@@ -440,7 +440,7 @@ export async function removeCustomerRequest(input: {
   const gate = await authorizeProjectAction(input?.projectId, 'write');
   if (!gate.ok) return deny(gate.error);
   const request = await loadRequest(input.projectId, input.id);
-  if (!request) return fail('Request not found.');
+  if (!request) return fail(m.auth_customers_request_not_found());
 
   const scope = and(
     eq(customerRequests.id, request.id),
