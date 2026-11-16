@@ -310,5 +310,67 @@
   "issues_view_save_new": "Guardar como nueva",
   "issues_view_save": "Guardar vista",
   "issues_view_copy_name": "{name} (copia)",
-  "issues_view_default_name": "Vista"
+  "issues_view_default_name": "Vista",
+  "issues_drafts_delete_failed": "No se pudo eliminar el borrador.",
+  "issues_drafts_discard_failed": "No se pudieron descartar los borradores.",
+  "issues_drafts_discarded": "Se descartaron todos los borradores",
+  "issues_drafts": "Borradores",
+  "issues_drafts_discard_all": "Descartar todos",
+  "issues_drafts_discard_all_title": "¿Descartar todos los borradores?",
+  "issues_drafts_deleted_one": "Tu borrador se eliminará. Esta acción no se puede deshacer.",
+  "issues_drafts_deleted_many": "Los {count} borradores se eliminarán. Esta acción no se puede deshacer.",
+  "issues_drafts_empty": "Sin borradores",
+  "issues_drafts_empty_description": "Los tickets que empiezas a escribir pero no creas se guardan aquí automáticamente.",
+  "issues_drafts_untitled": "Borrador sin título",
+  "issues_drafts_delete_named": "Eliminar borrador {title}",
+  "issues_cmd_assign_to": "Asignar a",
+  "issues_cmd_hint": "Escribe para filtrar, Enter para aplicar, Esc para cerrar.",
+  "issues_chip_status_aria": "Estado: {value}",
+  "issues_chip_priority_aria": "Prioridad: {value}",
+  "issues_chip_assignee_aria": "Responsable: {value}",
+  "issues_chip_waiting_aria": "En espera de: {value}",
+  "issues_chip_labels_aria": "Etiquetas: {value}",
+  "issues_chip_none": "ninguno",
+  "issues_chip_no_one": "nadie",
+  "issues_chip_labels_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} etiqueta",
+        "countPlural=other": "{count} etiquetas"
+      }
+    }
+  ],
+  "issues_followup_date": "Fecha de seguimiento",
+  "issues_tpl_updated": "Plantilla actualizada",
+  "issues_tpl_created": "Plantilla «{name}» creada",
+  "issues_tpl_edit": "Editar plantilla",
+  "issues_tpl_new": "Nueva plantilla",
+  "issues_tpl_description": "Los tickets nuevos de esta plantilla empiezan con estos valores.",
+  "issues_tpl_name": "Nombre de la plantilla",
+  "issues_tpl_name_placeholder": "Informe de error",
+  "issues_tpl_title": "Título del ticket",
+  "issues_tpl_title_hint": "Opcional: se rellena cuando el título del ticket nuevo está vacío.",
+  "issues_tpl_title_placeholder": "Error: ",
+  "issues_tpl_description_placeholder": "## Pasos para reproducirlo\n\n## Resultado esperado\n\n## Resultado actual",
+  "issues_tpl_default_properties": "Propiedades predeterminadas",
+  "issues_tpl_create": "Crear plantilla",
+  "issues_tpl": "Plantilla",
+  "issues_tpl_apply": "Aplicar plantilla",
+  "issues_tpl_none": "Aún no hay plantillas",
+  "issues_tpl_manage": "Gestionar plantillas",
+  "issues_tpl_status_title": "Estado: {name}",
+  "issues_tpl_actions": "Acciones de {name}",
+  "issues_tpl_create_issue": "Crear ticket",
+  "issues_tpl_deleted": "Plantilla «{name}» eliminada",
+  "issues_tpl_new_button": "Nueva plantilla",
+  "issues_tpl_empty_description": "Guarda una plantilla para los tickets que creas a menudo: informes de errores, solicitudes de funciones, tareas.",
+  "issues_tpl_delete_title": "¿Eliminar «{name}»?",
+  "issues_tpl_delete_description": "Los tickets creados con ella conservan su contenido. Esta acción no se puede deshacer."
 }

@@ -310,5 +310,67 @@
   "issues_view_save_new": "Save as new",
   "issues_view_save": "Save view",
   "issues_view_copy_name": "{name} (copy)",
-  "issues_view_default_name": "View"
+  "issues_view_default_name": "View",
+  "issues_drafts_delete_failed": "Could not delete the draft.",
+  "issues_drafts_discard_failed": "Could not discard the drafts.",
+  "issues_drafts_discarded": "Discarded all drafts",
+  "issues_drafts": "Drafts",
+  "issues_drafts_discard_all": "Discard all",
+  "issues_drafts_discard_all_title": "Discard all drafts?",
+  "issues_drafts_deleted_one": "Your draft will be deleted. This can’t be undone.",
+  "issues_drafts_deleted_many": "All {count} drafts will be deleted. This can’t be undone.",
+  "issues_drafts_empty": "No drafts",
+  "issues_drafts_empty_description": "Issues you start writing but don’t create are saved here automatically.",
+  "issues_drafts_untitled": "Untitled draft",
+  "issues_drafts_delete_named": "Delete draft {title}",
+  "issues_cmd_assign_to": "Assign to",
+  "issues_cmd_hint": "Type to filter, Enter to apply, Esc to close.",
+  "issues_chip_status_aria": "Status: {value}",
+  "issues_chip_priority_aria": "Priority: {value}",
+  "issues_chip_assignee_aria": "Assignee: {value}",
+  "issues_chip_waiting_aria": "Waiting on: {value}",
+  "issues_chip_labels_aria": "Labels: {value}",
+  "issues_chip_none": "none",
+  "issues_chip_no_one": "no one",
+  "issues_chip_labels_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} label",
+        "countPlural=other": "{count} labels"
+      }
+    }
+  ],
+  "issues_followup_date": "Follow-up date",
+  "issues_tpl_updated": "Template updated",
+  "issues_tpl_created": "Created template “{name}”",
+  "issues_tpl_edit": "Edit template",
+  "issues_tpl_new": "New template",
+  "issues_tpl_description": "New issues from this template start with these values.",
+  "issues_tpl_name": "Template name",
+  "issues_tpl_name_placeholder": "Bug report",
+  "issues_tpl_title": "Issue title",
+  "issues_tpl_title_hint": "Optional — prefilled when the new issue's title is empty.",
+  "issues_tpl_title_placeholder": "Bug: ",
+  "issues_tpl_description_placeholder": "## Steps to reproduce\n\n## Expected\n\n## Actual",
+  "issues_tpl_default_properties": "Default properties",
+  "issues_tpl_create": "Create template",
+  "issues_tpl": "Template",
+  "issues_tpl_apply": "Apply template",
+  "issues_tpl_none": "No templates yet",
+  "issues_tpl_manage": "Manage templates",
+  "issues_tpl_status_title": "Status: {name}",
+  "issues_tpl_actions": "Actions for {name}",
+  "issues_tpl_create_issue": "Create issue",
+  "issues_tpl_deleted": "Deleted template “{name}”",
+  "issues_tpl_new_button": "New template",
+  "issues_tpl_empty_description": "Save a template for issues you create often — bug reports, feature requests, chores.",
+  "issues_tpl_delete_title": "Delete “{name}”?",
+  "issues_tpl_delete_description": "Issues created from it keep their content. This can’t be undone."
 }

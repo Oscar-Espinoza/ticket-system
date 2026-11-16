@@ -3,6 +3,7 @@
   per-issue shortcuts and the palette. Anchored centre-top like the palette.
 -->
 <script module lang="ts">
+  import { m } from '@/lib/i18n';
   export type IssueCommand = 'status' | 'priority' | 'assignee' | 'labels' | 'estimate' | 'dueDate';
 </script>
 
@@ -19,13 +20,13 @@
   import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/lib/components/ui/dialog';
   import type { IssuePatch, IssueRow, Priority } from '@/lib/issue-model';
 
-  const TITLES: Record<IssueCommand, string> = {
-    status: 'Change status',
-    priority: 'Set priority',
-    assignee: 'Assign to',
-    labels: 'Change labels',
-    estimate: 'Set estimate',
-    dueDate: 'Set due date',
+  const TITLES: Record<IssueCommand, () => string> = {
+    status: m.issues_sc_change_status,
+    priority: m.issues_sc_set_priority,
+    assignee: m.issues_cmd_assign_to,
+    labels: m.issues_sc_change_labels,
+    estimate: m.issues_sc_set_estimate,
+    dueDate: m.issues_sc_set_due,
   };
 
   let {
@@ -57,8 +58,8 @@
         <span class="shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono">{target.key}</span>
         <span class="truncate">{target.title}</span>
       </div>
-      <DialogTitle class="sr-only">{TITLES[command]} — {target.key}</DialogTitle>
-      <DialogDescription class="sr-only">Type to filter, Enter to apply, Esc to close.</DialogDescription>
+      <DialogTitle class="sr-only">{TITLES[command]()} — {target.key}</DialogTitle>
+      <DialogDescription class="sr-only">{m.issues_cmd_hint()}</DialogDescription>
       <div class="min-h-0 overflow-y-auto">
         {#if command === 'status'}
           <StateOptions

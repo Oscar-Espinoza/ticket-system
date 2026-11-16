@@ -1,5 +1,6 @@
 <!-- One template in Settings → Templates. -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import FilePlus2 from '@lucide/svelte/icons/file-plus-corner';
   import FileText from '@lucide/svelte/icons/file-text';
   import Ellipsis from '@lucide/svelte/icons/ellipsis';
@@ -65,7 +66,7 @@
 
   <div class="hidden shrink-0 items-center gap-2 text-xs text-muted-foreground sm:flex">
     {#if state}
-      <span class="flex items-center gap-1" title="Status: {state.name}">
+      <span class="flex items-center gap-1" title={m.issues_tpl_status_title({ name: state.name })}>
         <StateIcon {state} size={14} />
         {state.name}
       </span>
@@ -90,7 +91,7 @@
     <DropdownMenu>
       <DropdownMenuTrigger>
         {#snippet child({ props: triggerProps })}
-          <Button {...triggerProps} variant="ghost" size="icon-sm" aria-label="Actions for {template.name}">
+          <Button {...triggerProps} variant="ghost" size="icon-sm" aria-label={m.issues_tpl_actions({ name: template.name })}>
             <Ellipsis />
           </Button>
         {/snippet}
@@ -100,18 +101,18 @@
           {#snippet child({ props: itemProps })}
             <a {...itemProps} href={createHref}>
               <FilePlus2 />
-              Create issue
+              {m.issues_tpl_create_issue()}
             </a>
           {/snippet}
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={onEdit}>
           <Pencil />
-          Edit
+          {m.common_edit()}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem variant="destructive" onSelect={onDelete}>
           <Trash2 />
-          Delete
+          {m.common_delete()}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
