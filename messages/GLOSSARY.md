@@ -53,6 +53,31 @@ Neutral Spanish, for any Spanish-speaking reader (Oscar, 2026-11-15):
 | Follow-up | Seguimiento | |
 | Archive / Trash | Archivo / Papelera | |
 | Insights / Dashboard | Estadísticas / Panel | |
+| Docs | Documentos | |
+| Milestone | Hito | |
+| Parent (issue) | Ticket principal | |
+| Swimlanes | Carriles | |
+| Velocity / Throughput | Velocidad / Rendimiento | |
+| Burndown / Cooldown | Burndown / Enfriamiento | "Burndown" kept as the common term |
+| Pulse | Pulso | |
+| Intake form | Formulario de entrada | |
+| SLA | SLA | acronym kept |
+
+### Default workflow states (new projects without a template)
+
+Created once, in the creator's language, then they are the team's own data
+(renaming or translating them later is up to the team):
+
+| English | Spanish |
+|---|---|
+| Triage | Clasificación |
+| Backlog | Pendientes |
+| Todo | Por hacer |
+| In Progress | En curso |
+| In Review | En revisión |
+| Done | Hecho |
+| Canceled | Cancelado |
+| Duplicate | Duplicado |
 
 Not translated: brand and product names (Taller, GitHub, GitLab, Bitbucket,
 Slack, Sentry, Google, Claude, ChatGPT, MCP, SAML, OIDC, SCIM, API, OAuth),
