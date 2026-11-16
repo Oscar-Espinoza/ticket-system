@@ -3,6 +3,7 @@
   properties, due offset, with a preview of the next runs.
 -->
 <script lang="ts">
+  import { m, dateFormat } from '@/lib/i18n';
   import { untrack } from 'svelte';
   import { toast } from 'svelte-sonner';
 
@@ -25,7 +26,7 @@
   import { Textarea } from '@/lib/components/ui/textarea';
   import { ToggleGroup, ToggleGroupItem } from '@/lib/components/ui/toggle-group';
   import type { IssuePatch } from '@/lib/issue-model';
-  import { toDateInput, WEEKDAYS } from '@/lib/cycle-utils';
+  import { toDateInput } from '@/lib/cycle-utils';
   import {
     DUE_IN_DAYS_MAX,
     FREQUENCIES,
@@ -44,10 +45,18 @@
   const PREVIEW_RUNS = 5;
   /** Monday first, as in the rest of the week pickers. */
   const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0];
-  const UNIT: Record<Frequency, [string, string]> = {
-    daily: ['day', 'days'],
-    weekly: ['week', 'weeks'],
-    monthly: ['month', 'months'],
+  const unitWord = (f: Frequency, count: number) =>
+    ({
+      daily: m.projects_recurring_unit_daily,
+      weekly: m.projects_recurring_unit_weekly,
+      monthly: m.projects_recurring_unit_monthly,
+    })[f]({ count });
+  // 2024-01-07 is a Sunday, matching WEEKDAYS order.
+  const weekdayName = (d: number) =>
+    dateFormat({ weekday: 'long', timeZone: 'UTC' }).format(new Date(Date.UTC(2024, 0, 7 + d)));
+  const weekdayInitials = (d: number) => {
+    const name = weekdayName(d);
+    return (name.charAt(0).toUpperCase() + name.slice(1)).slice(0, 2);
   };
   const frequencyItems = FREQUENCIES.map((f) => ({ value: f, label: FREQUENCY_LABEL[f] }));
   const dayItems = Array.from({ length: 31 }, (_, i) => ({ value: String(i + 1), label: String(i + 1) }));
@@ -96,7 +105,6 @@
       : [],
   );
   const fieldError = (field: string) => (error?.field === field ? error.message : undefined);
-  const unit = $derived(UNIT[freq]);
 
   async function submit(event: SubmitEvent) {
     event.preventDefault();
@@ -126,7 +134,7 @@
         if (!result.field) toast.error(result.error);
         return;
       }
-      toast.success(item ? 'Recurring issue updated' : 'Recurring issue created');
+      toast.success(item ? m.projects_recurring_updated() : m.projects_recurring_created());
       onClose();
     } finally {
       saving = false;
@@ -137,27 +145,27 @@
 <Dialog bind:open={() => open, (next) => !next && onClose()}>
   <DialogContent class="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
     <DialogHeader>
-      <DialogTitle>{item ? 'Edit recurring issue' : 'New recurring issue'}</DialogTitle>
-      <DialogDescription>An issue with these values is created on every run.</DialogDescription>
+      <DialogTitle>{item ? m.projects_recurring_edit() : m.projects_recurring_new()}</DialogTitle>
+      <DialogDescription>{m.projects_recurring_editor_desc()}</DialogDescription>
     </DialogHeader>
     <form onsubmit={submit} class="flex flex-col gap-4">
-      <Field id="{uid}-title" label="Title" error={fieldError('title')}>
+      <Field id="{uid}-title" label={m.projects_recurring_title()} error={fieldError('title')}>
         <!-- svelte-ignore a11y_autofocus -->
         <Input
           id="{uid}-title"
           bind:value={title}
-          placeholder="Weekly dependency updates"
+          placeholder={m.projects_recurring_title_placeholder()}
           maxlength={200}
           autofocus
           aria-invalid={fieldError('title') ? true : undefined}
         />
       </Field>
       <div class="flex flex-col gap-1.5">
-        <Label for="{uid}-description">Description</Label>
+        <Label for="{uid}-description">{m.common_description()}</Label>
         <Textarea
           id="{uid}-description"
           bind:value={description}
-          placeholder="Checklist, links, context…"
+          placeholder={m.projects_recurring_description_placeholder()}
           rows={4}
         />
         {#if fieldError('description')}
@@ -166,7 +174,7 @@
       </div>
 
       <fieldset class="flex flex-col gap-3">
-        <legend class="mb-1.5 text-sm font-medium">Repeat</legend>
+        <legend class="mb-1.5 text-sm font-medium">{m.projects_recurring_repeat()}</legend>
         <div class="flex flex-wrap items-center gap-2 text-sm">
           <Select
             items={frequencyItems}
@@ -176,7 +184,7 @@
               every = String(Math.min(Number(every) || 1, INTERVAL_MAX[v as Frequency]));
             }}
           >
-            <SelectTrigger class="w-32" aria-label="Frequency">
+            <SelectTrigger class="w-32" aria-label={m.projects_recurring_frequency()}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -185,7 +193,7 @@
               {/each}
             </SelectContent>
           </Select>
-          <span class="text-muted-foreground">every</span>
+          <span class="text-muted-foreground">{m.projects_recurring_every()}</span>
           <!-- One-way value + oninput keeps the raw string (bind:value would coerce). -->
           <Input
             type="number"
@@ -195,9 +203,9 @@
             value={every}
             oninput={(e: Event & { currentTarget: HTMLInputElement }) => (every = e.currentTarget.value)}
             class="h-8 w-16 tabular-nums"
-            aria-label="Every how many {unit[1]}"
+            aria-label={m.projects_recurring_every_aria({ unit: unitWord(freq, 2) })}
           />
-          <span class="text-muted-foreground">{Number(every) === 1 ? unit[0] : unit[1]}</span>
+          <span class="text-muted-foreground">{unitWord(freq, Number(every))}</span>
         </div>
         {#if freq === 'weekly'}
           <ToggleGroup
@@ -206,24 +214,24 @@
             size="sm"
             spacing={1}
             bind:value={() => weekdays.map(String), (values: string[]) => (weekdays = values.map(Number))}
-            aria-label="Weekdays"
+            aria-label={m.projects_recurring_weekdays()}
           >
             {#each WEEK_ORDER as d (d)}
-              <ToggleGroupItem value={String(d)} aria-label={WEEKDAYS[d]} class="w-10 text-xs">
-                {WEEKDAYS[d].slice(0, 2)}
+              <ToggleGroupItem value={String(d)} aria-label={weekdayName(d)} class="w-10 text-xs">
+                {weekdayInitials(d)}
               </ToggleGroupItem>
             {/each}
           </ToggleGroup>
         {/if}
         {#if freq === 'monthly'}
           <div class="flex items-center gap-2 text-sm">
-            <span class="text-muted-foreground">on day</span>
+            <span class="text-muted-foreground">{m.projects_recurring_on_day()}</span>
             <Select
               items={dayItems}
               value={String(dayOfMonth)}
               onValueChange={(v: string) => (dayOfMonth = Number(v))}
             >
-              <SelectTrigger class="w-20" aria-label="Day of the month">
+              <SelectTrigger class="w-20" aria-label={m.projects_recurring_day_of_month()}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -233,12 +241,12 @@
               </SelectContent>
             </Select>
             {#if dayOfMonth > 28}
-              <span class="text-xs text-muted-foreground">Shorter months use their last day.</span>
+              <span class="text-xs text-muted-foreground">{m.projects_recurring_short_months()}</span>
             {/if}
           </div>
         {/if}
         <div class="flex items-center gap-2 text-sm">
-          <Label for="{uid}-start" class="font-normal text-muted-foreground">Starting</Label>
+          <Label for="{uid}-start" class="font-normal text-muted-foreground">{m.projects_recurring_starting()}</Label>
           <Input id="{uid}-start" type="date" bind:value={start} class="h-8 w-40" />
         </div>
         <div class="rounded-md bg-muted/40 px-3 py-2 text-xs" aria-live="polite">
@@ -246,7 +254,7 @@
             <span class="font-medium">{describeSchedule(parsed.schedule)}.</span>{' '}<span
               class="text-muted-foreground"
             >
-              Next: {preview.map((d) => formatRunDay(d)).join(' · ') || 'none'}
+              {m.projects_recurring_next({ runs: preview.map((d) => formatRunDay(d)).join(' · ') || m.projects_recurring_next_none() })}
             </span>
           {:else}
             <span class="text-destructive">{parsed.error}</span>
@@ -258,7 +266,7 @@
       </fieldset>
 
       <div class="flex flex-col gap-1.5">
-        <span class="text-sm font-medium">Properties</span>
+        <span class="text-sm font-medium">{m.projects_properties()}</span>
         <PropertyChips
           value={properties}
           onChange={(patch) => (properties = { ...properties, ...patch })}
@@ -267,8 +275,8 @@
       </div>
       <Field
         id="{uid}-due"
-        label="Due"
-        hint="Days after each run; leave empty for no due date."
+        label={m.projects_recurring_due()}
+        hint={m.projects_recurring_due_hint()}
         error={fieldError('dueInDays')}
       >
         <div class="flex items-center gap-2 text-sm">
@@ -283,14 +291,14 @@
             placeholder="—"
             class="h-8 w-20 tabular-nums"
           />
-          <span class="text-muted-foreground">days after it’s created</span>
+          <span class="text-muted-foreground">{m.projects_recurring_due_after()}</span>
         </div>
       </Field>
 
       <DialogFooter>
-        <Button type="button" variant="outline" onclick={onClose}>Cancel</Button>
+        <Button type="button" variant="outline" onclick={onClose}>{m.common_cancel()}</Button>
         <Button type="submit" disabled={saving || !title.trim() || !parsed.ok}>
-          {item ? 'Save' : 'Create'}
+          {item ? m.common_save() : m.projects_recurring_create()}
         </Button>
       </DialogFooter>
     </form>

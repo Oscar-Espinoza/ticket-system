@@ -17,14 +17,15 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
 
+  import { m } from '@/lib/i18n';
   import { registerHotkeys } from '@/lib/svelte/hotkeys.svelte';
 
   let { children, class: className }: { children?: Snippet; class?: string } = $props();
 
   $effect(() =>
     registerHotkeys([
-      { key: 'j', scope: 'Lists', description: 'Next issue', handler: () => move(1) },
-      { key: 'k', scope: 'Lists', description: 'Previous issue', handler: () => move(-1) },
+      { key: 'j', scope: 'Lists', description: m.editor_hotkey_next_issue(), handler: () => move(1) },
+      { key: 'k', scope: 'Lists', description: m.editor_hotkey_prev_issue(), handler: () => move(-1) },
     ]),
   );
 </script>

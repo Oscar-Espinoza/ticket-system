@@ -3,6 +3,7 @@
   loads how long the issue spent in every state from its activity history.
 -->
 <script lang="ts">
+  import { m, dateFormat } from '@/lib/i18n';
   import { getTimeInStatus } from '@/lib/actions/sla';
   import { useOptionalProjectData } from '@/lib/components/project/project-data.svelte';
   import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/lib/components/ui/hover-card';
@@ -12,7 +13,7 @@
 
   let { issue, now }: { issue: IssueRow; now: number | null } = $props();
 
-  const dayFormat = new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric' });
+  const dayFormat = dateFormat({ month: 'short', day: 'numeric' });
 
   /**
    * When the issue entered its current state. Issues from before
@@ -41,10 +42,10 @@
       .then((result) => {
         history = result.ok
           ? { key: k, states: result.states }
-          : { key: k, states: [], error: "Couldn't load the history." };
+          : { key: k, states: [], error: m.projects_tis_load_failed() };
       })
       .catch(() => {
-        history = { key: k, states: [], error: "Couldn't load the history." };
+        history = { key: k, states: [], error: m.projects_tis_load_failed() };
       });
   };
 
@@ -60,17 +61,21 @@
         type="button"
         class="-ml-1 rounded px-1 py-0.5 text-left text-sm outline-none hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring"
         aria-label={now === null
-          ? `In ${issue.state.name} since ${dayFormat.format(since)}`
-          : `In ${issue.state.name} for ${formatDuration(now - since.getTime())}, since ${dayFormat.format(since)}. Hover for time in each status.`}
+          ? m.projects_tis_in_since({ state: issue.state.name, date: dayFormat.format(since) })
+          : m.projects_tis_in_for({
+              state: issue.state.name,
+              duration: formatDuration(now - since.getTime()),
+              date: dayFormat.format(since),
+            })}
       >
         <span class="tabular-nums">{now === null ? '—' : formatDuration(now - since.getTime())}</span><span
-          class="text-muted-foreground">{' '}· since {dayFormat.format(since)}</span
+          class="text-muted-foreground">{' '}{m.projects_tis_since({ date: dayFormat.format(since) })}</span
         >
       </button>
     {/snippet}
   </HoverCardTrigger>
   <HoverCardContent align="start" class="w-72">
-    <p class="mb-2 text-xs font-medium text-muted-foreground">Time in status</p>
+    <p class="mb-2 text-xs font-medium text-muted-foreground">{m.projects_tis_title()}</p>
     {#if !loaded || loaded.states === null}
       <div class="flex flex-col gap-1.5">
         <Skeleton class="h-5" />
@@ -86,7 +91,7 @@
               <StatusIcon type={state.type} color={colorOf(state.id)} size={14} />
               <span class="min-w-0 flex-1 truncate">
                 {state.name}
-                {#if state.current}<span class="text-muted-foreground"> · now</span>{/if}
+                {#if state.current}<span class="text-muted-foreground">{m.projects_tis_now()}</span>{/if}
               </span>
               <span class="shrink-0 tabular-nums text-muted-foreground">
                 {formatDuration(state.ms)}

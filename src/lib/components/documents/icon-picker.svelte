@@ -1,5 +1,6 @@
 <!-- Emoji icon picker for a document. -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import SmilePlus from '@lucide/svelte/icons/smile-plus';
 
   import { DOCUMENT_ICONS } from '@/lib/document-model';
@@ -27,7 +28,7 @@
           {...props}
           type="button"
           {disabled}
-          aria-label={icon ? 'Change icon' : 'Add icon'}
+          aria-label={icon ? m.auth_docs_change_icon() : m.auth_docs_add_icon()}
           class={cn(
             'flex w-fit items-center gap-1.5 rounded-md text-muted-foreground outline-none transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none',
             icon ? 'size-12 justify-center text-4xl leading-none' : 'h-6 px-1.5 text-xs',
@@ -37,13 +38,13 @@
             {icon}
           {:else}
             <SmilePlus class="size-3.5" aria-hidden="true" />
-            Add icon
+            {m.auth_docs_add_icon()}
           {/if}
         </button>
       {/snippet}
     </PopoverTrigger>
     <PopoverContent align="start" class="w-auto p-2">
-      <div role="listbox" aria-label="Icons" class="grid grid-cols-8 gap-0.5">
+      <div role="listbox" aria-label={m.auth_docs_icons()} class="grid grid-cols-8 gap-0.5">
         {#each DOCUMENT_ICONS as option (option)}
           <button
             type="button"
@@ -71,7 +72,7 @@
           }}
           class="mt-1 w-full rounded-md px-2 py-1 text-left text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
         >
-          Remove icon
+          {m.auth_docs_remove_icon()}
         </button>
       {/if}
     </PopoverContent>

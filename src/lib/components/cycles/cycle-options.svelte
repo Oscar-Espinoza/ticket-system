@@ -11,6 +11,7 @@
 </script>
 
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import CircleSlash from '@lucide/svelte/icons/circle-slash';
 
   import { keywordFilter } from '@/lib/components/issue-pickers/picker-utils';
@@ -67,9 +68,9 @@
 {/snippet}
 
 <Command filter={keywordFilter}>
-  <CommandInput placeholder="Move to cycle…" />
+  <CommandInput placeholder={m.projects_cycle_move_to()} />
   <CommandList>
-    <CommandEmpty>No cycle found.</CommandEmpty>
+    <CommandEmpty>{m.projects_cycle_none_found()}</CommandEmpty>
     <CommandGroup>
       <CommandItem
         value={NO_CYCLE}
@@ -78,22 +79,22 @@
         onSelect={() => onSelect(null)}
       >
         <CircleSlash class="text-muted-foreground" />
-        No cycle
+        {m.projects_cycle_none()}
       </CommandItem>
     </CommandGroup>
     {#if groups.current.length > 0}
-      <CommandGroup heading="Current">
+      <CommandGroup heading={m.projects_cycle_current()}>
         {#each groups.current as c (c.id)}{@render item(c, 'current')}{/each}
       </CommandGroup>
     {/if}
     {#if groups.upcoming.length > 0}
-      <CommandGroup heading="Upcoming">
-        {#each groups.upcoming as c (c.id)}{@render item(c, 'upcoming next')}{/each}
+      <CommandGroup heading={m.projects_cycle_upcoming()}>
+        {#each groups.upcoming as c (c.id)}{@render item(c, 'upcoming next')}{/each}<!-- i18n-ignore: search keywords -->
       </CommandGroup>
     {/if}
     {#if groups.past.length > 0}
-      <CommandGroup heading="Past">
-        {#each groups.past as c (c.id)}{@render item(c, 'past previous')}{/each}
+      <CommandGroup heading={m.projects_cycle_past()}>
+        {#each groups.past as c (c.id)}{@render item(c, 'past previous')}{/each}<!-- i18n-ignore: search keywords -->
       </CommandGroup>
     {/if}
   </CommandList>

@@ -1,5 +1,6 @@
 <!-- Create / edit dialog for an issue template. -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { untrack } from 'svelte';
   import { toast } from 'svelte-sonner';
 
@@ -59,7 +60,7 @@
         if (!result.field) toast.error(result.error);
         return;
       }
-      toast.success(template ? 'Template updated' : `Created template “${result.template.name}”`);
+      toast.success(template ? m.issues_tpl_updated() : m.issues_tpl_created({ name: result.template.name }));
       onClose();
     } finally {
       saving = false;
@@ -72,16 +73,16 @@
 <Dialog bind:open={() => open, (next) => !next && onClose()}>
   <DialogContent class="sm:max-w-xl">
     <DialogHeader>
-      <DialogTitle>{template ? 'Edit template' : 'New template'}</DialogTitle>
-      <DialogDescription>New issues from this template start with these values.</DialogDescription>
+      <DialogTitle>{template ? m.issues_tpl_edit() : m.issues_tpl_new()}</DialogTitle>
+      <DialogDescription>{m.issues_tpl_description()}</DialogDescription>
     </DialogHeader>
     <form onsubmit={submit} class="flex flex-col gap-4">
-      <Field id="{uid}-name" label="Template name" error={fieldError('name')}>
+      <Field id="{uid}-name" label={m.issues_tpl_name()} error={fieldError('name')}>
         <!-- svelte-ignore a11y_autofocus -->
         <Input
           id="{uid}-name"
           bind:value={name}
-          placeholder="Bug report"
+          placeholder={m.issues_tpl_name_placeholder()}
           maxlength={60}
           autofocus
           aria-invalid={fieldError('name') ? true : undefined}
@@ -89,18 +90,18 @@
       </Field>
       <Field
         id="{uid}-title"
-        label="Issue title"
-        hint="Optional — prefilled when the new issue's title is empty."
+        label={m.issues_tpl_title()}
+        hint={m.issues_tpl_title_hint()}
         error={fieldError('title')}
       >
-        <Input id="{uid}-title" bind:value={title} placeholder="Bug: " maxlength={200} />
+        <Input id="{uid}-title" bind:value={title} placeholder={m.issues_tpl_title_placeholder()} maxlength={200} />
       </Field>
       <div class="flex flex-col gap-1.5">
-        <Label for="{uid}-description">Description</Label>
+        <Label for="{uid}-description">{m.common_description()}</Label>
         <Textarea
           id="{uid}-description"
           bind:value={description}
-          placeholder={'## Steps to reproduce\n\n## Expected\n\n## Actual'}
+          placeholder={m.issues_tpl_description_placeholder()}
           rows={6}
         />
         {#if fieldError('description')}
@@ -108,7 +109,7 @@
         {/if}
       </div>
       <div class="flex flex-col gap-1.5">
-        <span class="text-sm font-medium">Default properties</span>
+        <span class="text-sm font-medium">{m.issues_tpl_default_properties()}</span>
         <PropertyChips
           value={properties}
           onChange={(patch) => (properties = { ...properties, ...patch })}
@@ -116,9 +117,9 @@
         />
       </div>
       <DialogFooter>
-        <Button type="button" variant="outline" onclick={onClose}>Cancel</Button>
+        <Button type="button" variant="outline" onclick={onClose}>{m.common_cancel()}</Button>
         <Button type="submit" disabled={saving || !name.trim()}>
-          {template ? 'Save' : 'Create template'}
+          {template ? m.common_save() : m.issues_tpl_create()}
         </Button>
       </DialogFooter>
     </form>

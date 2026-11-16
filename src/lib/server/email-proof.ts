@@ -26,7 +26,7 @@ import {
   type ClaimReport,
   type ResetClaimPreview,
 } from '@/lib/account-claim';
-import { NAME_RULE_MESSAGE, VERIFICATION_TOKEN_HEADER, validUserName } from '@/lib/auth-rules';
+import { nameRuleMessage, VERIFICATION_TOKEN_HEADER, validUserName } from '@/lib/auth-rules';
 import { db } from '@/lib/db';
 import { emailVerificationRequired, PASSWORD_RESET_PATH, signInRequiredLanding } from '@/lib/email-verification';
 import { DEFAULT_AUTH_REDIRECT } from '@/lib/safe-redirect';
@@ -162,7 +162,7 @@ export function assertUserName(body: Record<string, unknown> | undefined) {
   if (!validUserName(body.name)) {
     throw APIError.from('BAD_REQUEST', {
       code: 'INVALID_NAME',
-      message: NAME_RULE_MESSAGE,
+      message: nameRuleMessage(),
     });
   }
 }

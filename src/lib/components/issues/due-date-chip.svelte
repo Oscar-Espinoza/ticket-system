@@ -3,6 +3,7 @@
   `kind="followUp"` renders the follow-up date the same way.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import CalendarClockIcon from '@lucide/svelte/icons/calendar-clock';
   import CalendarDaysIcon from '@lucide/svelte/icons/calendar-days';
 
@@ -24,8 +25,8 @@
   } = $props();
 
   const TITLES = {
-    due: { overdue: 'Overdue', today: 'Due today', upcoming: 'Due date' },
-    followUp: { overdue: 'Follow-up overdue', today: 'Follow up today', upcoming: 'Follow-up date' },
+    due: { overdue: m.shared_due_overdue(), today: m.shared_due_today(), upcoming: m.shared_due_date() },
+    followUp: { overdue: m.shared_followup_overdue(), today: m.shared_followup_today(), upcoming: m.shared_followup_date() },
   };
 
   const status = $derived(dueDate ? (isClosed(stateType) ? 'upcoming' : dueStatus(dueDate)) : null);

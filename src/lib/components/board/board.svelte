@@ -5,6 +5,7 @@
   the default export, loaded lazily by the issues view registry (IssueViewProps).
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { DragDropManager } from '@dnd-kit/dom';
   import { DragDropProvider, DragOverlay, KeyboardSensor, PointerSensor } from '@dnd-kit/svelte';
   import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
@@ -63,9 +64,9 @@
 
   $effect(() =>
     registerHotkeys([
-      { key: 'Space', scope: 'Board', description: 'Pick up / drop focused card', passive: true },
-      { key: '← → ↑ ↓', scope: 'Board', description: 'Move picked-up card', passive: true },
-      { key: 'Esc', scope: 'Board', description: 'Cancel move', passive: true },
+      { key: 'Space', scope: 'Board', description: m.common_hotkey_pick_up_drop(), passive: true },
+      { key: '← → ↑ ↓', scope: 'Board', description: m.common_hotkey_move_picked_up(), passive: true },
+      { key: 'Esc', scope: 'Board', description: m.common_hotkey_cancel_move(), passive: true },
     ]),
   );
 

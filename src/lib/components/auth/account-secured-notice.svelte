@@ -9,7 +9,8 @@
   import ShieldCheckIcon from '@lucide/svelte/icons/shield-check';
   import XIcon from '@lucide/svelte/icons/x';
 
-  import { CLAIM_AFTERCARE, type ClaimReport, claimedItems } from '@/lib/account-claim';
+  import { claimAftercare, type ClaimReport, claimedItems } from '@/lib/account-claim';
+  import { formatDate, m } from '@/lib/i18n';
   import { Button } from '@/lib/components/ui/button';
 
   let {
@@ -21,7 +22,23 @@
 
   let dismissed = $state(false);
   const items = $derived(claimedItems(removed));
-  const when = $derived(at ? new Date(at).toLocaleString() : null);
+  const when = $derived(at ? formatDate(at, {
+          year: 'numeric',
+          month: 'numeric',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+          second: '2-digit',
+        }) : null);
+  const body = $derived(
+    via === 'sso'
+      ? when
+        ? m.auth_claim_secured_body_sso_at({ when })
+        : m.auth_claim_secured_body_sso()
+      : when
+        ? m.auth_claim_secured_body_reset_at({ when })
+        : m.auth_claim_secured_body_reset(),
+  );
 </script>
 
 {#if !dismissed}
@@ -33,14 +50,12 @@
     <ShieldCheckIcon class="mt-0.5 size-4 shrink-0 text-sky-700 dark:text-sky-400" aria-hidden="true" />
     <div class="flex min-w-0 flex-1 flex-col gap-2">
       <p>
-        <span class="font-medium">Your account was secured.</span>
-        Its email address had never been verified, so when
-        {via === 'sso' ? 'you signed in with single sign-on' : 'the password was reset'}{when ? ` (${when})` : ''},
-        every session was signed out and anything someone else could have set up was removed.
+        <span class="font-medium">{m.auth_claim_secured_title()}</span>
+        {body}
       </p>
       {#if items.length > 0}
         <div>
-          <p class="font-medium">Removed</p>
+          <p class="font-medium">{m.auth_claim_removed()}</p>
           <ul class="list-disc pl-5" data-claim-removed>
             {#each items as entry (entry.item)}
               <li>{entry.label}{entry.count > 1 ? ` (${entry.count})` : ''}</li>
@@ -48,17 +63,17 @@
           </ul>
         </div>
       {:else}
-        <p>Nothing else was set up on the account.</p>
+        <p>{m.auth_claim_nothing_else()}</p>
       {/if}
       <div>
-        <p class="font-medium">What to do now</p>
+        <p class="font-medium">{m.auth_claim_what_now()}</p>
         <ul class="list-disc pl-5">
-          {#each CLAIM_AFTERCARE as line (line)}
+          {#each claimAftercare() as line (line)}
             <li>{line}</li>
           {/each}
         </ul>
       </div>
-      <p class="text-muted-foreground">We also emailed you this list.</p>
+      <p class="text-muted-foreground">{m.auth_claim_also_emailed()}</p>
     </div>
     {#if dismissible}
       <Button
@@ -66,7 +81,7 @@
         variant="ghost"
         size="icon-sm"
         class="-my-1 shrink-0"
-        aria-label="Dismiss"
+        aria-label={m.auth_dismiss()}
         onclick={() => (dismissed = true)}
       >
         <XIcon />

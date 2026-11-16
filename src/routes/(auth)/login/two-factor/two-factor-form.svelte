@@ -3,6 +3,7 @@
   "trust this device" (skips the code on this browser for 30 days).
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { goto } from '$app/navigation';
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
 
@@ -18,16 +19,16 @@
 
   function errorCopy(error: ApiError, backup: boolean): { message: string; expired?: boolean } {
     if (error.code === 'INVALID_TWO_FACTOR_COOKIE' || error.status === 401) {
-      return { message: 'This sign-in expired.', expired: true };
+      return { message: m.auth_2fa_expired(), expired: true };
     }
     if (error.code === 'ACCOUNT_TEMPORARILY_LOCKED') {
-      return { message: 'Too many wrong codes. Wait a few minutes, then sign in again.', expired: true };
+      return { message: m.auth_2fa_locked(), expired: true };
     }
-    if (error.status === 429) return { message: 'Too many attempts. Wait a moment and try again.' };
+    if (error.status === 429) return { message: m.auth_login_too_many() };
     return {
       message: backup
-        ? 'That backup code isn’t valid or was already used.'
-        : 'That code didn’t match. Try the next code from your app.',
+        ? m.auth_2fa_backup_invalid()
+        : m.auth_2fa_code_mismatch(),
     };
   }
 
@@ -43,7 +44,7 @@
   async function verify(value: string) {
     const trimmed = value.trim();
     if (backup ? trimmed.length < 6 : !/^\d{6}$/.test(trimmed)) {
-      error = { message: backup ? 'Enter a backup code.' : 'Enter the 6-digit code.' };
+      error = { message: backup ? m.auth_2fa_enter_backup() : m.auth_2fa_enter_code() };
       return;
     }
     loading = true;
@@ -82,11 +83,11 @@
 
 <Card class="w-full max-w-sm">
   <CardHeader>
-    <CardTitle>Two-factor authentication</CardTitle>
+    <CardTitle>{m.auth_2fa_title()}</CardTitle>
     <CardDescription>
       {backup
-        ? 'Enter one of the backup codes you saved when you turned on 2FA.'
-        : 'Enter the 6-digit code from your authenticator app.'}
+        ? m.auth_2fa_description_backup()
+        : m.auth_2fa_description_totp()}
     </CardDescription>
   </CardHeader>
   <CardContent>
@@ -99,7 +100,7 @@
       }}
     >
       <div class="flex flex-col gap-2">
-        <Label for="code">{backup ? 'Backup code' : 'Code'}</Label>
+        <Label for="code">{backup ? m.auth_2fa_backup_code() : m.auth_2fa_code()}</Label>
         <Input
           bind:ref={inputEl}
           id="code"
@@ -118,7 +119,7 @@
           <p id="code-error" class="text-destructive text-sm">
             {error.message}
             {#if error.expired}
-              <a href={authHref('/login', redirectTo)} class="underline underline-offset-4">Sign in again</a>
+              <a href={authHref('/login', redirectTo)} class="underline underline-offset-4">{m.auth_2fa_sign_in_again()}</a>
             {/if}
           </p>
         {/if}
@@ -130,12 +131,12 @@
           checked={trustDevice}
           onCheckedChange={(checked) => (trustDevice = checked === true)}
         />
-        <Label for="trust-device" class="font-normal">Trust this device for 30 days</Label>
+        <Label for="trust-device" class="font-normal">{m.auth_2fa_trust()}</Label>
       </div>
 
       <Button type="submit" class="w-full" disabled={loading}>
         {#if loading}<Loader2Icon class="animate-spin" />{/if}
-        {loading ? 'Verifying…' : 'Verify'}
+        {loading ? m.auth_2fa_verifying() : m.auth_2fa_verify()}
       </Button>
       <div class="flex items-center justify-between text-sm">
         <button
@@ -143,13 +144,13 @@
           class="text-muted-foreground underline-offset-4 hover:underline"
           onclick={toggleBackup}
         >
-          {backup ? 'Use authenticator app' : 'Use a backup code'}
+          {backup ? m.auth_2fa_use_app() : m.auth_2fa_use_backup()}
         </button>
         <a
           href={authHref('/login', redirectTo)}
           class="text-muted-foreground underline-offset-4 hover:underline"
         >
-          Cancel
+          {m.common_cancel()}
         </a>
       </div>
     </form>

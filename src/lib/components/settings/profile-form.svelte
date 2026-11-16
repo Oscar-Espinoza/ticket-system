@@ -11,6 +11,7 @@
 </script>
 
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { untrack } from 'svelte';
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
   import { toast } from 'svelte-sonner';
@@ -36,7 +37,7 @@
   // updateProfile wrapper already refreshes the page data after it resolves.
   $effect(() => {
     const state = form.state;
-    if (state.success) toast.success('Profile saved');
+    if (state.success) toast.success(m.settings_profile_saved_toast());
     else if (state.errors?.server) toast.error(state.errors.server);
   });
 </script>
@@ -45,16 +46,16 @@
   <div class="flex items-center gap-3">
     <Avatar name={preview.name || email} src={preview.image || null} class="size-10 text-sm" />
     <div class="min-w-0">
-      <p class="truncate text-sm font-medium">{preview.name || 'Unnamed'}</p>
+      <p class="truncate text-sm font-medium">{preview.name || m.settings_profile_unnamed()}</p>
       <p class="truncate text-xs text-muted-foreground">{email}</p>
     </div>
   </div>
 
-  <Field id="profile-email" label="Email" hint="Your sign-in email can't be changed here.">
+  <Field id="profile-email" label={m.settings_profile_email()} hint={m.settings_profile_email_hint()}>
     <Input id="profile-email" value={email} readonly disabled />
   </Field>
 
-  <Field id="profile-name" label="Name" error={errors.name}>
+  <Field id="profile-name" label={m.common_name()} error={errors.name}>
     <Input
       id="profile-name"
       name="name"
@@ -69,8 +70,8 @@
 
   <Field
     id="profile-image"
-    label="Avatar URL"
-    hint="Link to a square image. Leave empty to use your initials."
+    label={m.settings_profile_avatar_url()}
+    hint={m.settings_profile_avatar_hint()}
     error={errors.image}
   >
     <Input
@@ -78,7 +79,7 @@
       name="image"
       type="url"
       inputmode="url"
-      placeholder="https://…"
+      placeholder={'https://…'}
       value={image}
       aria-invalid={!!errors.image}
       aria-describedby={errors.image ? 'profile-image-error' : undefined}
@@ -86,7 +87,7 @@
     />
   </Field>
 
-  <Field id="profile-title" label="Title" hint="e.g. Frontend engineer" error={errors.title}>
+  <Field id="profile-title" label={m.settings_profile_title()} hint={m.settings_profile_title_hint()} error={errors.title}>
     <Input
       id="profile-title"
       name="title"
@@ -96,7 +97,7 @@
     />
   </Field>
 
-  <Field id="profile-bio" label="Bio" error={errors.bio}>
+  <Field id="profile-bio" label={m.settings_profile_bio()} error={errors.bio}>
     <Textarea
       id="profile-bio"
       name="bio"
@@ -109,8 +110,8 @@
 
   <Field
     id="profile-timezone"
-    label="Timezone"
-    hint="Used for due dates, cycles and reminders."
+    label={m.settings_profile_timezone()}
+    hint={m.settings_profile_timezone_hint()}
     error={errors.timezone}
   >
     <TimezonePicker id="profile-timezone" name="timezone" {timezones} defaultValue={timezone} />
@@ -119,7 +120,7 @@
   <div>
     <Button type="submit" disabled={form.pending}>
       {#if form.pending}<Loader2Icon class="animate-spin" />{/if}
-      Save changes
+      {m.common_save_changes()}
     </Button>
   </div>
 </form>

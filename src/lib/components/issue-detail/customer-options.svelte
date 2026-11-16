@@ -3,6 +3,7 @@
   `onCreate` adds a "Create customer" item for new names.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import UserPlusIcon from '@lucide/svelte/icons/user-plus';
 
   import { formatRevenue, type CustomerOption } from '@/lib/customer-model';
@@ -26,9 +27,9 @@
 </script>
 
 <Command filter={keywordFilter}>
-  <CommandInput bind:value={search} placeholder={onCreate ? 'Find or create customer…' : 'Find customer…'} />
+  <CommandInput bind:value={search} placeholder={onCreate ? m.shared_customer_find_or_create() : m.shared_customer_find()} />
   <CommandList>
-    <CommandEmpty>{onCreate ? 'Type a name to create a customer.' : 'No customers found.'}</CommandEmpty>
+    <CommandEmpty>{onCreate ? m.shared_customer_type_to_create() : m.shared_customer_none_found()}</CommandEmpty>
     {#if options.length > 0}
       <CommandGroup>
         {#each options as option (option.id)}
@@ -48,7 +49,7 @@
       <CommandGroup forceMount>
         <CommandItem value="__create__" keywords={[name]} forceMount onSelect={() => onCreate(name)}>
           <UserPlusIcon />
-          <span class="truncate">Create customer “{name}”</span>
+          <span class="truncate">{m.issues_customer_create_option({ name })}</span>
         </CommandItem>
       </CommandGroup>
     {/if}

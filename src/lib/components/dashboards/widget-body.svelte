@@ -3,7 +3,7 @@
   (BarList, TrendChart); lists reuse NavIssueRow (cross-project safe).
 -->
 <script lang="ts">
-  import { pluralize } from '@/lib/format';
+  import { m } from '@/lib/i18n';
   import { epicPath } from '@/lib/epic-model';
   import EpicIcon from '@/lib/components/epics/epic-icon.svelte';
   import ProgressRing from '@/lib/components/epics/progress-ring.svelte';
@@ -45,12 +45,12 @@
 {/snippet}
 
 {#if inaccessible}
-  {@render muted('This widget uses a project you can’t access.')}
+  {@render muted(m.editor_widget_inaccessible())}
 {:else if widget.type === 'number'}
   {@const count = widgetIssues(widget, dataset, now).length}
   <div class="flex flex-1 flex-col justify-end">
     <span class="text-4xl font-medium tabular-nums">{count}</span>
-    <span class="text-xs text-muted-foreground">{count === 1 ? 'issue' : 'issues'}</span>
+    <span class="text-xs text-muted-foreground">{m.editor_widget_issue_word({ count })}</span>
   </div>
 {:else if widget.type === 'bar'}
   {@const rows = barRows(widget, widgetIssues(widget, dataset, now), dataset)}
@@ -59,9 +59,9 @@
       ? widget.config.groupBy
       : 'label'}
   {#if widget.config.groupBy === 'customer' && dataset.customerLinks.length === 0}
-    {@render muted('No issues are linked to customers yet.')}
+    {@render muted(m.editor_widget_no_customers())}
   {:else}
-    <BarList {rows} {kind} empty="No matching issues." />
+    <BarList {rows} {kind} empty={m.editor_widget_no_matching()} />
   {/if}
 {:else if widget.type === 'line'}
   {@const points = weekPoints(widgetIssues(widget, dataset, now, true), widget.config.weeks, now)}
@@ -69,7 +69,7 @@
 {:else if widget.type === 'list'}
   {@const issues = listIssues(widget, widgetIssues(widget, dataset, now))}
   {#if issues.length === 0}
-    {@render muted('No matching issues.')}
+    {@render muted(m.editor_widget_no_matching())}
   {:else}
     {@const names = new Map(dataset.projects.map((p) => [p.project.id, p.project.name]))}
     {@const multi = dataset.projects.length > 1 && !widget.config.projectId}
@@ -82,7 +82,7 @@
 {:else if widget.type === 'cycle'}
   {@const cycles = cycleProgress(widget, widgetIssues(widget, dataset, now), dataset, now)}
   {#if cycles.length === 0}
-    {@render muted('No active cycle.')}
+    {@render muted(m.editor_widget_no_cycle())}
   {:else}
     <ul class="flex flex-col gap-3">
       {#each cycles as { project, cycle, total, completed, started, daysLeft } (cycle.id)}
@@ -93,13 +93,13 @@
               href={`/dashboard/projects/${project.id}/cycles/${cycle.id}`}
               class="truncate font-medium hover:underline"
             >
-              {cycle.name || `Cycle ${cycle.number}`}
+              {cycle.name || m.editor_activity_cycle_n({ number: cycle.number })}
             </a>
             {#if cycles.length > 1}
               <span class="font-mono text-xs text-muted-foreground">{project.ticketKey}</span>
             {/if}
             <span class="ml-auto shrink-0 text-xs text-muted-foreground">
-              {daysLeft === 0 ? 'Last day' : `${daysLeft}d left`}
+              {daysLeft === 0 ? m.editor_widget_last_day() : m.editor_widget_days_left({ days: daysLeft })}
             </span>
           </div>
           <div class="flex h-2 overflow-hidden rounded-full bg-muted" aria-hidden="true">
@@ -107,7 +107,7 @@
             <span class="bg-amber-500/70" style:width="{total ? (started / total) * 100 : 0}%"></span>
           </div>
           <p class="text-xs text-muted-foreground tabular-nums">
-            {percent}% · {completed} done · {started} in progress · {total - completed - started} not started
+            {m.editor_widget_cycle_stats({ percent, completed, started, rest: total - completed - started })}
           </p>
         </li>
       {/each}
@@ -116,7 +116,7 @@
 {:else if widget.type === 'epic'}
   {@const epics = epicProgress(widget, widgetIssues(widget, dataset, now), dataset)}
   {#if epics.length === 0}
-    {@render muted('No epics in scope.')}
+    {@render muted(m.editor_widget_no_epics())}
   {:else}
     {@const multi = new Set(epics.map((e) => e.projectId)).size > 1}
     <ul class="flex flex-col gap-2">
@@ -142,14 +142,18 @@
 {:else if widget.type === 'timeInStatus'}
   {@const rows = timeInStatus(widgetIssues(widget, dataset, now), now)}
   {#if rows.length === 0}
-    {@render muted('No open issues.')}
+    {@render muted(m.editor_widget_no_open())}
   {:else}
     {@const max = Math.max(...rows.map((r) => r.medianDays), 1 / 24)}
     <ul class="flex flex-col gap-1.5">
       {#each rows as row (row.id)}
         <li
           class="grid grid-cols-[minmax(0,9rem)_1fr_5.5rem] items-center gap-3 text-sm"
-          title={`${pluralize(row.count, 'issue')} · median ${formatDays(row.medianDays)} · longest ${formatDays(row.maxDays)}`}
+          title={m.editor_widget_status_tip({
+            issues: m.editor_widget_issue_count({ count: row.count }),
+            median: formatDays(row.medianDays),
+            longest: formatDays(row.maxDays),
+          })}
         >
           <span class="flex min-w-0 items-center gap-2">
             {#if row.stateType}

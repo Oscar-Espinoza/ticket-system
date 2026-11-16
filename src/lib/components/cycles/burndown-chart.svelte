@@ -1,5 +1,6 @@
 <!-- Burndown (cycle page): server-computed cycle stats → the generic line chart. -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import LineChart from '@/lib/components/charts/line-chart.svelte';
   import {
     DAY_MS,
@@ -37,10 +38,10 @@
     // x positions are day boundaries: 0 = start, k = end of day k.
     const labels = Array.from({ length: days + 1 }, (_, k) => formatCycleDay(start + k * DAY_MS));
     const pointLabels = labels.map((_, k) => {
-      if (k === 0) return `Start · ${formatWeekday(start)}`;
+      if (k === 0) return m.projects_burndown_start({ weekday: formatWeekday(start) });
       const inProgress =
         k === points.length - 1 && new Date(last.at).getTime() < start + k * DAY_MS - 1;
-      return inProgress ? 'Now' : `End of ${formatWeekday(start + (k - 1) * DAY_MS)}`;
+      return inProgress ? m.projects_burndown_now() : m.projects_burndown_end_of({ weekday: formatWeekday(start + (k - 1) * DAY_MS) });
     });
     const at = (k: number, pick: (t: CycleTotals) => number) =>
       k < points.length ? pick(points[k].totals) : null;
@@ -51,20 +52,20 @@
       series: [
         {
           id: 'scope',
-          label: 'Scope',
+          label: m.projects_burndown_scope(),
           color: 'var(--muted-foreground)',
           values: labels.map((_, k) => at(k, (t) => scopeOf(t, effective))),
         },
         {
           id: 'ideal',
-          label: 'Ideal',
+          label: m.projects_burndown_ideal(),
           color: 'var(--muted-foreground)',
           variant: 'dashed' as const,
           values: labels.map((_, k) => lastScope * (1 - k / days)),
         },
         {
           id: 'remaining',
-          label: 'Remaining',
+          label: m.projects_burndown_remaining(),
           color: 'var(--primary)',
           variant: 'area' as const,
           values: labels.map((_, k) =>
@@ -76,18 +77,18 @@
   });
 </script>
 
-<ChartCard title="Burndown" unit={effective} onUnit={(next) => (unit = next)} showUnit={estimatesEnabled}>
+<ChartCard title={m.projects_burndown()} unit={effective} onUnit={(next) => (unit = next)} showUnit={estimatesEnabled}>
   {#if !chart}
     <p class="py-10 text-center text-sm text-muted-foreground">
-      The burndown starts on {formatCycleDay(start)}.
+      {m.projects_burndown_starts_on({ date: formatCycleDay(start) })}
     </p>
   {:else if chart.lastScope === 0}
     <p class="py-10 text-center text-sm text-muted-foreground">
-      {effective === 'points' ? 'No estimated issues in this cycle yet.' : 'No issues in this cycle yet.'}
+      {effective === 'points' ? m.projects_burndown_no_estimated() : m.projects_burndown_no_issues()}
     </p>
   {:else}
     <LineChart
-      title="Burndown in {effective}"
+      title={effective === 'points' ? m.projects_burndown_in_points() : m.projects_burndown_in_issues()}
       labels={chart.labels}
       pointLabels={chart.pointLabels}
       series={chart.series}

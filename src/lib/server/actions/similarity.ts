@@ -5,6 +5,7 @@
 import { authorizeProjectAction } from '@/lib/action-auth';
 import { fail, type ActionResult } from '@/lib/server/action-kit';
 import { findIssuesSimilarTo, findSimilarIssues, type SimilarIssue } from '@/lib/similarity';
+import { m } from '@/lib/i18n';
 
 export type SimilarResult = ActionResult<{ similar: SimilarIssue[] }>;
 
@@ -16,7 +17,7 @@ export async function findPossibleDuplicates(input: {
 }): Promise<SimilarResult> {
   const authz = await authorizeProjectAction(input?.projectId, 'read');
   if (!authz.ok) return authz;
-  if (typeof input.title !== 'string') return fail('Invalid title.');
+  if (typeof input.title !== 'string') return fail(m.issues_err_invalid_title());
   const similar = await findSimilarIssues(authz.userId, input.projectId, {
     title: input.title,
     description: typeof input.description === 'string' ? input.description : null,
@@ -35,7 +36,7 @@ export async function getSimilarIssues(input: {
 }): Promise<SimilarResult> {
   const authz = await authorizeProjectAction(input?.projectId, 'read');
   if (!authz.ok) return authz;
-  if (typeof input.ticketId !== 'string' || !input.ticketId) return fail('Issue not found.');
+  if (typeof input.ticketId !== 'string' || !input.ticketId) return fail(m.issues_err_issue_not_found());
   const similar = await findIssuesSimilarTo(authz.userId, input.projectId, input.ticketId);
-  return similar ? { ok: true, similar } : fail('Issue not found.');
+  return similar ? { ok: true, similar } : fail(m.issues_err_issue_not_found());
 }

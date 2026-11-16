@@ -1,5 +1,6 @@
 <!-- Color dot button + swatch popover. -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { Button } from '@/lib/components/ui/button';
   import { Popover, PopoverContent, PopoverTrigger } from '@/lib/components/ui/popover';
   import ColorSwatches from './color-swatches.svelte';
@@ -12,7 +13,7 @@
 <Popover bind:open>
   <PopoverTrigger>
     {#snippet child({ props })}
-      <Button {...props} type="button" variant="ghost" size="icon-sm" aria-label="Label color">
+      <Button {...props} type="button" variant="ghost" size="icon-sm" aria-label={m.projects_label_color()}>
         <span class="size-3 rounded-full" style="background-color: {value}"></span>
       </Button>
     {/snippet}

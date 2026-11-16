@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { Separator } from '@/lib/components/ui/separator';
   import ProjectDangerZone from './project-danger-zone.svelte';
   import ProjectDetailsForm from './project-details-form.svelte';
@@ -15,7 +16,7 @@
     <p
       class="mb-6 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground"
     >
-      Only project owners and admins can change these settings.
+      {m.settings_project_owners_only()}
     </p>
   {/if}
   <ProjectDetailsForm {...props} />

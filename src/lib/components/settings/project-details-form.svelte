@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { untrack } from 'svelte';
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
 
@@ -21,7 +22,7 @@
   let { projectId, name, description, estimateScale, canEdit }: ProjectGeneralFormProps = $props();
 
   const form = createActionState<ProjectSettingsState>(updateProjectDetails, {});
-  useResultToast(() => form.state, 'Project updated');
+  useResultToast(() => form.state, m.settings_project_updated_toast());
   const errors = $derived(form.state.errors ?? {});
 
   let scale = $state(untrack(() => (isEstimateScale(estimateScale) ? estimateScale : 'none')));
@@ -31,7 +32,7 @@
 <form onsubmit={form.onsubmit} class="flex flex-col gap-5" novalidate>
   <input type="hidden" name="projectId" value={projectId} />
   <fieldset disabled={!canEdit} class="flex flex-col gap-5">
-    <Field id="project-name" label="Name" error={errors.name}>
+    <Field id="project-name" label={m.common_name()} error={errors.name}>
       <Input
         id="project-name"
         name="name"
@@ -42,21 +43,21 @@
         aria-describedby={errors.name ? 'project-name-error' : undefined}
       />
     </Field>
-    <Field id="project-description" label="Description" error={errors.description}>
+    <Field id="project-description" label={m.common_description()} error={errors.description}>
       <Textarea
         id="project-description"
         name="description"
         value={description}
         maxlength={2000}
         rows={3}
-        placeholder="What does this project work on?"
+        placeholder={m.settings_project_description_placeholder()}
         aria-invalid={!!errors.description}
       />
     </Field>
     <Field
       id="project-estimates"
-      label="Estimates"
-      hint="The point scale offered when estimating issues."
+      label={m.settings_project_estimates()}
+      hint={m.settings_project_estimates_hint()}
       error={errors.estimateScale}
     >
       <Select name="estimateScale" bind:value={scale} items={scaleItems} disabled={!canEdit}>
@@ -77,7 +78,7 @@
     <div>
       <Button type="submit" disabled={form.pending}>
         {#if form.pending}<Loader2Icon class="animate-spin" />{/if}
-        Save changes
+        {m.common_save_changes()}
       </Button>
     </div>
   {/if}

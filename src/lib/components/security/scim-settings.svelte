@@ -4,6 +4,7 @@
   any time.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { untrack } from 'svelte';
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
   import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw';
@@ -77,7 +78,7 @@
       const result = await revokeScimToken({ workspaceId });
       if (result.ok) {
         configured = false;
-        toast.success('SCIM token revoked');
+        toast.success(m.settings_sec_scim_revoked_toast());
       } else toast.error(result.error);
     });
   }
@@ -93,18 +94,17 @@
     </span>
     <div class="min-w-0 flex-1">
       <p class="flex items-center gap-2 text-sm font-medium">
-        SCIM 2.0
-        {#if configured}<LabelChip color="done">Active</LabelChip>{:else}<LabelChip>Off</LabelChip>{/if}
+        SCIM 2.0 <!-- i18n-ignore -->
+        {#if configured}<LabelChip color="done">{m.settings_sec_active()}</LabelChip>{:else}<LabelChip>{m.settings_sec_off()}</LabelChip>{/if}
       </p>
       <p class="mt-0.5 text-sm text-muted-foreground">
-        Your identity provider adds people to the workspace when they’re assigned and removes them
-        from the workspace and its teams when they’re deactivated.
+        {m.settings_sec_scim_desc()}
       </p>
     </div>
     {#if configured}
       <Button variant="outline" size="sm" disabled={pending} onclick={() => (confirm = 'rotate')}>
         <RefreshCwIcon />
-        Rotate token
+        {m.settings_sec_rotate_token()}
       </Button>
       <Button
         variant="ghost"
@@ -113,18 +113,18 @@
         disabled={pending}
         onclick={() => (confirm = 'revoke')}
       >
-        Revoke
+        {m.settings_sec_revoke()}
       </Button>
     {:else}
       <Button size="sm" disabled={pending} onclick={generate}>
         {#if pending}<Loader2Icon class="animate-spin" />{/if}
-        Generate token
+        {m.settings_sec_generate_token()}
       </Button>
     {/if}
   </div>
 
-  <Field id="scim-base-url" label="SCIM base URL">
-    <CopyField id="scim-base-url" value={baseUrl} label="Base URL" />
+  <Field id="scim-base-url" label={m.settings_sec_scim_base_url()}>
+    <CopyField id="scim-base-url" value={baseUrl} label={m.settings_sec_base_url()} />
   </Field>
 
   <ScimNotes {baseUrl} />
@@ -132,15 +132,14 @@
   <Dialog open={!!token} onOpenChange={(open) => !open && (token = null)}>
     <DialogContent>
       <DialogHeader>
-        <DialogTitle>Copy your SCIM token</DialogTitle>
+        <DialogTitle>{m.settings_sec_scim_copy_title()}</DialogTitle>
         <DialogDescription>
-          This is the only time it’s shown. Paste it into your identity provider as the bearer token
-          — anyone with it can add and remove workspace members.
+          {m.settings_sec_scim_copy_desc()}
         </DialogDescription>
       </DialogHeader>
-      {#if token}<CopyField value={token} label="SCIM token" />{/if}
+      {#if token}<CopyField value={token} label={m.settings_sec_scim_token()} />{/if}
       <DialogFooter>
-        <Button onclick={() => (token = null)}>Done</Button>
+        <Button onclick={() => (token = null)}>{m.common_done()}</Button>
       </DialogFooter>
     </DialogContent>
   </Dialog>
@@ -149,21 +148,21 @@
     <AlertDialogContent size="sm">
       <AlertDialogHeader>
         <AlertDialogTitle>
-          {confirm === 'rotate' ? 'Rotate the SCIM token?' : 'Revoke the SCIM token?'}
+          {confirm === 'rotate' ? m.settings_sec_scim_rotate_title() : m.settings_sec_scim_revoke_title()}
         </AlertDialogTitle>
         <AlertDialogDescription>
           {confirm === 'rotate'
-            ? 'The current token stops working immediately; update your identity provider with the new one.'
-            : 'Provisioning stops immediately. Existing members stay in the workspace.'}
+            ? m.settings_sec_scim_rotate_desc()
+            : m.settings_sec_scim_revoke_desc()}
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>
-        <AlertDialogCancel>Cancel</AlertDialogCancel>
+        <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
         <AlertDialogAction
           variant={confirm === 'revoke' ? 'destructive' : 'default'}
           onclick={() => (confirm === 'rotate' ? generate() : revoke())}
         >
-          {confirm === 'rotate' ? 'Rotate' : 'Revoke'}
+          {confirm === 'rotate' ? m.settings_sec_rotate() : m.settings_sec_revoke()}
         </AlertDialogAction>
       </AlertDialogFooter>
     </AlertDialogContent>

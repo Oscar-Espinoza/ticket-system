@@ -90,6 +90,7 @@
 </script>
 
 <script lang="ts">
+  import { currentLocale, m } from '@/lib/i18n';
   import { Calendar as CalendarPrimitive } from "bits-ui"
   import { CalendarDate, type DateValue } from "@internationalized/date"
   import ChevronLeftIcon from "@lucide/svelte/icons/chevron-left"
@@ -117,7 +118,7 @@
     showOutsideDays = true,
     captionLayout = "label",
     buttonVariant = "ghost",
-    locale = "en-US",
+    locale = currentLocale(),
     weekStartsOn,
     fixedWeeks = false,
     numberOfMonths = 1,
@@ -420,12 +421,12 @@
   {#snippet children({ months, weekdays })}
     <div class={c.months}>
       {#if !hideNavigation}
-        <nav class={c.nav} aria-label="Navigation bar">
+        <nav class={c.nav} aria-label={m.editor_cal_nav()}>
           <CalendarPrimitive.PrevButton>
             {#snippet child({ props })}
               <button
                 {...props}
-                aria-label="Go to the Previous Month"
+                aria-label={m.editor_cal_prev()}
                 disabled={(props.disabled as boolean | undefined) || disableNavigation}
                 class={c.button_previous}
               >
@@ -437,7 +438,7 @@
             {#snippet child({ props })}
               <button
                 {...props}
-                aria-label="Go to the Next Month"
+                aria-label={m.editor_cal_next()}
                 disabled={(props.disabled as boolean | undefined) || disableNavigation}
                 class={c.button_next}
               >
@@ -461,7 +462,7 @@
                   <span class={c.dropdown_root} data-disabled={disableNavigation || undefined}>
                     <select
                       class={[c.dropdown, "rdp-months_dropdown"].join(" ")}
-                      aria-label="Choose the Month"
+                      aria-label={m.editor_cal_month()}
                       disabled={disableNavigation}
                       value={displayMonth.value.month}
                       onchange={(e) =>
@@ -483,7 +484,7 @@
                   <span class={c.dropdown_root} data-disabled={disableNavigation || undefined}>
                     <select
                       class={[c.dropdown, "rdp-years_dropdown"].join(" ")}
-                      aria-label="Choose the Year"
+                      aria-label={m.editor_cal_year()}
                       disabled={disableNavigation}
                       value={displayMonth.value.year}
                       onchange={(e) =>

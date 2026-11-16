@@ -20,6 +20,7 @@ import {
   sanitizeIssueDefaults,
   type IssueDefaults,
 } from '@/lib/issue-defaults';
+import { m } from '@/lib/i18n';
 
 export interface DraftSnapshot {
   id: string;
@@ -47,7 +48,7 @@ export async function saveDraft(input: {
   const authz = await authorizeProjectAction(input?.projectId, 'write');
   if (!authz.ok) return authz;
   if (!isUuid(input.id)) {
-    return fail('Invalid draft.');
+    return fail(m.issues_err_invalid_draft());
   }
 
   const title = text(input.title, TITLE_MAX);
@@ -77,7 +78,7 @@ export async function saveDraft(input: {
       ),
     })
     .returning({ id: issueDrafts.id });
-  if (rows.length === 0) return fail('Invalid draft.');
+  if (rows.length === 0) return fail(m.issues_err_invalid_draft());
   return { ok: true };
 }
 
@@ -87,7 +88,7 @@ export async function getDraft(input: {
 }): Promise<ActionResult<{ draft: DraftSnapshot }>> {
   const authz = await authorizeProjectAction(input?.projectId, 'write');
   if (!authz.ok) return authz;
-  if (typeof input.id !== 'string') return fail('Draft not found.');
+  if (typeof input.id !== 'string') return fail(m.issues_err_draft_not_found());
 
   const [row] = await db
     .select()
@@ -100,7 +101,7 @@ export async function getDraft(input: {
       ),
     )
     .limit(1);
-  if (!row) return fail('Draft not found.');
+  if (!row) return fail(m.issues_err_draft_not_found());
   return {
     ok: true,
     draft: {
@@ -116,7 +117,7 @@ export async function getDraft(input: {
 export async function deleteDraft(input: { id: string }): Promise<ActionResult> {
   const userId = await sessionUserId();
   if (!userId) return NOT_AUTHENTICATED;
-  if (typeof input?.id !== 'string') return fail('Draft not found.');
+  if (typeof input?.id !== 'string') return fail(m.issues_err_draft_not_found());
   await db
     .delete(issueDrafts)
     .where(and(eq(issueDrafts.id, input.id), eq(issueDrafts.userId, userId)));

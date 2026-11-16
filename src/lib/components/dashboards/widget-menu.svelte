@@ -8,6 +8,7 @@
   import PencilIcon from '@lucide/svelte/icons/pencil';
   import Trash2Icon from '@lucide/svelte/icons/trash-2';
 
+  import { m } from '@/lib/i18n';
   import { Button } from '@/lib/components/ui/button';
   import {
     DropdownMenu,
@@ -52,7 +53,7 @@
         {...props}
         variant="ghost"
         size="icon-xs"
-        aria-label={`Actions for ${widget.title}`}
+        aria-label={m.editor_dash_actions_for({ name: widget.title })}
         class="opacity-0 group-hover/widget:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100"
       >
         <MoreHorizontalIcon />
@@ -62,15 +63,15 @@
   <DropdownMenuContent align="end">
     <DropdownMenuItem onSelect={onEdit}>
       <PencilIcon />
-      Edit…
+      {m.editor_edit_ellipsis()}
     </DropdownMenuItem>
     <DropdownMenuSub>
       <DropdownMenuSubTrigger>
         <Maximize2Icon />
-        Size
+        {m.editor_field_size()}
       </DropdownMenuSubTrigger>
       <DropdownMenuSubContent>
-        <DropdownMenuLabel class="text-xs text-muted-foreground">Size</DropdownMenuLabel>
+        <DropdownMenuLabel class="text-xs text-muted-foreground">{m.editor_field_size()}</DropdownMenuLabel>
         <DropdownMenuRadioGroup value={sizeOf(widget)} onValueChange={onResize}>
           {#each WIDGET_SIZES as size (size.id)}
             <DropdownMenuRadioItem value={size.id}>{size.label}</DropdownMenuRadioItem>
@@ -80,20 +81,20 @@
     </DropdownMenuSub>
     <DropdownMenuItem disabled={first} onSelect={() => onMove(-1)}>
       <ArrowLeftIcon />
-      Move earlier
+      {m.editor_widget_move_earlier()}
     </DropdownMenuItem>
     <DropdownMenuItem disabled={last} onSelect={() => onMove(1)}>
       <ArrowRightIcon />
-      Move later
+      {m.editor_widget_move_later()}
     </DropdownMenuItem>
     <DropdownMenuItem onSelect={onDuplicate}>
       <CopyIcon />
-      Duplicate
+      {m.editor_duplicate()}
     </DropdownMenuItem>
     <DropdownMenuSeparator />
     <DropdownMenuItem variant="destructive" onSelect={onRemove}>
       <Trash2Icon />
-      Remove
+      {m.common_remove()}
     </DropdownMenuItem>
   </DropdownMenuContent>
 </DropdownMenu>

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { pluralize } from '@/lib/format';
+  import { formatDate, m } from '@/lib/i18n';
   import EllipsisIcon from '@lucide/svelte/icons/ellipsis';
   import HistoryIcon from '@lucide/svelte/icons/history';
   import KeyRoundIcon from '@lucide/svelte/icons/key-round';
@@ -70,6 +70,15 @@
     if (hasHooks) void retryWebhookDeliveries({ projectId }).catch(() => undefined);
   });
 
+  const DATE_TIME_FULL: Intl.DateTimeFormatOptions = {
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric',
+    second: 'numeric',
+  };
+
   const replace = (hook: WebhookView) => (hooks = hooks.map((h) => (h.id === hook.id ? hook : h)));
 
   async function toggle(hook: WebhookView, enabled: boolean) {
@@ -84,7 +93,7 @@
   }
 
   async function test(hook: WebhookView) {
-    const id = toast.loading('Sending test delivery…');
+    const id = toast.loading(m.settings_wh_sending_test());
     const result = await sendWebhookTest({ projectId, id: hook.id });
     if (!result) {
       toast.dismiss(id);
@@ -92,7 +101,7 @@
     }
     if (result.ok) {
       replace(result.webhook);
-      toast.success(`Delivered (HTTP ${result.webhook.lastStatus})`, { id });
+      toast.success(m.settings_wh_delivered_toast({ status: result.webhook.lastStatus ?? '' }), { id });
     } else {
       toast.error(result.error, { id });
     }
@@ -110,7 +119,7 @@
     if (!result) return;
     if (result.ok) {
       hooks = hooks.filter((h) => h.id !== hook.id);
-      toast.success('Webhook deleted');
+      toast.success(m.settings_wh_deleted_toast());
     } else toast.error(result.error);
   }
 </script>
@@ -128,10 +137,10 @@
 
 {#snippet lastDelivery(hook: WebhookView)}
   {#if !hook.lastDeliveredAt}
-    Never delivered
+    {m.settings_wh_never_delivered()}
   {:else}
-    <span title={new Date(hook.lastDeliveredAt).toLocaleString()}>
-      {hook.lastStatus ? `HTTP ${hook.lastStatus}` : 'Failed'}
+    <span title={formatDate(hook.lastDeliveredAt, DATE_TIME_FULL)}>
+      {hook.lastStatus ? `HTTP ${hook.lastStatus}` : m.settings_wh_failed()}
       {relativeTime(new Date(hook.lastDeliveredAt))}
     </span>
   {/if}
@@ -140,24 +149,22 @@
 {#snippet addButton()}
   <Button size="sm" onclick={() => (editing = { mode: 'create' })}>
     <PlusIcon />
-    Add webhook
+    {m.settings_wh_add()}
   </Button>
 {/snippet}
 
 <section class="flex flex-col gap-4">
   <div class="flex items-start justify-between gap-4">
     <div>
-      <h2 class="text-base font-medium">Webhooks</h2>
+      <h2 class="text-base font-medium">{m.settings_wh_webhooks()}</h2>
       <p class="mt-1 text-sm text-muted-foreground">
-        Send a signed JSON <span class="font-mono text-xs">POST</span> to your endpoint whenever issues
-        change. Verify
-        <span class="font-mono text-xs">X-Webhook-Signature</span> with the secret.
+        {m.settings_wh_intro()}
       </p>
     </div>
     {#if hooks.length > 0}
       <Button variant="outline" size="sm" onclick={() => (editing = { mode: 'create' })}>
         <PlusIcon />
-        Add webhook
+        {m.settings_wh_add()}
       </Button>
     {/if}
   </div>
@@ -165,8 +172,8 @@
   {#if hooks.length === 0}
     <EmptyState
       class="rounded-lg border border-dashed border-border py-10"
-      title="No webhooks"
-      description="Connect your own services to issue events."
+      title={m.settings_wh_none()}
+      description={m.settings_wh_none_hint()}
       action={addButton}
     >
       {#snippet icon()}<WebhookIcon />{/snippet}
@@ -180,8 +187,8 @@
             <p class="truncate font-mono text-xs" title={hook.url}>{hook.url}</p>
             <p class="mt-0.5 truncate text-xs text-muted-foreground">
               {hook.events.length === 0
-                ? 'All events'
-                : pluralize(hook.events.length, 'event')}{' · '}<button
+                ? m.settings_wh_all_events()
+                : m.settings_wh_events_count({ count: hook.events.length })}{' · '}<button
                 type="button"
                 class="hover:text-foreground hover:underline"
                 onclick={() => (viewing = hook)}
@@ -194,12 +201,12 @@
           <Switch
             size="sm"
             bind:checked={() => hook.enabled, (on) => toggle(hook, on)}
-            aria-label={hook.enabled ? 'Disable webhook' : 'Enable webhook'}
+            aria-label={hook.enabled ? m.settings_wh_disable() : m.settings_wh_enable()}
           />
           <DropdownMenu>
             <DropdownMenuTrigger>
               {#snippet child({ props })}
-                <Button {...props} variant="ghost" size="icon-sm" aria-label="Webhook actions">
+                <Button {...props} variant="ghost" size="icon-sm" aria-label={m.settings_wh_actions()}>
                   <EllipsisIcon />
                 </Button>
               {/snippet}
@@ -207,24 +214,24 @@
             <DropdownMenuContent align="end">
               <DropdownMenuItem onSelect={() => (viewing = hook)}>
                 <HistoryIcon />
-                Recent deliveries
+                {m.settings_wh_recent_deliveries()}
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => (editing = { mode: 'edit', hook })}>
                 <PencilIcon />
-                Edit
+                {m.common_edit()}
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => test(hook)}>
                 <SendIcon />
-                Send test
+                {m.settings_wh_send_test()}
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => reveal(hook)}>
                 <KeyRoundIcon />
-                Reveal secret
+                {m.settings_wh_reveal_secret()}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem variant="destructive" onSelect={() => (deleting = hook)}>
                 <Trash2Icon />
-                Delete
+                {m.common_delete()}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -261,19 +268,16 @@
   >
     <DialogContent>
       <DialogHeader>
-        <DialogTitle>{secret?.isNew ? 'Webhook created' : 'Signing secret'}</DialogTitle>
+        <DialogTitle>{secret?.isNew ? m.settings_wh_secret_created() : m.settings_wh_signing_secret()}</DialogTitle>
         <DialogDescription>
-          Compute HMAC-SHA256 of the raw request body with this secret and compare it to the
-          <span class="font-mono text-xs">X-Webhook-Signature</span> header (<span class="font-mono text-xs"
-            >sha256=…</span
-          >).
+          {m.settings_wh_signing_desc()}
         </DialogDescription>
       </DialogHeader>
       {#if secret}
-        <CopyField value={secret.value} label="Secret" />
+        <CopyField value={secret.value} label={m.settings_wh_secret()} />
       {/if}
       <DialogFooter>
-        <Button onclick={() => (secret = null)}>Done</Button>
+        <Button onclick={() => (secret = null)}>{m.common_done()}</Button>
       </DialogFooter>
     </DialogContent>
   </Dialog>
@@ -285,20 +289,20 @@
   >
     <AlertDialogContent size="sm">
       <AlertDialogHeader>
-        <AlertDialogTitle>Delete webhook?</AlertDialogTitle>
+        <AlertDialogTitle>{m.settings_wh_delete_title()}</AlertDialogTitle>
         <AlertDialogDescription>
-          {deleting?.url} will stop receiving events immediately.
+          {m.settings_wh_delete_desc({ url: deleting?.url ?? '' })}
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>
-        <AlertDialogCancel>Cancel</AlertDialogCancel>
+        <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
         <AlertDialogAction
           variant="destructive"
           onclick={() => {
             if (deleting) void remove(deleting);
           }}
         >
-          Delete
+          {m.common_delete()}
         </AlertDialogAction>
       </AlertDialogFooter>
     </AlertDialogContent>

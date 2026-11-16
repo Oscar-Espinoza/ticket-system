@@ -4,6 +4,7 @@
   security events. Owners and admins only.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import ShieldCheckIcon from '@lucide/svelte/icons/shield-check';
 
   import AuditLogView from '@/lib/components/audit/audit-log-view.svelte';
@@ -14,19 +15,19 @@
 </script>
 
 <svelte:head>
-  <title>Audit log · {data.projectName}</title>
+  <title>{m.settings_page_audit_title({ name: data.projectName })}</title>
 </svelte:head>
 
-<h1 class="text-xl font-medium">Audit log</h1>
+<h1 class="text-xl font-medium">{m.settings_page_audit_log()}</h1>
 <p class="mt-1 mb-8 text-sm text-muted-foreground">
-  Who changed what in {data.projectName}. Export it as CSV or JSON (up to 50,000 events).
+  {m.settings_page_audit_desc({ name: data.projectName })}
 </p>
 {#if data.audit}
   <AuditLogView data={data.audit} />
 {:else}
   <EmptyState
-    title="Admins only"
-    description="Team owners and admins can view and export the audit log."
+    title={m.settings_page_admins_only()}
+    description={m.settings_page_audit_admins_hint()}
   >
     {#snippet icon()}<ShieldCheckIcon />{/snippet}
   </EmptyState>

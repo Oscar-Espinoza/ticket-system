@@ -1,5 +1,6 @@
 <!-- One linked customer request of SectionCustomers. -->
 <script module lang="ts">
+  import { m } from '@/lib/i18n';
   const EXCERPT = 240;
   const isTemp = (id: string) => id.startsWith('temp-');
 </script>
@@ -72,8 +73,8 @@
           <button
             {...props}
             type="button"
-            aria-label={`Importance: ${request.importance ? IMPORTANCE_LABEL[request.importance] : 'none'}`}
-            title="Importance"
+            aria-label={m.issues_customer_importance_label({ value: request.importance ? IMPORTANCE_LABEL[request.importance] : m.issues_customer_importance_none() })}
+            title={m.issues_customer_importance()}
             class="shrink-0 rounded-sm outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring/50"
           >
             {@render importance()}
@@ -92,7 +93,7 @@
         {/each}
         <DropdownMenuItem onSelect={() => request.importance && onChange({ importance: null })}>
           <ImportanceIcon importance={null} />
-          No importance
+          {m.issues_customer_no_importance()}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -117,7 +118,7 @@
           </span>
         {/if}
       {:else}
-        <span class="truncate text-muted-foreground">{requester ?? 'Unknown requester'}</span>
+        <span class="truncate text-muted-foreground">{requester ?? m.shared_unknown_requester()}</span>
         {#if canWrite && !pending}
           <PickerPopover class="w-64">
             {#snippet content(close)}
@@ -132,7 +133,7 @@
             {#snippet children({ props })}
               <Button {...props} variant="ghost" size="xs" class="shrink-0 font-normal text-muted-foreground">
                 <Link2Icon />
-                Link customer
+                {m.issues_customer_link()}
               </Button>
             {/snippet}
           </PickerPopover>
@@ -152,8 +153,8 @@
     <Button
       variant="ghost"
       size="icon-xs"
-      aria-label={`Remove request${customer ? ` from ${customer.name}` : ''}`}
-      title="Remove request"
+      aria-label={customer ? m.issues_customer_remove_request_from({ name: customer.name }) : m.issues_customer_remove_request()}
+      title={m.issues_customer_remove_request()}
       onclick={onRemove}
       class="mt-0.5 shrink-0 opacity-0 group-hover/req:opacity-100 focus-visible:opacity-100"
     >

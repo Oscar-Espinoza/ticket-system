@@ -5,6 +5,7 @@
 
 import { and, desc, eq } from 'drizzle-orm';
 
+import { m } from '@/lib/i18n';
 import { db } from '@/lib/db';
 import {
   attachmentBlobs,
@@ -36,7 +37,7 @@ export type AttachmentsResult =
 
 /** `listAttachments` for an untrusted `ticketId`; a missing id is "not found". */
 export async function readAttachments(projectId: string, ticketId: unknown): Promise<AttachmentsResult> {
-  if (typeof ticketId !== 'string' || !ticketId) return { ok: false, error: 'Issue not found.' };
+  if (typeof ticketId !== 'string' || !ticketId) return { ok: false, error: m.editor_err_issue_not_found() };
   return { ok: true, attachments: await listAttachments(projectId, ticketId) };
 }
 
@@ -130,12 +131,12 @@ export async function addFileAttachment(
   projectId: string,
   input: { ticketId: unknown; name: string; type: string; bytes: Uint8Array },
 ): Promise<AttachmentResult> {
-  if (input.bytes.byteLength === 0) return { ok: false, error: 'The file is empty.' };
+  if (input.bytes.byteLength === 0) return { ok: false, error: m.editor_err_file_empty() };
   if (input.bytes.byteLength > MAX_ATTACHMENT_BYTES) {
-    return { ok: false, error: `Files can be at most ${MAX_ATTACHMENT_LABEL}.` };
+    return { ok: false, error: m.editor_err_files_max({ max: MAX_ATTACHMENT_LABEL }) };
   }
   const issue = await loadIssue(projectId, input.ticketId);
-  if (!issue) return { ok: false, error: 'Issue not found.' };
+  if (!issue) return { ok: false, error: m.editor_err_issue_not_found() };
 
   const now = new Date();
   const row = {
@@ -168,9 +169,9 @@ export async function addLinkAttachment(
   input: { ticketId: unknown; url: unknown; title?: unknown },
 ): Promise<AttachmentResult> {
   const url = parseLinkUrl(input.url);
-  if (!url) return { ok: false, error: 'Enter a valid http(s) URL.' };
+  if (!url) return { ok: false, error: m.editor_err_url_invalid() };
   const issue = await loadIssue(projectId, input.ticketId);
-  if (!issue) return { ok: false, error: 'Issue not found.' };
+  if (!issue) return { ok: false, error: m.editor_err_issue_not_found() };
 
   const given = typeof input.title === 'string' ? input.title.trim() : '';
   const now = new Date();
@@ -198,7 +199,7 @@ export async function removeAttachment(
   attachmentId: unknown,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   if (typeof attachmentId !== 'string' || !attachmentId) {
-    return { ok: false, error: 'Attachment not found.' };
+    return { ok: false, error: m.editor_err_attachment_not_found() };
   }
   const [row] = await db
     .select({
@@ -212,12 +213,12 @@ export async function removeAttachment(
     .innerJoin(tickets, eq(attachments.ticketId, tickets.id))
     .where(and(eq(attachments.id, attachmentId), eq(tickets.projectId, projectId)))
     .limit(1);
-  if (!row) return { ok: false, error: 'Attachment not found.' };
+  if (!row) return { ok: false, error: m.editor_err_attachment_not_found() };
   if (row.uploaderId !== actor.userId && !actor.canAdminister) {
-    return { ok: false, error: 'Only the uploader or a project admin can delete this.' };
+    return { ok: false, error: m.editor_err_attachment_delete_denied() };
   }
   const issue = await loadIssue(projectId, row.ticketId);
-  if (!issue) return { ok: false, error: 'Issue not found.' };
+  if (!issue) return { ok: false, error: m.editor_err_issue_not_found() };
 
   const events = attachmentEvent(projectId, actor.userId, issue, 'attachment.removed', row);
   await db.batch([

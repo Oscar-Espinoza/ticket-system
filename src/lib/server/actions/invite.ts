@@ -16,7 +16,10 @@ import { invitations, projectMembers, projects, users } from '@/db/schema';
 import { authorizeProjectAction } from '@/lib/action-auth';
 import { isUniqueViolation } from '@/lib/db-errors';
 import { sendEmail } from '@/lib/email';
+import { m } from '@/lib/i18n';
 import { appUrl } from '@/lib/integrations/app-url';
+import { inviteLocale } from '@/lib/server/invite-locale';
+import { withLocale } from '@/lib/server/i18n';
 import { DAY_MS, WEEK_MS } from '@/lib/time';
 import {
   emailAddress,
@@ -27,7 +30,7 @@ import {
   refreshesData,
   type ActionResult,
 } from '@/lib/server/action-kit';
-import { assignableRoles, isAssignableRole, PROJECT_ROLE_LABEL } from '@/lib/roles';
+import { assignableRoles, isAssignableRole } from '@/lib/roles';
 
 export type GenerateInviteState = {
   errors?: {
@@ -50,7 +53,7 @@ export async function generateInviteLink(
   formData: FormData,
 ): Promise<GenerateInviteState> {
   const projectId = formField(formData, 'projectId');
-  if (!projectId) return { errors: { server: 'Project ID is required.' } };
+  if (!projectId) return { errors: { server: m.auth_project_id_required() } };
 
   const authz = await authorizeProjectAction(projectId, 'admin');
   if (!authz.ok) return { errors: { server: authz.error } };
@@ -74,7 +77,7 @@ export async function generateInviteLink(
     ]);
   } catch (err: unknown) {
     if (isUniqueViolation(err)) {
-      return { errors: { server: 'Could not generate link, try again.' } };
+      return { errors: { server: m.auth_invite_link_failed() } };
     }
     throw err;
   }
@@ -94,22 +97,24 @@ async function sendInviteEmail(opts: {
     db.select({ name: projects.name }).from(projects).where(eq(projects.id, opts.projectId)).limit(1),
     db.select({ name: users.name }).from(users).where(eq(users.id, opts.inviterId)).limit(1),
   ]);
-  const projectName = project?.name ?? 'a project';
-  const inviterName = inviter?.name ?? 'A teammate';
   const url = inviteUrl(opts.token);
-  const role = PROJECT_ROLE_LABEL[opts.role].toLowerCase();
-  const text = [
-    `${inviterName} invited you to join ${projectName} as ${role === 'admin' ? 'an' : 'a'} ${role}.`,
-    '',
-    `Accept the invitation: ${url}`,
-    '',
-    `Sign in (or sign up) with ${opts.to} to accept. The link expires in 7 days.`,
-  ].join('\n');
-  return sendEmail({
-    to: opts.to,
-    subject: `${inviterName} invited you to ${projectName}`,
-    text,
+  // In the invitee's language (the inviter's when the address has no account yet).
+  const message = await withLocale(await inviteLocale(opts.to), () => {
+    const projectName = project?.name ?? m.email_invite_fallback_project();
+    const inviterName = inviter?.name ?? m.email_invite_fallback_inviter();
+    const params = { inviter: inviterName, project: projectName };
+    const intro =
+      opts.role === 'admin'
+        ? m.email_invite_project_admin(params)
+        : opts.role === 'guest'
+          ? m.email_invite_project_guest(params)
+          : m.email_invite_project_member(params);
+    return {
+      subject: m.email_invite_project_subject(params),
+      text: [intro, '', m.email_invite_accept({ url }), '', m.email_invite_sign_in({ email: opts.to })].join('\n'),
+    };
   });
+  return sendEmail({ to: opts.to, ...message });
 }
 
 export async function inviteByEmail(input: {
@@ -124,7 +129,7 @@ export async function inviteByEmail(input: {
   if (isFail(email)) return email;
   const role = input.role;
   if (!isAssignableRole(role) || !assignableRoles(authz.role).includes(role)) {
-    return fail('You can’t invite people with that role.', 'role');
+    return fail(m.auth_invite_role_not_allowed(), 'role');
   }
 
   const [existing] = await db
@@ -136,7 +141,7 @@ export async function inviteByEmail(input: {
     )
     .limit(1);
   if (existing) {
-    return fail('This person is already a member.', 'email');
+    return fail(m.auth_invite_already_member(), 'email');
   }
 
   const token = newToken();
@@ -165,7 +170,7 @@ export async function inviteByEmail(input: {
       }),
     ]);
   } catch (err) {
-    if (isUniqueViolation(err)) return fail('Could not create the invitation, try again.');
+    if (isUniqueViolation(err)) return fail(m.auth_invite_create_failed());
     throw err;
   }
 
@@ -211,7 +216,7 @@ export async function resendInvitation(input: {
   if (!authz.ok) return authz;
 
   const invitation = await loadPendingInvitation(input.projectId, input.invitationId);
-  if (!invitation?.email) return fail('Invitation not found.');
+  if (!invitation?.email) return fail(m.auth_invite_not_found());
   if (!assignableRoles(authz.role).includes(invitation.role)) {
     return FORBIDDEN;
   }
@@ -240,7 +245,7 @@ export async function revokeInvitation(input: {
   if (!authz.ok) return authz;
 
   const invitation = await loadPendingInvitation(input.projectId, input.invitationId);
-  if (!invitation) return fail('Invitation not found.');
+  if (!invitation) return fail(m.auth_invite_not_found());
   if (!assignableRoles(authz.role).includes(invitation.role)) {
     return FORBIDDEN;
   }

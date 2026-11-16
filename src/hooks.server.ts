@@ -7,7 +7,8 @@ import { isAuthPath } from 'better-auth/svelte-kit';
 import { auth, CLIENT_IP_HEADER } from '@/lib/auth';
 import { DENSITY_BOOT_SCRIPT, DENSITY_CSS } from '@/lib/density';
 import { warnIfBehindUnconfiguredProxy } from '@/lib/server/proxy-warning';
-import { setRequestUserLocale } from '@/lib/server/i18n';
+import { setRequestUserLocale, withLocale } from '@/lib/server/i18n';
+import { BASE_LOCALE } from '@/lib/i18n-locales';
 import { paraglideMiddleware } from '@/lib/paraglide/server';
 
 // Awaited before the first request is served (adapter-node: before listen).
@@ -92,12 +93,33 @@ const session: Handle = async ({ event, resolve }) => {
 // Interface language for the rest of the request (src/lib/server/i18n.ts):
 // m.*() messages, getLocale() and the Intl formatters in server code, loads,
 // remote functions and SSR all see it. Fills <html lang="%paraglide.lang%">.
-const i18n: Handle = ({ event, resolve }) =>
-  paraglideMiddleware(event.request, ({ locale }) =>
+//
+// Machine-facing routes always run in English, whoever calls them: their
+// output is read by programs (REST/GraphQL clients, AI assistants over MCP,
+// project exports that are imported again, Slack, webhook senders, cron), so
+// labels like a priority's name and error texts must not change with the
+// caller's language. Emails a cron job sends still go out in each recipient's
+// language (withLocale in src/lib/server/i18n.ts).
+const ENGLISH_ONLY = [
+  /^\/api\/v1\//,
+  /^\/api\/graphql$/,
+  /^\/mcp$/,
+  /^\/api\/projects\/[^/]+\/export(\/|$)/,
+  /^\/api\/slack\//,
+  /^\/api\/webhooks\//,
+  /^\/api\/cron\//,
+];
+
+const i18n: Handle = ({ event, resolve }) => {
+  if (ENGLISH_ONLY.some((re) => re.test(event.url.pathname))) {
+    return withLocale(BASE_LOCALE, () => resolve(event));
+  }
+  return paraglideMiddleware(event.request, ({ locale }) =>
     resolve(event, {
       transformPageChunk: ({ html }) => html.replace('%paraglide.lang%', locale),
     }),
   );
+};
 
 // Signed-out requests under /dashboard go to /login before any load runs. A
 // layout load does not protect its pages' __data.json requests (they run in

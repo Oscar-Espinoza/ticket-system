@@ -1,4 +1,3 @@
-import { pluralize } from '@/lib/format';
 // Shared tail of every importer: chunked import with progress → result summary.
 // Chunks run sequentially so issue numbers follow file order.
 //
@@ -12,6 +11,7 @@ import { pluralize } from '@/lib/format';
 import { toast } from 'svelte-sonner';
 
 import { importIssues } from '@/lib/actions/import';
+import { m } from '@/lib/i18n';
 import { IMPORT_CHUNK, type ImportFailure, type ImportRecord } from '@/lib/import/records';
 
 export interface ImportSummary {
@@ -55,15 +55,14 @@ export function useImportRunner(projectId: string | (() => string)) {
         progress = { done: Math.min(start + chunk.length, records.length), total: records.length };
       }
     } catch {
-      result.error =
-        'The import was interrupted. Issues imported so far were kept; re-run to continue — duplicates are skipped.';
+      result.error = m.auth_import_interrupted();
     } finally {
       running = false;
       progress = null;
       summary = result;
     }
     if (result.error) toast.error(result.error);
-    else toast.success(`Imported ${pluralize(result.created, 'issue')}.`);
+    else toast.success(m.auth_import_done_toast({ count: result.created }));
   }
 
   return {

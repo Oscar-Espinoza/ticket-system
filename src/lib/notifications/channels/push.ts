@@ -6,6 +6,8 @@ import { inArray } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import { pushSubscriptions, userProfiles } from '@/db/schema';
+import { BASE_LOCALE, m } from '@/lib/i18n';
+import { recipientLocales, withLocale } from '@/lib/server/i18n';
 import { pushConfigured, sendPushes, type PushPayload, type PushTarget } from '@/lib/push';
 import {
   describeNotification,
@@ -49,6 +51,7 @@ export async function deliverPush(live: ChannelNotification[], actorNames: Actor
     if (subscriptions.length === 0) return;
 
     const profileByUser = new Map(profiles.map((profile) => [profile.userId, profile]));
+    const locales = await recipientLocales(userIds);
 
     const payloadsByUser = new Map<string, PushPayload[]>();
     for (const row of live) {
@@ -56,24 +59,24 @@ export async function deliverPush(live: ChannelNotification[], actorNames: Actor
       const profile = profileByUser.get(row.userId);
       if (profile && (!profile.push || !prefEnabled(profile.prefs, row.type))) continue;
       const list = payloadsByUser.get(row.userId) ?? [];
-      list.push(pushPayload(row, row.actorId ? (actorName.get(row.actorId) ?? null) : null));
+      // The text is the recipient's own language, not the sender's.
+      const payload = await withLocale(locales.get(row.userId) ?? BASE_LOCALE, () =>
+        pushPayload(row, row.actorId ? (actorName.get(row.actorId) ?? null) : null),
+      );
+      list.push(payload);
       payloadsByUser.set(row.userId, list);
     }
 
     const targets: PushTarget[] = [];
     for (const [userId, payloads] of payloadsByUser) {
+      const overflow = await withLocale(locales.get(userId) ?? BASE_LOCALE, () => ({
+        title: m.editor_notif_push_more({ count: payloads.length - MAX_PER_USER + 1 }),
+        body: m.editor_notif_push_more_body(),
+        url: '/dashboard/inbox',
+        tag: 'inbox',
+      }));
       const capped =
-        payloads.length > MAX_PER_USER
-          ? [
-              ...payloads.slice(0, MAX_PER_USER - 1),
-              {
-                title: `${payloads.length - MAX_PER_USER + 1} more notifications`,
-                body: 'Open your inbox to see them all.',
-                url: '/dashboard/inbox',
-                tag: 'inbox',
-              },
-            ]
-          : payloads;
+        payloads.length > MAX_PER_USER ? [...payloads.slice(0, MAX_PER_USER - 1), overflow] : payloads;
       for (const sub of subscriptions) {
         if (sub.userId !== userId) continue;
         for (const payload of capped) targets.push({ ...sub, payload });

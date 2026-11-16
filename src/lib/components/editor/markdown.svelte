@@ -26,6 +26,8 @@
 
 <script lang="ts">
   import Markdown, { type Plugin } from 'svelte-exmarkdown';
+
+  import { m } from '@/lib/i18n';
   import { gfmPlugin } from 'svelte-exmarkdown/gfm';
 
   import { useOptionalProjectData } from '@/lib/components/project/project-data.svelte';
@@ -99,7 +101,7 @@
           type="checkbox"
           checked={!!checked}
           disabled={!onToggleTask}
-          aria-label={checked ? 'Completed task' : 'Open task'}
+          aria-label={checked ? m.editor_ed_task_done() : m.editor_ed_task_open()}
           class="mr-1.5 size-3.5 translate-y-0.5 accent-primary disabled:opacity-100"
           onchange={onTaskChange}
         />

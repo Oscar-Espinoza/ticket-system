@@ -1,5 +1,6 @@
 <!-- Renders nothing when the project's estimate scale is "none". -->
 <script module lang="ts">
+  import { m } from '@/lib/i18n';
   export interface EstimateOptionsProps {
     /** null = no estimate; undefined = mixed (bulk edit). */
     value: number | null | undefined;
@@ -25,27 +26,29 @@
 
 {#if options.length > 0}
   <Command filter={keywordFilter}>
-    <CommandInput placeholder="Set estimate…" />
+    <CommandInput placeholder={m.issues_estimate_set_placeholder()} />
     <CommandList>
-      <CommandEmpty>No estimate found.</CommandEmpty>
+      <CommandEmpty>{m.issues_estimate_none_found()}</CommandEmpty>
       <CommandItem
         value={NO_ESTIMATE}
-        keywords={['No estimate', 'None']}
+        keywords={[m.issues_estimate_none(), m.common_none()]}
         data-checked={value === null}
         onSelect={() => onSelect(null)}
       >
         <TriangleIcon class="text-muted-foreground" />
-        No estimate
+        {m.issues_estimate_none()}
       </CommandItem>
       {#each options as option (option.value)}
         <CommandItem
           value={String(option.value)}
-          keywords={[option.label, `${option.label} points`]}
+          keywords={[option.label, m.issues_estimate_points({ label: option.label })]}
           data-checked={option.value === value}
           onSelect={() => onSelect(option.value)}
         >
           <TriangleIcon />
-          {option.label}{option.label !== String(option.value) ? '' : ` point${option.value === 1 ? '' : 's'}`}
+          {option.label !== String(option.value)
+            ? option.label
+            : m.shared_estimate_point_suffix({ count: option.value, label: option.label })}
         </CommandItem>
       {/each}
     </CommandList>

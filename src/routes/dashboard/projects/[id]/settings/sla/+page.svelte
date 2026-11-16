@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import SlaSettingsForm from '@/lib/components/sla/sla-settings-form.svelte';
   import type { PageProps } from './$types';
 
@@ -6,12 +7,11 @@
 </script>
 
 <svelte:head>
-  <title>SLAs</title>
+  <title>{m.settings_page_sla()}</title>
 </svelte:head>
 
-<h1 class="text-xl font-medium">SLAs</h1>
+<h1 class="text-xl font-medium">{m.settings_page_sla()}</h1>
 <p class="mt-1 mb-8 text-sm text-muted-foreground">
-  Response targets by priority. Issues show the time left, turn red once overdue, and the assignee
-  and subscribers are notified when an SLA is breached.
+  {m.settings_page_sla_desc()}
 </p>
 <SlaSettingsForm projectId={data.projectId} initial={data.initial} canEdit={data.canEdit} />

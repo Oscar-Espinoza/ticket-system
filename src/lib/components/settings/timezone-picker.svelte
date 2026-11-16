@@ -1,5 +1,6 @@
 <!-- Searchable timezone combobox (~400 IANA zones is too many for a plain select). -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { untrack } from 'svelte';
   import CheckIcon from '@lucide/svelte/icons/check';
   import ChevronsUpDownIcon from '@lucide/svelte/icons/chevrons-up-down';
@@ -52,7 +53,7 @@
           class="w-full max-w-xs justify-between font-normal"
         >
           <span class={cn('truncate', !value && 'text-muted-foreground')}>
-            {value ? value.replaceAll('_', ' ') : 'Not set'}
+            {value ? value.replaceAll('_', ' ') : m.settings_tz_not_set()}
           </span>
           <ChevronsUpDownIcon class="opacity-50" />
         </Button>
@@ -60,9 +61,9 @@
     </PopoverTrigger>
     <PopoverContent class="w-72 p-0" align="start">
       <Command>
-        <CommandInput placeholder="Search timezones…" />
+        <CommandInput placeholder={m.settings_tz_search()} />
         <CommandList>
-          <CommandEmpty>No timezone found.</CommandEmpty>
+          <CommandEmpty>{m.settings_tz_none()}</CommandEmpty>
           {#each timezones as zone (zone)}
             <CommandItem
               value={zone}
@@ -81,6 +82,6 @@
     </PopoverContent>
   </Popover>
   <Button type="button" variant="ghost" size="sm" onclick={detect}>
-    Use this device&rsquo;s
+    {m.settings_tz_use_device()}
   </Button>
 </div>

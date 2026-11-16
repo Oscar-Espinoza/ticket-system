@@ -14,6 +14,7 @@
     in the view area instead of staying blank; "Try again" re-runs the import.
 -->
 <script module lang="ts">
+  import { m } from '@/lib/i18n';
   import type { Component } from 'svelte';
 
   import type { IssueViewDefinition, IssueViewProps } from './views';
@@ -64,10 +65,10 @@
 {/snippet}
 
 {#snippet failed(error: unknown, reset: () => void)}
-  <EmptyState title="Something went wrong" description="This page failed to load. Try again, or come back in a moment.">
+  <EmptyState title={m.issues_error_title()} description={m.issues_error_load_description()}>
     {#snippet icon()}<TriangleAlertIcon />{/snippet}
     {#snippet action()}
-      <Button size="sm" variant="outline" onclick={reset}>Try again</Button>
+      <Button size="sm" variant="outline" onclick={reset}>{m.common_retry()}</Button>
     {/snippet}
   </EmptyState>
 {/snippet}

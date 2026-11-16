@@ -6,6 +6,7 @@
   for the next issue.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { untrack } from 'svelte';
   import { toast } from 'svelte-sonner';
 
@@ -141,8 +142,8 @@
     error = null;
     autosave.flush();
     if (hasContent && draftId) {
-      toast('Draft saved', {
-        action: { label: 'View drafts', onClick: () => void goto('/dashboard/drafts') },
+      toast(m.issues_draft_saved(), {
+        action: { label: m.issues_draft_view_drafts(), onClick: () => void goto('/dashboard/drafts') },
       });
     }
     onOpenChange(false);
@@ -206,10 +207,10 @@
   const draftHint = $derived(
     draftId && hasContent
       ? autosave.status === 'saving'
-        ? 'Saving draft…'
+        ? m.issues_draft_saving()
         : autosave.status === 'error'
-          ? 'Draft not saved'
-          : 'Draft saved'
+          ? m.issues_draft_not_saved()
+          : m.issues_draft_saved()
       : null,
   );
 </script>
@@ -227,10 +228,10 @@
     }}
   >
     <DialogHeader class="flex-row items-center gap-2 pr-8">
-      <DialogTitle>New issue</DialogTitle>
+      <DialogTitle>{m.issues_new_issue()}</DialogTitle>
       <span class="font-mono text-xs text-muted-foreground">{data.project.ticketKey}</span>
       <DialogDescription class="sr-only">
-        Title, description and properties of the new {data.project.ticketKey} issue.
+        {m.issues_new_dialog_description({ key: data.project.ticketKey })}
       </DialogDescription>
       <div class="ml-auto">
         <TemplateMenu enabled={open} onApply={applyTemplate} />
@@ -247,12 +248,12 @@
       class="flex flex-col gap-4"
     >
       <div class="flex flex-col gap-1.5">
-        <Label for={`${uid}-title`}>Title</Label>
+        <Label for={`${uid}-title`}>{m.issues_title()}</Label>
         <Input
           bind:ref={titleRef}
           id={`${uid}-title`}
           bind:value={() => title, (next) => edit({ title: next ?? '' })}
-          placeholder="Issue title"
+          placeholder={m.issues_new_title_placeholder()}
           maxlength={200}
           autofocus
           aria-invalid={error ? true : undefined}
@@ -261,11 +262,11 @@
         <PossibleDuplicates projectId={data.project.id} {title} enabled={open && canWrite.current} />
       </div>
       <div class="flex flex-col gap-1.5">
-        <Label for={`${uid}-description`}>Description</Label>
+        <Label for={`${uid}-description`}>{m.common_description()}</Label>
         <Textarea
           id={`${uid}-description`}
           bind:value={() => description, (next) => edit({ description: next ?? '' })}
-          placeholder="Add a description…"
+          placeholder={m.issues_description_placeholder()}
           rows={5}
         />
       </div>
@@ -286,16 +287,16 @@
               class="h-auto px-0 text-xs text-muted-foreground"
               onclick={discard}
             >
-              Discard
+              {m.issues_discard()}
             </Button>
           {/if}
         </div>
         <div class="flex items-center gap-3">
           <label class="flex items-center gap-2 text-xs text-muted-foreground">
             <Switch size="sm" checked={createMore} onCheckedChange={toggleCreateMore} />
-            Create more
+            {m.issues_create_more()}
           </label>
-          <Button type="submit" disabled={!title.trim()}>Create issue</Button>
+          <Button type="submit" disabled={!title.trim()}>{m.issues_create_issue()}</Button>
         </div>
       </DialogFooter>
     </form>

@@ -3,6 +3,7 @@
 // milestones and updates through their epic — so ids from another project
 // match nothing. Referenced users (lead) must be project members.
 
+import { m } from '@/lib/i18n';
 import { and, desc, eq, sql } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
@@ -41,14 +42,14 @@ const MILESTONE_NAME_MAX = 80;
 
 function looseText(value: unknown, max: number, field: string): string | null | Fail {
   if (value == null) return null;
-  if (typeof value !== 'string') return fail('Invalid text.', field);
-  if (value.length > max) return fail(`Must be ${max} characters or fewer.`, field);
+  if (typeof value !== 'string') return fail(m.projects_err_invalid_text(), field);
+  if (value.length > max) return fail(m.projects_err_max_chars({ max }), field);
   return value.trim() ? value : null;
 }
 
 function optionalDate(value: unknown, field: string): string | null | Fail {
   if (value == null || value === '') return null;
-  return isDateString(value) ? value : fail('Invalid date.', field);
+  return isDateString(value) ? value : fail(m.projects_err_invalid_date(), field);
 }
 
 async function loadEpic(projectId: string, epicId: unknown) {
@@ -121,17 +122,17 @@ async function validateEpicInput(
     changes.description = value;
   }
   if (input.status !== undefined) {
-    if (!isEpicStatus(input.status)) return fail('Invalid status.', 'status');
+    if (!isEpicStatus(input.status)) return fail(m.projects_err_invalid_status(), 'status');
     changes.status = input.status;
   }
   if (input.health !== undefined) {
-    if (input.health !== null && !isHealth(input.health)) return fail('Invalid health.', 'health');
+    if (input.health !== null && !isHealth(input.health)) return fail(m.projects_err_invalid_health(), 'health');
     changes.health = input.health;
   }
   if (input.leadId !== undefined) {
     if (input.leadId !== null) {
       if (typeof input.leadId !== 'string' || !(await getMemberProject(projectId, input.leadId))) {
-        return fail('The lead must be a project member.', 'leadId');
+        return fail(m.projects_err_lead_member(), 'leadId');
       }
     }
     changes.leadId = input.leadId;
@@ -144,7 +145,7 @@ async function validateEpicInput(
   }
   if (input.color !== undefined) {
     if (input.color !== null && !isHexColor(input.color)) {
-      return fail('Invalid color.', 'color');
+      return fail(m.projects_err_invalid_color(), 'color');
     }
     changes.color = input.color?.toLowerCase() ?? null;
   }
@@ -163,7 +164,7 @@ export async function createEpic(input: EpicInput & { projectId: string }): Prom
   const changes = await validateEpicInput(projectId, { ...input, name: input.name ?? '' });
   if (isFail(changes)) return changes;
   if (!datesInOrder(changes.startDate, changes.targetDate)) {
-    return fail('The target date must be on or after the start date.', 'targetDate');
+    return fail(m.projects_err_target_after_start(), 'targetDate');
   }
 
   const [{ max }] = await db
@@ -201,7 +202,7 @@ export async function updateEpic(input: {
   const { projectId } = input;
 
   const epic = await loadEpic(projectId, input.id);
-  if (!epic) return fail('Epic not found.');
+  if (!epic) return fail(m.projects_err_epic_not_found());
   const changes = await validateEpicInput(projectId, input.patch ?? {});
   if (isFail(changes)) return changes;
   if (Object.keys(changes).length === 0) return { ok: true, id: epic.id };
@@ -209,7 +210,7 @@ export async function updateEpic(input: {
   const start = changes.startDate !== undefined ? changes.startDate : epic.startDate;
   const target = changes.targetDate !== undefined ? changes.targetDate : epic.targetDate;
   if (!datesInOrder(start, target)) {
-    return fail('The target date must be on or after the start date.', 'targetDate');
+    return fail(m.projects_err_target_after_start(), 'targetDate');
   }
 
   await db
@@ -231,7 +232,7 @@ async function setArchived(
     .set({ archivedAt, updatedAt: new Date() })
     .where(and(eq(epics.id, input.id), eq(epics.projectId, input.projectId)))
     .returning({ id: epics.id });
-  if (updated.length === 0) return fail('Epic not found.');
+  if (updated.length === 0) return fail(m.projects_err_epic_not_found());
   refreshesData();
   return { ok: true, id: input.id };
 }
@@ -275,7 +276,7 @@ export async function createMilestone(input: {
   const authz = await authorizeProjectAction(input?.projectId, 'write');
   if (!authz.ok) return authz;
   const epic = await loadEpic(input.projectId, input.epicId);
-  if (!epic) return fail('Epic not found.');
+  if (!epic) return fail(m.projects_err_epic_not_found());
   const milestoneName = requiredText(input.name, 'name', MILESTONE_NAME_MAX);
   if (isFail(milestoneName)) return milestoneName;
   const targetDate = optionalDate(input.targetDate, 'targetDate');
@@ -308,7 +309,7 @@ export async function updateMilestone(input: {
   const authz = await authorizeProjectAction(input?.projectId, 'write');
   if (!authz.ok) return authz;
   const milestone = await loadMilestone(input.projectId, input.id);
-  if (!milestone) return fail('Milestone not found.');
+  if (!milestone) return fail(m.projects_err_milestone_not_found());
 
   const changes: { name?: string; description?: string | null; targetDate?: string | null } = {};
   if (input.name !== undefined) {
@@ -341,7 +342,7 @@ export async function deleteMilestone(input: {
   const authz = await authorizeProjectAction(input?.projectId, 'write');
   if (!authz.ok) return authz;
   const milestone = await loadMilestone(input.projectId, input.id);
-  if (!milestone) return fail('Milestone not found.');
+  if (!milestone) return fail(m.projects_err_milestone_not_found());
   await db.delete(milestones).where(eq(milestones.id, milestone.id));
   refreshesData();
   return { ok: true };
@@ -356,9 +357,9 @@ export async function reorderMilestones(input: {
   const authz = await authorizeProjectAction(input?.projectId, 'write');
   if (!authz.ok) return authz;
   const epic = await loadEpic(input.projectId, input.epicId);
-  if (!epic) return fail('Epic not found.');
+  if (!epic) return fail(m.projects_err_epic_not_found());
   if (!Array.isArray(input.ids) || input.ids.some((id) => typeof id !== 'string')) {
-    return fail('Invalid order.');
+    return fail(m.projects_err_invalid_order());
   }
 
   const current = await db
@@ -371,7 +372,7 @@ export async function reorderMilestones(input: {
     new Set(input.ids).size !== known.size ||
     input.ids.some((id) => !known.has(id))
   ) {
-    return fail('The milestones changed meanwhile — refresh and try again.');
+    return fail(m.projects_err_milestones_changed());
   }
   if (input.ids.length === 0) return { ok: true };
 
@@ -399,12 +400,12 @@ export async function postEpicUpdate(input: {
   const authz = await authorizeProjectAction(input?.projectId, 'write');
   if (!authz.ok) return authz;
   const epic = await loadEpic(input.projectId, input.epicId);
-  if (!epic) return fail('Epic not found.');
-  if (!isHealth(input.health)) return fail('Pick a health status.', 'health');
+  if (!epic) return fail(m.projects_err_epic_not_found());
+  if (!isHealth(input.health)) return fail(m.projects_err_pick_health(), 'health');
   const body = typeof input.body === 'string' ? input.body.trim() : '';
-  if (!body) return fail('Write a short update.', 'body');
+  if (!body) return fail(m.projects_err_write_update(), 'body');
   if (body.length > UPDATE_BODY_MAX) {
-    return fail(`Updates must be ${UPDATE_BODY_MAX} characters or fewer.`, 'body');
+    return fail(m.projects_err_update_max_chars({ max: UPDATE_BODY_MAX }), 'body');
   }
 
   const now = new Date();
@@ -450,7 +451,7 @@ export async function deleteEpicUpdate(input: {
 }): Promise<EpicActionResult> {
   const authz = await authorizeProjectAction(input?.projectId, 'write');
   if (!authz.ok) return authz;
-  if (typeof input.id !== 'string' || !input.id) return fail('Update not found.');
+  if (typeof input.id !== 'string' || !input.id) return fail(m.projects_err_update_not_found());
 
   const [update] = await db
     .select({ id: epicUpdates.id, epicId: epicUpdates.epicId, authorId: epicUpdates.authorId })
@@ -458,9 +459,9 @@ export async function deleteEpicUpdate(input: {
     .innerJoin(epics, eq(epicUpdates.epicId, epics.id))
     .where(and(eq(epicUpdates.id, input.id), eq(epics.projectId, input.projectId)))
     .limit(1);
-  if (!update) return fail('Update not found.');
+  if (!update) return fail(m.projects_err_update_not_found());
   if (!canDeleteUpdate(roleAllows(authz.role, 'admin'), update.authorId, authz.userId)) {
-    return fail('Only the author or a project admin can delete this update.');
+    return fail(m.projects_err_update_delete_forbidden());
   }
 
   await db.delete(epicUpdates).where(eq(epicUpdates.id, update.id));

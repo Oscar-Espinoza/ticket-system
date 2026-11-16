@@ -1,5 +1,6 @@
 <!-- Editable initiative title. -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { Textarea } from '@/lib/components/ui/textarea';
   import { INITIATIVE_NAME_MAX } from '@/lib/initiative-model';
 
@@ -16,7 +17,7 @@
 </script>
 
 <Textarea
-  aria-label="Initiative name"
+  aria-label={m.projects_initiative_name()}
   bind:value={draft}
   rows={1}
   maxlength={INITIATIVE_NAME_MAX}

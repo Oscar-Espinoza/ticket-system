@@ -8,21 +8,25 @@ import { getSlackInstallationsFor, getSlackUserLinks } from '@/lib/slack-setting
 import { slackConfig, slackManifest, slackUrls } from '@/lib/slack/config';
 import type { SlackWorkspace } from '@/lib/components/slack/slack-types';
 import type { PageServerLoad } from './$types';
+import { m } from '@/lib/i18n';
+import { lazyLabels } from '@/lib/lazy-labels';
 
-const STATUS_MESSAGES: Record<string, string> = {
-  installed: 'Slack workspace connected.',
-  linked: 'Your Slack account is linked.',
-};
+const STATUS_MESSAGES: Record<string, string> = lazyLabels({
+  installed: m.shared_slack_installed,
+  linked: m.shared_slack_linked,
+});
 
-const ERROR_MESSAGES: Record<string, string> = {
-  not_configured: 'The Slack app isn’t configured on this server yet.',
-  denied: 'Slack authorization was cancelled.',
-  state: 'That Slack authorization expired or was started in another browser. Try again.',
-  session: 'Sign in as the account that started the Slack authorization and try again.',
-  exchange: 'Slack didn’t accept the authorization. Try again.',
-  enterprise: 'Enterprise Grid org-wide installs aren’t supported. Install into a single workspace.',
-  not_installed: 'Add the app to that Slack workspace first, then link your account.',
-};
+const ERROR_MESSAGES: Record<string, string> = lazyLabels({
+  not_configured: m.shared_slack_not_configured,
+  denied: m.shared_slack_denied,
+  state: m.shared_slack_state,
+  session: m.shared_slack_session,
+  exchange: m.shared_slack_exchange,
+  enterprise: m.shared_slack_enterprise,
+  not_installed: m.shared_slack_not_installed,
+});
+const known = (map: Record<string, string>, key: string | undefined) =>
+  key && Object.hasOwn(map, key) ? map[key] : undefined;
 
 export const load: PageServerLoad = async ({ url }) => {
   const { id: userId } = await requireUser();
@@ -46,7 +50,7 @@ export const load: PageServerLoad = async ({ url }) => {
     teamName: install.teamName ?? install.teamId,
     installedByName: install.installedByName,
     defaultProject: install.defaultProjectId
-      ? { id: install.defaultProjectId, name: install.defaultProjectName ?? 'Unknown project' }
+      ? { id: install.defaultProjectId, name: install.defaultProjectName ?? m.shared_unknown_project() }
       : null,
     canManage:
       install.installedById === userId ||
@@ -57,9 +61,9 @@ export const load: PageServerLoad = async ({ url }) => {
 
   const notice =
     status === 'error'
-      ? { tone: 'error' as const, text: ERROR_MESSAGES[reason ?? ''] ?? 'Something went wrong with Slack.' }
-      : status && STATUS_MESSAGES[status]
-        ? { tone: 'success' as const, text: STATUS_MESSAGES[status] }
+      ? { tone: 'error' as const, text: known(ERROR_MESSAGES, reason) ?? m.shared_slack_generic() }
+      : known(STATUS_MESSAGES, status)
+        ? { tone: 'success' as const, text: known(STATUS_MESSAGES, status)! }
         : null;
 
   return {

@@ -2,6 +2,7 @@
 // human summary. Days are UTC calendar days, like cycles: an occurrence's
 // `nextRunAt` is 00:00Z of its day and the daily cron creates it that day.
 
+import { m, dateFormat, currentLocale } from '@/lib/i18n';
 import { DAY_MS, WEEKDAYS, formatWeekday, fromDateInput, utcDay } from '@/lib/cycle-utils';
 import { isDateString } from '@/lib/dates';
 
@@ -9,9 +10,15 @@ export const FREQUENCIES = ['daily', 'weekly', 'monthly'] as const;
 export type Frequency = (typeof FREQUENCIES)[number];
 
 export const FREQUENCY_LABEL: Record<Frequency, string> = {
-  daily: 'Daily',
-  weekly: 'Weekly',
-  monthly: 'Monthly',
+  get daily() {
+    return m.projects_freq_daily();
+  },
+  get weekly() {
+    return m.projects_freq_weekly();
+  },
+  get monthly() {
+    return m.projects_freq_monthly();
+  },
 };
 
 export const INTERVAL_MAX: Record<Frequency, number> = { daily: 30, weekly: 12, monthly: 12 };
@@ -58,18 +65,18 @@ export interface RecurringIssue {
 type Result = { ok: true; schedule: RecurringSchedule } | { ok: false; error: string };
 
 export function normalizeSchedule(raw: unknown): Result {
-  if (!raw || typeof raw !== 'object') return { ok: false, error: 'Invalid schedule.' };
+  if (!raw || typeof raw !== 'object') return { ok: false, error: m.projects_recurring_err_invalid() };
   const input = raw as Record<string, unknown>;
   const freq = input.freq;
   if (!(FREQUENCIES as readonly unknown[]).includes(freq)) {
-    return { ok: false, error: 'Choose how often it repeats.' };
+    return { ok: false, error: m.projects_recurring_err_freq() };
   }
   const f = freq as Frequency;
   const interval = input.interval;
   if (!Number.isInteger(interval) || (interval as number) < 1 || (interval as number) > INTERVAL_MAX[f]) {
-    return { ok: false, error: `Repeat every 1 to ${INTERVAL_MAX[f]}.` };
+    return { ok: false, error: m.projects_recurring_err_interval({ max: INTERVAL_MAX[f] }) };
   }
-  if (!isDateString(input.start)) return { ok: false, error: 'Choose a start date.' };
+  if (!isDateString(input.start)) return { ok: false, error: m.projects_recurring_err_start() };
   const schedule: RecurringSchedule = { freq: f, interval: interval as number, start: input.start };
   if (f === 'weekly') {
     const days = Array.isArray(input.weekdays) ? input.weekdays : [];
@@ -77,14 +84,14 @@ export function normalizeSchedule(raw: unknown): Result {
       (d): d is number => Number.isInteger(d) && (d as number) >= 0 && (d as number) <= 6,
     );
     if (weekdays.length === 0 || weekdays.length !== days.length) {
-      return { ok: false, error: 'Pick at least one weekday.' };
+      return { ok: false, error: m.projects_recurring_err_weekday() };
     }
     schedule.weekdays = weekdays.sort((a, b) => a - b);
   }
   if (f === 'monthly') {
     const day = input.dayOfMonth;
     if (!Number.isInteger(day) || (day as number) < 1 || (day as number) > 31) {
-      return { ok: false, error: 'Pick a day of the month.' };
+      return { ok: false, error: m.projects_recurring_err_day() };
     }
     schedule.dayOfMonth = day as number;
   }
@@ -169,9 +176,17 @@ export function upcomingRuns(schedule: RecurringSchedule, from: Date | number, c
   return runs;
 }
 
-const SHORT_WEEKDAYS = WEEKDAYS.map((day) => day.slice(0, 3));
+/** Short weekday names (0 = Sunday) in the current language. */
+function shortWeekdays(): string[] {
+  // 2024-01-07 is a Sunday.
+  return WEEKDAYS.map((_, i) =>
+    dateFormat({ weekday: 'short', timeZone: 'UTC' }).format(new Date(Date.UTC(2024, 0, 7 + i))),
+  );
+}
 
+/** English ordinal ("31st"); other languages say "day 31", so a plain number. */
 function ordinal(n: number): string {
+  if (currentLocale() !== 'en') return String(n);
   const suffix = n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd' : n % 10 === 3 && n !== 13 ? 'rd' : 'th';
   return `${n}${suffix}`;
 }
@@ -181,16 +196,17 @@ export function describeSchedule(schedule: RecurringSchedule): string {
   const n = schedule.interval;
   switch (schedule.freq) {
     case 'daily':
-      return n === 1 ? 'Every day' : `Every ${n} days`;
+      return m.projects_recurring_daily({ count: n });
     case 'weekly': {
-      const days = (schedule.weekdays ?? []).map((d) => SHORT_WEEKDAYS[d]).join(', ');
+      const short = shortWeekdays();
+      const days = (schedule.weekdays ?? []).map((d) => short[d]).join(', ');
       const weekdaysOnly = (schedule.weekdays ?? []).join() === '1,2,3,4,5';
-      if (n === 1 && weekdaysOnly) return 'Every weekday';
-      return `${n === 1 ? 'Weekly' : `Every ${n} weeks`} on ${days}`;
+      if (n === 1 && weekdaysOnly) return m.projects_recurring_every_weekday();
+      return m.projects_recurring_weekly({ count: n, days });
     }
     case 'monthly': {
       const day = ordinal(schedule.dayOfMonth ?? 1);
-      return `${n === 1 ? 'Monthly' : `Every ${n} months`} on the ${day}`;
+      return m.projects_recurring_monthly({ count: n, day });
     }
   }
 }

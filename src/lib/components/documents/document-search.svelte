@@ -1,5 +1,6 @@
 <!-- Docs search box kept in `?q=`. -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { untrack } from 'svelte';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
@@ -28,8 +29,8 @@
   <input
     type="search"
     {value}
-    placeholder="Search docs…"
-    aria-label="Search documents"
+    placeholder={m.auth_docs_search_placeholder()}
+    aria-label={m.auth_docs_search()}
     oninput={(e) => {
       const next = e.currentTarget.value;
       value = next;

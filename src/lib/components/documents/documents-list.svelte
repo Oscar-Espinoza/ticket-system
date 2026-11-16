@@ -6,6 +6,7 @@
   copyDocumentLink is exported from this file's module script).
 -->
 <script module lang="ts">
+  import { m } from '@/lib/i18n';
   import { toast } from 'svelte-sonner';
 
   import { documentPath } from '@/lib/document-model';
@@ -13,14 +14,24 @@
   export async function copyDocumentLink(projectId: string, documentId: string) {
     try {
       await navigator.clipboard.writeText(new URL(documentPath(projectId, documentId), window.location.origin).href);
-      toast.success('Link copied');
+      toast.success(m.auth_docs_link_copied());
     } catch {
-      toast.error('Couldn’t copy the link');
+      toast.error(m.auth_docs_link_copy_failed());
     }
   }
 </script>
 
 <script lang="ts">
+  import { formatDate } from '@/lib/i18n';
+
+  const FULL_DATE = {
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    second: '2-digit',
+  } as const;
   import Archive from '@lucide/svelte/icons/archive';
   import ArchiveRestore from '@lucide/svelte/icons/archive-restore';
   import FileText from '@lucide/svelte/icons/file-text';
@@ -85,13 +96,13 @@
       variant="outline"
       spacing={0}
       bind:value={() => filter, (value: string) => value && (filter = value as Filter)}
-      aria-label="Show active or archived documents"
+      aria-label={m.auth_docs_filter_label()}
     >
       <ToggleGroupItem value="active" class="gap-1.5 px-2.5 text-xs">
-        Active <span class="text-muted-foreground tabular-nums">{active.length}</span>
+        {m.auth_docs_active()} <span class="text-muted-foreground tabular-nums">{active.length}</span>
       </ToggleGroupItem>
       <ToggleGroupItem value="archived" class="gap-1.5 px-2.5 text-xs">
-        Archived <span class="text-muted-foreground tabular-nums">{archived.length}</span>
+        {m.auth_docs_archived()} <span class="text-muted-foreground tabular-nums">{archived.length}</span>
       </ToggleGroupItem>
     </ToggleGroup>
     <DocumentSearch initial={query} />
@@ -102,17 +113,17 @@
 
   {#if shown.length === 0}
     {#if query}
-      <EmptyState title="No matching documents" description={`Nothing mentions “${query}”.`}>
+      <EmptyState title={m.auth_docs_no_match_title()} description={m.auth_docs_no_match_description({ query })}>
         {#snippet icon()}<SearchX />{/snippet}
       </EmptyState>
     {:else if filter === 'archived'}
-      <EmptyState title="No archived documents">
+      <EmptyState title={m.auth_docs_no_archived()}>
         {#snippet icon()}<Archive />{/snippet}
       </EmptyState>
     {:else}
       <EmptyState
-        title="No documents yet"
-        description="Write specs, RFCs and meeting notes next to the issues they describe — edited together in real time."
+        title={m.auth_docs_empty_title()}
+        description={m.auth_docs_empty_description()}
         action={canWrite.current ? newDocAction : undefined}
       >
         {#snippet icon()}<FileText />{/snippet}
@@ -145,7 +156,7 @@
             {/if}
             <span
               class="hidden w-6 shrink-0 md:block"
-              title={doc.updatedBy ? `Last edited by ${doc.updatedBy.name}` : undefined}
+              title={doc.updatedBy ? m.auth_docs_last_edited_by({ name: doc.updatedBy.name }) : undefined}
             >
               {#if doc.updatedBy}
                 <Avatar name={doc.updatedBy.name} src={doc.updatedBy.image} size={20} />
@@ -153,7 +164,7 @@
             </span>
             <time
               datetime={doc.updatedAt}
-              title={`Updated ${new Date(doc.updatedAt).toLocaleString()}`}
+              title={m.auth_docs_updated_title({ when: formatDate(doc.updatedAt, FULL_DATE) })}
               class="w-20 shrink-0 text-right text-xs tabular-nums text-muted-foreground"
             >
               {relativeTime(new Date(doc.updatedAt))}
@@ -166,7 +177,7 @@
                   {...props}
                   variant="ghost"
                   size="icon-sm"
-                  aria-label={`Actions for ${doc.title}`}
+                  aria-label={m.auth_docs_actions_for({ title: doc.title })}
                   class="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 data-[state=open]:opacity-100"
                 >
                   <MoreHorizontal />
@@ -176,24 +187,24 @@
             <DropdownMenuContent align="end">
               <DropdownMenuItem onSelect={() => copyDocumentLink(projectId, doc.id)}>
                 <Link2 />
-                Copy link
+                {m.auth_copy_link()}
               </DropdownMenuItem>
               {#if canWrite.current}
                 {#if doc.archivedAt}
-                  <DropdownMenuItem onSelect={() => run(unarchiveDocument({ id: doc.id }), 'Document restored')}>
+                  <DropdownMenuItem onSelect={() => run(unarchiveDocument({ id: doc.id }), m.auth_docs_restored_toast())}>
                     <ArchiveRestore />
-                    Unarchive
+                    {m.auth_docs_unarchive()}
                   </DropdownMenuItem>
                 {:else}
-                  <DropdownMenuItem onSelect={() => run(archiveDocument({ id: doc.id }), 'Document archived')}>
+                  <DropdownMenuItem onSelect={() => run(archiveDocument({ id: doc.id }), m.auth_docs_archived_toast())}>
                     <Archive />
-                    Archive
+                    {m.auth_docs_archive()}
                   </DropdownMenuItem>
                 {/if}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem variant="destructive" onSelect={() => (deleting = doc)}>
                   <Trash2 />
-                  Delete…
+                  {m.auth_customers_delete_short()}
                 </DropdownMenuItem>
               {/if}
             </DropdownMenuContent>

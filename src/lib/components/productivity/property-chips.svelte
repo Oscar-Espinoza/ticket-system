@@ -4,6 +4,7 @@
   forms that build an IssuePatch: the new-issue dialog and the template editor.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import CalendarClock from '@lucide/svelte/icons/calendar-clock';
   import CalendarDays from '@lucide/svelte/icons/calendar-days';
   import Hourglass from '@lucide/svelte/icons/hourglass';
@@ -52,22 +53,22 @@
   const CHIP = 'max-w-48 font-normal text-muted-foreground aria-expanded:text-foreground';
 </script>
 
-<div role="group" aria-label="Properties" class="flex flex-wrap gap-1.5">
+<div role="group" aria-label={m.issues_properties()} class="flex flex-wrap gap-1.5">
   <StatePicker value={state?.id ?? null} onChange={(stateId: string) => onChange({ stateId })}>
     {#snippet children({ props })}
-      <Button type="button" variant="outline" size="xs" class={CHIP} aria-label="Status: {state?.name ?? 'none'}" {...props}>
+      <Button type="button" variant="outline" size="xs" class={CHIP} aria-label={m.issues_chip_status_aria({ value: state?.name ?? m.issues_chip_none() })} {...props}>
         {#if state}<StateIcon {state} size={14} />{/if}
-        <span class="truncate text-foreground">{state?.name ?? 'Status'}</span>
+        <span class="truncate text-foreground">{state?.name ?? m.common_status()}</span>
       </Button>
     {/snippet}
   </StatePicker>
 
   <PriorityPicker value={priority} onChange={(next: IssuePatch['priority']) => onChange({ priority: next })}>
     {#snippet children({ props })}
-      <Button type="button" variant="outline" size="xs" class={CHIP} aria-label="Priority: {PRIORITY_LABEL[priority]}" {...props}>
+      <Button type="button" variant="outline" size="xs" class={CHIP} aria-label={m.issues_chip_priority_aria({ value: PRIORITY_LABEL[priority] })} {...props}>
         <PriorityIcon {priority} size={14} />
         <span class={priority !== 'none' ? 'text-foreground' : undefined}>
-          {priority === 'none' ? 'Priority' : PRIORITY_LABEL[priority]}
+          {priority === 'none' ? m.common_priority() : PRIORITY_LABEL[priority]}
         </span>
       </Button>
     {/snippet}
@@ -78,13 +79,13 @@
     onChange={(assigneeId: string | null) => onChange({ assigneeId })}
   >
     {#snippet children({ props })}
-      <Button type="button" variant="outline" size="xs" class={CHIP} aria-label="Assignee: {assignee?.name ?? 'none'}" {...props}>
+      <Button type="button" variant="outline" size="xs" class={CHIP} aria-label={m.issues_chip_assignee_aria({ value: assignee?.name ?? m.issues_chip_none() })} {...props}>
         {#if assignee}
           <Avatar name={assignee.name} src={assignee.image} size={20} class="-my-1 size-4" />
           <span class="truncate text-foreground">{assignee.name}</span>
         {:else}
           <UserRound />
-          Assignee
+          {m.common_assignee()}
         {/if}
       </Button>
     {/snippet}
@@ -92,18 +93,18 @@
 
   <AssigneePicker
     value={value.waitingOnId ?? null}
-    placeholder="Waiting on…"
-    noneLabel="Not waiting on anyone"
+    placeholder={m.issues_waiting_on_placeholder()}
+    noneLabel={m.issues_waiting_on_none()}
     onChange={(waitingOnId: string | null) => onChange({ waitingOnId })}
   >
     {#snippet children({ props })}
-      <Button type="button" variant="outline" size="xs" class={CHIP} aria-label="Waiting on: {waitingOn?.name ?? 'no one'}" {...props}>
+      <Button type="button" variant="outline" size="xs" class={CHIP} aria-label={m.issues_chip_waiting_aria({ value: waitingOn?.name ?? m.issues_chip_no_one() })} {...props}>
         {#if waitingOn}
           <Avatar name={waitingOn.name} src={waitingOn.image} size={20} class="-my-1 size-4" />
           <span class="truncate text-foreground">{waitingOn.name}</span>
         {:else}
           <Hourglass />
-          Waiting on
+          {m.issues_waiting_on()}
         {/if}
       </Button>
     {/snippet}
@@ -116,18 +117,18 @@
         variant="outline"
         size="xs"
         class={CHIP}
-        aria-label="Labels: {selectedLabels.map((l) => l.name).join(', ') || 'none'}"
+        aria-label={m.issues_chip_labels_aria({ value: selectedLabels.map((l) => l.name).join(', ') || m.issues_chip_none() })}
         {...props}
       >
         {#if selectedLabels.length === 0}
           <Tag />
-          Labels
+          {m.common_labels()}
         {:else}
           {#each selectedLabels.slice(0, 3) as l (l.id)}
             <span aria-hidden="true" class="size-2 shrink-0 rounded-full" style:background-color={l.color}></span>
           {/each}
           <span class="truncate text-foreground">
-            {selectedLabels.length === 1 ? selectedLabels[0].name : `${selectedLabels.length} labels`}
+            {selectedLabels.length === 1 ? selectedLabels[0].name : m.issues_chip_labels_count({ count: selectedLabels.length })}
           </span>
         {/if}
       </Button>
@@ -139,12 +140,12 @@
     onChange={(estimate: number | null) => onChange({ estimate })}
   >
     {#snippet children({ props })}
-      <Button type="button" variant="outline" size="xs" class={CHIP} aria-label="Estimate" {...props}>
+      <Button type="button" variant="outline" size="xs" class={CHIP} aria-label={m.issues_estimate()} {...props}>
         <Triangle />
         {#if value.estimate != null}
           <span class="text-foreground">{formatEstimate(data.project.estimateScale, value.estimate)}</span>
         {:else}
-          Estimate
+          {m.issues_estimate()}
         {/if}
       </Button>
     {/snippet}
@@ -153,29 +154,29 @@
   {#if showDueDate}
     <DueDatePicker value={value.dueDate ?? null} onChange={(dueDate: string | null) => onChange({ dueDate })}>
       {#snippet children({ props })}
-        <Button type="button" variant="outline" size="xs" class={CHIP} aria-label="Due date" {...props}>
+        <Button type="button" variant="outline" size="xs" class={CHIP} aria-label={m.common_due_date()} {...props}>
           <CalendarDays />
           {#if value.dueDate}
             <span class="text-foreground">{formatDueDate(value.dueDate)}</span>
           {:else}
-            Due date
+            {m.common_due_date()}
           {/if}
         </Button>
       {/snippet}
     </DueDatePicker>
     <DueDatePicker
       value={value.followUp ?? null}
-      placeholder="Follow up on…"
-      removeLabel="Remove follow-up date"
+      placeholder={m.issues_followup_placeholder()}
+      removeLabel={m.issues_followup_remove()}
       onChange={(followUp: string | null) => onChange({ followUp })}
     >
       {#snippet children({ props })}
-        <Button type="button" variant="outline" size="xs" class={CHIP} aria-label="Follow-up date" {...props}>
+        <Button type="button" variant="outline" size="xs" class={CHIP} aria-label={m.issues_followup_date()} {...props}>
           <CalendarClock />
           {#if value.followUp}
             <span class="text-foreground">{formatDueDate(value.followUp)}</span>
           {:else}
-            Follow-up
+            {m.issues_followup()}
           {/if}
         </Button>
       {/snippet}

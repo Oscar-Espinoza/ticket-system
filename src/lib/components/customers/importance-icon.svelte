@@ -1,5 +1,6 @@
 <!-- Four bars, filled up to the level — reads like the priority glyph. -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { cn } from '@/lib/utils';
   import { IMPORTANCE_LABEL, type Importance } from '@/lib/customer-model';
 
@@ -12,7 +13,7 @@
 <svg
   viewBox="0 0 16 16"
   role="img"
-  aria-label={importance ? `${IMPORTANCE_LABEL[importance]} importance` : 'No importance'}
+  aria-label={importance ? m.shared_importance_aria({ importance: IMPORTANCE_LABEL[importance] }) : m.shared_no_importance()}
   class={cn(
     'size-3.5 shrink-0',
     importance === 'critical' ? 'text-destructive' : 'text-foreground',

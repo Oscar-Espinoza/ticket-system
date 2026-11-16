@@ -8,6 +8,7 @@
   import { toast } from 'svelte-sonner';
 
   import { createView } from '@/lib/actions/views';
+  import { m } from '@/lib/i18n';
   import { Button } from '@/lib/components/ui/button';
   import {
     Dialog,
@@ -52,7 +53,7 @@
 
   async function submit() {
     if (!name.trim()) {
-      error = 'Give the view a name.';
+      error = m.editor_view_name_required();
       return;
     }
     pending = true;
@@ -69,7 +70,7 @@
         error = result.error;
         return;
       }
-      toast.success(`Saved view “${name.trim()}”`);
+      toast.success(m.editor_view_saved({ name: name.trim() }));
       onOpenChange(false);
       await goto(`/dashboard/projects/${result.projectId}/views/${result.id}`);
     } finally {
@@ -81,8 +82,8 @@
 <Dialog {open} {onOpenChange}>
   <DialogContent class="sm:max-w-md">
     <DialogHeader>
-      <DialogTitle>Save view</DialogTitle>
-      <DialogDescription>Keeps the current filters, grouping, ordering and visible properties.</DialogDescription>
+      <DialogTitle>{m.editor_view_save_title()}</DialogTitle>
+      <DialogDescription>{m.editor_view_save_desc()}</DialogDescription>
     </DialogHeader>
     <form
       class="flex flex-col gap-4"
@@ -92,7 +93,7 @@
       }}
     >
       <div class="flex flex-col gap-1.5">
-        <Label for={`${uid}-name`}>Name</Label>
+        <Label for={`${uid}-name`}>{m.common_name()}</Label>
         <!-- svelte-ignore a11y_autofocus -->
         <Input
           id={`${uid}-name`}
@@ -102,21 +103,21 @@
           }}
           maxlength={80}
           autofocus
-          placeholder="e.g. My open bugs"
+          placeholder={m.editor_view_name_placeholder()}
           aria-invalid={error ? true : undefined}
         />
       </div>
       <div class="flex flex-col gap-1.5">
         <Label for={`${uid}-description`}>
-          Description <span class="font-normal text-muted-foreground">(optional)</span>
+          {m.common_description()} <span class="font-normal text-muted-foreground">({m.common_optional().toLowerCase()})</span>
         </Label>
         <Textarea id={`${uid}-description`} bind:value={description} maxlength={500} rows={2} />
       </div>
       {#if canShare}
         <div class="flex items-center justify-between gap-4">
           <Label for={`${uid}-shared`} class="flex flex-col items-start gap-0.5">
-            Share with project
-            <span class="text-xs font-normal text-muted-foreground">Every project member can open this view.</span>
+            {m.editor_view_share()}
+            <span class="text-xs font-normal text-muted-foreground">{m.editor_view_share_body()}</span>
           </Label>
           <Switch id={`${uid}-shared`} bind:checked={shared} />
         </div>
@@ -125,10 +126,10 @@
         <p class="text-sm text-destructive">{error}</p>
       {/if}
       <DialogFooter>
-        <Button type="button" variant="outline" onclick={() => onOpenChange(false)}>Cancel</Button>
+        <Button type="button" variant="outline" onclick={() => onOpenChange(false)}>{m.common_cancel()}</Button>
         <Button type="submit" disabled={pending}>
           {#if pending}<Loader2Icon class="animate-spin" />{/if}
-          Save view
+          {m.editor_view_save_title()}
         </Button>
       </DialogFooter>
     </form>

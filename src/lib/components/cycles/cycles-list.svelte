@@ -18,6 +18,7 @@
 </script>
 
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import type { Snippet } from 'svelte';
   import Plus from '@lucide/svelte/icons/plus';
 
@@ -75,8 +76,8 @@
     return registerPaletteCommands([
       {
         id: 'new-cycle',
-        label: 'New cycle',
-        section: 'Cycles',
+        label: m.projects_cycle_new_palette(),
+        section: m.projects_cycles(),
         keywords: ['sprint', 'iteration', 'create'],
         run: () => (creating = true),
       },
@@ -113,13 +114,13 @@
   {#if capacity}
     <CapacityBadge totals={cycle.totals} {capacity} {estimatesEnabled} />
   {:else}
-    <span>{cycle.totals.scope} {cycle.totals.scope === 1 ? 'issue' : 'issues'}</span>
+    <span>{m.projects_cycle_scope_issues({ count: cycle.totals.scope })}</span>
   {/if}
-  <span class="w-24 text-right">in {daysUntil(cycle)} days</span>
+  <span class="w-24 text-right">{m.projects_cycle_in_days({ count: daysUntil(cycle) })}</span>
 {/snippet}
 
 {#snippet pastTrailing(cycle: CycleListItem)}
-  <span>{cycle.totals.completed}/{cycle.totals.scope} done</span>
+  <span>{m.projects_cycle_completed_of({ completed: cycle.totals.completed, scope: cycle.totals.scope })}</span>
   <span class="w-24 text-right font-medium text-foreground tabular-nums">
     {percent(cycle.totals.completed, cycle.totals.scope)}%
   </span>
@@ -128,18 +129,18 @@
 <div class="flex flex-col gap-8 pb-10">
   <div class="flex items-center gap-2">
     <p class="text-sm text-muted-foreground">
-      Time-boxed iterations. Unfinished issues roll over when a cycle ends.
+      {m.projects_cycles_intro()}
     </p>
     {#if canWrite}
       <Button size="sm" class="ml-auto" onclick={() => (creating = true)}>
         <Plus />
-        New cycle
+        {m.projects_cycle_new()}
       </Button>
     {/if}
   </div>
 
   <section aria-labelledby="cycles-current" class="flex flex-col gap-2">
-    {@render sectionHeading('cycles-current', 'Current')}
+    {@render sectionHeading('cycles-current', m.projects_cycle_current())}
     {#if current}
       <a
         href={href(current)}
@@ -150,7 +151,7 @@
           <span class="font-medium">{cycleName(current)}</span>
           <span class="text-sm text-muted-foreground">{formatCycleRange(current)}</span>
           <span class="ml-auto text-xs text-muted-foreground">
-            {daysLeft(current) === 0 ? 'Last day' : `${daysLeft(current)} days left`}
+            {daysLeft(current) === 0 ? m.projects_cycle_last_day() : m.projects_cycle_days_left({ count: daysLeft(current) })}
           </span>
         </div>
         <CycleProgressBar totals={current.totals} />
@@ -164,17 +165,20 @@
         class="rounded-lg border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground"
       >
         {upcoming[0]
-          ? `${cooldownWeeks > 0 && past.length > 0 ? 'Cooldown' : 'No cycle is running'} — ${cycleName(
-              upcoming[0],
-            )} starts in ${daysUntil(upcoming[0])} ${daysUntil(upcoming[0]) === 1 ? 'day' : 'days'}.`
-          : 'No cycle is running right now.'}
+          ? (cooldownWeeks > 0 && past.length > 0
+              ? m.projects_cycle_running_cooldown
+              : m.projects_cycle_running_none)({
+              name: cycleName(upcoming[0]),
+              count: daysUntil(upcoming[0]),
+            })
+          : m.projects_cycle_running_nothing()}
       </p>
     {/if}
   </section>
 
   {#if upcoming.length > 0}
     <section aria-labelledby="cycles-upcoming" class="flex flex-col gap-2">
-      {@render sectionHeading('cycles-upcoming', 'Upcoming')}
+      {@render sectionHeading('cycles-upcoming', m.projects_cycle_upcoming())}
       <ul class="flex flex-col divide-y divide-border rounded-lg border border-border">
         {#each upcoming as cycle (cycle.id)}
           {@render cycleRowLink(cycle, upcomingTrailing)}
@@ -187,7 +191,7 @@
 
   {#if past.length > 0}
     <section aria-labelledby="cycles-past" class="flex flex-col gap-2">
-      {@render sectionHeading('cycles-past', 'Past')}
+      {@render sectionHeading('cycles-past', m.projects_cycle_past())}
       <ul class="flex flex-col divide-y divide-border rounded-lg border border-border">
         {#each past as cycle (cycle.id)}
           {@render cycleRowLink(cycle, pastTrailing)}

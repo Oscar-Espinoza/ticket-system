@@ -29,6 +29,7 @@
 </script>
 
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { cn } from '@/lib/utils';
   import { CHART_MARGIN as M, niceScale, tickIndexes, useActiveIndex } from './chart-frame.svelte.ts';
   import ChartLegend from './chart-legend.svelte';
@@ -104,7 +105,7 @@
     style:height="{height}px"
     tabindex={count > 0 ? 0 : undefined}
     role="group"
-    aria-label={`${title}. Use the arrow keys to read values.`}
+    aria-label={m.shared_chart_aria({ title })}
     aria-describedby={tableId}
     onkeydown={hover.onkeydown}
     onblur={hover.onblur}

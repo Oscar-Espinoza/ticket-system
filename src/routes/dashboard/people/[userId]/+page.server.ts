@@ -10,21 +10,16 @@ import { getPerson, getRecentActivity } from '@/lib/people-read';
 import { ELSEWHERE_ACTIVITY_TYPE, redactActivityFor } from '@/lib/moved-events';
 import { getSharedProjects } from '@/lib/project-access';
 import { activitySummary } from '@/lib/components/people/activity-summary';
+import { dateFormat } from '@/lib/i18n';
+import { relativeTime } from '@/lib/relative-time';
 import { requireUser } from '@/lib/session';
 import type { PageServerLoad } from './$types';
 
-const dateFormat = new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric' });
-const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto', style: 'short' });
-
-/** Relative to the server's request time (the page renders per request). */
+/** Relative to the server's request time (the page renders per request), in the request's language. */
 function ago(date: Date, now = Date.now()): string {
-  const minutes = Math.round((date.getTime() - now) / 60_000);
-  if (Math.abs(minutes) < 60) return minutes === 0 ? 'just now' : rtf.format(minutes, 'minute');
-  const hours = Math.round(minutes / 60);
-  if (Math.abs(hours) < 24) return rtf.format(hours, 'hour');
-  const days = Math.round(hours / 24);
-  if (Math.abs(days) < 7) return rtf.format(days, 'day');
-  return dateFormat.format(date);
+  const days = Math.round((date.getTime() - now) / 86_400_000);
+  if (Math.abs(days) >= 7) return dateFormat({ month: 'short', day: 'numeric' }).format(date);
+  return relativeTime(date, now);
 }
 
 export const load: PageServerLoad = async ({ params }) => {

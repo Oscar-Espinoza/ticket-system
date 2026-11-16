@@ -31,6 +31,7 @@ import type { IssuePatch, IssueRow } from '@/lib/issue-model';
 import { runOutboxCall, type OutboxSuspended } from '@/lib/actions/sync';
 import type { OutboxActionName, OutboxArgs, OutboxResult } from '@/lib/sync/actions';
 import { broadcastOutboxChanged, broadcastProjectChanged, onOutboxChanged } from '@/lib/sync/broadcast';
+import { m } from '@/lib/i18n';
 
 /** How a queued op shows up on the issue list until it has synced. */
 export type OutboxOverlay =
@@ -281,7 +282,7 @@ export async function perform<N extends OutboxActionName>(
     if (isSuspended(result)) {
       // This page's user isn't the session's: keep the change for its owner.
       suspended = true;
-      warnSuspended('You’re signed in as a different account in another tab — reload to continue.');
+      warnSuspended(m.issues_outbox_other_account());
       return enqueue(call as OutboxCall);
     }
     if (result.ok) broadcastProjectChanged(call.projectId);
@@ -356,14 +357,14 @@ async function drain() {
         }
         await deleteItem(head.seq);
         await changed();
-        toast.error(`Couldn't sync ${head.label} — the change was discarded.`);
+        toast.error(m.issues_outbox_discarded({ label: head.label }));
         continue;
       }
 
       if (isSuspended(result)) {
         // Wrong (or no) session for this queue: leave it intact for its owner.
         suspended = true;
-        warnSuspended('Offline changes are waiting for their account — sign in as that user to sync them.');
+        warnSuspended(m.issues_outbox_waiting_account());
         break;
       }
       await deleteItem(head.seq);
@@ -372,11 +373,11 @@ async function drain() {
         synced += 1;
         broadcastProjectChanged(head.projectId);
       } else {
-        toast.error(`Couldn't sync ${head.label}: ${actionErrorText(result.error, "you don't have permission to do that in this project")}`);
+        toast.error(m.issues_outbox_sync_failed({ label: head.label, reason: actionErrorText(result.error, m.issues_outbox_no_permission()) }));
       }
     }
   } finally {
-    if (synced > 0) toast.success(synced === 1 ? 'Synced 1 offline change' : `Synced ${synced} offline changes`);
+    if (synced > 0) toast.success(m.issues_outbox_synced({ count: synced }));
   }
 }
 

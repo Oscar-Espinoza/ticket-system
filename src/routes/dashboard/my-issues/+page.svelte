@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import type { Component } from 'svelte';
   import BellIcon from '@lucide/svelte/icons/bell';
   import HistoryIcon from '@lucide/svelte/icons/history';
@@ -18,23 +19,23 @@
   const EMPTY: Record<MyIssuesTab, { icon: Component; title: string; description: string }> = {
     assigned: {
       icon: TargetIcon,
-      title: 'Nothing assigned to you',
-      description: 'Issues assigned to you in any of your projects show up here.',
+      title: m.issues_mine_assigned_title(),
+      description: m.issues_mine_assigned_description(),
     },
     created: {
       icon: PenLineIcon,
-      title: 'No issues created yet',
-      description: 'Issues you create in any project show up here.',
+      title: m.issues_mine_created_title(),
+      description: m.issues_mine_created_description(),
     },
     subscribed: {
       icon: BellIcon,
-      title: 'No subscriptions',
-      description: 'Subscribe to an issue to follow its updates; it will show up here.',
+      title: m.issues_mine_subscribed_title(),
+      description: m.issues_mine_subscribed_description(),
     },
     activity: {
       icon: HistoryIcon,
-      title: 'No recent activity',
-      description: 'Issues you change or comment on show up here, most recent first.',
+      title: m.issues_mine_activity_title(),
+      description: m.issues_mine_activity_description(),
     },
   };
 
@@ -45,12 +46,12 @@
 </script>
 
 <svelte:head>
-  <title>My issues · Ticket System</title>
+  <title>{m.issues_mine_page_title()}</title>
 </svelte:head>
 
 <div class="flex flex-col">
-  <h1 class="mb-3 text-xl font-medium">My issues</h1>
-  <PageTabs label="My issues" current={data.tab} tabs={data.tabs} />
+  <h1 class="mb-3 text-xl font-medium">{m.issues_mine()}</h1>
+  <PageTabs label={m.issues_mine()} current={data.tab} tabs={data.tabs} />
 
   {#if isEmpty}
     <EmptyState title={empty.title} description={empty.description}>
@@ -62,7 +63,7 @@
         <NavIssueRow
           {issue}
           project={data.projectNames[issue.projectId]}
-          time={{ date: lastActedAt, label: 'You acted' }}
+          time={{ date: lastActedAt, label: m.issues_mine_you_acted() }}
         />
       {/each}
     </NavList>

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { pluralize } from '@/lib/format';
+  import { m } from '@/lib/i18n';
   import { EmptyState } from '@/lib/components/ui-icons';
   import { Button } from '@/lib/components/ui/button';
   import type { ExternalFetchResult } from '@/lib/import/external';
@@ -14,42 +14,47 @@
     onImport,
   }: {
     fetched: ExternalFetchResult;
-    /** "task" / "story" */
-    noun: string;
+    noun: 'task' | 'story';
     sourceName: string;
     includeCompleted: boolean;
     onImport: () => void;
   } = $props();
 
-  const plural = $derived(noun === 'story' ? 'stories' : `${noun}s`);
   const count = $derived(fetched.records.length);
+  const emptyTitle = $derived(noun === 'story' ? m.auth_import_empty_stories_title() : m.auth_import_empty_tasks_title());
+  const emptyDescription = $derived(
+    noun === 'story'
+      ? includeCompleted
+        ? m.auth_import_empty_stories({ source: sourceName })
+        : m.auth_import_empty_open_stories({ source: sourceName })
+      : includeCompleted
+        ? m.auth_import_empty_tasks({ source: sourceName })
+        : m.auth_import_empty_open_tasks({ source: sourceName }),
+  );
+  const stats = $derived(
+    [
+      m.auth_import_stat_open({ count: fetched.open }),
+      ...(includeCompleted ? [m.auth_import_stat_completed({ count: fetched.closed })] : []),
+      ...(fetched.children > 0 ? [m.auth_import_stat_children({ count: fetched.children })] : []),
+      ...(fetched.truncated ? [m.auth_import_stat_capped({ count: EXTERNAL_IMPORT_CAP })] : []),
+    ].join(' · '),
+  );
 </script>
 
 {#if count === 0}
-  <EmptyState
-    title="No {plural} to import"
-    description="{sourceName} has no {includeCompleted ? '' : 'open '}{plural}."
-  />
+  <EmptyState title={emptyTitle} description={emptyDescription} />
 {:else}
   <section class="flex flex-col gap-2">
     <h3 class="text-sm font-medium">
-      Preview{' '}
-      <span class="font-normal text-muted-foreground">
-        {fetched.open} open{includeCompleted ? ` · ${fetched.closed} completed` : ''}
-        {fetched.children > 0 ? ` · ${fetched.children} as sub-issues` : ''}
-        {fetched.truncated ? ` · capped at the first ${EXTERNAL_IMPORT_CAP}` : ''}
-      </span>
+      {m.auth_import_preview()}{' '}
+      <span class="font-normal text-muted-foreground">{stats}</span>
     </h3>
     <RecordPreview records={fetched.records} />
-    <p class="text-xs text-muted-foreground">
-      Completed items land in the first completed state; others in the state with the same name when
-      there is one, else the default. Assignees match members by email, tags become labels, and each
-      issue links back to its source — items imported before are skipped.
-    </p>
+    <p class="text-xs text-muted-foreground">{m.auth_import_preview_note()}</p>
   </section>
   <div>
     <Button onclick={onImport}>
-      Import {pluralize(count, 'issue')}
+      {m.auth_import_button({ count })}
     </Button>
   </div>
 {/if}

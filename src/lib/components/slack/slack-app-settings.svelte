@@ -4,6 +4,7 @@
   setup guide with the exact request URLs + an app manifest.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import type { Snippet } from 'svelte';
   import CircleAlertIcon from '@lucide/svelte/icons/circle-alert';
   import CircleCheckIcon from '@lucide/svelte/icons/circle-check';
@@ -56,9 +57,9 @@
 
 {#snippet addToSlackLabel()}
   <HashIcon />
-  Add to Slack
+  {m.settings_slack_add()}
 {/snippet}
-{#snippet linkAccountLabel()}Link my Slack account{/snippet}
+{#snippet linkAccountLabel()}{m.settings_slack_link_account()}{/snippet}
 {#snippet addToSlack()}
   {@render linkButton('/api/slack/install', configured, undefined, addToSlackLabel)}
 {/snippet}
@@ -92,16 +93,14 @@
 
   <section class="flex flex-col gap-3">
     {@render sectionHeader(
-      'Workspaces',
-      'Slack workspaces where /ask and the “Create issue” shortcut file issues.',
+      m.settings_slack_workspaces(),
+      m.settings_slack_workspaces_desc(),
       addToSlack,
     )}
     {#if workspaces.length === 0}
       <p class="rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
-        No Slack workspaces connected.
-        {configured
-          ? 'Add the app to a workspace, or link your account if it’s already installed.'
-          : 'Configure the Slack app below first.'}
+        {m.settings_slack_none()}
+        {configured ? m.settings_slack_none_configured() : m.settings_slack_none_unconfigured()}
       </p>
     {:else}
       <ul class="divide-y rounded-lg border">
@@ -114,13 +113,13 @@
 
   <section class="flex flex-col gap-3">
     {@render sectionHeader(
-      'Your Slack account',
-      'Link your Slack account to file Asks as yourself and get notifications as DMs.',
+      m.settings_slack_your_account(),
+      m.settings_slack_your_account_desc(),
       linkAccount,
     )}
     {#if linked.length === 0}
       <p class="text-sm text-muted-foreground">
-        Not linked. Unlinked Asks are filed to the workspace’s default project, in triage.
+        {m.settings_slack_not_linked()}
       </p>
     {:else}
       <ul class="divide-y rounded-lg border">

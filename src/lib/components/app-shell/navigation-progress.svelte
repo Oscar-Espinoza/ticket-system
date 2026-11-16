@@ -4,13 +4,15 @@
   skeletons are dashboard-loading / project-loading).
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
+
   let { active }: { active: boolean } = $props();
 </script>
 
 {#if active}
   <div
     role="progressbar"
-    aria-label="Loading page"
+    aria-label={m.editor_loading_page()}
     class="pointer-events-none fixed inset-x-0 top-0 z-50 h-0.5 overflow-hidden bg-primary/15"
   >
     <div class="nav-progress-bar h-full w-1/3 bg-primary"></div>

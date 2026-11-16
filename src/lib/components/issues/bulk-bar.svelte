@@ -4,6 +4,7 @@
   undo entry).
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import type { LucideIcon } from '@lucide/svelte';
   import ArchiveIcon from '@lucide/svelte/icons/archive';
   import BoxIcon from '@lucide/svelte/icons/box';
@@ -65,8 +66,8 @@
       {
         key: 'Backspace',
         mod: true,
-        scope: 'Issues',
-        description: 'Move selected issues to trash',
+        scope: m.issues_scope(),
+        description: m.issues_bulk_trash_selected(),
         passive: true,
       },
     ]);
@@ -115,17 +116,17 @@
   <div data-bulk-bar class="pointer-events-none fixed inset-x-0 bottom-6 z-40 flex justify-center px-4">
     <div
       role="toolbar"
-      aria-label={`Bulk actions for ${selected.length} selected issues`}
+      aria-label={m.issues_bulk_aria({ count: selected.length })}
       class="pointer-events-auto flex max-w-full items-center gap-0.5 overflow-x-auto rounded-xl border border-border bg-popover p-1 text-popover-foreground shadow-popover"
     >
       <span class="flex shrink-0 items-center gap-1 pl-2 text-xs font-medium tabular-nums" aria-live="polite">
-        {selected.length} selected
+        {m.issues_bulk_selected({ count: selected.length })}
       </span>
       <Button
         variant="ghost"
         size="icon-xs"
-        aria-label="Clear selection"
-        title="Clear selection (Esc)"
+        aria-label={m.issues_bulk_clear()}
+        title={m.issues_bulk_clear_esc()}
         onclick={selection.clear}
       >
         <XIcon />
@@ -133,7 +134,7 @@
       <Separator orientation="vertical" class="mx-1 h-5 self-center" />
 
       {#if !canWrite.current}
-        {@render barButton(HashIcon, 'Copy IDs', {}, { onclick: () => void copyIds(selected) })}
+        {@render barButton(HashIcon, m.issues_bulk_copy_ids(), {}, { onclick: () => void copyIds(selected) })}
       {/if}
 
       {#if canWrite.current}
@@ -143,7 +144,7 @@
           onChange={(stateId) => apply({ stateId })}
         >
           {#snippet children({ props })}
-            {@render barButton(CircleDashedIcon, 'Status', props)}
+            {@render barButton(CircleDashedIcon, m.common_status(), props)}
           {/snippet}
         </StatePicker>
 
@@ -153,7 +154,7 @@
           onChange={(priority) => apply({ priority })}
         >
           {#snippet children({ props })}
-            {@render barButton(SignalHighIcon, 'Priority', props)}
+            {@render barButton(SignalHighIcon, m.common_priority(), props)}
           {/snippet}
         </PriorityPicker>
 
@@ -163,14 +164,14 @@
           onChange={(assigneeId) => apply({ assigneeId })}
         >
           {#snippet children({ props })}
-            {@render barButton(UserRoundIcon, 'Assignee', props)}
+            {@render barButton(UserRoundIcon, m.common_assignee(), props)}
           {/snippet}
         </AssigneePicker>
 
         {#if data.labels.length > 0}
           <PickerPopover side="top" class="w-60">
             {#snippet children({ props })}
-              {@render barButton(TagIcon, 'Labels', props)}
+              {@render barButton(TagIcon, m.common_labels(), props)}
             {/snippet}
             {#snippet content()}
               <LabelToggles issues={selected} {mutations} />
@@ -184,13 +185,13 @@
           onChange={(estimate) => apply({ estimate })}
         >
           {#snippet children({ props })}
-            {@render barButton(TriangleIcon, 'Estimate', props)}
+            {@render barButton(TriangleIcon, m.issues_estimate(), props)}
           {/snippet}
         </EstimatePicker>
 
         <PickerPopover side="top" class="w-auto min-w-64">
           {#snippet children({ props })}
-            {@render barButton(CalendarDaysIcon, 'Due date', props)}
+            {@render barButton(CalendarDaysIcon, m.common_due_date(), props)}
           {/snippet}
           {#snippet content(close)}
             <DueDateOptions
@@ -213,7 +214,7 @@
                   }}
                 >
                   <XIcon class="text-muted-foreground" />
-                  Remove due dates
+                  {m.issues_bulk_remove_due()}
                 </Button>
               </div>
             {/if}
@@ -227,7 +228,7 @@
             onChange={(cycleId) => apply({ cycleId })}
           >
             {#snippet children({ props })}
-              {@render barButton(RefreshCcwIcon, 'Cycle', props)}
+              {@render barButton(RefreshCcwIcon, m.common_cycle(), props)}
             {/snippet}
           </CyclePicker>
         {/if}
@@ -240,19 +241,19 @@
             onChange={(next) => apply({ epicId: next })}
           >
             {#snippet children({ props })}
-              {@render barButton(BoxIcon, 'Epic', props)}
+              {@render barButton(BoxIcon, m.issues_epic(), props)}
             {/snippet}
           </EpicPicker>
         {/if}
 
         <Separator orientation="vertical" class="mx-1 h-5 self-center" />
-        {@render barButton(ArchiveIcon, 'Archive', {}, {
+        {@render barButton(ArchiveIcon, m.issues_archive(), {}, {
           onclick: () => {
             mutations.archiveMany(selected);
             selection.clear();
           },
         })}
-        {@render barButton(Trash2Icon, 'Move to trash', {}, {
+        {@render barButton(Trash2Icon, m.issues_move_to_trash(), {}, {
           class: 'hover:bg-destructive/10 hover:text-destructive',
           onclick: () => (trash = selected),
         })}

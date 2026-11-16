@@ -8,6 +8,7 @@ import { issueSubscribers, tickets, users } from '@/db/schema';
 import { authorizeProjectAction } from '@/lib/action-auth';
 import type { IssueUser } from '@/lib/issue-model';
 import { ensureSubscribed, unsubscribe } from '@/lib/subscriptions';
+import { m } from '@/lib/i18n';
 
 export type SubscribersResult =
   | { ok: true; subscribers: IssueUser[]; subscribed: boolean }
@@ -30,7 +31,7 @@ export async function getIssueSubscribers(input: {
   const authz = await authorizeProjectAction(input?.projectId, 'read');
   if (!authz.ok) return authz;
   if (typeof input.ticketId !== 'string' || !input.ticketId) {
-    return { ok: false, error: 'Issue not found.' };
+    return { ok: false, error: m.issues_err_issue_not_found() };
   }
   // The inner join on the ticket's project scopes the read without a separate check.
   const subscribers = await db
@@ -55,7 +56,7 @@ export async function setSubscribed(input: {
   const authz = await authorizeProjectAction(input?.projectId, 'read');
   if (!authz.ok) return authz;
   if (!(await ticketInProject(input.projectId, input.ticketId))) {
-    return { ok: false, error: 'Issue not found.' };
+    return { ok: false, error: m.issues_err_issue_not_found() };
   }
   if (input.subscribed) await ensureSubscribed(input.ticketId, [authz.userId]);
   else await unsubscribe(input.ticketId, authz.userId);

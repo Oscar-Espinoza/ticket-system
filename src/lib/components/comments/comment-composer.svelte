@@ -7,12 +7,13 @@
 
   import { MarkdownEditor } from '@/lib/components/editor';
   import { Button } from '@/lib/components/ui/button';
+  import { m } from '@/lib/i18n';
   import { COMMENT_MAX_LENGTH } from '@/lib/timeline';
 
   let {
     initialValue = '',
-    placeholder = 'Leave a comment…',
-    submitLabel = 'Comment',
+    placeholder = m.editor_comment_placeholder(),
+    submitLabel = m.editor_comment_submit(),
     autoFocus,
     onSubmit,
     onCancel,
@@ -54,9 +55,9 @@
 >
   {#snippet actions()}
     {#if onCancel}
-      <Button type="button" size="xs" variant="ghost" onclick={onCancel}>Cancel</Button>
+      <Button type="button" size="xs" variant="ghost" onclick={onCancel}>{m.common_cancel()}</Button>
     {/if}
-    <Button type="button" size="xs" disabled={empty || pending} title="Submit (⌘Enter)" onclick={submit}>
+    <Button type="button" size="xs" disabled={empty || pending} title={m.editor_comment_submit_hint()} onclick={submit}>
       {submitLabel}
     </Button>
   {/snippet}

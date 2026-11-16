@@ -1,5 +1,6 @@
 <!-- Mark a triage issue as a duplicate (issue search). -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { keywordFilter } from '@/lib/components/issue-pickers/picker-utils';
   import {
     Command,
@@ -43,14 +44,14 @@
 <Dialog bind:open={() => open, setOpen}>
   <DialogContent class="gap-0 overflow-hidden p-0 sm:max-w-lg" showCloseButton={false}>
     <DialogHeader class="sr-only">
-      <DialogTitle>Mark {issue.key} as duplicate</DialogTitle>
-      <DialogDescription>Search for the original issue.</DialogDescription>
+      <DialogTitle>{m.issues_triage_dup_title({ key: issue.key })}</DialogTitle>
+      <DialogDescription>{m.issues_triage_dup_description()}</DialogDescription>
     </DialogHeader>
     <Command filter={keywordFilter}>
       <!-- svelte-ignore a11y_autofocus -->
-      <CommandInput placeholder="{issue.key} is a duplicate of…" autofocus />
+      <CommandInput placeholder={m.issues_triage_dup_placeholder({ key: issue.key })} autofocus />
       <CommandList class="max-h-80">
-        <CommandEmpty>No issue found.</CommandEmpty>
+        <CommandEmpty>{m.issues_triage_dup_none()}</CommandEmpty>
         <CommandGroup>
           {#each candidates as candidate (candidate.id)}
             <CommandItem

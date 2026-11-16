@@ -1,4 +1,5 @@
 <script module lang="ts">
+  import { m } from '@/lib/i18n';
   import type { Priority } from '@/lib/issue-model';
 
   export interface PriorityOptionsProps {
@@ -28,9 +29,9 @@
     return Boolean(priority);
   })}
 >
-  <CommandInput bind:value={search} placeholder="Set priority…" />
+  <CommandInput bind:value={search} placeholder={m.issues_priority_set_placeholder()} />
   <CommandList>
-    <CommandEmpty>No priority found.</CommandEmpty>
+    <CommandEmpty>{m.issues_priority_none_found()}</CommandEmpty>
     {#each MENU_ORDER as priority, index (priority)}
       <CommandItem
         value={priority}

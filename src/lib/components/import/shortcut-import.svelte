@@ -13,6 +13,7 @@
 </script>
 
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
   import { toast } from 'svelte-sonner';
 
@@ -94,7 +95,7 @@
       (parsed.kind === 'workflow' ? sources.workflows : sources.projects).find(
         (o) => o.id === parsed.id,
       )?.name) ||
-      'This source',
+      m.auth_import_this_source(),
   );
   const items = $derived([
     ...sources.workflows.map((w) => ({ value: `workflow:${w.id}`, label: w.name })),
@@ -116,14 +117,14 @@
 {:else if !token}
   <TokenForm provider="Shortcut" {pending} onSubmit={connect}>
     {#snippet help()}
-      Create an API token in Shortcut under
+      {m.auth_import_shortcut_help()}
       <a
         href="https://app.shortcut.com/settings/account/api-tokens"
         target="_blank"
         rel="noreferrer"
         class="underline underline-offset-2"
       >
-        Settings → Your account → API tokens
+        {m.auth_import_shortcut_help_link()}
       </a>.
     {/snippet}
   </TokenForm>
@@ -131,7 +132,7 @@
   <div class="flex flex-col gap-6">
     <div class="flex flex-wrap items-end gap-4">
       <div class="flex min-w-48 flex-col gap-1.5">
-        <Label>Import from</Label>
+        <Label>{m.auth_import_import_from()}</Label>
         <Select
           bind:value={
             () => source,
@@ -144,12 +145,12 @@
           disabled={pending}
         >
           <SelectTrigger class="w-64">
-            <SelectValue placeholder="Pick a workflow or project" />
+            <SelectValue placeholder={m.auth_import_pick_source()} />
           </SelectTrigger>
           <SelectContent>
             {#if sources.workflows.length > 0}
               <SelectGroup>
-                <SelectLabel>Workflows</SelectLabel>
+                <SelectLabel>{m.auth_import_workflows()}</SelectLabel>
                 {#each sources.workflows as w (w.id)}
                   <SelectItem value="workflow:{w.id}">
                     {w.name}
@@ -159,7 +160,7 @@
             {/if}
             {#if sources.projects.length > 0}
               <SelectGroup>
-                <SelectLabel>Projects</SelectLabel>
+                <SelectLabel>{m.auth_import_projects()}</SelectLabel>
                 {#each sources.projects as p (p.id)}
                   <SelectItem value="project:{p.id}">
                     {p.name}
@@ -180,7 +181,7 @@
       />
       <Button variant="outline" disabled={!parsed || pending} onclick={fetchStories}>
         {#if pending}<Loader2Icon class="animate-spin" />{/if}
-        Fetch stories
+        {m.auth_import_fetch_stories()}
       </Button>
     </div>
     {#if fetched}

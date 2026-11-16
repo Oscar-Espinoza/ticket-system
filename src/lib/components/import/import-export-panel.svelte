@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import DownloadIcon from '@lucide/svelte/icons/download';
 
   import { Button } from '@/lib/components/ui/button';
@@ -18,19 +19,17 @@
 <div class="flex flex-col">
   <section class="flex flex-col gap-3">
     <div>
-      <h2 class="text-base font-medium">Export</h2>
-      <p class="text-sm text-muted-foreground">
-        Every issue in this project, archived ones included (trash excluded), with all properties.
-      </p>
+      <h2 class="text-base font-medium">{m.auth_import_export()}</h2>
+      <p class="text-sm text-muted-foreground">{m.auth_import_export_description()}</p>
     </div>
     <div class="flex gap-2">
       <Button variant="outline" size="sm" href={exportHref('csv')} download>
         <DownloadIcon />
-        Download CSV
+        {m.auth_import_download_csv()}
       </Button>
       <Button variant="outline" size="sm" href={exportHref('json')} download>
         <DownloadIcon />
-        Download JSON
+        {m.auth_import_download_json()}
       </Button>
     </div>
   </section>
@@ -39,20 +38,17 @@
 
   <section class="flex flex-col gap-4">
     <div>
-      <h2 class="text-base font-medium">Import</h2>
-      <p class="text-sm text-muted-foreground">
-        Bring issues in from a spreadsheet, Jira, GitHub, Asana or Shortcut. Imported issues are
-        created by you and show up in activity like any other.
-      </p>
+      <h2 class="text-base font-medium">{m.auth_import_import()}</h2>
+      <p class="text-sm text-muted-foreground">{m.auth_import_import_description()}</p>
     </div>
     {#if canImport}
       <Tabs defaultValue="csv">
         <TabsList>
-          <TabsTrigger value="csv">CSV</TabsTrigger>
-          <TabsTrigger value="jira">Jira</TabsTrigger>
-          <TabsTrigger value="github">GitHub Issues</TabsTrigger>
-          <TabsTrigger value="asana">Asana</TabsTrigger>
-          <TabsTrigger value="shortcut">Shortcut</TabsTrigger>
+          <TabsTrigger value="csv">CSV</TabsTrigger> <!-- i18n-ignore -->
+          <TabsTrigger value="jira">Jira</TabsTrigger> <!-- i18n-ignore -->
+          <TabsTrigger value="github">{m.auth_import_tab_github()}</TabsTrigger>
+          <TabsTrigger value="asana">Asana</TabsTrigger> <!-- i18n-ignore -->
+          <TabsTrigger value="shortcut">Shortcut</TabsTrigger> <!-- i18n-ignore -->
         </TabsList>
         <TabsContent value="csv" class="pt-3">
           <CsvImport {projectId} preset="csv" />
@@ -74,7 +70,7 @@
       <p
         class="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground"
       >
-        Guests can export but not import. Ask a project admin or member.
+        {m.auth_import_guests()}
       </p>
     {/if}
   </section>

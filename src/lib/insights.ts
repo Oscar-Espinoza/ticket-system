@@ -9,6 +9,7 @@ import { and, desc, eq, exists, gte, inArray, isNull, sql, type SQL } from 'driz
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 
 import { db } from '@/lib/db';
+import { m } from '@/lib/i18n';
 import { issueLabels, labels, tickets, users, workflowStates } from '@/db/schema';
 import { openStateType } from '@/lib/workflow-server';
 import type { Priority, StateType } from '@/lib/issue-model';
@@ -17,13 +18,13 @@ import { DAY_MS } from '@/lib/time';
 
 const HOUR = 3600;
 /** Upper bounds in hours; the last bucket is open-ended. */
-const BUCKETS: { label: string; maxHours: number }[] = [
-  { label: '< 1 day', maxHours: 24 },
-  { label: '1–3 days', maxHours: 72 },
-  { label: '3–7 days', maxHours: 168 },
-  { label: '1–2 weeks', maxHours: 336 },
-  { label: '2–4 weeks', maxHours: 672 },
-  { label: '> 4 weeks', maxHours: Infinity },
+const BUCKETS: { label: () => string; maxHours: number }[] = [
+  { label: m.common_bucket_under_1_day, maxHours: 24 },
+  { label: m.common_bucket_1_3_days, maxHours: 72 },
+  { label: m.common_bucket_3_7_days, maxHours: 168 },
+  { label: m.common_bucket_1_2_weeks, maxHours: 336 },
+  { label: m.common_bucket_2_4_weeks, maxHours: 672 },
+  { label: m.common_bucket_over_4_weeks, maxHours: Infinity },
 ];
 
 const PRIORITY_ORDER: Priority[] = ['urgent', 'high', 'medium', 'low', 'none'];
@@ -60,7 +61,7 @@ function toDistribution(row: Record<string, unknown> | undefined, prefix: string
   return {
     count: Number(row?.[`${prefix}Count`] ?? 0),
     medianHours: median == null ? null : Number(median) / HOUR,
-    buckets: BUCKETS.map((b, i) => ({ label: b.label, count: Number(row?.[`${prefix}B${i}`] ?? 0) })),
+    buckets: BUCKETS.map((b, i) => ({ label: b.label(), count: Number(row?.[`${prefix}B${i}`] ?? 0) })),
   };
 }
 
@@ -181,7 +182,7 @@ export async function getProjectInsights(
     })),
     byAssignee: byAssignee.map((r) => ({
       id: r.id ?? 'unassigned',
-      label: r.label ?? 'Unassigned',
+      label: r.label ?? m.common_unassigned(),
       image: r.image,
       count: Number(r.count),
     })),

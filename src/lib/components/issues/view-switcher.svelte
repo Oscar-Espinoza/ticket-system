@@ -1,5 +1,6 @@
 <!-- Layout toggle (List / Board / …). -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { cn } from '@/lib/utils';
   import type { IssueViewDefinition } from './views';
 
@@ -14,7 +15,7 @@
   } = $props();
 </script>
 
-<div role="group" aria-label="View" class="inline-flex h-7 items-center rounded-md border border-border p-0.5">
+<div role="group" aria-label={m.issues_view()} class="inline-flex h-7 items-center rounded-md border border-border p-0.5">
   {#each views as view (view.id)}
     {@const selected = view.id === current}
     <button

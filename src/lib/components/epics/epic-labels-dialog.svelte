@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import PlusIcon from '@lucide/svelte/icons/plus';
   import { toast } from 'svelte-sonner';
 
@@ -65,15 +66,15 @@
 >
   <DialogContent class="sm:max-w-md">
     <DialogHeader>
-      <DialogTitle>Epic labels</DialogTitle>
+      <DialogTitle>{m.projects_epic_labels()}</DialogTitle>
       <DialogDescription>
-        Tag epics to group and filter them. Separate from issue labels.
+        {m.projects_epic_labels_desc()}
       </DialogDescription>
     </DialogHeader>
 
     <ul class="-mx-1 flex max-h-80 flex-col overflow-y-auto">
       {#if labels.length === 0}
-        <li class="px-1 py-3 text-sm text-muted-foreground">No labels yet — add one below.</li>
+        <li class="px-1 py-3 text-sm text-muted-foreground">{m.projects_epic_labels_empty()}</li>
       {/if}
       {#each labels as label (label.id)}
         <EpicLabelRowEditor {projectId} {label} uses={usage.get(label.id) ?? 0} />
@@ -89,15 +90,15 @@
     >
       <ColorButton value={color} onChange={(next) => (color = next)} />
       <Input
-        aria-label="New label name"
-        placeholder="New label"
+        aria-label={m.projects_new_label_name()}
+        placeholder={m.projects_new_label()}
         bind:value={name}
         maxlength={EPIC_LABEL_NAME_MAX}
         class="h-8"
       />
       <Button type="submit" size="sm" disabled={pending || !name.trim()}>
         <PlusIcon />
-        Add
+        {m.common_add()}
       </Button>
     </form>
   </DialogContent>

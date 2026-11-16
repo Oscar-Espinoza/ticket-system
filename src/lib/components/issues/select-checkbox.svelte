@@ -20,6 +20,12 @@
     tabIndex?: number;
     class?: string;
   } = $props();
+
+  function handleClick(event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }) {
+    // Don't open the issue underneath.
+    event.stopPropagation();
+    onToggle(event);
+  }
 </script>
 
 <button
@@ -29,11 +35,7 @@
   aria-label={label}
   tabindex={tabIndex}
   onmousedown={preventShiftSelect}
-  onclick={(event) => {
-    // Don't open the issue underneath.
-    event.stopPropagation();
-    onToggle(event);
-  }}
+  onclick={handleClick}
   class={cn(
     'relative flex size-4 shrink-0 items-center justify-center rounded-[4px] border border-input bg-background outline-none transition-[opacity,colors]',
     'after:absolute after:-inset-1.5 hover:border-ring focus-visible:ring-2 focus-visible:ring-ring',

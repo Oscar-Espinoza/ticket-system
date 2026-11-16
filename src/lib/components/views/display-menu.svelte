@@ -4,6 +4,7 @@
   Pass the registry's ISSUE_VIEWS as `views`.
 -->
 <script module lang="ts">
+  import { m } from '@/lib/i18n';
   import type { IssueViewDefinition } from '@/lib/components/issues/views';
 
   /** The parts of an IssueViewDefinition the menu reads. */
@@ -83,7 +84,7 @@
         key: 'v',
         shift: true,
         scope: 'Issues',
-        description: 'Display options',
+        description: m.common_hotkey_display_options(),
         handler: () => {
           open = !open;
         },
@@ -161,15 +162,15 @@
       (value) => update({ subGroupBy: isGroupBy(value) ? (value as GroupBy) : null })
     }
     items={[
-      { value: NO_SUBGROUP, label: 'No sub-grouping' },
+      { value: NO_SUBGROUP, label: m.issues_display_no_subgrouping() },
       ...subOptions.map((option) => ({ value: option, label: GROUP_BY_LABEL[option] })),
     ]}
   >
-    <SelectTrigger size="sm" class="w-36 text-xs" aria-label="Sub-grouping">
+    <SelectTrigger size="sm" class="w-36 text-xs" aria-label={m.issues_display_subgrouping()}>
       <SelectValue />
     </SelectTrigger>
     <SelectContent>
-      <SelectItem value={NO_SUBGROUP} class="text-xs">No sub-grouping</SelectItem>
+      <SelectItem value={NO_SUBGROUP} class="text-xs">{m.issues_display_no_subgrouping()}</SelectItem>
       {#each subOptions as option (option)}
         <SelectItem value={option} class="text-xs">
           {GROUP_BY_LABEL[option]}
@@ -184,7 +185,7 @@
     size="sm"
     bind:checked={() => (boardColumnsOnly ? true : display.showEmptyGroups), (checked) => update({ showEmptyGroups: checked })}
     disabled={boardColumnsOnly}
-    aria-label="Show empty groups"
+    aria-label={m.issues_display_show_empty()}
   />
 {/snippet}
 
@@ -192,21 +193,21 @@
   <Switch
     size="sm"
     bind:checked={() => display.showSubIssues, (checked) => update({ showSubIssues: checked })}
-    aria-label="Show sub-issues"
+    aria-label={m.issues_display_show_subissues()}
   />
 {/snippet}
 
 <Popover bind:open>
   <PopoverTrigger>
     {#snippet child({ props })}
-      <Button {...props} variant="ghost" size="sm" aria-label="Display options (Shift+V)" class="text-muted-foreground">
+      <Button {...props} variant="ghost" size="sm" aria-label={m.issues_display_options_aria()} class="text-muted-foreground">
         <SlidersHorizontalIcon />
-        Display
+        {m.issues_display()}
       </Button>
     {/snippet}
   </PopoverTrigger>
   <PopoverContent align="end" class="w-80 gap-0 p-0">
-    <div role="radiogroup" aria-label="Layout" class="grid grid-cols-5 gap-1 border-b border-border p-2">
+    <div role="radiogroup" aria-label={m.issues_display_layout()} class="grid grid-cols-5 gap-1 border-b border-border p-2">
       {#each views as view (view.id)}
         {@const selected = view.id === layout}
         <button
@@ -229,25 +230,25 @@
 
     <div class="flex flex-col px-3 py-2">
       {#if grouped}
-        {@render optionSelect('Grouping', display.groupBy, groupOptions, GROUP_BY_LABEL, setGroupBy)}
+        {@render optionSelect(m.issues_display_grouping(), display.groupBy, groupOptions, GROUP_BY_LABEL, setGroupBy)}
         {#if display.groupBy !== 'none' && caps.subGrouping}
-          {@render row(caps.swimlanes ? 'Swimlanes' : 'Sub-grouping', subGroupSelect)}
+          {@render row(caps.swimlanes ? m.issues_display_swimlanes() : m.issues_display_subgrouping(), subGroupSelect)}
         {/if}
       {/if}
       {#if ordered}
-        {@render optionSelect('Ordering', display.orderBy, ORDER_BY_OPTIONS, ORDER_BY_LABEL, (value) => {
+        {@render optionSelect(m.issues_display_ordering(), display.orderBy, ORDER_BY_OPTIONS, ORDER_BY_LABEL, (value) => {
           if (isOrderBy(value)) update({ orderBy: value });
         })}
       {/if}
       {#if grouped}
-        {@render row('Show empty groups', emptyGroupsSwitch)}
+        {@render row(m.issues_display_show_empty(), emptyGroupsSwitch)}
       {/if}
-      {@render row('Show sub-issues', subIssuesSwitch)}
+      {@render row(m.issues_display_show_subissues(), subIssuesSwitch)}
     </div>
 
     {#if caps.displayProperties}
       <div class="border-t border-border px-3 py-2">
-        <p class="mb-2 text-xs font-medium text-muted-foreground">Display properties</p>
+        <p class="mb-2 text-xs font-medium text-muted-foreground">{m.issues_display_properties()}</p>
         <div class="flex flex-wrap gap-1">
           {#each TOGGLEABLE as property (property)}
             {@const on = display.properties[property]}
@@ -276,7 +277,7 @@
         class="text-muted-foreground"
         onclick={() => displayOptions.set({ ...DEFAULT_DISPLAY_OPTIONS, layout: display.layout })}
       >
-        Reset to default
+        {m.issues_display_reset()}
       </Button>
     </div>
   </PopoverContent>

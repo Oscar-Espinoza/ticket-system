@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import Building2Icon from '@lucide/svelte/icons/building-2';
   import ScrollTextIcon from '@lucide/svelte/icons/scroll-text';
   import ShieldCheckIcon from '@lucide/svelte/icons/shield-check';
@@ -19,7 +20,7 @@
 </script>
 
 <svelte:head>
-  <title>{membership.name} · Ticket System</title>
+  <title>{m.projects_page_title_named({ name: membership.name })}</title>
 </svelte:head>
 
 <div class="mx-auto flex max-w-3xl flex-col gap-10">
@@ -41,16 +42,16 @@
     </div>
     <Button variant="outline" size="sm" href="/dashboard/workspaces/{membership.slug}/initiatives">
       <TargetIcon />
-      Initiatives
+      {m.projects_initiatives()}
     </Button>
     {#if isAdmin}
       <Button variant="outline" size="sm" href="/dashboard/workspaces/{membership.slug}/security">
         <ShieldCheckIcon />
-        Security
+        {m.projects_ws_security()}
       </Button>
       <Button variant="outline" size="sm" href="/dashboard/workspaces/{membership.slug}/audit">
         <ScrollTextIcon />
-        Audit log
+        {m.projects_ws_audit_log()}
       </Button>
     {/if}
     <WorkspaceActions workspace={{ id: membership.workspaceId, name: membership.name }} role={membership.role} />

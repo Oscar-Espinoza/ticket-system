@@ -2,6 +2,7 @@
 // applies to new issues and priority changes (issue service) until an admin
 // applies it to open issues here.
 
+import { m } from '@/lib/i18n';
 import { eq } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
@@ -20,7 +21,7 @@ export async function updateSlaPolicy(input: {
   const authz = await authorizeProjectAction(input?.projectId, 'admin');
   if (!authz.ok) return authz;
   const policy = normalizeSlaPolicy(input.policy);
-  if (!policy) return fail('SLA targets must be whole hours between 1 and 8760.');
+  if (!policy) return fail(m.projects_err_sla_policy());
 
   await commitWithEvents(
     [db.update(projects).set({ slaPolicy: policy, updatedAt: new Date() }).where(eq(projects.id, input.projectId))],
@@ -48,7 +49,7 @@ export async function applySlaPolicyToOpenIssues(input: {
 
   // Writes its project.sla_policy_applied line in the same statement.
   const updated = await applyPolicyToOpenIssues(projectId, authz.userId);
-  if (updated === null) return fail('Project not found.');
+  if (updated === null) return fail(m.projects_err_project_not_found());
   refreshesData();
   return { ok: true, updated };
 }
@@ -60,7 +61,7 @@ export async function getTimeInStatus(input: {
 }): Promise<ActionResult<{ states: TimeInState[] }>> {
   const authz = await authorizeProjectAction(input?.projectId, 'read');
   if (!authz.ok) return authz;
-  if (typeof input.issueId !== 'string' || !input.issueId) return fail('Issue not found.');
+  if (typeof input.issueId !== 'string' || !input.issueId) return fail(m.projects_err_issue_not_found());
   const states = await readTimeInStatus(input.projectId, input.issueId);
-  return states ? { ok: true, states } : fail('Issue not found.');
+  return states ? { ok: true, states } : fail(m.projects_err_issue_not_found());
 }

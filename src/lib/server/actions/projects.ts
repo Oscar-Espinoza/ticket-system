@@ -2,6 +2,7 @@
 // the owner; the ticket key must match /^[A-Z]{2,6}$/ here (the client
 // transform is UX only).
 
+import { m } from '@/lib/i18n';
 import { createProjectRecord, type CreateProjectErrors } from '@/lib/server/project-create';
 import { formField, refreshesData } from '@/lib/server/action-kit';
 import { getSession } from '@/lib/session';
@@ -18,7 +19,7 @@ export async function createProject(
 ): Promise<CreateProjectState> {
   const session = await getSession();
   if (!session?.user) {
-    return { errors: { server: 'Not authenticated' } };
+    return { errors: { server: m.error_not_authenticated() } };
   }
 
   const created = await createProjectRecord({

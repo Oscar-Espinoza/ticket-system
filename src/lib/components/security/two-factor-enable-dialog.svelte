@@ -19,6 +19,7 @@
 </script>
 
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
   import { toast } from 'svelte-sonner';
 
@@ -51,7 +52,7 @@
   async function submitPassword(e: SubmitEvent) {
     e.preventDefault();
     if (!password) {
-      error = 'Enter your password.';
+      error = m.settings_sec_enter_password();
       return;
     }
     pending = true;
@@ -74,7 +75,7 @@
     e.preventDefault();
     const digits = code.replace(/\s/g, '');
     if (!/^\d{6}$/.test(digits)) {
-      error = 'Enter the 6-digit code from your app.';
+      error = m.settings_sec_enter_code();
       return;
     }
     pending = true;
@@ -84,10 +85,10 @@
       error =
         apiError.status === 429
           ? errorMessage(apiError)
-          : 'That code didn’t match. Check the time on your phone and try the next code.';
+          : m.settings_sec_code_mismatch();
       return;
     }
-    toast.success('Two-factor authentication enabled');
+    toast.success(m.settings_sec_2fa_enabled_toast());
     step = 'codes';
   }
 
@@ -99,8 +100,8 @@
     {#if step === 'password'}
       <form onsubmit={submitPassword} novalidate class="flex flex-col gap-5">
         <DialogHeader>
-          <DialogTitle>Enable two-factor authentication</DialogTitle>
-          <DialogDescription>Confirm your password to continue.</DialogDescription>
+          <DialogTitle>{m.settings_sec_2fa_enable_title()}</DialogTitle>
+          <DialogDescription>{m.settings_sec_confirm_password()}</DialogDescription>
         </DialogHeader>
         <PasswordField
           value={password}
@@ -111,10 +112,10 @@
           }}
         />
         <DialogFooter>
-          <Button type="button" variant="ghost" onclick={() => onClose(false)}>Cancel</Button>
+          <Button type="button" variant="ghost" onclick={() => onClose(false)}>{m.common_cancel()}</Button>
           <Button type="submit" disabled={pending}>
             {#if pending}<Loader2Icon class="animate-spin" />{/if}
-            Continue
+            {m.common_continue()}
           </Button>
         </DialogFooter>
       </form>
@@ -123,20 +124,19 @@
     {#if step === 'verify' && setup}
       <form onsubmit={submitCode} novalidate class="flex flex-col gap-5">
         <DialogHeader>
-          <DialogTitle>Add to your authenticator app</DialogTitle>
+          <DialogTitle>{m.settings_sec_add_authenticator()}</DialogTitle>
           <DialogDescription>
-            In your app, add an account with a setup key (time-based), then enter the code it shows.
-            <a href={setup.uri} class="underline underline-offset-4">Open in authenticator app</a>
-            on this device.
+            {@const parts = m.settings_sec_add_authenticator_desc({ link: '\u0000' }).split('\u0000')}
+            {parts[0]}<a href={setup.uri}>{m.settings_sec_open_authenticator()}</a>{parts[1]}
           </DialogDescription>
         </DialogHeader>
-        <Field id="two-factor-secret" label="Setup key">
-          <CopyField id="two-factor-secret" value={groupSecret(setup.secret)} label="Setup key" />
+        <Field id="two-factor-secret" label={m.settings_sec_setup_key()}>
+          <CopyField id="two-factor-secret" value={groupSecret(setup.secret)} label={m.settings_sec_setup_key()} />
         </Field>
-        <Field id="two-factor-uri" label="Setup link (otpauth)">
-          <CopyField id="two-factor-uri" value={setup.uri} label="Setup link" />
+        <Field id="two-factor-uri" label={m.settings_sec_setup_link_field()}>
+          <CopyField id="two-factor-uri" value={setup.uri} label={m.settings_sec_setup_link()} />
         </Field>
-        <Field id="two-factor-code" label="6-digit code" {error}>
+        <Field id="two-factor-code" label={m.settings_sec_six_digit_code()} {error}>
           <Input
             id="two-factor-code"
             inputmode="numeric"
@@ -157,10 +157,10 @@
           />
         </Field>
         <DialogFooter>
-          <Button type="button" variant="ghost" onclick={() => onClose(false)}>Cancel</Button>
+          <Button type="button" variant="ghost" onclick={() => onClose(false)}>{m.common_cancel()}</Button>
           <Button type="submit" disabled={pending}>
             {#if pending}<Loader2Icon class="animate-spin" />{/if}
-            Verify and enable
+            {m.settings_sec_verify_enable()}
           </Button>
         </DialogFooter>
       </form>
@@ -169,15 +169,14 @@
     {#if step === 'codes' && setup}
       <div class="flex flex-col gap-5">
         <DialogHeader>
-          <DialogTitle>Save your backup codes</DialogTitle>
+          <DialogTitle>{m.settings_sec_save_codes()}</DialogTitle>
           <DialogDescription>
-            If you lose your phone, each code signs you in once. This is the only time they’re shown
-            — store them in your password manager.
+            {m.settings_sec_save_codes_desc()}
           </DialogDescription>
         </DialogHeader>
         <BackupCodes codes={setup.backupCodes} />
         <DialogFooter>
-          <Button onclick={() => onClose(true)}>Done</Button>
+          <Button onclick={() => onClose(true)}>{m.common_done()}</Button>
         </DialogFooter>
       </div>
     {/if}

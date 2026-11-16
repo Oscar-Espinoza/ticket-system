@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import Wordmark from '@/lib/components/wordmark.svelte';
   import LoginForm from './login-form.svelte';
   import type { PageProps } from './$types';
@@ -7,7 +8,7 @@
 </script>
 
 <svelte:head>
-  <title>Log in · Ticket System</title>
+  <title>{m.auth_login_page_title()}</title>
 </svelte:head>
 
 <div class="flex min-h-screen flex-col items-center justify-center gap-6 px-6 py-12">

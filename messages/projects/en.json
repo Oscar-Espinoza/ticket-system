@@ -1,3 +1,1130 @@
 {
-  "$schema": "https://inlang.com/schema/inlang-message-format"
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "projects_create_project_created": "Project created",
+  "projects_create_project_new": "New project",
+  "projects_create_project_title": "Create project",
+  "projects_create_project_desc": "Enter a project name and ticket key to create a new project.",
+  "projects_create_project_name": "Project name",
+  "projects_create_project_name_placeholder": "My project",
+  "projects_create_project_key": "Ticket key",
+  "projects_create_project_key_hint": "2–6 uppercase letters, unique across all projects.",
+  "projects_template": "Template",
+  "projects_discard": "Discard",
+  "projects_creating": "Creating…",
+  "projects_automations_off": "Off",
+  "projects_automations_after_months": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "After {count} month",
+        "countPlural=other": "After {count} months"
+      }
+    }
+  ],
+  "projects_automations_admins_only": "Only admins can change these settings.",
+  "projects_automations_saved": "Automations saved",
+  "projects_settings_owners_admins_only": "Only project owners and admins can change these settings.",
+  "projects_auto_archive_label": "Auto-archive closed issues",
+  "projects_auto_archive_hint": "Completed and canceled issues are archived once they have been closed this long. Archived issues stay searchable and can be restored.",
+  "projects_auto_close_label": "Auto-close stale issues",
+  "projects_auto_close_hint": "Triage, backlog and unstarted issues that haven't been updated for this long move to Canceled, with a note in their activity.",
+  "projects_trash_purge": "Issues in the trash are permanently deleted after 30 days.",
+  "projects_last_run": "Last run {time}.",
+  "projects_burndown": "Burndown",
+  "projects_burndown_in_issues": "Burndown in issues",
+  "projects_burndown_in_points": "Burndown in points",
+  "projects_burndown_starts_on": "The burndown starts on {date}.",
+  "projects_burndown_start": "Start · {weekday}",
+  "projects_burndown_now": "Now",
+  "projects_burndown_end_of": "End of {weekday}",
+  "projects_burndown_scope": "Scope",
+  "projects_burndown_ideal": "Ideal",
+  "projects_burndown_remaining": "Remaining",
+  "projects_burndown_no_estimated": "No estimated issues in this cycle yet.",
+  "projects_burndown_no_issues": "No issues in this cycle yet.",
+  "projects_capacity": "Capacity",
+  "projects_capacity_over": "Over capacity by {amount}",
+  "projects_capacity_scope_vs": "Scope compared with capacity",
+  "projects_capacity_valuetext": "{scope} of {limit} {unit}",
+  "projects_capacity_average_one": "Average {unit} completed in the last cycle.",
+  "projects_capacity_average_many": "Average {unit} completed in the last {count} cycles.",
+  "projects_capacity_average_few_one": "Average {unit} completed in the last cycle (fewer than 3 past cycles).",
+  "projects_capacity_average_few_many": "Average {unit} completed in the last {count} cycles (fewer than 3 past cycles).",
+  "projects_unit_issues_name": "issues",
+  "projects_unit_points_name": "points",
+  "projects_unit_issues": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "issue",
+        "countPlural=other": "issues"
+      }
+    }
+  ],
+  "projects_unit_points": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "point",
+        "countPlural=other": "points"
+      }
+    }
+  ],
+  "projects_no_permission": "You don't have permission to do that.",
+  "projects_complete_cycle_title": "Complete {name}?",
+  "projects_complete_cycle_all_done": "Every issue in this cycle is done.",
+  "projects_complete_cycle_unfinished": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} issue is not finished yet.",
+        "countPlural=other": "{count} issues are not finished yet."
+      }
+    }
+  ],
+  "projects_complete_cycle_move_to": "Move them to {name}",
+  "projects_complete_cycle_next": "the next cycle",
+  "projects_complete_cycle_no_upcoming": "No upcoming cycle to move to.",
+  "projects_complete_cycle_leave": "Leave them in this cycle",
+  "projects_complete_cycle": "Complete cycle",
+  "projects_complete_cycle_done": "{name} completed",
+  "projects_cycle_unassigned": "Unassigned",
+  "projects_cycle_points_short": "pts",
+  "projects_cycle_no_issues": "No issues in this cycle.",
+  "projects_cycle_no_labeled": "No labeled issues in this cycle.",
+  "projects_cycle_assignees": "Assignees",
+  "projects_cycle_updated": "Cycle updated",
+  "projects_cycle_created": "Cycle created",
+  "projects_cycle_edit_title": "Edit {name}",
+  "projects_cycle_new": "New cycle",
+  "projects_cycle_form_edit_desc": "Rename the cycle or move its dates.",
+  "projects_cycle_form_new_desc": "A time-boxed iteration. Cycles can’t overlap.",
+  "projects_cycle_name_hint": "Optional — defaults to “Cycle N”.",
+  "projects_cycle_name_placeholder": "e.g. Launch prep",
+  "projects_cycle_number": "Cycle {number}",
+  "projects_cycle_start_date": "Start date",
+  "projects_cycle_end_date": "End date",
+  "projects_cycle_description_placeholder": "What is this cycle about?",
+  "projects_cycle_create": "Create cycle",
+  "projects_cycle_completed_on": "Completed {date}",
+  "projects_cycle_ended": "Ended — completes automatically",
+  "projects_cycle_starts_in": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Starts in {count} day",
+        "countPlural=other": "Starts in {count} days"
+      }
+    }
+  ],
+  "projects_cycle_last_day": "Last day",
+  "projects_cycle_days_left": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} day left",
+        "countPlural=other": "{count} days left"
+      }
+    }
+  ],
+  "projects_cycles": "Cycles",
+  "projects_cycle_move_to": "Move to cycle…",
+  "projects_cycle_none_found": "No cycle found.",
+  "projects_cycle_none": "No cycle",
+  "projects_cycle_current": "Current",
+  "projects_cycle_upcoming": "Upcoming",
+  "projects_cycle_past": "Past",
+  "projects_cycle_progress": "Cycle progress",
+  "projects_cycle_progress_valuetext": "{done}% completed, {started}% in progress",
+  "projects_cycle_scope_issues": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} issue",
+        "countPlural=other": "{count} issues"
+      }
+    }
+  ],
+  "projects_cycle_in_days": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "in {count} day",
+        "countPlural=other": "in {count} days"
+      }
+    }
+  ],
+  "projects_cycle_completed_of": "{completed}/{scope} done",
+  "projects_cycles_intro": "Time-boxed iterations. Unfinished issues roll over when a cycle ends.",
+  "projects_cycle_running_cooldown": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Cooldown — {name} starts in {count} day.",
+        "countPlural=other": "Cooldown — {name} starts in {count} days."
+      }
+    }
+  ],
+  "projects_cycle_running_none": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "No cycle is running — {name} starts in {count} day.",
+        "countPlural=other": "No cycle is running — {name} starts in {count} days."
+      }
+    }
+  ],
+  "projects_cycle_running_nothing": "No cycle is running right now.",
+  "projects_cycle_new_palette": "New cycle",
+  "projects_cycle_enable_in_settings": "Enable in settings",
+  "projects_cycle_ask_admin": "{description} Ask a project admin to turn it on.",
+  "projects_planning_saved": "Settings saved",
+  "projects_planning_weeks": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} week",
+        "countPlural=other": "{count} weeks"
+      }
+    }
+  ],
+  "projects_planning_no_cooldown": "No cooldown",
+  "projects_planning_cycles_heading": "Cycles",
+  "projects_planning_enable_cycles": "Enable cycles",
+  "projects_planning_enable_cycles_desc": "Plan work in repeating, time-boxed iterations.",
+  "projects_planning_duration": "Duration",
+  "projects_planning_starts_on": "Starts on",
+  "projects_planning_cooldown": "Cooldown",
+  "projects_planning_cooldown_hint": "Free weeks between cycles for planning and unplanned work.",
+  "projects_planning_cadence_changed": "Upcoming cycles that haven’t started are rescheduled. The current cycle keeps its start and may end a few days later to line up with the new start day.",
+  "projects_planning_auto_create": "Auto-create cycles",
+  "projects_planning_auto_create_desc": "Keep the current cycle and the next {count} scheduled automatically.",
+  "projects_planning_rollover": "Roll over unfinished issues",
+  "projects_planning_rollover_on": "When a cycle ends it is completed automatically and its unfinished issues move to the next cycle.",
+  "projects_planning_rollover_off": "When a cycle ends it is completed automatically; unfinished issues stay in it.",
+  "projects_planning_triage_heading": "Triage",
+  "projects_planning_enable_triage": "Enable triage",
+  "projects_planning_enable_triage_desc": "Issues from the intake form, the API and people outside the project land in Triage for review before they reach the backlog.",
+  "projects_cycle_chart_unit": "Chart unit",
+  "projects_chart_unit_issues": "Issues",
+  "projects_chart_unit_points": "Points",
+  "projects_velocity": "Velocity",
+  "projects_velocity_empty": "Velocity appears once a cycle has finished.",
+  "projects_velocity_summary": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{unit} per cycle · average of the last {count}",
+        "countPlural=other": "{unit} per cycle · average of the last {count}"
+      }
+    }
+  ],
+  "projects_velocity_title": "Completed {unit} per cycle",
+  "projects_velocity_series": "Completed {unit}",
+  "projects_velocity_detail_cycle": "Cycle",
+  "projects_velocity_detail_scope": "Scope",
+  "projects_velocity_average": "Average (last {count})",
+  "projects_epic_blocked_by": "Blocked by…",
+  "projects_epic_blocking": "Blocking…",
+  "projects_epic_related_to": "Related to…",
+  "projects_epic_add_dependency_placeholder": "Add dependency…",
+  "projects_epic_no_match": "No match.",
+  "projects_epic_no_others_to_link": "No other epics to link.",
+  "projects_color": "Color",
+  "projects_epic_created": "Created epic “{name}”",
+  "projects_epic_new": "New epic",
+  "projects_epic_new_desc": "A larger piece of work made of many {key} issues.",
+  "projects_epic_name_placeholder": "Epic name",
+  "projects_epic_description_placeholder": "What is this epic about? Markdown supported.",
+  "projects_properties": "Properties",
+  "projects_epic_status_chip": "Status: {status}",
+  "projects_epic_lead_chip": "Lead: {name}",
+  "projects_epic_lead_none": "none",
+  "projects_epic_lead": "Lead",
+  "projects_epic_start_date": "Start date",
+  "projects_epic_start_on": "Start {date}",
+  "projects_epic_clear_start": "Clear start date",
+  "projects_epic_target_date": "Target date",
+  "projects_epic_target_on": "Target {date}",
+  "projects_epic_clear_target": "Clear target date",
+  "projects_create_and_open": "Create and open",
+  "projects_epic_create": "Create epic",
+  "projects_epic_describe_placeholder": "Describe the goal, scope and plan. Markdown supported.",
+  "projects_description_shortcuts": "⌘Enter to save · Esc to cancel",
+  "projects_add_description": "Add a description…",
+  "projects_no_description": "No description.",
+  "projects_write_description": "Write description",
+  "projects_epic_restored": "Epic restored",
+  "projects_epic_archived": "Epic archived",
+  "projects_epic_link": "epic link",
+  "projects_no_updates": "No updates",
+  "projects_no_lead": "No lead",
+  "projects_add_labels": "Add labels",
+  "projects_set_start": "Set start",
+  "projects_set_target": "Set target",
+  "projects_add_to_initiative": "Add to initiative",
+  "projects_no_initiatives": "No initiatives",
+  "projects_epic_properties": "Epic properties",
+  "projects_health": "Health",
+  "projects_initiative": "Initiative",
+  "projects_open": "Open",
+  "projects_change": "Change",
+  "projects_progress": "Progress",
+  "projects_epics": "Epics",
+  "projects_epic_actions": "Epic actions",
+  "projects_copy_link": "Copy link",
+  "projects_unarchive": "Unarchive",
+  "projects_archive": "Archive",
+  "projects_epic_archived_notice": "This epic is archived — it’s hidden from pickers and the roadmap.",
+  "projects_overview": "Overview",
+  "projects_updates": "Updates",
+  "projects_issues": "Issues",
+  "projects_latest_update": "Latest update",
+  "projects_all_updates": "All updates",
+  "projects_issues_by_project": "Issues by project",
+  "projects_no_issues": "No issues",
+  "projects_foreign_no_active": "No active issues from {name}.",
+  "projects_foreign_intro": "Issues from {name} — open one to edit it in its own project.",
+  "projects_foreign_list": "Issues from {name}",
+  "projects_label_color": "Label color",
+  "projects_label_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} label",
+        "countPlural=other": "{count} labels"
+      }
+    }
+  ],
+  "projects_label_filter_placeholder": "Filter by label…",
+  "projects_no_labels_found": "No labels found.",
+  "projects_no_epic_labels": "No epic labels yet.",
+  "projects_clear_label_filter": "Clear label filter",
+  "projects_manage_labels": "Manage labels…",
+  "projects_label_create_failed": "Could not create the label.",
+  "projects_add_labels_placeholder": "Add labels…",
+  "projects_label_type_to_create": "Type a name to create a label.",
+  "projects_label_create": "Create label “{name}”",
+  "projects_label_deleted": "Deleted label “{name}”",
+  "projects_label_rename": "Rename {name}",
+  "projects_label_delete": "Delete {name}",
+  "projects_label_epic_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} epic",
+        "countPlural=other": "{count} epics"
+      }
+    }
+  ],
+  "projects_epic_labels": "Epic labels",
+  "projects_epic_labels_desc": "Tag epics to group and filter them. Separate from issue labels.",
+  "projects_epic_labels_empty": "No labels yet — add one below.",
+  "projects_new_label_name": "New label name",
+  "projects_new_label": "New label",
+  "projects_archived": "Archived",
+  "projects_epic_lead_title": "Lead: {name}",
+  "projects_points_progress": "{done}/{total} pts",
+  "projects_epic_name": "Epic name",
+  "projects_set_epic": "Set epic…",
+  "projects_epic_not_found": "No epic found.",
+  "projects_no_epic": "No epic",
+  "projects_epics_in_project": "Epics in {name}",
+  "projects_loading_other_projects": "Loading other projects…",
+  "projects_dependencies": "Dependencies",
+  "projects_add_dependency": "Add dependency",
+  "projects_no_dependencies": "No dependencies. Mark epics this one is blocked by or blocking to see them on the roadmap.",
+  "projects_dependency_conflict_blocked_by": "This epic starts before its blocker’s target date.",
+  "projects_dependency_conflict_blocks": "The blocked epic starts before this epic’s target date.",
+  "projects_schedule_conflict": "Schedule conflict",
+  "projects_remove_dependency": "Remove dependency on {name}",
+  "projects_change_status": "Change status…",
+  "projects_status_not_found": "No status found.",
+  "projects_no_updates_yet": "No updates yet",
+  "projects_no_updates_desc": "Post a short update to tell everyone how this epic is going. The latest update sets its health.",
+  "projects_filter_all": "All",
+  "projects_filter_active": "Active",
+  "projects_filter_planned": "Planned",
+  "projects_filter_completed": "Completed",
+  "projects_filter_archived": "Archived",
+  "projects_epics_none_all": "No epics.",
+  "projects_epics_none_active": "No active epics.",
+  "projects_epics_none_planned": "No planned epics.",
+  "projects_epics_none_completed": "No completed epics.",
+  "projects_epics_none_archived": "No archived epics.",
+  "projects_epics_none_filters": "No epics match these filters.",
+  "projects_epics_new_palette": "New epic",
+  "projects_epics_section": "Epics",
+  "projects_epics_manage_labels_palette": "Manage epic labels",
+  "projects_hotkey_next_epic": "Next epic",
+  "projects_hotkey_prev_epic": "Previous epic",
+  "projects_epics_filter_by_status": "Filter epics by status",
+  "projects_epics_empty_title": "No epics yet",
+  "projects_epics_empty_desc": "Epics group related issues into a larger piece of work with milestones, dates and progress.",
+  "projects_epics_here_title": "No epics here",
+  "projects_show_all_epics": "Show all epics",
+  "projects_col_name": "Name",
+  "projects_col_health": "Health",
+  "projects_col_lead": "Lead",
+  "projects_col_target": "Target",
+  "projects_col_status": "Status",
+  "projects_col_progress": "Progress",
+  "projects_col_points": "Points",
+  "projects_col_issues": "Issues",
+  "projects_set_health": "Set health…",
+  "projects_clear_health": "Clear health",
+  "projects_set_initiative": "Set initiative…",
+  "projects_initiative_not_found": "No initiative found.",
+  "projects_no_initiative": "No initiative",
+  "projects_set_lead": "Set lead…",
+  "projects_member_not_found": "No member found.",
+  "projects_you": "(you)",
+  "projects_milestone_name": "Milestone name",
+  "projects_milestone_target": "Target",
+  "projects_milestone_actions": "Actions for {name}",
+  "projects_move_up": "Move up",
+  "projects_move_down": "Move down",
+  "projects_alt_up": "Alt ↑",
+  "projects_alt_down": "Alt ↓",
+  "projects_set_milestone": "Set milestone…",
+  "projects_milestone_not_found": "No milestone found.",
+  "projects_no_milestone": "No milestone",
+  "projects_something_went_wrong": "Something went wrong.",
+  "projects_milestones": "Milestones",
+  "projects_add_milestone": "Add milestone",
+  "projects_milestones_empty": "Break the epic into checkpoints with their own target dates.",
+  "projects_add_a_milestone": "Add a milestone",
+  "projects_milestone_input_placeholder": "Milestone name — Enter to add, Esc to close",
+  "projects_new_milestone_name": "New milestone name",
+  "projects_progress_issues": "{completed} / {total} issues",
+  "projects_progress_points": "{completed} / {total} points · {percent}%",
+  "projects_progress_started": "{count} in progress",
+  "projects_update_someone": "Someone",
+  "projects_update_actions": "Update actions",
+  "projects_delete_update": "Delete update",
+  "projects_update_posted": "Update posted",
+  "projects_update": "Update",
+  "projects_update_placeholder": "What changed since the last update? Markdown supported.",
+  "projects_update_shortcut": "⌘Enter to post",
+  "projects_post_update": "Post update",
+  "projects_add_epic_placeholder": "Add epic…",
+  "projects_add_epic_moves": " · moves",
+  "projects_initiative_created": "Created initiative “{name}”",
+  "projects_initiative_new": "New initiative",
+  "projects_initiative_new_desc": "A goal that groups epics across this workspace’s projects.",
+  "projects_initiative_name_placeholder": "Initiative name",
+  "projects_initiative_description_placeholder": "Why does this matter? Markdown supported.",
+  "projects_initiative_owner_chip": "Owner: {name}",
+  "projects_initiative_owner_none": "none",
+  "projects_initiative_owner": "Owner",
+  "projects_initiative_set_owner": "Set owner…",
+  "projects_initiative_no_owner": "No owner",
+  "projects_initiative_create": "Create initiative",
+  "projects_edit_description": "Edit description",
+  "projects_initiative_name": "Initiative name",
+  "projects_initiative_deleted": "Initiative deleted",
+  "projects_initiative_properties": "Initiative properties",
+  "projects_progress_epic_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Progress · {count} epic",
+        "countPlural=other": "Progress · {count} epics"
+      }
+    }
+  ],
+  "projects_initiatives": "Initiatives",
+  "projects_initiative_actions": "Initiative actions",
+  "projects_initiative_delete": "Delete initiative",
+  "projects_add_epic": "Add epic",
+  "projects_no_epics_linked": "No epics linked",
+  "projects_no_epics_linked_add": "Add epics from this workspace’s projects to track them together.",
+  "projects_no_epics_linked_none": "Epics from projects in this workspace (where you can edit) can be added here.",
+  "projects_remove_epic_from_initiative": "Remove {name} from initiative",
+  "projects_remove_from_initiative": "Remove from initiative",
+  "projects_timeline": "Timeline",
+  "projects_zoom": "Zoom",
+  "projects_initiative_delete_title": "Delete “{name}”?",
+  "projects_initiative_delete_desc": "Its epics stay in their projects and are simply unlinked. This can’t be undone.",
+  "projects_initiative_new_palette": "New initiative",
+  "projects_initiatives_section": "Initiatives",
+  "projects_hotkey_next_initiative": "Next initiative",
+  "projects_hotkey_prev_initiative": "Previous initiative",
+  "projects_initiatives_filter_by_status": "Filter initiatives by status",
+  "projects_initiatives_empty_title": "No initiatives yet",
+  "projects_initiatives_empty_desc": "Initiatives group epics from this workspace’s projects under one goal and roll up their progress.",
+  "projects_initiatives_here_title": "No initiatives here",
+  "projects_initiatives_none_status": "No {status} initiatives.",
+  "projects_show_all": "Show all",
+  "projects_initiative_owner_title": "Owner: {name}",
+  "projects_zoom_weeks": "Weeks",
+  "projects_zoom_months": "Months",
+  "projects_zoom_quarters": "Quarters",
+  "projects_timeline_epic": "Epic",
+  "projects_timeline_today": "Today",
+  "projects_timeline_item_label": "{name}: {start} – {end}, {percent}% complete",
+  "projects_timeline_starts_before": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{label}. Starts before {blockers} ends",
+        "countPlural=other": "{label}. Starts before {blockers} end"
+      }
+    }
+  ],
+  "projects_timeline_hint": "{label}\nDrag to reschedule · ←/→ move a week · Shift+←/→ change target",
+  "projects_roadmap_empty_title": "Nothing on the roadmap yet",
+  "projects_roadmap_empty_desc": "Create epics with start and target dates to see them on a timeline.",
+  "projects_go_to_epics": "Go to epics",
+  "projects_roadmap_drag_hint": "Drag bars or their edges to reschedule (snaps to weeks)",
+  "projects_roadmap_conflict_title": "{blocked} starts before {blocker} ends",
+  "projects_roadmap_conflicts": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} scheduling conflict",
+        "countPlural=other": "{count} scheduling conflicts"
+      }
+    }
+  ],
+  "projects_roadmap_no_dated_title": "No dated epics",
+  "projects_roadmap_no_dated_desc": "Give an epic a start or target date to place it on the timeline.",
+  "projects_roadmap_no_dates": "No dates · {count}",
+  "projects_invitation_revoked": "Invitation for {email} revoked",
+  "projects_invite_expired": "Expired",
+  "projects_invite_expires": "Expires {time}",
+  "projects_invite_invited_by": " · invited by {name}",
+  "projects_invite_actions": "Actions for the invitation to {email}",
+  "projects_invite_renew_resend": "Renew and resend",
+  "projects_invite_resend": "Resend email",
+  "projects_invite_link": "Invite link",
+  "projects_invite_copy_link": "Copy invite link",
+  "projects_invite_revoke": "Revoke invitation",
+  "projects_invite_link_regenerated": "Invite link regenerated",
+  "projects_invite_link_created": "Invite link created",
+  "projects_invite_by_email": "Invite by email",
+  "projects_invite_by_email_desc": "They’ll get a link that works once, for that address, for 7 days.",
+  "projects_invite_email_address": "Email address",
+  "projects_invite_email_placeholder": "name@company.com",
+  "projects_role": "Role",
+  "projects_invite_send": "Send invite",
+  "projects_invite_pending": "Pending invitations · {count}",
+  "projects_invite_shareable": "Shareable link",
+  "projects_invite_shareable_desc": "Anyone with this link can join as a member. It expires in 30 days.",
+  "projects_invite_regenerate": "Regenerate",
+  "projects_invite_generate_desc": "Generate a link anyone can use to join as a member.",
+  "projects_invite_generate": "Generate invite link",
+  "projects_join_error_invalid": "Unable to join. The invitation may have expired or already been used.",
+  "projects_join_error_wrong_account": "This invitation was sent to a different email address.",
+  "projects_join_error_session": "Your session expired. Sign in again to join.",
+  "projects_joining": "Joining…",
+  "projects_join_project": "Join project",
+  "projects_member_now_role": "{name} is now {role}",
+  "projects_member_removed": "{name} was removed",
+  "projects_member_now_owns": "{name} now owns this project",
+  "projects_member_role_of": "Role of {name}",
+  "projects_member_more_actions": "More actions for {name}",
+  "projects_transfer_ownership": "Transfer ownership",
+  "projects_remove_from_project": "Remove from project",
+  "projects_transfer_title": "Transfer ownership?",
+  "projects_transfer_desc": "{name} becomes the owner of this project and you become an admin. Only the new owner can transfer it back.",
+  "projects_remove_member_title": "Remove member?",
+  "projects_remove_member_desc": "{name} will immediately lose access to this project. You can invite them again later.",
+  "projects_remove_member": "Remove member",
+  "projects_role_owner": "Owner",
+  "projects_role_admin": "Admin",
+  "projects_role_member": "Member",
+  "projects_role_guest": "Guest",
+  "projects_list_title": "Projects",
+  "projects_list_empty_title": "No projects yet",
+  "projects_list_empty_desc": "Create your first project to get started.",
+  "projects_list_counts": [
+    {
+      "declarations": [
+        "input open",
+        "input resolved",
+        "local openPlural = open: plural",
+        "local resolvedPlural = resolved: plural"
+      ],
+      "selectors": [
+        "openPlural",
+        "resolvedPlural"
+      ],
+      "match": {
+        "openPlural=one, resolvedPlural=one": "{open} open · {resolved} resolved",
+        "openPlural=one, resolvedPlural=other": "{open} open · {resolved} resolved",
+        "openPlural=other, resolvedPlural=one": "{open} open · {resolved} resolved",
+        "openPlural=other, resolvedPlural=other": "{open} open · {resolved} resolved"
+      }
+    }
+  ],
+  "projects_template_deleted": "Deleted “{name}”",
+  "projects_template_delete_title": "Delete “{name}”?",
+  "projects_template_delete_desc": "Projects already created from it don’t change. This can’t be undone.",
+  "projects_template_name_default": "{name} template",
+  "projects_template_only_me": "Only me",
+  "projects_template_everyone_in": "Everyone in {name}",
+  "projects_template_saved": "Saved template “{name}”",
+  "projects_template_updated": "Template updated",
+  "projects_template_edit": "Edit template",
+  "projects_template_save_as": "Save as template",
+  "projects_template_edit_desc": "Rename the template or change who can use it.",
+  "projects_template_save_desc": "Copies the workflow states, labels, estimates, cycle and triage settings, SLAs and issue templates. Issues and members aren’t copied.",
+  "projects_template_need_admin": "You need to be an owner or admin of a project to save it as a template.",
+  "projects_choose_project": "Choose a project…",
+  "projects_template_name_placeholder": "Engineering team",
+  "projects_template_description_placeholder": "What kind of team is this for?",
+  "projects_template_available_to": "Available to",
+  "projects_template_save": "Save template",
+  "projects_template_default_workflow": "Default workflow",
+  "projects_template_loading": "Loading templates…",
+  "projects_template_states": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} state",
+        "countPlural=other": "{count} states"
+      }
+    }
+  ],
+  "projects_template_labels": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} label",
+        "countPlural=other": "{count} labels"
+      }
+    }
+  ],
+  "projects_template_issue_templates": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} issue template",
+        "countPlural=other": "{count} issue templates"
+      }
+    }
+  ],
+  "projects_template_estimates": "{scale} estimates",
+  "projects_template_sla": "SLAs",
+  "projects_template_someone": "Someone",
+  "projects_templates_title": "Project templates",
+  "projects_template_new": "New template",
+  "projects_templates_intro": "Start new projects with a ready-made workflow, labels and settings. Pick a template in the “Create project” dialog.",
+  "projects_templates_empty_title": "No templates yet",
+  "projects_templates_empty_desc": "Save a project you administer as a template to reuse its setup.",
+  "projects_template_actions": "Actions for {name}",
+  "projects_template_edit_item": "Edit…",
+  "projects_template_delete_item": "Delete…",
+  "projects_tabs_nav": "Project",
+  "projects_tab_issues": "Issues",
+  "projects_tab_triage": "Triage",
+  "projects_tab_cycles": "Cycles",
+  "projects_tab_epics": "Epics",
+  "projects_tab_roadmap": "Roadmap",
+  "projects_tab_views": "Views",
+  "projects_tab_docs": "Docs",
+  "projects_tab_customers": "Customers",
+  "projects_tab_insights": "Insights",
+  "projects_tab_archive": "Archive",
+  "projects_tab_trash": "Trash",
+  "projects_tab_members": "Members",
+  "projects_tab_settings": "Settings",
+  "projects_tabs_more": "More project pages",
+  "projects_freq_daily": "Daily",
+  "projects_freq_weekly": "Weekly",
+  "projects_freq_monthly": "Monthly",
+  "projects_recurring_err_invalid": "Invalid schedule.",
+  "projects_recurring_err_freq": "Choose how often it repeats.",
+  "projects_recurring_err_interval": "Repeat every 1 to {max}.",
+  "projects_recurring_err_start": "Choose a start date.",
+  "projects_recurring_err_weekday": "Pick at least one weekday.",
+  "projects_recurring_err_day": "Pick a day of the month.",
+  "projects_recurring_daily": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Every day",
+        "countPlural=other": "Every {count} days"
+      }
+    }
+  ],
+  "projects_recurring_every_weekday": "Every weekday",
+  "projects_recurring_weekly": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Weekly on {days}",
+        "countPlural=other": "Every {count} weeks on {days}"
+      }
+    }
+  ],
+  "projects_recurring_monthly": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Monthly on the {day}",
+        "countPlural=other": "Every {count} months on the {day}"
+      }
+    }
+  ],
+  "projects_recurring_unit_daily": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "day",
+        "countPlural=other": "days"
+      }
+    }
+  ],
+  "projects_recurring_unit_weekly": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "week",
+        "countPlural=other": "weeks"
+      }
+    }
+  ],
+  "projects_recurring_unit_monthly": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "month",
+        "countPlural=other": "months"
+      }
+    }
+  ],
+  "projects_recurring_every": "every",
+  "projects_recurring_every_aria": "Every how many {unit}",
+  "projects_recurring_updated": "Recurring issue updated",
+  "projects_recurring_created": "Recurring issue created",
+  "projects_recurring_edit": "Edit recurring issue",
+  "projects_recurring_new": "New recurring issue",
+  "projects_recurring_editor_desc": "An issue with these values is created on every run.",
+  "projects_recurring_title": "Title",
+  "projects_recurring_title_placeholder": "Weekly dependency updates",
+  "projects_recurring_description_placeholder": "Checklist, links, context…",
+  "projects_recurring_repeat": "Repeat",
+  "projects_recurring_frequency": "Frequency",
+  "projects_recurring_weekdays": "Weekdays",
+  "projects_recurring_on_day": "on day",
+  "projects_recurring_day_of_month": "Day of the month",
+  "projects_recurring_short_months": "Shorter months use their last day.",
+  "projects_recurring_starting": "Starting",
+  "projects_recurring_next": "Next: {runs}",
+  "projects_recurring_next_none": "none",
+  "projects_recurring_due": "Due",
+  "projects_recurring_due_hint": "Days after each run; leave empty for no due date.",
+  "projects_recurring_due_after": "days after it’s created",
+  "projects_recurring_create": "Create",
+  "projects_recurring_broken": "Schedule unreadable — edit it to fix",
+  "projects_recurring_due_in": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": " · due in {count} day",
+        "countPlural=other": " · due in {count} days"
+      }
+    }
+  ],
+  "projects_recurring_next_run": "Next {day}",
+  "projects_recurring_paused": "Paused",
+  "projects_recurring_actions": "Actions for {name}",
+  "projects_recurring_create_now": "Create issue now",
+  "projects_recurring_pause": "Pause",
+  "projects_recurring_resume": "Resume",
+  "projects_recurring_created_key": "Created {key}",
+  "projects_recurring_resumed": "Resumed",
+  "projects_recurring_deleted": "Recurring issue deleted",
+  "projects_recurring_empty_title": "No recurring issues",
+  "projects_recurring_empty_desc": "Create issues on a schedule — weekly reviews, monthly reports, daily checks.",
+  "projects_recurring_delete_title": "Delete “{title}”?",
+  "projects_recurring_delete_desc": "No more issues are created from it. Issues it already created stay.",
+  "projects_sla_left": "{duration} left",
+  "projects_sla_overdue": "Overdue by {duration}",
+  "projects_sla_met": "Met",
+  "projects_sla_missed": "Missed",
+  "projects_sla_breached": "Breached",
+  "projects_sla_title_breached": "SLA breached {duration} ago",
+  "projects_sla_title": "SLA: {text}",
+  "projects_sla_label": "SLA: ",
+  "projects_sla_unit_hours": "hours",
+  "projects_sla_unit_days": "days",
+  "projects_sla_error_number": "{priority}: enter a whole number of {unit} (up to 365 days).",
+  "projects_sla_admins_only": "Only admins can change SLAs.",
+  "projects_sla_saved": "SLAs saved",
+  "projects_sla_updated": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Updated {count} open issue",
+        "countPlural=other": "Updated {count} open issues"
+      }
+    }
+  ],
+  "projects_sla_owners_admins_only": "Only project owners and admins can change SLAs.",
+  "projects_sla_targets_by_priority": "Targets by priority",
+  "projects_sla_no_sla": "No SLA",
+  "projects_sla_unit_aria": "{priority} SLA unit",
+  "projects_sla_explain": "The clock starts when an issue is created and restarts when its priority changes. Completing or canceling the issue stops it. Leave a priority empty for no SLA.",
+  "projects_sla_apply_heading": "Apply to open issues",
+  "projects_sla_apply_desc": "New targets only affect new issues and priority changes. Recompute the deadline of every open issue from its creation time — issues already past it are marked breached without notifying anyone.",
+  "projects_sla_save_first": "Save your changes first",
+  "projects_sla_apply_button": "Apply…",
+  "projects_sla_apply_title": "Apply SLAs to open issues?",
+  "projects_sla_apply_confirm_targets": "Every open issue gets a deadline from its priority and creation time. Issues whose priority has no target lose their SLA.",
+  "projects_sla_apply_confirm_none": "No targets are set, so every open issue loses its SLA.",
+  "projects_sla_apply": "Apply",
+  "projects_tis_in_since": "In {state} since {date}",
+  "projects_tis_in_for": "In {state} for {duration}, since {date}. Hover for time in each status.",
+  "projects_tis_since": " · since {date}",
+  "projects_tis_title": "Time in status",
+  "projects_tis_load_failed": "Couldn’t load the history.",
+  "projects_tis_now": " · now",
+  "projects_ws_join_error_invalid": "This invitation is invalid, has expired or was already used.",
+  "projects_ws_joining": "Joining…",
+  "projects_ws_join": "Join workspace",
+  "projects_ws_created": "Workspace created",
+  "projects_ws_create": "Create workspace",
+  "projects_ws_create_desc": "Group related projects (teams) and plan initiatives across them.",
+  "projects_ws_name_placeholder": "Acme Inc.",
+  "projects_ws_url": "URL",
+  "projects_ws_url_prefix": "/workspaces/",
+  "projects_ws_slug_placeholder": "acme",
+  "projects_ws_palette_section": "Workspaces",
+  "projects_ws_create_a": "Create a workspace",
+  "projects_ws_renamed": "Workspace renamed",
+  "projects_ws_actions": "Workspace actions",
+  "projects_ws_rename_item": "Rename…",
+  "projects_ws_leave_item": "Leave workspace…",
+  "projects_ws_delete_item": "Delete workspace…",
+  "projects_ws_rename_title": "Rename workspace",
+  "projects_ws_delete_title": "Delete {name}?",
+  "projects_ws_leave_title": "Leave {name}?",
+  "projects_ws_rename_desc": "The URL stays the same.",
+  "projects_ws_delete_desc": "Its projects stay intact but leave the workspace. Initiatives are deleted. This can’t be undone.",
+  "projects_ws_leave_desc": "You’ll lose access to the workspace and its initiatives. Your project memberships don’t change.",
+  "projects_ws_type_to_confirm": "Type {name} to confirm",
+  "projects_ws_leave": "Leave",
+  "projects_ws_project_added": "{name} added",
+  "projects_ws_add_project": "Add project",
+  "projects_ws_add_project_desc": "Move a project you own or administer into this workspace. Its members and issues don’t change.",
+  "projects_ws_no_eligible": "You don’t administer any project outside this workspace.",
+  "projects_ws_will_leave": "It will leave {name}.",
+  "projects_ws_new_project": "New project in workspace",
+  "projects_ws_new_project_desc": "You’ll be the project’s owner.",
+  "projects_ws_project_name_placeholder": "Mobile app",
+  "projects_ws_delete": "Delete workspace",
+  "projects_ws_invite_title": "Invite to workspace",
+  "projects_ws_invite_desc": "People you already share a project with are added right away; anyone else gets an email invitation valid for 7 days.",
+  "projects_ws_invite_email": "Email",
+  "projects_ws_invite_added": "Added to the workspace",
+  "projects_ws_invite": "Invite",
+  "projects_ws_role_of": "Role of {name}",
+  "projects_ws_member_now": "{name} is now {role}",
+  "projects_ws_member_actions": "Actions for {name}",
+  "projects_ws_remove_from": "Remove from workspace",
+  "projects_ws_members_heading": "Members",
+  "projects_ws_joined": "Joined {name}",
+  "projects_ws_project_left": "{name} left the workspace",
+  "projects_ws_private_team": "Private team",
+  "projects_ws_open_count": "{count} open · ",
+  "projects_ws_member_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} member",
+        "countPlural=other": "{count} members"
+      }
+    }
+  ],
+  "projects_ws_join_aria": "Join {name}",
+  "projects_ws_join_short": "Join",
+  "projects_ws_teams": "Teams",
+  "projects_ws_new_project_btn": "New project",
+  "projects_ws_empty_admin": "Add one of your projects or create a new one in this workspace.",
+  "projects_ws_empty_member": "Create a project in this workspace to get started.",
+  "projects_page_title_named": "{name} · Ticket System",
+  "projects_page_title_not_found": "404: This page could not be found.",
+  "projects_page_not_found": "This page could not be found.",
+  "projects_error_title": "Something went wrong",
+  "projects_error_desc": "This page failed to load. Try again, or come back in a moment.",
+  "projects_page_title_projects": "Projects · Ticket System",
+  "projects_github_connected": "GitHub connected",
+  "projects_github_not_connected": "GitHub not connected",
+  "projects_project_not_found_title": "Project not found · Ticket System",
+  "projects_project_not_found": "Project not found",
+  "projects_project_not_found_desc": "It doesn't exist, or you're not a member of it.",
+  "projects_back_to_projects": "Back to projects",
+  "projects_cycles_off_title": "Cycles are off",
+  "projects_cycles_off_desc": "Plan work in time-boxed iterations with progress, burndown and velocity.",
+  "projects_ws_security": "Security",
+  "projects_ws_audit_log": "Audit log",
+  "projects_initiatives_page_title": "Initiatives · {name} · Ticket System",
+  "projects_err_epic_not_found": "Epic not found.",
+  "projects_err_invalid_status": "Invalid status.",
+  "projects_err_invalid_date": "Invalid date.",
+  "projects_err_initiative_not_found": "Initiative not found.",
+  "projects_err_project_not_found": "Project not found.",
+  "projects_err_issue_not_found": "Issue not found.",
+  "projects_err_cycle_not_found": "Cycle not found.",
+  "projects_err_label_not_found": "Label not found.",
+  "projects_err_milestone_not_found": "Milestone not found.",
+  "projects_err_update_not_found": "Update not found.",
+  "projects_err_dependency_not_found": "Dependency not found.",
+  "projects_err_recurring_not_found": "Recurring issue not found.",
+  "projects_err_template_not_found": "Template not found.",
+  "projects_err_member_not_found": "Member not found.",
+  "projects_err_invalid_text": "Invalid text.",
+  "projects_err_invalid_health": "Invalid health.",
+  "projects_err_lead_member": "The lead must be a project member.",
+  "projects_err_invalid_color": "Invalid color.",
+  "projects_err_target_after_start": "The target date must be on or after the start date.",
+  "projects_err_invalid_order": "Invalid order.",
+  "projects_err_milestones_changed": "The milestones changed meanwhile — refresh and try again.",
+  "projects_err_pick_health": "Pick a health status.",
+  "projects_err_write_update": "Write a short update.",
+  "projects_err_update_delete_forbidden": "Only the author or a project admin can delete this update.",
+  "projects_err_description_long": "Description is too long.",
+  "projects_err_owner_member": "The owner must be a workspace member.",
+  "projects_err_initiative_delete_forbidden": "Only the owner or a workspace admin can delete this initiative.",
+  "projects_err_project_no_workspace": "This project is not in a workspace.",
+  "projects_err_no_runs": "This schedule never runs — check the start date and repeat settings.",
+  "projects_err_invalid_workspace": "Invalid workspace.",
+  "projects_err_not_in_workspace": "You aren’t a member of that workspace.",
+  "projects_err_need_project_admin": "You need to be an admin of that project.",
+  "projects_err_missing_fields": "Missing required fields.",
+  "projects_err_cannot_remove_self": "You cannot remove yourself.",
+  "projects_err_owner_cannot_be_removed": "The project owner cannot be removed.",
+  "projects_err_cannot_change_own_role": "You cannot change your own role.",
+  "projects_err_only_owner_transfer": "Only the owner can transfer ownership.",
+  "projects_err_already_own": "You already own this project.",
+  "projects_err_label_duplicate": "A label with this name already exists.",
+  "projects_err_invalid_labels": "Invalid labels.",
+  "projects_err_labels_gone": "One of the labels no longer exists — refresh and try again.",
+  "projects_err_invalid_relation": "Invalid relation.",
+  "projects_err_self_dependency": "An epic can’t depend on itself.",
+  "projects_err_already_linked_remove": "These epics are already linked — remove that dependency first.",
+  "projects_err_already_linked": "These epics are already linked.",
+  "projects_err_sla_policy": "SLA targets must be whole hours between 1 and 8760.",
+  "projects_err_pick_start": "Pick a start date.",
+  "projects_err_pick_end": "Pick an end date.",
+  "projects_err_end_after_start": "The end date must be on or after the start date.",
+  "projects_err_cycle_too_long": "A cycle can be at most 26 weeks long.",
+  "projects_err_cycles_off": "Cycles are turned off for this project.",
+  "projects_err_cycle_create_failed": "Could not create the cycle — please try again.",
+  "projects_err_cycle_completed_dates": "A completed cycle’s dates can’t change.",
+  "projects_err_project_name_required": "Project name is required.",
+  "projects_err_project_key": "Key must be 2–6 uppercase letters.",
+  "projects_err_project_create_failed": "Could not create the project.",
+  "projects_err_template_unavailable": "That template is no longer available.",
+  "projects_err_key_in_use": "This key is already in use. Choose a different one.",
+  "projects_err_max_chars": "Must be {max} characters or fewer.",
+  "projects_err_update_max_chars": "Updates must be {max} characters or fewer.",
+  "projects_err_due_range": "Due in 0 to {max} days, or leave it empty.",
+  "projects_err_recurring_max": "A project can have at most {max} recurring issues.",
+  "projects_err_labels_max": "An epic can have at most {max} labels.",
+  "projects_err_already_blocks": "{blocked} already blocks {blocker} (directly or through other epics).",
+  "projects_err_dates_overlap": "These dates overlap {name}.",
+  "projects_err_project_name_max": "Project name must be {max} characters or fewer.",
+  "projects_cycle_moved": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Moved {count} unfinished issue to {name}",
+        "countPlural=other": "Moved {count} unfinished issues to {name}"
+      }
+    }
+  ],
+  "projects_err_cycle_not_found_or_completed": "Cycle not found or already completed.",
+  "projects_default_state_triage": "Triage",
+  "projects_default_state_backlog": "Backlog",
+  "projects_default_state_todo": "Todo",
+  "projects_default_state_in_progress": "In Progress",
+  "projects_default_state_in_review": "In Review",
+  "projects_default_state_done": "Done",
+  "projects_default_state_canceled": "Canceled",
+  "projects_default_state_duplicate": "Duplicate",
+  "projects_recurring_cron": "Scheduled runs need the daily cron: set {secret} in the deployment (Vercel Cron calls {path}). Until then, due issues are created whenever someone opens this page."
 }

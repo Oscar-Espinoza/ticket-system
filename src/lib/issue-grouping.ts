@@ -12,20 +12,22 @@ import {
   type WorkflowState,
 } from '@/lib/issue-model';
 import type { ProjectData } from '@/lib/project-data-types';
+import { lazyLabels } from '@/lib/lazy-labels';
+import { m } from '@/lib/i18n';
 
 export type GroupBy = 'state' | 'assignee' | 'priority' | 'label' | 'cycle' | 'epic' | 'none';
 
 export const GROUP_BY_OPTIONS: GroupBy[] = ['state', 'assignee', 'priority', 'label', 'cycle', 'epic', 'none'];
 
-export const GROUP_BY_LABEL: Record<GroupBy, string> = {
-  state: 'Status',
-  assignee: 'Assignee',
-  priority: 'Priority',
-  label: 'Label',
-  cycle: 'Cycle',
-  epic: 'Epic',
-  none: 'No grouping',
-};
+export const GROUP_BY_LABEL: Record<GroupBy, string> = lazyLabels({
+  state: m.common_status,
+  assignee: m.common_assignee,
+  priority: m.common_priority,
+  label: m.issues_group_label,
+  cycle: m.common_cycle,
+  epic: m.issues_epic,
+  none: m.issues_group_none,
+});
 
 export function isGroupBy(value: unknown): value is GroupBy {
   return typeof value === 'string' && (GROUP_BY_OPTIONS as string[]).includes(value);
@@ -35,14 +37,14 @@ export type OrderBy = 'manual' | 'priority' | 'created' | 'updated' | 'dueDate' 
 
 export const ORDER_BY_OPTIONS: OrderBy[] = ['manual', 'priority', 'created', 'updated', 'dueDate', 'title'];
 
-export const ORDER_BY_LABEL: Record<OrderBy, string> = {
-  manual: 'Manual',
-  priority: 'Priority',
-  created: 'Created',
-  updated: 'Updated',
-  dueDate: 'Due date',
-  title: 'Title',
-};
+export const ORDER_BY_LABEL: Record<OrderBy, string> = lazyLabels({
+  manual: m.issues_order_manual,
+  priority: m.common_priority,
+  created: m.issues_created,
+  updated: m.issues_updated,
+  dueDate: m.common_due_date,
+  title: m.issues_title,
+});
 
 export function isOrderBy(value: unknown): value is OrderBy {
   return typeof value === 'string' && (ORDER_BY_OPTIONS as string[]).includes(value);
@@ -149,7 +151,7 @@ export function groupIssues(issues: IssueRow[], groupBy: GroupBy, data: Grouping
           const user = { id: m.id, name: m.name, image: m.image };
           return { id: m.id, label: m.name, user, patch: { assigneeId: m.id } };
         }),
-        { id: NO_VALUE_GROUP, label: 'No assignee', user: null, patch: { assigneeId: null } },
+        { id: NO_VALUE_GROUP, label: m.issues_no_assignee(), user: null, patch: { assigneeId: null } },
         (issue) => (issue.assignee ? [issue.assignee.id] : []),
         (issue) =>
           issue.assignee && {
@@ -178,7 +180,7 @@ export function groupIssues(issues: IssueRow[], groupBy: GroupBy, data: Grouping
         issues,
         'label',
         (data.labels ?? []).map((l) => ({ id: l.id, label: l.name, color: l.color, patch: { labelIds: [l.id] } })),
-        { id: NO_VALUE_GROUP, label: 'No label', patch: { labelIds: [] } },
+        { id: NO_VALUE_GROUP, label: m.issues_group_no_label(), patch: { labelIds: [] } },
         (issue) => issue.labels.map((l) => l.id),
         (issue, key) => {
           const label = issue.labels.find((l) => l.id === key);
@@ -194,8 +196,8 @@ export function groupIssues(issues: IssueRow[], groupBy: GroupBy, data: Grouping
         (data.cycles ?? [])
           // Finished cycles only matter while they still hold (filtered) issues.
           .filter((c) => !c.completedAt || withIssues.has(c.id))
-          .map((c) => ({ id: c.id, label: c.name || `Cycle ${c.number}`, patch: { cycleId: c.id } })),
-        { id: NO_VALUE_GROUP, label: 'No cycle', patch: { cycleId: null } },
+          .map((c) => ({ id: c.id, label: c.name || m.issues_fp_cycle_number({ number: c.number }), patch: { cycleId: c.id } })),
+        { id: NO_VALUE_GROUP, label: m.issues_fp_no_cycle(), patch: { cycleId: null } },
         (issue) => (issue.cycleId ? [issue.cycleId] : []),
         // A cycle unknown to project data (shouldn't happen) is left out.
         () => null,
@@ -212,13 +214,13 @@ export function groupIssues(issues: IssueRow[], groupBy: GroupBy, data: Grouping
           color: e.color ?? undefined,
           patch: { epicId: e.id },
         })),
-        { id: NO_VALUE_GROUP, label: 'No epic', patch: { epicId: null } },
+        { id: NO_VALUE_GROUP, label: m.issues_fp_no_epic(), patch: { epicId: null } },
         (issue) => (issue.epicId ? [issue.epicId] : []),
         () => null,
       );
 
     case 'none':
-      return [{ id: 'all', label: 'All issues', kind: 'none', patch: null, issues }];
+      return [{ id: 'all', label: m.issues_group_all(), kind: 'none', patch: null, issues }];
   }
 }
 

@@ -4,6 +4,7 @@
   enumeration-resistant); anything else is the dashboard error state.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import FolderXIcon from '@lucide/svelte/icons/folder-x';
@@ -23,22 +24,22 @@
 <svelte:head>
   {#if page.status === 404}
     <!-- generateMetadata of the project layout. -->
-    <title>Project not found · Ticket System</title>
+    <title>{m.projects_project_not_found_title()}</title>
   {/if}
 </svelte:head>
 
 {#if page.status === 404}
-  <EmptyState title="Project not found" description="It doesn't exist, or you're not a member of it.">
+  <EmptyState title={m.projects_project_not_found()} description={m.projects_project_not_found_desc()}>
     {#snippet icon()}<FolderXIcon />{/snippet}
     {#snippet action()}
-      <Button size="sm" variant="outline" href="/dashboard">Back to projects</Button>
+      <Button size="sm" variant="outline" href="/dashboard">{m.projects_back_to_projects()}</Button>
     {/snippet}
   </EmptyState>
 {:else}
-  <EmptyState title="Something went wrong" description="This page failed to load. Try again, or come back in a moment.">
+  <EmptyState title={m.projects_error_title()} description={m.projects_error_desc()}>
     {#snippet icon()}<TriangleAlertIcon />{/snippet}
     {#snippet action()}
-      <Button size="sm" variant="outline" onclick={() => void retry()}>Try again</Button>
+      <Button size="sm" variant="outline" onclick={() => void retry()}>{m.common_retry()}</Button>
     {/snippet}
   </EmptyState>
 {/if}

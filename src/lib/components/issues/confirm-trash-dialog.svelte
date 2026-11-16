@@ -3,6 +3,7 @@
   while `issues` is non-empty.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import {
     AlertDialog,
     AlertDialogAction,
@@ -33,15 +34,15 @@
   <AlertDialogContent size="sm">
     <AlertDialogHeader>
       <AlertDialogTitle>
-        {one ? `Move ${one.key} to trash?` : `Move ${issues.length} issues to trash?`}
+        {one ? m.issues_trash_confirm_one({ key: one.key }) : m.issues_trash_confirm_many({ count: issues.length })}
       </AlertDialogTitle>
       <AlertDialogDescription>
-        {one ? `${one.title} — you` : 'You'} can restore {one ? 'it' : 'them'} from the trash.
+        {one ? m.issues_trash_restore_one({ title: one.title }) : m.issues_trash_restore_many()}
       </AlertDialogDescription>
     </AlertDialogHeader>
     <AlertDialogFooter>
-      <AlertDialogCancel>Cancel</AlertDialogCancel>
-      <AlertDialogAction variant="destructive" onclick={onConfirm}>Move to trash</AlertDialogAction>
+      <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
+      <AlertDialogAction variant="destructive" onclick={onConfirm}>{m.issues_move_to_trash()}</AlertDialogAction>
     </AlertDialogFooter>
   </AlertDialogContent>
 </AlertDialog>

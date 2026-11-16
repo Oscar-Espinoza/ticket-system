@@ -7,6 +7,7 @@
 <script lang="ts">
   import { page } from '$app/state';
 
+  import { m } from '@/lib/i18n';
   import { getUnreadNotificationCount } from '@/lib/actions/notifications';
   import { INBOX_CHANGED_EVENT } from '@/lib/notifications/types';
 
@@ -55,7 +56,7 @@
 
 {#if count > 0}
   <span
-    aria-label="{count} unread"
+    aria-label={m.editor_inbox_unread_count({ count })}
     class="shrink-0 rounded-full bg-sidebar-accent px-1.5 text-[11px] leading-4 font-medium text-sidebar-accent-foreground tabular-nums"
   >
     {count > 99 ? '99+' : count}

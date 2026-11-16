@@ -11,7 +11,8 @@
   registry renders it only in the browser.
 -->
 <script lang="ts">
-  import { MONTH_SHORT_FORMAT, pluralize } from '@/lib/format';
+  import { m, dateFormat } from '@/lib/i18n';
+  import { MONTH_SHORT_FORMAT } from '@/lib/format';
   import { untrack } from 'svelte';
   import CalendarRangeIcon from '@lucide/svelte/icons/calendar-range';
 
@@ -34,15 +35,15 @@
 
   type Zoom = 'week' | 'month';
   const ZOOMS: { id: Zoom; label: string }[] = [
-    { id: 'week', label: 'Week' },
-    { id: 'month', label: 'Month' },
+    { id: 'week', label: m.issues_tl_week() },
+    { id: 'month', label: m.issues_tl_month() },
   ];
   const PX_PER_DAY: Record<Zoom, number> = { week: 36, month: 12 };
   const ZOOM_KEY = 'issues-timeline-zoom';
 
   const STUB_DAYS = 2; // no due date: a 3-day dashed stub
 
-  const weekdayLabel = new Intl.DateTimeFormat('en', { weekday: 'narrow' });
+  const weekdayLabel = dateFormat({ weekday: 'narrow' });
 
   function readZoom(): Zoom {
     return readStorage(ZOOM_KEY) === 'month' ? 'month' : 'week';
@@ -278,7 +279,7 @@
       label: live?.moved
         ? `${formatDueDate(start)} – ${formatDueDate(end)}`
         : span.stub
-          ? `${formatDueDate(start)} · no due date`
+          ? m.issues_tl_no_due({ range: formatDueDate(start) })
           : `${formatDueDate(start)} – ${formatDueDate(end)}`,
       stub: span.stub && !(live?.moved && live.mode === 'end'),
       editable: editable(issue),
@@ -290,13 +291,13 @@
 </script>
 
 {#if issues.length === 0}
-  <EmptyState title="No issues" description="Nothing to show in this view.">
+  <EmptyState title={m.issues_none_title()} description={m.issues_none_description()}>
     {#snippet icon()}<CalendarRangeIcon />{/snippet}
   </EmptyState>
 {:else}
   <div class="flex min-h-0 flex-col gap-2">
     <div class="flex items-center gap-2 text-xs text-muted-foreground">
-      <div role="radiogroup" aria-label="Zoom" class="flex rounded-md border border-border p-0.5">
+      <div role="radiogroup" aria-label={m.issues_tl_zoom()} class="flex rounded-md border border-border p-0.5">
         {#each ZOOMS as option (option.id)}
           <button
             type="button"
@@ -312,9 +313,9 @@
           </button>
         {/each}
       </div>
-      <Button variant="ghost" size="xs" onclick={() => scrollToToday(true)}>Today</Button>
+      <Button variant="ghost" size="xs" onclick={() => scrollToToday(true)}>{m.common_today()}</Button>
       <span class="ml-auto hidden sm:inline">
-        {canWrite.current ? 'Drag bars to reschedule · dashed = no due date' : 'Dashed = no due date'}
+        {canWrite.current ? m.issues_tl_hint_write() : m.issues_tl_hint_read()}
       </span>
     </div>
 
@@ -329,7 +330,7 @@
             class="sticky left-0 z-30 flex shrink-0 items-end border-r border-border bg-background px-3 pb-1.5 text-xs text-muted-foreground"
             style:width="{NAME_COLUMN}px"
           >
-            {pluralize(issues.length, 'issue')}
+            {m.common_issue_count({ count: issues.length })}
           </div>
           <div class="relative" style:width="{width}px" style:height="44px">
             {#each months as month (month.key)}
@@ -358,7 +359,7 @@
         </div>
 
         <!-- Rows -->
-        <div class="relative" role="list" aria-label="Issue timeline">
+        <div class="relative" role="list" aria-label={m.issues_tl_aria()}>
           <div
             aria-hidden="true"
             class="pointer-events-none absolute inset-y-0"

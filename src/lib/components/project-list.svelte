@@ -7,14 +7,15 @@
 -->
 <script module lang="ts">
   const ROLE_LABEL = {
-    owner: 'Owner',
-    admin: 'Admin',
-    member: 'Member',
-    guest: 'Guest',
+    owner: () => m.projects_role_owner(),
+    admin: () => m.projects_role_admin(),
+    member: () => m.projects_role_member(),
+    guest: () => m.projects_role_guest(),
   } as const;
 </script>
 
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
   import FolderPlusIcon from '@lucide/svelte/icons/folder-plus';
 
@@ -33,12 +34,12 @@
 <div class="mt-8">
   <!-- Section header — always visible regardless of empty state -->
   <div class="flex items-center justify-between mb-4">
-    <h3 class="text-base font-medium">Projects</h3>
+    <h3 class="text-base font-medium">{m.projects_list_title()}</h3>
     <CreateProjectDialog />
   </div>
 
   {#if userProjects.length === 0}
-    <EmptyState title="No projects yet" description="Create your first project to get started.">
+    <EmptyState title={m.projects_list_empty_title()} description={m.projects_list_empty_desc()}>
       {#snippet icon()}<FolderPlusIcon />{/snippet}
       {#snippet action()}<CreateProjectDialog />{/snippet}
     </EmptyState>
@@ -57,13 +58,13 @@
                 {p.ticketKey}
               </LabelChip>
               <LabelChip color={p.role === 'owner' ? 'primary' : 'default'} class="shrink-0">
-                {ROLE_LABEL[p.role]}
+                {ROLE_LABEL[p.role]()}
               </LabelChip>
             </div>
 
             <!-- Right: tabular ticket counts + hover chevron -->
             <span class="ml-auto shrink-0 text-xs tabular-nums whitespace-nowrap text-muted-foreground">
-              {p.openCount} open · {p.resolvedCount} resolved
+              {m.projects_list_counts({ open: p.openCount, resolved: p.resolvedCount })}
             </span>
             <ChevronRightIcon
               aria-hidden="true"

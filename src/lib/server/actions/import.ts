@@ -38,6 +38,7 @@ import { describeImportError, type ExternalFetchResult } from '@/lib/import/exte
 import { fetchShortcutStories, listShortcutSources, type ShortcutOption } from '@/lib/import/shortcut';
 import { VcsHttpError } from '@/lib/vcs/http';
 import { ensureLabels } from '@/lib/labels';
+import { m } from '@/lib/i18n';
 import { clippedText } from '@/lib/text';
 
 const REPO_RE = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
@@ -163,7 +164,7 @@ export async function importIssues(input: {
   if (!authz.ok) return authz;
   const { projectId } = input;
   if (!Array.isArray(input.records) || input.records.length > IMPORT_CHUNK) {
-    return fail(`Send at most ${IMPORT_CHUNK} issues at a time.`);
+    return fail(m.auth_import_chunk({ max: IMPORT_CHUNK }));
   }
   const records = input.records.map(readRecord);
 
@@ -185,7 +186,7 @@ export async function importIssues(input: {
       .where(eq(projectMembers.projectId, projectId)),
   ]);
   const project = projectRows[0];
-  if (!project) return fail('Project not found.');
+  if (!project) return fail(m.auth_project_not_found());
 
   // Labels: reuse by case-insensitive name, create the missing ones in one insert.
   const { ids: labelIds, created: labelsCreated } = await ensureLabels(
@@ -230,7 +231,7 @@ export async function importIssues(input: {
   const result: ImportChunkResult = { created: 0, duplicates: 0, failed: [] };
   for (const [index, record] of records.entries()) {
     if (!record) {
-      result.failed.push({ index, title: '', error: 'Missing title.' });
+      result.failed.push({ index, title: '', error: m.auth_import_missing_title() });
       continue;
     }
     if (record.source) {
@@ -272,7 +273,7 @@ export async function importIssues(input: {
       }
     } catch (err) {
       console.error('[import] create failed', err);
-      result.failed.push({ index, title: record.title, error: 'Could not create the issue.' });
+      result.failed.push({ index, title: record.title, error: m.auth_import_create_failed() });
     }
   }
 
@@ -289,7 +290,7 @@ async function githubClient(projectId: unknown): Promise<{ ok: true; octokit: Oc
   if (!authz.ok) return authz;
   const token = await getGitHubToken(authz.userId);
   if (!token) {
-    return { ok: false, reason: 'no-token', error: 'Connect your GitHub account first.' };
+    return { ok: false, reason: 'no-token', error: m.auth_import_connect_github() };
   }
   return { ok: true, octokit: octokitFor(token) };
 }
@@ -297,12 +298,12 @@ async function githubClient(projectId: unknown): Promise<{ ok: true; octokit: Oc
 function githubError(err: unknown): Fail {
   const status = (err as { status?: number })?.status;
   if (status === 404) {
-    return fail('Repository not found. Check the name, and that your GitHub login grants the repo scope.');
+    return fail(m.auth_import_repo_not_found());
   }
-  if (status === 401) return fail('GitHub rejected your token. Reconnect GitHub.');
-  if (status === 403) return fail('GitHub refused the request (rate limit or access).');
+  if (status === 401) return fail(m.auth_import_github_rejected());
+  if (status === 403) return fail(m.auth_import_github_refused());
   console.error('[import] github failed', err);
-  return fail('Could not reach GitHub.');
+  return fail(m.auth_import_github_unreachable());
 }
 
 export async function listGitHubRepos(
@@ -344,7 +345,7 @@ export async function fetchGitHubIssues(input: {
   includeClosed: boolean;
 }): Promise<GitHubFetchResult | GitHubFail> {
   const repo = typeof input?.repo === 'string' ? input.repo.trim() : '';
-  if (!REPO_RE.test(repo)) return fail('Use the owner/name form, e.g. vercel/next.js.');
+  if (!REPO_RE.test(repo)) return fail(m.auth_import_repo_form());
   const client = await githubClient(input.projectId);
   if (!client.ok) return client;
   const [owner, name] = repo.split('/');
@@ -412,7 +413,7 @@ function externalError(provider: string, err: unknown): ExternalFail {
     return fail(describeImportError(provider, err.status, err.message));
   }
   console.error(`[import] ${provider} failed`, err);
-  return fail(`Could not reach ${provider}.`);
+  return fail(m.auth_import_provider_unreachable({ provider }));
 }
 
 /** Write access to the project plus a token; the token only authenticates upstream. */
@@ -420,7 +421,7 @@ async function external(projectId: unknown, token: unknown): Promise<{ ok: true;
   const authz = await authorizeProjectAction(projectId, 'write');
   if (!authz.ok) return authz;
   const value = readToken(token);
-  if (!value) return fail('Enter a personal access token.');
+  if (!value) return fail(m.auth_import_token_required());
   return { ok: true, token: value };
 }
 
@@ -447,7 +448,7 @@ export async function listAsanaProjectsAction(input: {
   const auth = await external(input?.projectId, input?.token);
   if (!auth.ok) return auth;
   if (typeof input.workspace !== 'string' || !GID_RE.test(input.workspace)) {
-    return fail('Pick a workspace.');
+    return fail(m.auth_import_pick_workspace_error());
   }
   try {
     return { ok: true, projects: await listAsanaProjects(auth.token, input.workspace) };
@@ -465,7 +466,7 @@ export async function fetchAsanaTasksAction(input: {
   const auth = await external(input?.projectId, input?.token);
   if (!auth.ok) return auth;
   if (typeof input.project !== 'string' || !GID_RE.test(input.project)) {
-    return fail('Pick a project.');
+    return fail(m.auth_import_pick_project_error());
   }
   try {
     return { ok: true, ...(await fetchAsanaTasks(auth.token, input.project, input.includeCompleted === true)) };
@@ -502,7 +503,7 @@ export async function fetchShortcutStoriesAction(input: {
     !Number.isSafeInteger(source.id) ||
     source.id <= 0
   ) {
-    return fail('Pick a workflow or project.');
+    return fail(m.auth_import_pick_source_error());
   }
   try {
     return {

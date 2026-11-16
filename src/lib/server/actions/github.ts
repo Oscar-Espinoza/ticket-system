@@ -5,6 +5,7 @@
 // read/write by project id. GitHub calls use the ACTING user's own token
 // (getGitHubToken via userOctokit) — the token never leaves the server.
 
+import { m } from '@/lib/i18n';
 import { and, eq, isNull } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
@@ -76,8 +77,8 @@ export async function saveBranchName(input: {
 }): Promise<{ ok: true; branch: string } | Fail> {
   const authz = await authorizeProjectAction(input.projectId, 'write');
   if (!authz.ok) return authz;
-  if (!isValidBranchName(input.name)) return fail('Invalid branch name.');
-  if (typeof input.ticketId !== 'string' || !input.ticketId) return fail('Issue not found.');
+  if (!isValidBranchName(input.name)) return fail(m.settings_err_branch_name());
+  if (typeof input.ticketId !== 'string' || !input.ticketId) return fail(m.settings_err_issue_not_found());
 
   const [saved] = await db
     .update(tickets)
@@ -95,7 +96,7 @@ export async function saveBranchName(input: {
     return { ok: true, branch: input.name };
   }
   const issue = await getTicketById(input.projectId, input.ticketId);
-  if (!issue) return fail('Issue not found.');
+  if (!issue) return fail(m.settings_err_issue_not_found());
   return { ok: true, branch: issue.githubBranch ?? input.name };
 }
 
@@ -115,12 +116,12 @@ export async function createBranch(input: {
     getTicketById(input.projectId, input.ticketId),
     userOctokit(authz.userId),
   ]);
-  if (!issue || issue.deletedAt) return fail('Issue not found.');
+  if (!issue || issue.deletedAt) return fail(m.settings_err_issue_not_found());
   const target = project?.repo ? splitRepo(project.repo) : null;
   if (!project?.repo || !target) {
-    return fail('Connect a repository in Settings → GitHub first.');
+    return fail(m.settings_err_connect_repo_settings());
   }
-  if (!octokit) return fail('Connect your GitHub account in Settings → GitHub first.');
+  if (!octokit) return fail(m.settings_err_connect_account_settings());
 
   try {
     let branch = issue.githubBranch;
@@ -142,7 +143,7 @@ export async function createBranch(input: {
       sha = ref.object.sha;
     } catch (err) {
       if (githubStatus(err) === 409 || githubStatus(err) === 404) {
-        return fail(`${project.repo} has no commits on ${repo.default_branch} yet.`);
+        return fail(m.settings_err_no_commits({ repo: project.repo, branch: repo.default_branch }));
       }
       throw err;
     }
@@ -216,7 +217,7 @@ export async function listGithubRepos(
   const authz = await authorizeProjectAction(projectId, 'admin');
   if (!authz.ok) return authz;
   const octokit = await userOctokit(authz.userId);
-  if (!octokit) return fail('Connect your GitHub account first.');
+  if (!octokit) return fail(m.settings_err_connect_github_first());
   try {
     const { data } = await octokit.rest.repos.listForAuthenticatedUser({
       per_page: 100,
@@ -280,8 +281,8 @@ async function registerFor(
       webhook: 'failed',
       warning:
         status === 403 || status === 404
-          ? `You need admin access to ${repo} to add a webhook. Ask a repository admin to connect it.`
-          : `Couldn't register the webhook: ${githubMessage(err)}`,
+          ? m.settings_err_webhook_admin({ repo })
+          : m.settings_err_register_webhook_reason({ reason: githubMessage(err) }),
     };
   }
 }
@@ -294,14 +295,14 @@ export async function connectRepository(input: {
   if (!authz.ok) return authz;
   const repoName = typeof input.repo === 'string' ? input.repo.trim() : '';
   const target = splitRepo(repoName);
-  if (!target) return fail('Use the owner/name form, e.g. acme/web.');
+  if (!target) return fail(m.settings_err_owner_name());
 
   const [project, octokit] = await Promise.all([
     loadProjectGithub(input.projectId),
     userOctokit(authz.userId),
   ]);
-  if (!project) return fail('Project not found.');
-  if (!octokit) return fail('Connect your GitHub account first.');
+  if (!project) return fail(m.settings_err_project_not_found());
+  if (!octokit) return fail(m.settings_err_connect_github_first());
 
   let fullName: string;
   try {
@@ -340,8 +341,8 @@ export async function registerWebhook(projectId: string): Promise<ConnectResult>
     loadProjectGithub(projectId),
     userOctokit(authz.userId),
   ]);
-  if (!project?.repo) return fail('Connect a repository first.');
-  if (!octokit) return fail('Connect your GitHub account first.');
+  if (!project?.repo) return fail(m.settings_err_connect_repo_first());
+  if (!octokit) return fail(m.settings_err_connect_github_first());
   const webhook = await registerFor(projectId, project.repo, project.webhookId, octokit);
   refreshesData();
   return { ok: true, repo: project.repo, ...webhook };
@@ -360,7 +361,7 @@ export async function disconnectRepository(
     const octokit = await userOctokit(authz.userId);
     const removed = octokit ? await deleteRepoWebhook(octokit, project.repo, project.webhookId) : false;
     if (!removed) {
-      warning = `Couldn't remove the webhook from ${project.repo} — delete it in the repository's settings (Webhooks). It no longer has any effect here.`;
+      warning = m.settings_err_remove_webhook_settings({ repo: project.repo });
     }
   }
   // Clearing the secret is what actually cuts the link: deliveries from a
@@ -390,7 +391,7 @@ export async function updateGithubAutomation(input: {
 
   const settings = [input.prOpenStateId, input.prMergeStateId];
   if (!settings.every((value) => value === null || typeof value === 'string')) {
-    return fail('Invalid state.');
+    return fail(m.settings_err_invalid_state());
   }
   for (const id of settings) {
     if (id === null || id === AUTOMATION_OFF) continue;
@@ -399,7 +400,7 @@ export async function updateGithubAutomation(input: {
       .from(workflowStates)
       .where(and(eq(workflowStates.id, id), eq(workflowStates.projectId, input.projectId)))
       .limit(1);
-    if (!state) return fail('That state no longer exists.');
+    if (!state) return fail(m.settings_err_state_gone());
   }
 
   await db

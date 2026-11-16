@@ -1,3 +1,785 @@
 {
-  "$schema": "https://inlang.com/schema/inlang-message-format"
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "issues_customer_back": "Back to customers",
+  "issues_customer_new": "New",
+  "issues_customer_importance": "Importance",
+  "issues_customer_request_placeholder": "What did they ask for? (optional)",
+  "issues_customer_request_note": "Request note",
+  "issues_customer_enter_to_add": "⌘Enter to add",
+  "issues_customer_add_request": "Add request",
+  "issues_search_issues_placeholder": "Search issues…",
+  "issues_attachment_link_url": "Link URL",
+  "issues_attachment_link_title": "Link title",
+  "issues_attachment_title_optional": "Title (optional)",
+  "issues_attachment_invalid_url": "Enter an http(s) URL.",
+  "issues_attachment_add_link": "Add link",
+  "issues_description_placeholder_commands": "Add a description… (type / for commands)",
+  "issues_description_placeholder": "Add a description…",
+  "issues_description_none": "No description.",
+  "issues_description_edit": "Edit description",
+  "issues_customer_create_option": "Create customer “{name}”",
+  "issues_customer_importance_label": "Importance: {value}",
+  "issues_customer_importance_none": "none",
+  "issues_customer_no_importance": "No importance",
+  "issues_customer_link": "Link customer",
+  "issues_customer_remove_request": "Remove request",
+  "issues_customer_remove_request_from": "Remove request from {name}",
+  "issues_github_connect_repo": "Connect a repository in Settings → GitHub",
+  "issues_github_no_permission": "You don't have permission to create branches",
+  "issues_github_connect_account": "Connect your GitHub account in Settings → GitHub",
+  "issues_github_branch_copied": "Copied git branch name",
+  "issues_github_copy_failed": "Couldn't copy to the clipboard",
+  "issues_github_branch_exists": "Branch already exists on GitHub",
+  "issues_github_branch_created": "Branch created",
+  "issues_github_copy_branch": "Copy git branch name",
+  "issues_github_create_branch": "Create branch on GitHub",
+  "issues_github_git_branch": "Git branch",
+  "issues_no_permission": "You don't have permission to do that.",
+  "issues_subscribe_failed": "Could not subscribe to this issue.",
+  "issues_unsubscribe_failed": "Could not unsubscribe from this issue.",
+  "issues_subscribed_manage": "Subscribed — manage subscription",
+  "issues_not_subscribed_manage": "Not subscribed — manage subscription",
+  "issues_unsubscribe": "Unsubscribe",
+  "issues_subscribe": "Subscribe",
+  "issues_subscribers_loading": "Loading subscribers…",
+  "issues_subscribers_none": "No one is subscribed to this issue.",
+  "issues_subscribers_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} subscriber",
+        "countPlural=other": "{count} subscribers"
+      }
+    }
+  ],
+  "issues_you": "You",
+  "issues_template_saved": "Saved template “{name}”",
+  "issues_copy_markdown_link": "Copy as markdown link",
+  "issues_duplicate": "Duplicate issue",
+  "issues_save_as_template": "Save as template",
+  "issues_move_moving": "Moving {key} to {name}…",
+  "issues_move_with_sub_issues": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "with {count} sub-issue",
+        "countPlural=other": "with {count} sub-issues"
+      }
+    }
+  ],
+  "issues_move_dropped_labels": "dropped labels: {labels}",
+  "issues_move_done": "Moved {from} → {to}",
+  "issues_move_to_project": "Move to project",
+  "issues_move_loading": "Loading projects…",
+  "issues_move_load_failed": "Couldn’t load projects.",
+  "issues_move_no_targets": "No other projects you can write to.",
+  "issues_cycle_add": "Add to cycle",
+  "issues_cycle_open_named": "Open {name}",
+  "issues_followup": "Follow-up",
+  "issues_followup_set": "Set follow-up",
+  "issues_followup_placeholder": "Follow up on…",
+  "issues_followup_remove": "Remove follow-up date",
+  "issues_parent_placeholder": "Set parent issue…",
+  "issues_parent_remove": "Remove parent",
+  "issues_parent_set": "Set parent",
+  "issues_parent_change": "Change parent issue",
+  "issues_parent": "Parent",
+  "issues_parent_open": "Open {key}",
+  "issues_parent_archived": "Archived issue",
+  "issues_sla": "SLA",
+  "issues_sla_due": "Due {date}",
+  "issues_in_status": "In status",
+  "issues_startdate_after_due": "Starts after the due date",
+  "issues_startdate": "Start date",
+  "issues_startdate_set": "Set start date",
+  "issues_waiting_on": "Waiting on",
+  "issues_waiting_on_placeholder": "Waiting on…",
+  "issues_waiting_on_none": "Not waiting on anyone",
+  "issues_waiting_on_not": "Not waiting",
+  "issues_remind_set_failed": "Could not set the reminder",
+  "issues_remind_cancel_failed": "Could not cancel the reminder",
+  "issues_remind_set_for": "Reminder set for {when}",
+  "issues_remind_inbox": "It will show up in your inbox.",
+  "issues_remind_me": "Remind me",
+  "issues_remind_about": "Remind me about this issue",
+  "issues_remind_submit": "Set reminder",
+  "issues_attach_too_large": "{name} is too large (max {max}).",
+  "issues_attach_upload_failed": "Couldn't upload {name}.",
+  "issues_attach_empty": "{name} is empty.",
+  "issues_attach_larger_than": "{name} is larger than {max}.",
+  "issues_attach_upload_error": "Upload failed.",
+  "issues_attach_delete_failed": "Something went wrong — the attachment was not deleted.",
+  "issues_attach_link_failed": "Something went wrong — the link was not added.",
+  "issues_attach_uploading": "Uploading…",
+  "issues_attach_delete_named": "Delete {title}",
+  "issues_attachments": "Attachments",
+  "issues_attach_add_link": "Add link",
+  "issues_attach_upload_files": "Upload files",
+  "issues_attach_upload_files_max": "Upload files (max {max} each)",
+  "issues_attach_drop_hint": "Drop files here or click to upload",
+  "issues_attach_drop_to_attach": "Drop to attach (max {max} each)",
+  "issues_customers_created": "Created customer “{name}”",
+  "issues_customers_save_failed": "Something went wrong — the request was not saved.",
+  "issues_customers_change_failed": "Something went wrong — the change was not saved.",
+  "issues_customers_remove_failed": "Something went wrong — the request was not removed.",
+  "issues_customer_requests": "Customer requests",
+  "issues_customer_add_request_label": "Add customer request",
+  "issues_customers_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} customer",
+        "countPlural=other": "{count} customers"
+      }
+    }
+  ],
+  "issues_customers_arr": "{revenue} ARR across",
+  "issues_pull_requests": "Pull requests",
+  "issues_relations_marked_duplicate": "Marked {key} as a duplicate of {other}",
+  "issues_relations_save_failed": "Something went wrong — the relation was not saved.",
+  "issues_relations_remove_failed": "Something went wrong — the relation was not removed.",
+  "issues_relations": "Relations",
+  "issues_relations_add": "Add relation",
+  "issues_relations_remove": "Remove relation",
+  "issues_similar_failed": "Something went wrong — nothing was changed.",
+  "issues_similar": "Similar issues",
+  "issues_similar_match": "{reason} · {percent}% match",
+  "issues_similar_dismiss": "Dismiss",
+  "issues_similar_mark_aria": "Mark {key} as a duplicate of {other}",
+  "issues_mark_duplicate": "Mark as duplicate",
+  "issues_subissues": "Sub-issues",
+  "issues_subissues_add_existing_placeholder": "Add existing issue as sub-issue…",
+  "issues_subissues_add_existing": "Add existing issue",
+  "issues_subissues_add": "Add sub-issue",
+  "issues_subissues_remove": "Remove from parent",
+  "issues_subissues_title": "Sub-issue title",
+  "issues_subissues_title_hint": "Sub-issue title — Enter to create, Esc to close",
+  "issues_subissues_percent_done": "{percent}% done",
+  "issues_startdate_placeholder": "Set start date…",
+  "issues_startdate_remove": "Remove start date",
+  "issues_actions": "Issue actions",
+  "issues_copy_link": "Copy link",
+  "issues_copy_id": "Copy ID",
+  "issues_restore": "Restore",
+  "issues_archive": "Archive",
+  "issues_move_to_trash": "Move to trash",
+  "issues_close": "Close issue",
+  "issues_in_trash": "This issue is in the trash.",
+  "issues_is_archived": "This issue is archived.",
+  "issues_title": "Title",
+  "issues_set_priority": "Set priority",
+  "issues_unassigned": "Unassigned",
+  "issues_add_label": "Add label",
+  "issues_set_estimate": "Set estimate",
+  "issues_set_due_date": "Set due date",
+  "issues_estimate": "Estimate",
+  "issues_branch": "Branch",
+  "issues_created_by": "Created by",
+  "issues_created": "Created",
+  "issues_updated": "Updated",
+  "issues_properties": "Properties",
+  "issues_github_open_branch": "Open branch on {provider}",
+  "issues_palette_title": "Command palette",
+  "issues_palette_description": "Search projects and actions.",
+  "issues_palette_placeholder": "Search or jump to…",
+  "issues_no_results_period": "No results.",
+  "issues_palette_general": "General",
+  "issues_search_none": "No issues found.",
+  "issues_clear": "Clear",
+  "issues_assign_to_placeholder": "Assign to…",
+  "issues_no_assignee": "No assignee",
+  "issues_member_none_found": "No member found.",
+  "issues_unassigned_keyword": "Unassigned",
+  "issues_you_paren": "(you)",
+  "issues_estimate_set_placeholder": "Set estimate…",
+  "issues_estimate_none_found": "No estimate found.",
+  "issues_estimate_none": "No estimate",
+  "issues_estimate_points": "{label} points",
+  "issues_label_create_failed": "Could not create the label.",
+  "issues_labels_add_placeholder": "Add labels…",
+  "issues_labels_type_to_create": "Type a name to create a label.",
+  "issues_labels_none_found": "No labels found.",
+  "issues_label_create": "Create label “{name}”",
+  "issues_priority_set_placeholder": "Set priority…",
+  "issues_priority_none_found": "No priority found.",
+  "issues_status_change_placeholder": "Change status…",
+  "issues_status_none_found": "No status found.",
+  "issues_view": "View",
+  "issues_waiting_on_named": "Waiting on {name}",
+  "issues_scope": "Issues",
+  "issues_scope_issue": "Issue",
+  "issues_bulk_trash_selected": "Move selected issues to trash",
+  "issues_bulk_aria": "Bulk actions for {count} selected issues",
+  "issues_bulk_selected": "{count} selected",
+  "issues_bulk_clear": "Clear selection",
+  "issues_bulk_clear_esc": "Clear selection (Esc)",
+  "issues_bulk_copy_ids": "Copy IDs",
+  "issues_bulk_remove_due": "Remove due dates",
+  "issues_epic": "Epic",
+  "issues_trash_confirm_one": "Move {key} to trash?",
+  "issues_trash_confirm_many": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Move {count} issue to trash?",
+        "countPlural=other": "Move {count} issues to trash?"
+      }
+    }
+  ],
+  "issues_trash_restore_one": "{title} — you can restore it from the trash.",
+  "issues_trash_restore_many": "You can restore them from the trash.",
+  "issues_context_open_new_tab": "Open in new tab",
+  "issues_remove_due_date": "Remove due date",
+  "issues_copy_ids": "Copy IDs",
+  "issues_copy_links": "Copy links",
+  "issues_move_to_trash_ellipsis": "Move to trash…",
+  "issues_filter_issues": "Filter issues",
+  "issues_filter_placeholder": "Filter… (label:bug)",
+  "issues_filter_aria": "Filter issues by title, ID or query (label:bug, assignee:me)",
+  "issues_filter_enter_hint": "Press Enter to turn filters into chips",
+  "issues_filter_free_text": "Free text matches titles and IDs.",
+  "issues_filter_clear": "Clear",
+  "issues_sc_copy_id": "Copy issue ID",
+  "issues_sc_copy_link": "Copy issue link",
+  "issues_sc_change_status": "Change status",
+  "issues_sc_set_priority": "Set priority",
+  "issues_sc_assign_to": "Assign to…",
+  "issues_sc_assign_me": "Assign to me",
+  "issues_sc_change_labels": "Change labels",
+  "issues_sc_set_estimate": "Set estimate",
+  "issues_sc_set_due": "Set due date",
+  "issues_sc_archive": "Archive issue",
+  "issues_sc_trash": "Move issue to trash",
+  "issues_pal_section": "Issue {key}",
+  "issues_pal_change_status": "Change status…",
+  "issues_pal_set_priority": "Set priority…",
+  "issues_pal_add_labels": "Add labels…",
+  "issues_pal_set_estimate": "Set estimate…",
+  "issues_pal_set_due": "Set due date…",
+  "issues_templates": "Templates",
+  "issues_new_from_template": "New issue from template: {name}",
+  "issues_draft_open_failed": "Could not open the draft.",
+  "issues_new_issue": "New issue",
+  "issues_empty_title": "No issues yet",
+  "issues_empty_description": "Create the first issue for this project.",
+  "issues_nomatch_title": "No matching issues",
+  "issues_nomatch_description": "No issues match the current filters.",
+  "issues_clear_filters": "Clear filters",
+  "issues_unsaved_changes": "Unsaved changes",
+  "issues_view_unsaved_title": "{name} (unsaved changes)",
+  "issues_labels_toggle_placeholder": "Add or remove labels…",
+  "issues_error_title": "Something went wrong",
+  "issues_error_load_description": "This page failed to load. Try again, or come back in a moment.",
+  "issues_draft_saved": "Draft saved",
+  "issues_draft_view_drafts": "View drafts",
+  "issues_draft_saving": "Saving draft…",
+  "issues_draft_not_saved": "Draft not saved",
+  "issues_new_dialog_description": "Title, description and properties of the new {key} issue.",
+  "issues_new_title_placeholder": "Issue title",
+  "issues_discard": "Discard",
+  "issues_create_more": "Create more",
+  "issues_create_issue": "Create issue",
+  "issues_view_updated": "Updated “{name}”",
+  "issues_view_update_title": "Save the current filters and display to this view",
+  "issues_view_no_changes": "No unsaved changes",
+  "issues_view_update": "Update view",
+  "issues_view_save_new": "Save as new",
+  "issues_view_save": "Save view",
+  "issues_view_copy_name": "{name} (copy)",
+  "issues_view_default_name": "View",
+  "issues_drafts_delete_failed": "Could not delete the draft.",
+  "issues_drafts_discard_failed": "Could not discard the drafts.",
+  "issues_drafts_discarded": "Discarded all drafts",
+  "issues_drafts": "Drafts",
+  "issues_drafts_discard_all": "Discard all",
+  "issues_drafts_discard_all_title": "Discard all drafts?",
+  "issues_drafts_deleted_one": "Your draft will be deleted. This can’t be undone.",
+  "issues_drafts_deleted_many": "All {count} drafts will be deleted. This can’t be undone.",
+  "issues_drafts_empty": "No drafts",
+  "issues_drafts_empty_description": "Issues you start writing but don’t create are saved here automatically.",
+  "issues_drafts_untitled": "Untitled draft",
+  "issues_drafts_delete_named": "Delete draft {title}",
+  "issues_cmd_assign_to": "Assign to",
+  "issues_cmd_hint": "Type to filter, Enter to apply, Esc to close.",
+  "issues_chip_status_aria": "Status: {value}",
+  "issues_chip_priority_aria": "Priority: {value}",
+  "issues_chip_assignee_aria": "Assignee: {value}",
+  "issues_chip_waiting_aria": "Waiting on: {value}",
+  "issues_chip_labels_aria": "Labels: {value}",
+  "issues_chip_none": "none",
+  "issues_chip_no_one": "no one",
+  "issues_chip_labels_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} label",
+        "countPlural=other": "{count} labels"
+      }
+    }
+  ],
+  "issues_followup_date": "Follow-up date",
+  "issues_tpl_updated": "Template updated",
+  "issues_tpl_created": "Created template “{name}”",
+  "issues_tpl_edit": "Edit template",
+  "issues_tpl_new": "New template",
+  "issues_tpl_description": "New issues from this template start with these values.",
+  "issues_tpl_name": "Template name",
+  "issues_tpl_name_placeholder": "Bug report",
+  "issues_tpl_title": "Issue title",
+  "issues_tpl_title_hint": "Optional — prefilled when the new issue's title is empty.",
+  "issues_tpl_title_placeholder": "Bug: ",
+  "issues_tpl_description_placeholder": "## Steps to reproduce\n\n## Expected\n\n## Actual",
+  "issues_tpl_default_properties": "Default properties",
+  "issues_tpl_create": "Create template",
+  "issues_tpl": "Template",
+  "issues_tpl_apply": "Apply template",
+  "issues_tpl_none": "No templates yet",
+  "issues_tpl_manage": "Manage templates",
+  "issues_tpl_status_title": "Status: {name}",
+  "issues_tpl_actions": "Actions for {name}",
+  "issues_tpl_create_issue": "Create issue",
+  "issues_tpl_deleted": "Deleted template “{name}”",
+  "issues_tpl_new_button": "New template",
+  "issues_tpl_empty_description": "Save a template for issues you create often — bug reports, feature requests, chores.",
+  "issues_tpl_delete_title": "Delete “{name}”?",
+  "issues_tpl_delete_description": "Issues created from it keep their content. This can’t be undone.",
+  "issues_possible_duplicates": "Possible duplicates",
+  "issues_possible_duplicates_open": "{reason} — opens in a new tab",
+  "issues_triage_accept_title": "Accept {key}",
+  "issues_triage_pick_status": "Pick a status",
+  "issues_triage_no_states": "This project has no backlog, unstarted or started states to accept into.",
+  "issues_triage_accept": "Accept",
+  "issues_triage_decline_title": "Decline {key}",
+  "issues_triage_decline_description": "The issue moves to Canceled. The reason is recorded in its activity.",
+  "issues_triage_reason": "Reason (optional)",
+  "issues_triage_reason_placeholder": "e.g. Won't fix, out of scope",
+  "issues_triage_decline": "Decline",
+  "issues_triage_dup_title": "Mark {key} as duplicate",
+  "issues_triage_dup_description": "Search for the original issue.",
+  "issues_triage_dup_placeholder": "{key} is a duplicate of…",
+  "issues_triage_dup_none": "No issue found.",
+  "issues_triage_based_on": "Based on {keys}",
+  "issues_triage_based_on_more": "Based on {keys}…",
+  "issues_triage_scope": "Triage",
+  "issues_triage_apply_suggestions": "Apply suggestions",
+  "issues_triage_hint_similar": "{basedOn} · {pct} of similar issues",
+  "issues_triage_add_label": "Add label {name}",
+  "issues_triage_assign_to": "Assign to {name}",
+  "issues_triage_set_priority_to": "Set priority to {priority}",
+  "issues_triage_dup_hint": "{title} · {pct} match",
+  "issues_triage_mark_dup_of": "Mark as duplicate of {key}",
+  "issues_triage_suggestions_for": "Suggestions for {key}",
+  "issues_triage_suggested": "Suggested",
+  "issues_triage_duplicate_of": "Duplicate of",
+  "issues_triage_apply_all": "Apply all",
+  "issues_triage_failed": "Something went wrong — nothing was changed.",
+  "issues_triage_no_permission": "You don't have permission to triage.",
+  "issues_triage_accepted": "Accepted {key}",
+  "issues_triage_declined": "Declined {key}",
+  "issues_triage_next": "Next issue",
+  "issues_triage_previous": "Previous issue",
+  "issues_triage_empty": "Triage is clear",
+  "issues_triage_empty_description": "New issues from the intake form, the API and people outside the project land here for review.",
+  "issues_triage_to_triage": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} issue to triage",
+        "countPlural=other": "{count} issues to triage"
+      }
+    }
+  ],
+  "issues_triage_aria": "Triage {key}",
+  "issues_triage_duplicate": "Duplicate",
+  "issues_triage_list": "Triage issues",
+  "issues_triage_external": "External",
+  "issues_cal_day_aria": "{day}, {issues}",
+  "issues_cal_more": "+{count} more",
+  "issues_cal_no_due_date": "No due date",
+  "issues_cal_all_dated": "Every issue has a due date.",
+  "issues_cal_prev": "Previous month",
+  "issues_cal_next": "Next month",
+  "issues_display_no_subgrouping": "No sub-grouping",
+  "issues_display_subgrouping": "Sub-grouping",
+  "issues_display_swimlanes": "Swimlanes",
+  "issues_display_show_empty": "Show empty groups",
+  "issues_display_show_subissues": "Show sub-issues",
+  "issues_display_options_aria": "Display options (Shift+V)",
+  "issues_display": "Display",
+  "issues_display_layout": "Layout",
+  "issues_display_grouping": "Grouping",
+  "issues_display_ordering": "Ordering",
+  "issues_display_properties": "Display properties",
+  "issues_display_reset": "Reset to default",
+  "issues_filter_f": "Filter (F)",
+  "issues_filter": "Filter",
+  "issues_filter_by": "Filter by…",
+  "issues_syntax": "Search syntax",
+  "issues_syntax_default_note": "Combine filters with free text.",
+  "issues_syntax_rules": "Quote values with spaces, separate alternatives with commas, prefix with - to exclude.",
+  "issues_search_filters": "Search filters",
+  "issues_table_id": "ID",
+  "issues_table_milestone": "Milestone",
+  "issues_table_change_labels": "Change labels",
+  "issues_table_change_estimate": "Change estimate",
+  "issues_table_change_due": "Change due date",
+  "issues_table_change_start": "Change start date",
+  "issues_table_time_title": "{verb} {date}",
+  "issues_none_title": "No issues",
+  "issues_none_description": "Nothing to show in this view.",
+  "issues_issues": "Issues",
+  "issues_tl_week": "Week",
+  "issues_tl_month": "Month",
+  "issues_tl_no_due": "{range} · no due date",
+  "issues_tl_hint_write": "Drag bars to reschedule · dashed = no due date",
+  "issues_tl_hint_read": "Dashed = no due date",
+  "issues_tl_zoom": "Zoom",
+  "issues_tl_aria": "Issue timeline",
+  "issues_drafts_page_title": "Drafts · Ticket System",
+  "issues_mine_page_title": "My issues · Ticket System",
+  "issues_mine": "My issues",
+  "issues_mine_assigned_title": "Nothing assigned to you",
+  "issues_mine_assigned_description": "Issues assigned to you in any of your projects show up here.",
+  "issues_mine_created_title": "No issues created yet",
+  "issues_mine_created_description": "Issues you create in any project show up here.",
+  "issues_mine_subscribed_title": "No subscriptions",
+  "issues_mine_subscribed_description": "Subscribe to an issue to follow its updates; it will show up here.",
+  "issues_mine_activity_title": "No recent activity",
+  "issues_mine_activity_description": "Issues you change or comment on show up here, most recent first.",
+  "issues_mine_you_acted": "You acted",
+  "issues_project_not_found": "Project not found",
+  "issues_project_not_found_description": "It doesn't exist, or you're not a member of it.",
+  "issues_back_to_projects": "Back to projects",
+  "issues_project_page_title": "{name} · Ticket System",
+  "issues_archive_title": "Archive",
+  "issues_trash_title": "Trash",
+  "issues_triage_off": "Triage is off",
+  "issues_triage_off_description": "Route new issues from the intake form, the API and people outside the project through a review queue before they reach the backlog.",
+  "issues_views": "Views",
+  "issues_views_project_empty": "No views in this project",
+  "issues_views_project_empty_description": "Filter and arrange the issue list, then choose “Save view” in the toolbar. Shared views appear here for everyone in the project.",
+  "issues_views_all": "All views",
+  "issues_views_shared_title": "Shared with project members",
+  "issues_views_shared": "Shared",
+  "issues_views_created_by": "Created by {name}",
+  "issues_search_page_title_q": "Search: {q} · Ticket System",
+  "issues_search_page_title": "Search · Ticket System",
+  "issues_search": "Search",
+  "issues_search_empty_title": "Search your issues",
+  "issues_search_empty_description": "Matches titles, descriptions and comments in every project you belong to. Try phrases in quotes, -word to exclude, or filters like label:bug assignee:me is:open.",
+  "issues_search_no_results": "No results",
+  "issues_search_nothing_matches": "Nothing matches “{q}”.",
+  "issues_search_nothing_matches_archived": "Nothing matches “{q}”. Archived issues are excluded — turn on “Include archived” to search them too.",
+  "issues_search_documents": "Documents",
+  "issues_search_documents_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} document",
+        "countPlural=other": "{count} documents"
+      }
+    }
+  ],
+  "issues_search_results": "Results",
+  "issues_search_results_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} result",
+        "countPlural=other": "{count} results"
+      }
+    }
+  ],
+  "issues_search_best_50": " (showing the best 50)",
+  "issues_search_comment": "Comment: ",
+  "issues_search_archived": "Archived",
+  "issues_templates_page_title": "Project templates · Ticket System",
+  "issues_views_page_title": "Views · Ticket System",
+  "issues_views_empty": "No saved views yet",
+  "issues_views_empty_description": "Filter and arrange a project's issues, then choose “Save view” in the toolbar. Views shared by teammates show up here too.",
+  "issues_views_yours": "Your views",
+  "issues_views_shared_with_you": "Shared with you",
+  "issues_copied_what": "Copied {what}",
+  "issues_copy_failed": "Could not copy to the clipboard.",
+  "issues_copy_what_link": "link",
+  "issues_due_end_of_week": "End of this week",
+  "issues_due_in_week": "In one week",
+  "issues_due_in_two_weeks": "In two weeks",
+  "issues_prop_id": "ID",
+  "issues_prop_milestone": "Milestone",
+  "issues_prop_pull_requests": "Pull requests",
+  "issues_sel_toggle": "Select / deselect focused issue",
+  "issues_sel_all": "Select all issues",
+  "issues_view_list": "List",
+  "issues_view_board": "Board",
+  "issues_view_table": "Table",
+  "issues_view_calendar": "Calendar",
+  "issues_view_timeline": "Timeline",
+  "issues_switch_to_manual": "Switch ordering to Manual to reorder issues.",
+  "issues_fp_me": "Me",
+  "issues_fp_any_type": "Any {type}",
+  "issues_fp_creator": "Creator",
+  "issues_fp_no_label": "No label",
+  "issues_fp_no_cycle": "No cycle",
+  "issues_fp_cycle_number": "Cycle {number}",
+  "issues_fp_no_epic": "No epic",
+  "issues_fp_unknown": "Unknown",
+  "issues_group_label": "Label",
+  "issues_group_none": "No grouping",
+  "issues_order_manual": "Manual",
+  "issues_group_no_label": "No label",
+  "issues_group_all": "All issues",
+  "issues_est_none": "Not in use",
+  "issues_est_linear": "Linear (1, 2, 3, 4, 5)",
+  "issues_est_fibonacci": "Fibonacci (0, 1, 2, 3, 5, 8)",
+  "issues_est_exponential": "Exponential (1, 2, 4, 8, 16)",
+  "issues_est_tshirt": "T-shirt (XS, S, M, L, XL)",
+  "issues_mine_tab_assigned": "Assigned",
+  "issues_mine_tab_created": "Created",
+  "issues_mine_tab_subscribed": "Subscribed",
+  "issues_mine_tab_activity": "Activity",
+  "issues_undo": "Undo",
+  "issues_undo_hotkey": "Undo last issue change",
+  "issues_undid": "Undid {label}",
+  "issues_undo_nothing": "Nothing to undo",
+  "issues_outbox_other_account": "You’re signed in as a different account in another tab — reload to continue.",
+  "issues_outbox_discarded": "Couldn't sync {label} — the change was discarded.",
+  "issues_outbox_waiting_account": "Offline changes are waiting for their account — sign in as that user to sync them.",
+  "issues_outbox_sync_failed": "Couldn't sync {label}: {reason}",
+  "issues_outbox_no_permission": "you don't have permission to do that in this project",
+  "issues_outbox_synced": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Synced {count} offline change",
+        "countPlural=other": "Synced {count} offline changes"
+      }
+    }
+  ],
+  "issues_fw_title": "title",
+  "issues_fw_description": "description",
+  "issues_fw_status": "status",
+  "issues_fw_priority": "priority",
+  "issues_fw_estimate": "estimate",
+  "issues_fw_start_date": "start date",
+  "issues_fw_due_date": "due date",
+  "issues_fw_assignee": "assignee",
+  "issues_fw_waiting_on": "waiting on",
+  "issues_fw_follow_up": "follow-up",
+  "issues_fw_parent": "parent",
+  "issues_fw_cycle": "cycle",
+  "issues_fw_epic": "epic",
+  "issues_fw_milestone": "milestone",
+  "issues_fw_order": "order",
+  "issues_fw_labels": "labels",
+  "issues_mut_change_of": "{words} change",
+  "issues_mut_change": "change",
+  "issues_mut_on_issue": "{what} on {key}",
+  "issues_mut_on_issues": [
+    {
+      "declarations": [
+        "input count",
+        "input what",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{what} on {count} issue",
+        "countPlural=other": "{what} on {count} issues"
+      }
+    }
+  ],
+  "issues_mut_save_failed": "Something went wrong — the change was not saved.",
+  "issues_mut_updated_many": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Updated {count} issue",
+        "countPlural=other": "Updated {count} issues"
+      }
+    }
+  ],
+  "issues_mut_archiving": "archiving {key}",
+  "issues_mut_unarchiving": "unarchiving {key}",
+  "issues_mut_trashing": "moving {key} to trash",
+  "issues_mut_restoring": "restoring {key}",
+  "issues_mut_archived": "Archived {key}",
+  "issues_mut_trashed": "Moved {key} to trash",
+  "issues_mut_archiving_many": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "archiving {count} issue",
+        "countPlural=other": "archiving {count} issues"
+      }
+    }
+  ],
+  "issues_mut_unarchiving_many": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "unarchiving {count} issue",
+        "countPlural=other": "unarchiving {count} issues"
+      }
+    }
+  ],
+  "issues_mut_trashing_many": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "moving {count} issue to trash",
+        "countPlural=other": "moving {count} issues to trash"
+      }
+    }
+  ],
+  "issues_mut_restoring_many": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "restoring {count} issue",
+        "countPlural=other": "restoring {count} issues"
+      }
+    }
+  ],
+  "issues_mut_archived_many": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Archived {count} issue",
+        "countPlural=other": "Archived {count} issues"
+      }
+    }
+  ],
+  "issues_mut_trashed_many": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Moved {count} issue to trash",
+        "countPlural=other": "Moved {count} issues to trash"
+      }
+    }
+  ],
+  "issues_mut_creating_titled": "creating “{title}”",
+  "issues_mut_creating": "creating {key}",
+  "issues_mut_created": "Created {key}",
+  "issues_mut_queued": "Saved offline — the issue will be created when you reconnect.",
+  "issues_mut_issue_created": "Issue created",
+  "issues_mut_create_failed": "Something went wrong — the issue was not created.",
+  "issues_err_issue_not_found": "Issue not found.",
+  "issues_err_invalid_draft": "Invalid draft.",
+  "issues_err_draft_not_found": "Draft not found.",
+  "issues_err_template_not_found": "Template not found.",
+  "issues_err_invalid_title": "Invalid title.",
+  "issues_err_invalid_favorite": "Invalid favorite.",
+  "issues_err_view_share": "Only members who can edit issues can share views.",
+  "issues_err_view_name": "Give the view a name.",
+  "issues_err_view_settings": "Invalid view settings.",
+  "issues_err_view_not_found": "View not found.",
+  "issues_err_view_owner": "Only the owner can change this view.",
+  "issues_err_not_in_triage": "{key} is no longer in triage.",
+  "issues_err_pick_state": "Pick an open workflow state.",
+  "issues_err_invalid_priority": "Invalid priority.",
+  "issues_err_reason_length": "Keep the reason under {max} characters.",
+  "issues_err_no_canceled": "This project has no canceled state.",
+  "issues_err_pick_original": "Pick the original issue.",
+  "issues_err_self_duplicate": "An issue can't duplicate itself.",
+  "issues_err_move_forbidden": "You can't create issues in that project."
 }

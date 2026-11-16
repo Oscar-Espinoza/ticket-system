@@ -10,6 +10,7 @@
   import MailIcon from '@lucide/svelte/icons/mail';
   import XIcon from '@lucide/svelte/icons/x';
 
+  import { m } from '@/lib/i18n';
   import ResendVerificationButton from './resend-verification-button.svelte';
   import { Button } from '@/lib/components/ui/button';
 
@@ -44,13 +45,12 @@
     <MailIcon class="mt-0.5 size-4 shrink-0 text-amber-700 dark:text-amber-400" aria-hidden="true" />
     <div class="flex min-w-0 flex-1 flex-col gap-2">
       <p>
-        <span class="font-medium">Verify your email address.</span>
-        Open the link we sent to <span class="font-medium break-all">{email}</span>. Until then you can’t sign in
-        with Google or GitHub using this address.
+        <span class="font-medium">{m.auth_verify_banner_title()}</span>
+        {m.auth_verify_banner_body({ email })}
       </p>
-      <ResendVerificationButton {email} label="Resend email" />
+      <ResendVerificationButton {email} label={m.auth_verify_banner_resend()} />
     </div>
-    <Button type="button" variant="ghost" size="icon-sm" class="-my-1 shrink-0" aria-label="Dismiss" onclick={dismiss}>
+    <Button type="button" variant="ghost" size="icon-sm" class="-my-1 shrink-0" aria-label={m.auth_dismiss()} onclick={dismiss}>
       <XIcon />
     </Button>
   </div>

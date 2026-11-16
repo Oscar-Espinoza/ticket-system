@@ -14,6 +14,7 @@
     AlertDialogHeader,
     AlertDialogTitle,
   } from '@/lib/components/ui/alert-dialog';
+  import { m } from '@/lib/i18n';
   import type { ViewListItem } from './view-list.svelte';
 
   let { view, onClose }: { view: ViewListItem | null; onClose: () => void } = $props();
@@ -30,7 +31,7 @@
         toast.error(result.error);
         return;
       }
-      toast.success(`Deleted “${target.name}”`);
+      toast.success(m.editor_view_deleted({ name: target.name }));
       // The action wrapper already refreshed the page data.
       onClose();
     } finally {
@@ -42,15 +43,15 @@
 <AlertDialog open={view !== null} onOpenChange={(open) => !open && onClose()}>
   <AlertDialogContent>
     <AlertDialogHeader>
-      <AlertDialogTitle>Delete “{view?.name}”?</AlertDialogTitle>
+      <AlertDialogTitle>{m.editor_view_delete_title({ name: view?.name ?? '' })}</AlertDialogTitle>
       <AlertDialogDescription>
         {view?.shared
-          ? 'This view is shared — it disappears for everyone in the project. Issues are not affected.'
-          : 'The view is removed. Issues are not affected.'}
+          ? m.editor_view_delete_shared()
+          : m.editor_view_delete_private()}
       </AlertDialogDescription>
     </AlertDialogHeader>
     <AlertDialogFooter>
-      <AlertDialogCancel disabled={pending}>Cancel</AlertDialogCancel>
+      <AlertDialogCancel disabled={pending}>{m.common_cancel()}</AlertDialogCancel>
       <AlertDialogAction
         variant="destructive"
         disabled={pending}
@@ -61,7 +62,7 @@
         }}
       >
         {#if pending}<Loader2Icon class="animate-spin" />{/if}
-        Delete view
+        {m.editor_view_delete()}
       </AlertDialogAction>
     </AlertDialogFooter>
   </AlertDialogContent>

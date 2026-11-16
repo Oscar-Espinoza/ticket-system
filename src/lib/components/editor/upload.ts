@@ -2,6 +2,7 @@
 // attachments route (the image also shows in the issue's Attachments), any
 // other project context through /api/uploads.
 
+import { m } from '@/lib/i18n';
 import { actionErrorText } from '@/lib/action-errors';
 import {
   MAX_ATTACHMENT_BYTES,
@@ -20,10 +21,10 @@ export function isUploadableImage(file: File): boolean {
 
 export async function uploadImage(target: UploadTarget, file: File): Promise<ImageUploadResult> {
   if (!isUploadableImage(file)) {
-    return { ok: false, error: 'Only PNG, JPEG, GIF, WebP, AVIF or BMP images can be added.' };
+    return { ok: false, error: m.editor_ed_upload_type() };
   }
   if (file.size > MAX_ATTACHMENT_BYTES) {
-    return { ok: false, error: `Images can be at most ${MAX_ATTACHMENT_LABEL}.` };
+    return { ok: false, error: m.editor_ed_upload_size({ max: MAX_ATTACHMENT_LABEL }) };
   }
   const form = new FormData();
   form.set('projectId', target.projectId);
@@ -39,13 +40,13 @@ export async function uploadImage(target: UploadTarget, file: File): Promise<Ima
       | { ok: true; url?: string; attachment?: { id: string } }
       | { ok: false; error: string }
       | null;
-    if (!body) return { ok: false, error: 'Upload failed.' };
+    if (!body) return { ok: false, error: m.editor_ed_upload_failed() };
     if (!body.ok) {
-      return { ok: false, error: actionErrorText(body.error, "You can't upload images here.") };
+      return { ok: false, error: actionErrorText(body.error, m.editor_ed_upload_denied()) };
     }
     const url = body.attachment ? attachmentPath(body.attachment.id) : body.url;
-    return url ? { ok: true, url } : { ok: false, error: 'Upload failed.' };
+    return url ? { ok: true, url } : { ok: false, error: m.editor_ed_upload_failed() };
   } catch {
-    return { ok: false, error: 'Upload failed — check your connection.' };
+    return { ok: false, error: m.editor_ed_upload_offline() };
   }
 }

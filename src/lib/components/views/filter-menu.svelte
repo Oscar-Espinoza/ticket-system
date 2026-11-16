@@ -5,6 +5,7 @@
   The chips for active filters are filter-chips.svelte.
 -->
 <script module lang="ts">
+  import { m } from '@/lib/i18n';
   export type { FilterPropertyId } from './filter-properties.svelte';
 </script>
 
@@ -72,18 +73,18 @@
 <Popover bind:open={() => open, setOpen}>
   <PopoverTrigger>
     {#snippet child({ props })}
-      <Button {...props} variant="ghost" size="sm" aria-label="Filter (F)" class="text-muted-foreground">
+      <Button {...props} variant="ghost" size="sm" aria-label={m.issues_filter_f()} class="text-muted-foreground">
         <ListFilterIcon />
-        Filter
+        {m.issues_filter()}
       </Button>
     {/snippet}
   </PopoverTrigger>
   <PopoverContent align="start" class="w-64 gap-0 p-0">
     {#key current?.id ?? 'properties'}
       <Command filter={keywordFilter} {onkeydown}>
-        <CommandInput bind:value={search} placeholder={current ? `${current.label}…` : 'Filter by…'} />
+        <CommandInput bind:value={search} placeholder={current ? `${current.label}…` : m.issues_filter_by()} />
         <CommandList>
-          <CommandEmpty>No results.</CommandEmpty>
+          <CommandEmpty>{m.issues_no_results_period()}</CommandEmpty>
           {#if current}
             {@const selected = current.get(filters)}
             <CommandGroup>

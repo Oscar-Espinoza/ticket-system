@@ -3,9 +3,11 @@
   viewer's clock ("3h ahead"). Renders nothing for an unknown time zone.
 -->
 <script module lang="ts">
+  import { dateFormat, m } from '@/lib/i18n';
+
   function formatIn(timeZone: string, now: Date): string | null {
     try {
-      return new Intl.DateTimeFormat(undefined, {
+      return dateFormat({
         timeZone,
         hour: 'numeric',
         minute: '2-digit',
@@ -19,6 +21,7 @@
   /** Minutes the zone is ahead of UTC at `now`. */
   function zoneOffset(timeZone: string, now: Date): number | null {
     try {
+      // en-US on purpose: only the numeric parts are read back, never shown.
       const parts = new Intl.DateTimeFormat('en-US', {
         timeZone,
         hourCycle: 'h23',
@@ -40,10 +43,10 @@
     const theirs = zoneOffset(timeZone, now);
     if (theirs === null) return null;
     const diff = theirs + now.getTimezoneOffset(); // getTimezoneOffset is UTC − local
-    if (diff === 0) return 'same time as you';
+    if (diff === 0) return m.auth_people_same_time();
     const hours = Math.abs(diff) / 60;
     const amount = Number.isInteger(hours) ? `${hours}h` : `${hours.toFixed(1)}h`;
-    return `${amount} ${diff > 0 ? 'ahead' : 'behind'}`;
+    return diff > 0 ? m.auth_people_ahead({ hours: amount }) : m.auth_people_behind({ hours: amount });
   }
 
   const minuteSnapshot = () => Math.floor(Date.now() / 60_000);
@@ -80,7 +83,7 @@
   <span class="text-muted-foreground">{label}</span>
 {:else if time}
   <span>
-    <span class="text-foreground">{time}</span> local time{#if offset}<span class="text-muted-foreground"
+    {m.auth_people_local_time({ time })}{#if offset}<span class="text-muted-foreground"
         >{' · '}{offset}</span
       >{/if}<span class="text-muted-foreground">{' · '}{label}</span>
   </span>

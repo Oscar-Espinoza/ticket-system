@@ -3,7 +3,6 @@
   projects. (`NewDashboardButton` is new-dashboard-button.svelte.)
 -->
 <script lang="ts">
-  import { pluralize } from '@/lib/format';
   import CopyIcon from '@lucide/svelte/icons/copy';
   import LayoutDashboardIcon from '@lucide/svelte/icons/layout-dashboard';
   import MoreHorizontalIcon from '@lucide/svelte/icons/ellipsis';
@@ -33,6 +32,7 @@
   } from '@/lib/components/ui/dropdown-menu';
   import { EmptyState, LabelChip } from '@/lib/components/ui-icons';
   import type { DashboardSummary } from '@/lib/dashboards';
+  import { formatDate, m } from '@/lib/i18n';
   import { dashboardHref } from '@/lib/widget-model';
   import { relativeTime } from '@/lib/relative-time';
 
@@ -68,7 +68,7 @@
       if (!result.ok) toast.error(result.error);
       else {
         // The action wrapper already refreshed the page data (refreshesData()).
-        toast.success('Dashboard deleted');
+        toast.success(m.editor_dash_deleted());
       }
     });
 </script>
@@ -94,26 +94,26 @@
                 {/if}
               </span>
               <LabelChip dot={false} class="hidden max-w-40 truncate sm:inline-flex">
-                {dashboard.projectName ?? 'All projects'}
+                {dashboard.projectName ?? m.editor_dash_all_projects()}
               </LabelChip>
               {#if dashboard.shared}
                 <span
                   class="flex shrink-0 items-center gap-1 text-xs text-muted-foreground"
-                  title="Shared with project members"
+                  title={m.editor_dash_shared_tip()}
                 >
                   <UsersIcon class="size-3.5" aria-hidden="true" />
-                  <span class="hidden md:inline">Shared</span>
+                  <span class="hidden md:inline">{m.editor_dash_shared()}</span>
                 </span>
               {/if}
               <span class="hidden w-16 shrink-0 text-right text-xs text-muted-foreground tabular-nums md:block">
-                {pluralize(dashboard.widgetCount, 'widget')}
+                {m.editor_dash_widgets({ count: dashboard.widgetCount })}
               </span>
               <span class="hidden w-28 shrink-0 truncate text-right text-xs text-muted-foreground md:block">
-                {dashboard.isOwner ? 'You' : (dashboard.ownerName ?? 'Former member')}
+                {dashboard.isOwner ? m.editor_dash_you() : (dashboard.ownerName ?? m.editor_comment_former_member())}
               </span>
               <time
                 datetime={new Date(dashboard.updatedAt).toISOString()}
-                title={`Updated ${new Date(dashboard.updatedAt).toLocaleString()}`}
+                title={m.editor_dash_updated({ date: formatDate(dashboard.updatedAt, { dateStyle: 'medium', timeStyle: 'short' }) })}
                 class="hidden w-16 shrink-0 text-right text-xs tabular-nums text-muted-foreground sm:block"
               >
                 {relativeTime(dashboard.updatedAt)}
@@ -126,7 +126,7 @@
                     {...props}
                     variant="ghost"
                     size="icon-sm"
-                    aria-label={`Actions for ${dashboard.name}`}
+                    aria-label={m.editor_dash_actions_for({ name: dashboard.name })}
                     disabled={pending}
                   >
                     <MoreHorizontalIcon />
@@ -136,13 +136,13 @@
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onSelect={() => duplicate(dashboard)}>
                   <CopyIcon />
-                  Duplicate
+                  {m.editor_duplicate()}
                 </DropdownMenuItem>
                 {#if dashboard.isOwner}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem variant="destructive" onSelect={() => (deleting = dashboard)}>
                     <Trash2Icon />
-                    Delete…
+                    {m.editor_delete_ellipsis()}
                   </DropdownMenuItem>
                 {/if}
               </DropdownMenuContent>
@@ -156,14 +156,14 @@
 
 {#if dashboards.length === 0}
   <EmptyState
-    title="No dashboards yet"
-    description="Build numbers, charts and issue lists from filters — for one project or across all of yours."
+    title={m.editor_dash_empty_title()}
+    description={m.editor_dash_empty_body()}
   >
     {#snippet icon()}<LayoutDashboardIcon />{/snippet}
   </EmptyState>
 {:else}
-  {@render section('dashboards-mine', 'Your dashboards', mine)}
-  {@render section('dashboards-shared', 'Shared with you', shared)}
+  {@render section('dashboards-mine', m.editor_dash_yours(), mine)}
+  {@render section('dashboards-shared', m.editor_dash_shared_with_you(), shared)}
   <AlertDialog
     open={deleting !== null}
     onOpenChange={(open) => {
@@ -172,13 +172,13 @@
   >
     <AlertDialogContent>
       <AlertDialogHeader>
-        <AlertDialogTitle>Delete “{deleting?.name}”?</AlertDialogTitle>
+        <AlertDialogTitle>{m.editor_dash_delete_title({ name: deleting?.name ?? '' })}</AlertDialogTitle>
         <AlertDialogDescription>
-          {deleting?.shared ? 'Project members will lose access too. ' : ''}This can’t be undone.
+          {deleting?.shared ? m.editor_dash_delete_body_shared() : m.editor_dash_delete_body()}
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>
-        <AlertDialogCancel>Cancel</AlertDialogCancel>
+        <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
         <AlertDialogAction
           variant="destructive"
           onclick={() => {
@@ -187,7 +187,7 @@
             remove(target);
           }}
         >
-          Delete
+          {m.common_delete()}
         </AlertDialogAction>
       </AlertDialogFooter>
     </AlertDialogContent>

@@ -6,6 +6,7 @@
 import { and, eq, inArray } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
+import { m } from '@/lib/i18n';
 import { dashboards, projectMembers } from '@/db/schema';
 import {
   MAX_WIDGETS,
@@ -40,15 +41,15 @@ async function validWidgets(
   userId: string,
 ): Promise<ActionResult<{ widgets: Widget[] }>> {
   if (!Array.isArray(raw) || raw.length > MAX_WIDGETS) {
-    return fail(`A dashboard holds up to ${MAX_WIDGETS} widgets.`);
+    return fail(m.editor_dash_max_widgets({ max: MAX_WIDGETS }));
   }
   let size = 0;
   try {
     size = JSON.stringify(raw).length;
   } catch {
-    return fail('Invalid widgets.');
+    return fail(m.editor_err_invalid_widgets());
   }
-  if (size > MAX_JSON) return fail('These widgets are too large to save.');
+  if (size > MAX_JSON) return fail(m.editor_err_widgets_too_large());
 
   const widgets = normalizeWidgets(raw);
   const referenced = [...new Set(widgets.map((w) => w.config.projectId).filter((id): id is string => !!id))];
@@ -61,7 +62,7 @@ async function validWidgets(
       .from(projectMembers)
       .where(and(eq(projectMembers.userId, userId), inArray(projectMembers.projectId, referenced)));
     const allowed = new Set(rows.map((r) => r.projectId));
-    if (referenced.some((id) => !allowed.has(id))) return fail('Unknown project in a widget.');
+    if (referenced.some((id) => !allowed.has(id))) return fail(m.editor_err_widget_project());
   }
   return { ok: true, widgets };
 }
@@ -82,7 +83,7 @@ export async function createDashboard(input: {
     if (!userId) return NOT_AUTHENTICATED;
   }
   const name = clippedText(input?.name, MAX_NAME);
-  if (!name) return fail('Give the dashboard a name.');
+  if (!name) return fail(m.editor_err_dash_name());
 
   const now = new Date();
   const id = crypto.randomUUID();
@@ -105,11 +106,11 @@ export async function createDashboard(input: {
 async function authorizeOwner(dashboardId: unknown) {
   const userId = await sessionUserId();
   if (!userId) return NOT_AUTHENTICATED;
-  if (typeof dashboardId !== 'string' || !dashboardId) return fail('Dashboard not found.');
+  if (typeof dashboardId !== 'string' || !dashboardId) return fail(m.editor_err_dash_not_found());
   const dashboard = await getDashboardForViewer(dashboardId, userId);
-  if (!dashboard) return fail('Dashboard not found.');
+  if (!dashboard) return fail(m.editor_err_dash_not_found());
   if (dashboard.ownerId !== userId) {
-    return fail('Only the owner can change this dashboard.');
+    return fail(m.editor_err_dash_owner_only());
   }
   return { ok: true as const, dashboard, userId };
 }
@@ -128,17 +129,17 @@ export async function updateDashboard(input: {
   const set: Partial<typeof dashboards.$inferInsert> = { updatedAt: new Date() };
   if (input.name !== undefined) {
     const name = clippedText(input.name, MAX_NAME);
-    if (!name) return fail('Give the dashboard a name.');
+    if (!name) return fail(m.editor_err_dash_name());
     set.name = name;
   }
   if (input.description !== undefined) set.description = clippedText(input.description, MAX_DESCRIPTION);
   if (input.shared !== undefined) {
     if (input.shared === true) {
       if (!dashboard.projectId) {
-        return fail('Only project dashboards can be shared.');
+        return fail(m.editor_err_dash_project_only());
       }
       const authz = await authorizeProjectAction(dashboard.projectId, 'write');
-      if (!authz.ok) return fail('Only members who can edit issues can share dashboards.');
+      if (!authz.ok) return fail(m.editor_err_dash_share_denied());
     }
     set.shared = input.shared === true;
   }
@@ -170,9 +171,9 @@ export async function deleteDashboard(input: { id: string }): Promise<DashboardA
 export async function duplicateDashboard(input: { id: string }): Promise<DashboardActionResult> {
   const userId = await sessionUserId();
   if (!userId) return NOT_AUTHENTICATED;
-  if (typeof input?.id !== 'string' || !input.id) return fail('Dashboard not found.');
+  if (typeof input?.id !== 'string' || !input.id) return fail(m.editor_err_dash_not_found());
   const source = await getDashboardForViewer(input.id, userId);
-  if (!source) return fail('Dashboard not found.');
+  if (!source) return fail(m.editor_err_dash_not_found());
 
   // A copied cross-project dashboard may point at projects the caller isn't in.
   const result = await validWidgets(source.widgets, source.projectId, userId);

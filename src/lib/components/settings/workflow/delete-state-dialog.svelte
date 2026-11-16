@@ -21,7 +21,7 @@
     SelectValue,
   } from '@/lib/components/ui/select';
   import { STATE_TYPE_LABEL, type WorkflowState } from '@/lib/issue-model';
-  import { pluralize } from '@/lib/format';
+  import { m } from '@/lib/i18n';
 
   let {
     projectId,
@@ -50,10 +50,13 @@
 
   const blocked = $derived.by(() => {
     if (workflowState?.type === 'triage' && triageEnabled) {
-      return 'Triage is on for this project. Turn it off in Cycles & triage settings before deleting the triage state.';
+      return m.settings_workflow_triage_on();
     }
     if (workflowState && workflowState.type !== 'triage' && sameType.length === 0) {
-      return `Every project needs at least one ${STATE_TYPE_LABEL[workflowState.type].toLowerCase()} state. Add another one before deleting “${workflowState.name}”.`;
+      return m.settings_workflow_needs_one({
+        type: STATE_TYPE_LABEL[workflowState.type].toLowerCase(),
+        name: workflowState.name,
+      });
     }
     return null;
   });
@@ -73,7 +76,7 @@
         toast.error(result.error);
         return;
       }
-      toast.success(`Deleted “${target.name}”`);
+      toast.success(m.settings_workflow_deleted_toast({ name: target.name }));
       close();
     } finally {
       isPending = false;
@@ -89,18 +92,18 @@
 >
   <DialogContent class="sm:max-w-md">
     <DialogHeader>
-      <DialogTitle>Delete “{workflowState?.name}”?</DialogTitle>
+      <DialogTitle>{m.settings_workflow_delete_title({ name: workflowState?.name ?? '' })}</DialogTitle>
       <DialogDescription>
         {blocked ??
           (count > 0
-            ? `${pluralize(count, 'issue')} use this state. Choose where they should move.`
-            : 'No issues use this state.')}
+            ? m.settings_workflow_in_use({ issues: m.common_issue_count({ count }) })
+            : m.settings_workflow_unused())}
       </DialogDescription>
     </DialogHeader>
 
     {#if !blocked && count > 0}
       <Select bind:value={() => replacementId, (next) => (picked = next)} {items}>
-        <SelectTrigger class="w-full" aria-label="Move issues to">
+        <SelectTrigger class="w-full" aria-label={m.settings_workflow_move_to()}>
           <SelectValue>
             {#if replacement}
               <StateIcon state={replacement} size={14} />
@@ -127,12 +130,12 @@
 
     <DialogFooter>
       <Button variant="outline" onclick={close}>
-        {blocked ? 'Close' : 'Cancel'}
+        {blocked ? m.common_close() : m.common_cancel()}
       </Button>
       {#if !blocked}
         <Button variant="destructive" onclick={confirm} disabled={isPending || !replacementId}>
           {#if isPending}<Loader2Icon class="animate-spin" />{/if}
-          {count > 0 ? 'Move issues and delete' : 'Delete state'}
+          {count > 0 ? m.settings_workflow_move_delete() : m.settings_workflow_delete_state()}
         </Button>
       {/if}
     </DialogFooter>

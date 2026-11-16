@@ -12,7 +12,7 @@
     DropdownMenuTrigger,
   } from '@/lib/components/ui/dropdown-menu';
   import type { ProjectLabel } from '@/lib/project-data-types';
-  import { pluralize } from '@/lib/format';
+  import { m } from '@/lib/i18n';
 
   let {
     label,
@@ -47,13 +47,13 @@
     {/if}
   </button>
   <span class="shrink-0 text-xs text-muted-foreground tabular-nums">
-    {pluralize(count, 'issue')}
+    {m.common_issue_count({ count })}
   </span>
   {#if canEdit}
     <DropdownMenu>
       <DropdownMenuTrigger>
         {#snippet child({ props })}
-          <Button {...props} variant="ghost" size="icon-xs" aria-label="Actions for {label.name}">
+          <Button {...props} variant="ghost" size="icon-xs" aria-label={m.settings_labels_actions({ name: label.name })}>
             <EllipsisIcon />
           </Button>
         {/snippet}
@@ -61,12 +61,12 @@
       <DropdownMenuContent align="end">
         <DropdownMenuItem onSelect={onEdit}>
           <PencilIcon />
-          Edit
+          {m.common_edit()}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem variant="destructive" onSelect={onDelete}>
           <Trash2Icon />
-          Delete…
+          {m.settings_labels_delete_menu()}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

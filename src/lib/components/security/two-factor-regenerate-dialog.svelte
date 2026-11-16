@@ -2,6 +2,7 @@
   Regenerate backup codes: password first, then the new codes. Mounted only while open.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { authClient } from '@/lib/svelte/auth-client';
   import { Button } from '@/lib/components/ui/button';
   import {
@@ -25,22 +26,22 @@
   <Dialog open onOpenChange={(open) => !open && onClose()}>
     <DialogContent>
       <DialogHeader>
-        <DialogTitle>New backup codes</DialogTitle>
+        <DialogTitle>{m.settings_sec_new_codes()}</DialogTitle>
         <DialogDescription>
-          Your old codes no longer work. This is the only time these are shown.
+          {m.settings_sec_new_codes_desc()}
         </DialogDescription>
       </DialogHeader>
       <BackupCodes {codes} />
       <DialogFooter>
-        <Button onclick={onClose}>Done</Button>
+        <Button onclick={onClose}>{m.common_done()}</Button>
       </DialogFooter>
     </DialogContent>
   </Dialog>
 {:else}
   <PasswordDialog
-    title="Regenerate backup codes?"
-    description="Your current backup codes stop working immediately."
-    confirmLabel="Regenerate"
+    title={m.settings_sec_regen_title()}
+    description={m.settings_sec_regen_desc()}
+    confirmLabel={m.settings_sec_regenerate()}
     {onClose}
     onConfirm={async (password) => {
       const { data, error } = await authClient.twoFactor.generateBackupCodes({ password });

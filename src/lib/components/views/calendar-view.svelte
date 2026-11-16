@@ -6,6 +6,7 @@
   render it only in the browser.
 -->
 <script lang="ts">
+  import { m, dateFormat } from '@/lib/i18n';
   import { onDestroy, type ComponentProps } from 'svelte';
   import { DragDropProvider, DragOverlay, PointerSensor } from '@dnd-kit/svelte';
   import { DragDropManager } from '@dnd-kit/dom';
@@ -23,9 +24,10 @@
 
   let { issues, mutations, onSelect }: IssueViewProps = $props();
 
-  const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  // 2024-01-01 is a Monday: Monday-first short weekday names in the interface language.
+  const WEEKDAYS = Array.from({ length: 7 }, (_, i) => dateFormat({ weekday: 'short' }).format(new Date(2024, 0, 1 + i)));
 
-  const monthFormat = new Intl.DateTimeFormat('en', { month: 'long', year: 'numeric' });
+  const monthFormat = dateFormat({ month: 'long', year: 'numeric' });
 
   function monthStart(date: Date) {
     return new Date(date.getFullYear(), date.getMonth(), 1);
@@ -95,11 +97,11 @@
           {monthFormat.format(month)}
         </h2>
         <div class="ml-auto flex items-center gap-1">
-          <Button variant="outline" size="sm" onclick={() => (month = monthStart(new Date()))}>Today</Button>
-          <Button variant="ghost" size="icon-sm" aria-label="Previous month" onclick={() => shift(-1)}>
+          <Button variant="outline" size="sm" onclick={() => (month = monthStart(new Date()))}>{m.common_today()}</Button>
+          <Button variant="ghost" size="icon-sm" aria-label={m.issues_cal_prev()} onclick={() => shift(-1)}>
             <ChevronLeftIcon />
           </Button>
-          <Button variant="ghost" size="icon-sm" aria-label="Next month" onclick={() => shift(1)}>
+          <Button variant="ghost" size="icon-sm" aria-label={m.issues_cal_next()} onclick={() => shift(1)}>
             <ChevronRightIcon />
           </Button>
         </div>

@@ -9,6 +9,7 @@ import { favorites, savedViews } from '@/db/schema';
 import { authorizeProjectAction } from '@/lib/action-auth';
 import { fail, refreshesData, type ActionResult } from '@/lib/server/action-kit';
 import { clippedText } from '@/lib/text';
+import { m } from '@/lib/i18n';
 
 export type ViewActionResult = ActionResult<{ id: string; projectId: string }>;
 
@@ -39,14 +40,14 @@ export async function createView(input: {
   if (!authz.ok) {
     return fail(
       authz.error === 'Forbidden' && input?.shared
-        ? 'Only members who can edit issues can share views.'
+        ? m.issues_err_view_share()
         : authz.error,
     );
   }
   const name = clippedText(input.name, MAX_NAME);
-  if (!name) return fail('Give the view a name.');
+  if (!name) return fail(m.issues_err_view_name());
   if (!isPlainJson(input.filters) || !isPlainJson(input.display)) {
-    return fail('Invalid view settings.');
+    return fail(m.issues_err_view_settings());
   }
 
   const now = new Date();
@@ -69,20 +70,20 @@ export async function createView(input: {
 
 /** Loads the view and checks the caller owns it and still belongs to its project. */
 async function authorizeOwner(viewId: unknown, level: 'read' | 'write' = 'read') {
-  if (typeof viewId !== 'string' || !viewId) return fail('View not found.');
+  if (typeof viewId !== 'string' || !viewId) return fail(m.issues_err_view_not_found());
   const [view] = await db
     .select({ id: savedViews.id, ownerId: savedViews.ownerId, projectId: savedViews.projectId })
     .from(savedViews)
     .where(eq(savedViews.id, viewId))
     .limit(1);
-  if (!view?.projectId) return fail('View not found.');
+  if (!view?.projectId) return fail(m.issues_err_view_not_found());
   const authz = await authorizeProjectAction(view.projectId, level);
   if (!authz.ok) {
     // Don't reveal views of projects the caller can't see.
-    return fail(authz.error === 'Forbidden' ? 'View not found.' : authz.error);
+    return fail(authz.error === 'Forbidden' ? m.issues_err_view_not_found() : authz.error);
   }
   if (view.ownerId !== authz.userId) {
-    return fail('Only the owner can change this view.');
+    return fail(m.issues_err_view_owner());
   }
   return { ok: true as const, view: { id: view.id, projectId: view.projectId }, userId: authz.userId };
 }
@@ -101,17 +102,17 @@ export async function updateView(input: {
   const set: Partial<typeof savedViews.$inferInsert> = { updatedAt: new Date() };
   if (input.name !== undefined) {
     const name = clippedText(input.name, MAX_NAME);
-    if (!name) return fail('Give the view a name.');
+    if (!name) return fail(m.issues_err_view_name());
     set.name = name;
   }
   if (input.description !== undefined) set.description = clippedText(input.description, MAX_DESCRIPTION);
   if (input.shared !== undefined) set.shared = input.shared === true;
   if (input.filters !== undefined) {
-    if (!isPlainJson(input.filters)) return fail('Invalid view settings.');
+    if (!isPlainJson(input.filters)) return fail(m.issues_err_view_settings());
     set.filters = input.filters;
   }
   if (input.display !== undefined) {
-    if (!isPlainJson(input.display)) return fail('Invalid view settings.');
+    if (!isPlainJson(input.display)) return fail(m.issues_err_view_settings());
     set.display = input.display;
   }
 

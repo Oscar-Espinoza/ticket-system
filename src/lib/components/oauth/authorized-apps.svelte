@@ -2,6 +2,7 @@
   Apps the user granted access to (OAuth consents), with Revoke.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { untrack } from 'svelte';
   import ShieldCheckIcon from '@lucide/svelte/icons/shield-check';
   import { toast } from 'svelte-sonner';
@@ -33,24 +34,24 @@
     const result = await revokeOAuthConsent({ id: app.id });
     if (result.ok) {
       apps = apps.filter((a) => a.id !== app.id);
-      toast.success(`Revoked ${app.name}`);
+      toast.success(m.settings_oauth_revoked_toast({ name: app.name }));
     } else toast.error(result.error);
   }
 </script>
 
 <section class="flex flex-col gap-4">
   <div>
-    <h2 class="text-base font-medium">Authorized apps</h2>
+    <h2 class="text-base font-medium">{m.settings_oauth_authorized_apps()}</h2>
     <p class="mt-1 text-sm text-muted-foreground">
-      Apps that can access your account. Revoking signs them out everywhere.
+      {m.settings_oauth_authorized_desc()}
     </p>
   </div>
 
   {#if apps.length === 0}
     <EmptyState
       class="rounded-lg border border-dashed border-border py-10"
-      title="No authorized apps"
-      description="Apps you allow through “Sign in with Ticket System” show up here."
+      title={m.settings_oauth_none_authorized()}
+      description={m.settings_oauth_none_authorized_hint()}
     >
       {#snippet icon()}<ShieldCheckIcon />{/snippet}
     </EmptyState>
@@ -75,10 +76,12 @@
               title={app.scopes.map(describeScope).join('\n')}
             >
               {app.scopes.includes('write')
-                ? 'Read and write access'
+                ? m.settings_oauth_access_write()
                 : app.scopes.includes('read')
-                  ? 'Read access'
-                  : 'Basic profile'}{' · authorized '}{relativeTime(new Date(app.grantedAt))}
+                  ? m.settings_oauth_access_read()
+                  : m.settings_oauth_access_basic()}{' · '}{m.settings_oauth_authorized_when({
+                when: relativeTime(new Date(app.grantedAt)),
+              })}
             </p>
           </div>
           <Button
@@ -87,7 +90,7 @@
             class="text-destructive hover:text-destructive"
             onclick={() => (revoking = app)}
           >
-            Revoke
+            {m.settings_oauth_revoke()}
           </Button>
         </li>
       {/each}
@@ -97,15 +100,15 @@
   <AlertDialog open={!!revoking} onOpenChange={(open) => !open && (revoking = null)}>
     <AlertDialogContent size="sm">
       <AlertDialogHeader>
-        <AlertDialogTitle>Revoke {revoking?.name}?</AlertDialogTitle>
+        <AlertDialogTitle>{m.settings_oauth_revoke_title({ name: revoking?.name ?? '' })}</AlertDialogTitle>
         <AlertDialogDescription>
-          Its access and refresh tokens stop working immediately. You can authorize it again later.
+          {m.settings_oauth_revoke_desc()}
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>
-        <AlertDialogCancel>Cancel</AlertDialogCancel>
+        <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
         <AlertDialogAction variant="destructive" onclick={() => revoking && revoke(revoking)}>
-          Revoke
+          {m.settings_oauth_revoke()}
         </AlertDialogAction>
       </AlertDialogFooter>
     </AlertDialogContent>

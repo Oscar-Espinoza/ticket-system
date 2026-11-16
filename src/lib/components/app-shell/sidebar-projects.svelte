@@ -1,5 +1,6 @@
 <!-- "Your projects" sidebar section. -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { MAX_DEPTH } from '@/lib/components/project-tree';
   import SidebarProjectItem from './sidebar-project-item.svelte';
   import SidebarSection from './sidebar-section.svelte';
@@ -43,11 +44,11 @@
       href="/dashboard"
       class="rounded outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
     >
-      Your projects
+      {m.editor_shell_your_projects()}
     </a>
   {/snippet}
   {#if projects.length === 0}
-    <p class="px-2 py-1 text-xs text-muted-foreground">No projects yet.</p>
+    <p class="px-2 py-1 text-xs text-muted-foreground">{m.editor_shell_no_projects()}</p>
   {:else}
     {#each tree.top as project (project.id)}
       <SidebarProjectItem {project} childrenOf={tree.nested} />

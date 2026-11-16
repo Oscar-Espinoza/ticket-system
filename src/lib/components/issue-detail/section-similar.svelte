@@ -5,6 +5,7 @@
   Duplicate state) and a per-viewer dismiss kept in localStorage.
 -->
 <script module lang="ts">
+  import { m } from '@/lib/i18n';
   import { readStorage, writeStorage } from '@/lib/svelte/storage';
 
   const dismissKey = (issueId: string) => `similar-dismissed:${issueId}`;
@@ -100,13 +101,13 @@
         return;
       }
       if (result.warning) toast.warning(result.warning);
-      else toast.success(`Marked ${key} as a duplicate of ${other.key}`);
+      else toast.success(m.issues_relations_marked_duplicate({ key, other: other.key }));
       // It's related now, so it no longer belongs in this list.
       if (loaded && loaded.issueId === issueId) {
         loaded = { issueId, similar: loaded.similar.filter((s) => s.issue.id !== other.id) };
       }
     } catch {
-      toast.error('Something went wrong — nothing was changed.');
+      toast.error(m.issues_similar_failed());
     } finally {
       pending = false;
     }
@@ -121,11 +122,11 @@
 {/snippet}
 
 {#if list.length > 0}
-  <section aria-label="Similar issues" class="flex flex-col gap-1">
-    <SectionHeader title="Similar issues" meta={count} />
+  <section aria-label={m.issues_similar()} class="flex flex-col gap-1">
+    <SectionHeader title={m.issues_similar()} meta={count} />
     {#each list as { issue: other, reason, score } (other.id)}
-      <div title={`${reason} · ${Math.round(score * 100)}% match`}>
-        <IssueRefRow issue={fresh(other)} removeLabel="Dismiss" onRemove={() => dismiss(other)}>
+      <div title={m.issues_similar_match({ reason, percent: Math.round(score * 100) })}>
+        <IssueRefRow issue={fresh(other)} removeLabel={m.issues_similar_dismiss()} onRemove={() => dismiss(other)}>
           {#snippet trailing()}
             {#if canWrite}
               <Button
@@ -133,11 +134,11 @@
                 size="xs"
                 disabled={pending}
                 onclick={() => void markDuplicate(other)}
-                aria-label={`Mark ${issue.key} as a duplicate of ${other.key}`}
+                aria-label={m.issues_similar_mark_aria({ key: issue.key, other: other.key })}
                 class="gap-1 text-xs font-normal text-muted-foreground opacity-0 group-hover/ref:opacity-100 focus-visible:opacity-100"
               >
                 <CopyIcon class="size-3" />
-                Mark as duplicate
+                {m.issues_mark_duplicate()}
               </Button>
             {/if}
           {/snippet}

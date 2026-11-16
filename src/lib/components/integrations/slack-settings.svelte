@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import LoaderCircleIcon from '@lucide/svelte/icons/loader-circle';
   import SendIcon from '@lucide/svelte/icons/send';
   import { toast } from 'svelte-sonner';
@@ -45,7 +46,7 @@
       error = undefined;
       connected = result.connected;
       if (!result.connected) url = '';
-      toast.success(result.connected ? 'Slack settings saved' : 'Slack disconnected');
+      toast.success(result.connected ? m.settings_int_slack_saved_toast() : m.settings_int_slack_disconnected_toast());
     } finally {
       saving = false;
     }
@@ -56,12 +57,14 @@
     try {
       const result = await sendSlackTest({ projectId });
       if (!result) return;
-      if (result.ok) toast.success('Test message sent');
+      if (result.ok) toast.success(m.settings_int_slack_test_sent_toast());
       else toast.error(result.error);
     } finally {
       testing = false;
     }
   }
+
+  const postParts = $derived(m.settings_int_slack_post_desc({ link: '\u0000' }).split('\u0000'));
 
   const toggle = (kind: SlackEventKind, on: boolean) =>
     (events = on ? [...events, kind] : events.filter((k) => k !== kind));
@@ -69,15 +72,14 @@
 
 <section class="flex flex-col gap-5">
   <div>
-    <h2 class="text-base font-medium">Slack</h2>
+    <h2 class="text-base font-medium">Slack</h2> <!-- i18n-ignore -->
     <p class="mt-1 text-sm text-muted-foreground">
-      Post issue activity to a channel through a Slack
-      <a
+      {postParts[0]}<a
         href="https://api.slack.com/messaging/webhooks"
         target="_blank"
         rel="noreferrer"
-        class="underline underline-offset-2 hover:text-foreground">incoming webhook</a
-      >.
+        class="underline underline-offset-2 hover:text-foreground">{m.settings_int_slack_webhook_link()}</a
+      >{postParts[1]}
     </p>
   </div>
 
@@ -89,14 +91,14 @@
       void save();
     }}
   >
-    <Field id="slack-url" label="Webhook URL" {error}>
+    <Field id="slack-url" label={m.settings_int_webhook_url()} {error}>
       <Input
         id="slack-url"
         bind:value={() => url, (v) => {
           url = v;
           error = undefined;
         }}
-        placeholder="{SLACK_URL_PREFIX}services/…"
+        placeholder={`${SLACK_URL_PREFIX}services/…`}
         autocomplete="off"
         spellcheck={false}
         class="font-mono text-xs"
@@ -106,7 +108,7 @@
     </Field>
 
     <fieldset class="flex flex-col gap-2.5">
-      <legend class="mb-2 text-sm font-medium">Post when</legend>
+      <legend class="mb-2 text-sm font-medium">{m.settings_int_post_when()}</legend>
       {#each SLACK_EVENTS as { kind, label } (kind)}
         <div class="flex items-center gap-3">
           <Switch
@@ -122,12 +124,12 @@
     <div class="flex flex-wrap items-center gap-2">
       <Button type="submit" disabled={saving || !url.trim()}>
         {#if saving}<LoaderCircleIcon class="animate-spin" />{/if}
-        {connected ? 'Save changes' : 'Connect Slack'}
+        {connected ? m.common_save_changes() : m.settings_int_connect_slack()}
       </Button>
       {#if connected}
         <Button type="button" variant="outline" onclick={test} disabled={testing}>
           {#if testing}<LoaderCircleIcon class="animate-spin" />{:else}<SendIcon />{/if}
-          Send test message
+          {m.settings_int_send_test()}
         </Button>
         <Button
           type="button"
@@ -136,7 +138,7 @@
           onclick={() => save('')}
           disabled={saving}
         >
-          Disconnect
+          {m.settings_int_disconnect()}
         </Button>
       {/if}
     </div>

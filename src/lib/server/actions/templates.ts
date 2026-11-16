@@ -22,6 +22,7 @@ import {
   toIssueTemplate,
   type IssueTemplate,
 } from '@/lib/issue-templates';
+import { m } from '@/lib/i18n';
 
 export type { IssueTemplate };
 
@@ -88,7 +89,7 @@ export async function updateTemplate(input: {
 }): Promise<TemplateResult> {
   const authz = await authorizeProjectAction(input?.projectId, 'write');
   if (!authz.ok) return authz;
-  if (typeof input.id !== 'string') return fail('Template not found.');
+  if (typeof input.id !== 'string') return fail(m.issues_err_template_not_found());
   const fields = validate(input);
   if (!fields.ok) return fields;
   const data = await sanitizeIssueDefaults(input.projectId, input.data, TEMPLATE_FIELDS);
@@ -103,7 +104,7 @@ export async function updateTemplate(input: {
     })
     .where(and(eq(issueTemplates.id, input.id), eq(issueTemplates.projectId, input.projectId)))
     .returning(issueTemplateColumns);
-  if (!row) return fail('Template not found.');
+  if (!row) return fail(m.issues_err_template_not_found());
   refreshesData();
   return { ok: true, template: toIssueTemplate(row) };
 }
@@ -114,12 +115,12 @@ export async function deleteTemplate(input: {
 }): Promise<ActionResult> {
   const authz = await authorizeProjectAction(input?.projectId, 'write');
   if (!authz.ok) return authz;
-  if (typeof input.id !== 'string') return fail('Template not found.');
+  if (typeof input.id !== 'string') return fail(m.issues_err_template_not_found());
   const deleted = await db
     .delete(issueTemplates)
     .where(and(eq(issueTemplates.id, input.id), eq(issueTemplates.projectId, input.projectId)))
     .returning({ id: issueTemplates.id });
-  if (deleted.length === 0) return fail('Template not found.');
+  if (deleted.length === 0) return fail(m.issues_err_template_not_found());
   refreshesData();
   return { ok: true };
 }

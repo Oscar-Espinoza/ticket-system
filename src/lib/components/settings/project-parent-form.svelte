@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { untrack } from 'svelte';
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
 
@@ -21,11 +22,11 @@
     $props();
 
   const form = createActionState<ProjectSettingsState>(updateProjectParent, {});
-  useResultToast(() => form.state, 'Parent team updated');
+  useResultToast(() => form.state, m.settings_project_parent_updated_toast());
   let value = $state(untrack(() => parentId ?? NO_PARENT));
   const disabled = $derived(!canEdit || !workspaceId);
   const items = $derived([
-    { value: NO_PARENT, label: 'No parent' },
+    { value: NO_PARENT, label: m.settings_project_no_parent() },
     ...parentOptions.map((option) => ({
       value: option.id,
       label: `${option.ticketKey} ${option.name}`,
@@ -39,8 +40,8 @@
   <input type="hidden" name="parentId" value={value === NO_PARENT ? '' : value} />
   <Field
     id="project-parent"
-    label="Parent team"
-    hint="Sub-teams are listed under their parent in the sidebar and workspace. Issues stay separate."
+    label={m.settings_project_parent_label()}
+    hint={m.settings_project_parent_hint()}
     error={form.state.errors?.parentId}
   >
     <Select bind:value {items} {disabled}>
@@ -50,12 +51,12 @@
             <span class="font-mono text-xs text-muted-foreground">{selected.ticketKey}</span>
             {selected.name}
           {:else}
-            No parent
+            {m.settings_project_no_parent()}
           {/if}
         </SelectValue>
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value={NO_PARENT}>No parent</SelectItem>
+        <SelectItem value={NO_PARENT}>{m.settings_project_no_parent()}</SelectItem>
         {#each parentOptions as option (option.id)}
           <SelectItem value={option.id}>
             <span class="font-mono text-xs text-muted-foreground">{option.ticketKey}</span>
@@ -73,7 +74,7 @@
         disabled={form.pending || value === (parentId ?? NO_PARENT)}
       >
         {#if form.pending}<Loader2Icon class="animate-spin" />{/if}
-        Save parent
+        {m.settings_project_save_parent()}
       </Button>
     </div>
   {/if}

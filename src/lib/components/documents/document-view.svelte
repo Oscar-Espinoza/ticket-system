@@ -8,6 +8,7 @@
   previous doc's editor.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { untrack } from 'svelte';
   import { goto } from '$app/navigation';
   import type { Editor } from '@tiptap/core';
@@ -110,7 +111,7 @@
   async function setArchived(archived: boolean) {
     const result = archived ? await archiveDocument({ id: doc.id }) : await unarchiveDocument({ id: doc.id });
     if (!result.ok) toast.error(result.error);
-    else toast.success(archived ? 'Document archived' : 'Document restored');
+    else toast.success(archived ? m.auth_docs_archived_toast() : m.auth_docs_restored_toast());
   }
 
   const collab = useCollab(
@@ -125,12 +126,12 @@
 
 <div class="flex min-h-0 flex-1 flex-col">
   <div class="mb-4 flex min-h-8 items-center gap-2 text-sm">
-    <nav aria-label="Breadcrumb" class="flex min-w-0 items-center gap-1 text-muted-foreground">
-      <a href={documentsPath(doc.projectId)} class="rounded px-1 hover:text-foreground">Docs</a>
+    <nav aria-label={m.auth_docs_breadcrumb()} class="flex min-w-0 items-center gap-1 text-muted-foreground">
+      <a href={documentsPath(doc.projectId)} class="rounded px-1 hover:text-foreground">{m.auth_docs_docs()}</a>
       <ChevronRight class="size-3.5 shrink-0" aria-hidden="true" />
       <span class="flex min-w-0 items-center gap-1.5 text-foreground">
         <DocumentIcon {icon} class="size-3.5 text-xs" />
-        <span class="truncate">{title || 'Untitled'}</span>
+        <span class="truncate">{title || m.auth_docs_untitled()}</span>
       </span>
     </nav>
     <div class="ml-auto flex items-center gap-2">
@@ -139,7 +140,7 @@
       <DropdownMenu>
         <DropdownMenuTrigger>
           {#snippet child({ props })}
-            <Button {...props} variant="ghost" size="icon-sm" aria-label="Document actions">
+            <Button {...props} variant="ghost" size="icon-sm" aria-label={m.auth_docs_actions()}>
               <MoreHorizontal />
             </Button>
           {/snippet}
@@ -147,28 +148,28 @@
         <DropdownMenuContent align="end">
           <DropdownMenuItem onSelect={() => copyDocumentLink(doc.projectId, doc.id)}>
             <Link2 />
-            Copy link
+            {m.auth_copy_link()}
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={exportMarkdown}>
             <Download />
-            Export as Markdown
+            {m.auth_docs_export_markdown()}
           </DropdownMenuItem>
           {#if canManage}
             <DropdownMenuSeparator />
             {#if doc.archivedAt}
               <DropdownMenuItem onSelect={() => setArchived(false)}>
                 <ArchiveRestore />
-                Unarchive
+                {m.auth_docs_unarchive()}
               </DropdownMenuItem>
             {:else}
               <DropdownMenuItem onSelect={() => setArchived(true)}>
                 <Archive />
-                Archive
+                {m.auth_docs_archive()}
               </DropdownMenuItem>
             {/if}
             <DropdownMenuItem variant="destructive" onSelect={() => (deleting = true)}>
               <Trash2 />
-              Delete…
+              {m.auth_customers_delete_short()}
             </DropdownMenuItem>
           {/if}
         </DropdownMenuContent>
@@ -180,10 +181,10 @@
     <div class="mb-4 flex items-center gap-3 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm">
       <Archive class="size-4 text-muted-foreground" aria-hidden="true" />
       <span class="flex-1 text-muted-foreground">
-        Archived {relativeTime(new Date(doc.archivedAt))} — read-only until it’s restored.
+        {m.auth_docs_archived_notice({ when: relativeTime(new Date(doc.archivedAt)) })}
       </span>
       {#if canManage}
-        <Button size="sm" variant="outline" onclick={() => setArchived(false)}>Unarchive</Button>
+        <Button size="sm" variant="outline" onclick={() => setArchived(false)}>{m.auth_docs_unarchive()}</Button>
       {/if}
     </div>
   {/if}
@@ -195,8 +196,8 @@
       rows={1}
       maxlength={TITLE_MAX}
       readonly={!canWrite}
-      aria-label="Document title"
-      placeholder="Untitled"
+      aria-label={m.auth_docs_title_label()}
+      placeholder={m.auth_docs_untitled()}
       onblur={saveTitle}
       onkeydown={(e) => {
         if (e.key === 'Enter' || (e.key === 'ArrowDown' && e.currentTarget.selectionStart === title.length)) {
@@ -222,7 +223,7 @@
               class="flex h-6 items-center gap-1.5 rounded-full border border-border px-2 hover:bg-accent hover:text-foreground"
             >
               <EpicIcon color={epic?.color} class="size-3.5" />
-              <span class="max-w-48 truncate">{epic ? epic.name : 'Add to epic'}</span>
+              <span class="max-w-48 truncate">{epic ? epic.name : m.auth_docs_add_to_epic()}</span>
             </button>
           {/snippet}
         </EpicPicker>
@@ -236,10 +237,12 @@
         </a>
       {/if}
       {#if epic && canWrite}
-        <a href={epicPath(doc.projectId, epic.id)} class="hover:text-foreground">Open epic</a>
+        <a href={epicPath(doc.projectId, epic.id)} class="hover:text-foreground">{m.auth_docs_open_epic()}</a>
       {/if}
       <span>
-        {doc.updatedBy ? `Edited by ${doc.updatedBy.name} ` : 'Edited '}{relativeTime(new Date(doc.updatedAt))}
+        {doc.updatedBy
+          ? m.auth_docs_edited_by({ name: doc.updatedBy.name, when: relativeTime(new Date(doc.updatedAt)) })
+          : m.auth_docs_edited({ when: relativeTime(new Date(doc.updatedAt)) })}
       </span>
     </div>
 
@@ -255,7 +258,7 @@
 
     {#if backlinks.length > 0}
       <section aria-labelledby="doc-backlinks" class="mt-10 flex flex-col gap-1 border-t border-border pt-4">
-        <h2 id="doc-backlinks" class="px-1 text-xs font-medium text-muted-foreground">Mentioned in</h2>
+        <h2 id="doc-backlinks" class="px-1 text-xs font-medium text-muted-foreground">{m.auth_docs_mentioned_in()}</h2>
         <ul class="flex flex-col">
           {#each backlinks as issue (issue.id)}
             <li>

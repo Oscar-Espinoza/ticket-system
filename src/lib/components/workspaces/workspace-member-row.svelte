@@ -1,5 +1,6 @@
 <!-- One workspace member: profile link, role select / chip, remove. -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import EllipsisIcon from '@lucide/svelte/icons/ellipsis';
   import LoaderCircleIcon from '@lucide/svelte/icons/loader-circle';
   import UserMinusIcon from '@lucide/svelte/icons/user-minus';
@@ -36,8 +37,8 @@
   } = $props();
 
   const ROLE_ITEMS = [
-    { value: 'admin', label: 'Admin' },
-    { value: 'member', label: 'Member' },
+    { value: 'admin', label: m.projects_role_admin() },
+    { value: 'member', label: m.projects_role_member() },
   ];
 
   let isPending = $state(false);
@@ -54,7 +55,7 @@
       });
       if (!result) return;
       if (!result.ok) toast.error(result.error);
-      else toast.success(`${member.name} is now ${role}`);
+      else toast.success(m.projects_ws_member_now({ name: member.name, role: role === 'admin' ? m.projects_role_admin() : m.projects_role_member() }));
     } finally {
       isPending = false;
     }
@@ -66,7 +67,7 @@
       const result = await removeWorkspaceMember({ workspaceId, userId: member.userId });
       if (!result) return;
       if (!result.ok) toast.error(result.error);
-      else toast.success(`${member.name} was removed`);
+      else toast.success(m.projects_member_removed({ name: member.name }));
     } finally {
       isPending = false;
     }
@@ -81,7 +82,7 @@
     <Avatar name={member.name} src={member.image} />
     <span class="min-w-0">
       <span class="block truncate text-sm font-medium hover:underline">
-        {member.name}{#if isSelf}<span class="ml-1.5 font-normal text-muted-foreground">(you)</span>{/if}
+        {member.name}{#if isSelf}<span class="ml-1.5 font-normal text-muted-foreground">{m.projects_you()}</span>{/if}
       </span>
       <span class="block truncate text-xs text-muted-foreground">{member.email}</span>
     </span>
@@ -89,12 +90,12 @@
   {#if canChangeRole}
     <!-- Strictly controlled: shows the server role until the refresh lands. -->
     <Select items={ROLE_ITEMS} bind:value={() => member.role, (v) => changeRole(v)} disabled={isPending}>
-      <SelectTrigger size="sm" class="w-28" aria-label="Role of {member.name}">
+      <SelectTrigger size="sm" class="w-28" aria-label={m.projects_ws_role_of({ name: member.name })}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent align="end">
-        <SelectItem value="admin">Admin</SelectItem>
-        <SelectItem value="member">Member</SelectItem>
+        <SelectItem value="admin">{m.projects_role_admin()}</SelectItem>
+        <SelectItem value="member">{m.projects_role_member()}</SelectItem>
       </SelectContent>
     </Select>
   {:else}
@@ -106,7 +107,7 @@
     <DropdownMenu>
       <DropdownMenuTrigger>
         {#snippet child({ props })}
-          <Button {...props} variant="ghost" size="icon-sm" aria-label="Actions for {member.name}" disabled={isPending}>
+          <Button {...props} variant="ghost" size="icon-sm" aria-label={m.projects_ws_member_actions({ name: member.name })} disabled={isPending}>
             {#if isPending}<LoaderCircleIcon class="animate-spin" />{:else}<EllipsisIcon />{/if}
           </Button>
         {/snippet}
@@ -114,7 +115,7 @@
       <DropdownMenuContent align="end">
         <DropdownMenuItem variant="destructive" onSelect={remove}>
           <UserMinusIcon />
-          Remove from workspace
+          {m.projects_ws_remove_from()}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -1,5 +1,6 @@
 <!-- Editable epic title. -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { Textarea } from '@/lib/components/ui/textarea';
   import { EPIC_NAME_MAX } from '@/lib/epic-model';
 
@@ -25,7 +26,7 @@
 </script>
 
 <Textarea
-  aria-label="Epic name"
+  aria-label={m.projects_epic_name()}
   bind:value={draft}
   rows={1}
   maxlength={EPIC_NAME_MAX}

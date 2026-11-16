@@ -49,19 +49,20 @@
   import { projectHref } from '@/lib/components/app-shell/routes';
   import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/lib/components/ui/collapsible';
   import { isAppHydrated, markAppHydrated } from '@/lib/svelte/hydration';
+  import { m } from '@/lib/i18n';
   import { cn } from '@/lib/utils';
   import SidebarLink from './sidebar-link.svelte';
   import SidebarProjectItem from './sidebar-project-item.svelte';
   import { isActivePath, sidebarRowClass } from './sidebar-row';
 
   const SUB_LINKS = [
-    { segment: '', label: 'Issues', icon: ListTodoIcon },
-    { segment: 'triage', label: 'Triage', icon: SplitIcon },
-    { segment: 'cycles', label: 'Cycles', icon: RefreshCcwIcon },
-    { segment: 'epics', label: 'Epics', icon: PackageIcon },
-    { segment: 'views', label: 'Views', icon: LayersIcon },
-    { segment: 'docs', label: 'Docs', icon: FileTextIcon },
-    { segment: 'settings', label: 'Settings', icon: SettingsIcon },
+    { segment: '', label: m.editor_nav_issues(), icon: ListTodoIcon },
+    { segment: 'triage', label: m.editor_nav_triage(), icon: SplitIcon },
+    { segment: 'cycles', label: m.editor_nav_cycles(), icon: RefreshCcwIcon },
+    { segment: 'epics', label: m.editor_nav_epics(), icon: PackageIcon },
+    { segment: 'views', label: m.editor_nav_views(), icon: LayersIcon },
+    { segment: 'docs', label: m.editor_nav_docs(), icon: FileTextIcon },
+    { segment: 'settings', label: m.common_settings(), icon: SettingsIcon },
   ];
 
   let { project, childrenOf, depth = 0 }: SidebarProjectItemProps = $props();

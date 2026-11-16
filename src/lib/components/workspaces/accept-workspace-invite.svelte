@@ -3,6 +3,7 @@
   joins). The action redirects into the workspace on success.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import LoaderCircleIcon from '@lucide/svelte/icons/loader-circle';
 
   import { acceptWorkspaceInvite, type AcceptWorkspaceInviteState } from '@/lib/actions/workspaces';
@@ -11,9 +12,9 @@
   let { token }: { token: string } = $props();
 
   const ERROR_MESSAGE: Record<NonNullable<AcceptWorkspaceInviteState['error']>, string> = {
-    invalid: 'This invitation is invalid, has expired or was already used.',
-    'wrong-account': 'This invitation was sent to a different email address.',
-    'Not authenticated': 'Your session expired. Sign in again to join.',
+    invalid: m.projects_ws_join_error_invalid(),
+    'wrong-account': m.projects_join_error_wrong_account(),
+    'Not authenticated': m.projects_join_error_session(),
   };
 
   let formState = $state.raw<AcceptWorkspaceInviteState>({});
@@ -39,9 +40,9 @@
   <Button type="submit" class="mt-6 w-full" disabled={isPending}>
     {#if isPending}
       <LoaderCircleIcon class="animate-spin" />
-      Joining…
+      {m.projects_ws_joining()}
     {:else}
-      Join workspace
+      {m.projects_ws_join()}
     {/if}
   </Button>
   {#if formState.error}

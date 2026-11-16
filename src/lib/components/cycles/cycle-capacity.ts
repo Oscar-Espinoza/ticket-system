@@ -1,5 +1,6 @@
 // Shared helpers for CapacityMeter / CapacityBadge.
 
+import { m } from '@/lib/i18n';
 import {
   capacityOf,
   capacityUnit,
@@ -13,8 +14,7 @@ export function amount(value: number): string {
 }
 
 export function unitLabel(unit: 'issues' | 'points', value: number) {
-  const one = unit === 'points' ? 'point' : 'issue';
-  return value === 1 ? one : `${one}s`;
+  return unit === 'points' ? m.projects_unit_points({ count: value }) : m.projects_unit_issues({ count: value });
 }
 
 export function measure(totals: CycleTotals, capacity: CycleCapacity, estimatesEnabled: boolean) {

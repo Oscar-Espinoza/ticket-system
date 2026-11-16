@@ -11,6 +11,7 @@ import {
   type RelationResult,
 } from '@/lib/relations';
 import { fail, refreshesData, type ActionResult } from '@/lib/server/action-kit';
+import { m } from '@/lib/i18n';
 
 export type GetRelationsResult = ActionResult<{ relations: IssueRelationView[] }>;
 
@@ -20,7 +21,7 @@ export async function getIssueRelations(input: {
 }): Promise<GetRelationsResult> {
   const authz = await authorizeProjectAction(input?.projectId, 'read');
   if (!authz.ok) return authz;
-  if (typeof input.ticketId !== 'string' || !input.ticketId) return fail('Issue not found.');
+  if (typeof input.ticketId !== 'string' || !input.ticketId) return fail(m.issues_err_issue_not_found());
   return { ok: true, relations: await listIssueRelations(input.projectId, input.ticketId) };
 }
 

@@ -53,6 +53,7 @@
   import { Button } from '@/lib/components/ui/button';
   import Wordmark from '@/lib/components/wordmark.svelte';
   import { readDensity } from '@/lib/density';
+  import { m } from '@/lib/i18n';
   import { isAppHydrated, markAppHydrated } from '@/lib/svelte/hydration';
   import { cn } from '@/lib/utils';
   import Breadcrumb from './breadcrumb.svelte';
@@ -115,7 +116,7 @@
         <Button
           variant="ghost"
           size="icon-sm"
-          aria-label="Collapse sidebar"
+          aria-label={m.editor_shell_collapse_sidebar()}
           aria-expanded="true"
           aria-controls="app-sidebar"
           onclick={() => setOpen(false)}
@@ -124,24 +125,24 @@
         </Button>
       </div>
 
-      <nav aria-label="Primary" class="flex-1 overflow-y-auto p-2">
+      <nav aria-label={m.editor_shell_primary_nav()} class="flex-1 overflow-y-auto p-2">
         <div class="flex flex-col gap-px">
-          <SidebarLink href="/dashboard/search" label="Search">
+          <SidebarLink href="/dashboard/search" label={m.common_search()}>
             {#snippet icon()}<SearchIcon />{/snippet}
           </SidebarLink>
-          <SidebarLink href="/dashboard/inbox" label="Inbox" trailing={inboxBadge}>
+          <SidebarLink href="/dashboard/inbox" label={m.common_inbox()} trailing={inboxBadge}>
             {#snippet icon()}<InboxIcon />{/snippet}
           </SidebarLink>
-          <SidebarLink href="/dashboard/my-issues" label="My issues">
+          <SidebarLink href="/dashboard/my-issues" label={m.editor_nav_my_issues()}>
             {#snippet icon()}<TargetIcon />{/snippet}
           </SidebarLink>
-          <SidebarLink href="/dashboard/views" label="Views">
+          <SidebarLink href="/dashboard/views" label={m.editor_nav_views()}>
             {#snippet icon()}<LayersIcon />{/snippet}
           </SidebarLink>
-          <SidebarLink href="/dashboard/drafts" label="Drafts">
+          <SidebarLink href="/dashboard/drafts" label={m.editor_nav_drafts()}>
             {#snippet icon()}<FilePenIcon />{/snippet}
           </SidebarLink>
-          <SidebarLink href="/dashboard/dashboards" label="Dashboards">
+          <SidebarLink href="/dashboard/dashboards" label={m.editor_nav_dashboards()}>
             {#snippet icon()}<LayoutDashboardIcon />{/snippet}
           </SidebarLink>
         </div>
@@ -161,7 +162,7 @@
         <Button
           variant="ghost"
           size="icon-sm"
-          aria-label="Expand sidebar"
+          aria-label={m.editor_shell_expand_sidebar()}
           aria-expanded="false"
           onclick={() => setOpen(true)}
         >

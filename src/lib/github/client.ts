@@ -1,6 +1,7 @@
 // Per-request Octokit clients built from the acting user's own OAuth token
 // (never a shared PAT). Server-only: goes through getGitHubToken.
 
+import { m } from '@/lib/i18n';
 import { Octokit } from '@octokit/rest';
 
 import { getGitHubToken } from '@/lib/github-token';
@@ -75,14 +76,12 @@ export function githubMessage(err: unknown): string {
 export function describeGithubError(err: unknown, repo?: string): string {
   switch (githubStatus(err)) {
     case 401:
-      return 'Your GitHub connection expired or was revoked. Reconnect it in Settings → GitHub.';
+      return m.shared_gh_err_expired();
     case 403:
     case 404:
-      return repo
-        ? `GitHub denied access to ${repo}. Check that you can push to it and that the connection has the repo scope.`
-        : 'GitHub denied access. Check the connection has the repo scope.';
+      return repo ? m.shared_gh_err_denied_repo({ repo }) : m.shared_gh_err_denied();
     default:
-      return `GitHub error: ${githubMessage(err)}`;
+      return m.shared_gh_err_other({ message: githubMessage(err) });
   }
 }
 

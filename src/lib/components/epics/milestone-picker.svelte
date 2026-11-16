@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import BanIcon from '@lucide/svelte/icons/ban';
 
   import { PickerPopover, keywordFilter, type PickerPopoverProps } from '@/lib/components/issue-pickers';
@@ -31,9 +32,9 @@
       onChange(id);
     }}
     <Command filter={keywordFilter}>
-      <CommandInput placeholder="Set milestone…" />
+      <CommandInput placeholder={m.projects_set_milestone()} />
       <CommandList>
-        <CommandEmpty>No milestone found.</CommandEmpty>
+        <CommandEmpty>{m.projects_milestone_not_found()}</CommandEmpty>
         <CommandItem
           value="__none"
           keywords={['No milestone', 'Remove']}
@@ -41,7 +42,7 @@
           onSelect={() => pick(null)}
         >
           <BanIcon class="text-muted-foreground" />
-          No milestone
+          {m.projects_no_milestone()}
         </CommandItem>
         {#each milestones as milestone (milestone.id)}
           <CommandItem

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { untrack } from 'svelte';
   import TriangleAlertIcon from '@lucide/svelte/icons/triangle-alert';
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
@@ -13,22 +14,26 @@
   let { projectId, ticketKey, isOwner }: ProjectGeneralFormProps = $props();
 
   const form = createActionState<ProjectSettingsState>(changeProjectKey, {});
-  useResultToast(() => form.state, 'Issue key changed');
+  useResultToast(() => form.state, m.settings_project_key_changed_toast());
   // Seeded once; the refreshed prop equals the typed value after a successful change.
   let value = $state(untrack(() => ticketKey));
   const error = $derived(form.state.errors?.ticketKey);
   const changed = $derived(value !== ticketKey);
+  const descParts = $derived(m.settings_project_key_desc({ example: '\uE000' }).split('\uE000'));
+  const warnParts = $derived(
+    m.settings_project_key_warning({ from: '\uE000', to: '\uE001' }).split(/[\uE000\uE001]/),
+  );
 </script>
 
 <form onsubmit={form.onsubmit} class="flex flex-col gap-4" novalidate>
   <input type="hidden" name="projectId" value={projectId} />
   <div>
-    <h2 class="text-base font-medium">Issue key</h2>
+    <h2 class="text-base font-medium">{m.settings_project_key_title()}</h2>
     <p class="mt-1 text-sm text-muted-foreground">
-      The prefix of every issue ID, like <span class="font-mono">{ticketKey}-12</span>.
+      {descParts[0]}<span class="font-mono">{ticketKey}-12</span>{descParts[1]}
     </p>
   </div>
-  <Field id="project-key" label="Key" hint={isOwner ? '2–6 uppercase letters.' : 'Only the project owner can change the key.'}
+  <Field id="project-key" label={m.settings_project_key_label()} hint={isOwner ? m.settings_project_key_hint() : m.settings_project_key_owner_only()}
     {error}>
     <Input
       id="project-key"
@@ -52,9 +57,7 @@
     <p class="flex items-start gap-2 text-sm text-muted-foreground">
       <TriangleAlertIcon aria-hidden="true" class="mt-0.5 size-4 shrink-0 text-amber-500" />
       <span>
-        Every issue ID changes from <span class="font-mono">{ticketKey}-…</span> to{' '}
-        <span class="font-mono">{value || '…'}-…</span>. Links, branch names and commit messages that
-        use the old IDs will no longer match.
+        {warnParts[0]}<span class="font-mono">{ticketKey}-…</span>{warnParts[1]}<span class="font-mono">{value || '…'}-…</span>{warnParts[2]}
       </span>
     </p>
   {/if}
@@ -62,7 +65,7 @@
     <div>
       <Button type="submit" variant="outline" disabled={form.pending || !changed}>
         {#if form.pending}<Loader2Icon class="animate-spin" />{/if}
-        Change key
+        {m.settings_project_change_key()}
       </Button>
     </div>
   {/if}

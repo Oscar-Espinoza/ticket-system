@@ -11,6 +11,7 @@
     </IssueContextMenu>
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import ArchiveIcon from '@lucide/svelte/icons/archive';
   import CalendarDaysIcon from '@lucide/svelte/icons/calendar-days';
   import CheckIcon from '@lucide/svelte/icons/check';
@@ -118,14 +119,14 @@
   {#if targets.length > 0}
     <ContextMenuContent class="w-56">
       <ContextMenuLabel class="truncate text-xs text-muted-foreground">
-        {targets.length === 1 ? `${targets[0].key} ${targets[0].title}` : `${targets.length} issues`}
+        {targets.length === 1 ? `${targets[0].key} ${targets[0].title}` : m.common_issue_count({ count: targets.length })}
       </ContextMenuLabel>
       <ContextMenuSeparator />
       {#if canWrite.current}
         <ContextMenuSub>
           <ContextMenuSubTrigger>
             <CircleDashedIcon class="text-muted-foreground" />
-            Status
+            {m.common_status()}
           </ContextMenuSubTrigger>
           <ContextMenuSubContent class="max-h-80 w-52 overflow-y-auto">
             {#each data.states as state (state.id)}
@@ -141,7 +142,7 @@
         <ContextMenuSub>
           <ContextMenuSubTrigger>
             <SignalHighIcon class="text-muted-foreground" />
-            Priority
+            {m.common_priority()}
           </ContextMenuSubTrigger>
           <ContextMenuSubContent class="w-44">
             {#each PRIORITY_MENU_ORDER as p (p)}
@@ -157,12 +158,12 @@
         <ContextMenuSub>
           <ContextMenuSubTrigger>
             <UserRoundIcon class="text-muted-foreground" />
-            Assignee
+            {m.common_assignee()}
           </ContextMenuSubTrigger>
           <ContextMenuSubContent class="max-h-80 w-56 overflow-y-auto">
             <ContextMenuItem onSelect={() => apply({ assigneeId: null })}>
               <UserRoundIcon class="text-muted-foreground" />
-              No assignee
+              {m.issues_no_assignee()}
               {@render mark(assigneeId === null)}
             </ContextMenuItem>
             {#each members as member (member.id)}
@@ -170,7 +171,7 @@
                 <Avatar name={member.name} src={member.image} size={20} />
                 <span class="truncate">{member.name}</span>
                 {#if member.id === data.viewer.id}
-                  <span class="text-xs text-muted-foreground">(you)</span>
+                  <span class="text-xs text-muted-foreground">{m.issues_you_paren()}</span>
                 {/if}
                 {@render mark(assigneeId === member.id)}
               </ContextMenuItem>
@@ -182,7 +183,7 @@
           <ContextMenuSub>
             <ContextMenuSubTrigger>
               <TagIcon class="text-muted-foreground" />
-              Labels
+              {m.common_labels()}
             </ContextMenuSubTrigger>
             <ContextMenuSubContent class="max-h-80 w-52 overflow-y-auto">
               {#each data.labels as label (label.id)}
@@ -206,7 +207,7 @@
         <ContextMenuSub>
           <ContextMenuSubTrigger>
             <CalendarDaysIcon class="text-muted-foreground" />
-            Due date
+            {m.common_due_date()}
           </ContextMenuSubTrigger>
           <ContextMenuSubContent class="w-56">
             {#each dueDateQuickOptions() as option (option.label)}
@@ -220,7 +221,7 @@
               <ContextMenuSeparator />
               <ContextMenuItem onSelect={() => apply({ dueDate: null })}>
                 <XIcon class="text-muted-foreground" />
-                Remove due date
+                {m.issues_remove_due_date()}
               </ContextMenuItem>
             {/if}
           </ContextMenuSubContent>
@@ -230,19 +231,19 @@
 
       <ContextMenuItem onSelect={() => void copyIds(targets)}>
         <HashIcon class="text-muted-foreground" />
-        {targets.length === 1 ? 'Copy ID' : 'Copy IDs'}
+        {targets.length === 1 ? m.issues_copy_id() : m.issues_copy_ids()}
         {#if targets.length === 1}
           <ContextMenuShortcut>{formatHotkey({ mod: true, key: '.' })}</ContextMenuShortcut>
         {/if}
       </ContextMenuItem>
       <ContextMenuItem onSelect={() => void copyLinks(targets)}>
         <Link2Icon class="text-muted-foreground" />
-        {targets.length === 1 ? 'Copy link' : 'Copy links'}
+        {targets.length === 1 ? m.issues_copy_link() : m.issues_copy_links()}
       </ContextMenuItem>
       {#if clicked}
         <ContextMenuItem onSelect={() => window.open(issuePath(clicked.projectId, clicked.key), '_blank', 'noopener')}>
           <ExternalLinkIcon class="text-muted-foreground" />
-          Open in new tab
+          {m.issues_context_open_new_tab()}
         </ContextMenuItem>
       {/if}
 
@@ -255,11 +256,11 @@
           }}
         >
           <ArchiveIcon class="text-muted-foreground" />
-          Archive
+          {m.issues_archive()}
         </ContextMenuItem>
         <ContextMenuItem variant="destructive" onSelect={() => (trash = targets)}>
           <Trash2Icon />
-          Move to trash…
+          {m.issues_move_to_trash_ellipsis()}
         </ContextMenuItem>
       {/if}
     </ContextMenuContent>

@@ -4,6 +4,7 @@
   server-side). "New doc" creates a blank document already linked to the epic.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import FileText from '@lucide/svelte/icons/file-text';
   import Plus from '@lucide/svelte/icons/plus';
 
@@ -33,13 +34,13 @@
 
 <section aria-labelledby={`epic-docs-${epicId}`} class="flex flex-col gap-1">
   <div class="flex items-center gap-2">
-    <h2 id={`epic-docs-${epicId}`} class="text-xs font-medium text-muted-foreground">Documents</h2>
+    <h2 id={`epic-docs-${epicId}`} class="text-xs font-medium text-muted-foreground">{m.auth_docs_docs()}</h2>
     {#if canWrite.current}
       <Button
         variant="ghost"
         size="icon-sm"
         class="ml-auto size-6"
-        aria-label="New document in this epic"
+        aria-label={m.auth_docs_new_in_epic()}
         disabled={doc.pending}
         onclick={() => doc.create('blank')}
       >
@@ -50,7 +51,7 @@
   {#if documents.length === 0}
     <p class="flex items-center gap-2 px-1 py-1 text-xs text-muted-foreground">
       <FileText class="size-3.5" aria-hidden="true" />
-      No documents yet.
+      {m.auth_docs_none_yet()}
     </p>
   {:else}
     <ul class="flex flex-col">

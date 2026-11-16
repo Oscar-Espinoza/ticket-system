@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { toast } from 'svelte-sonner';
 
   import { disconnectIntegration } from '@/lib/actions/developer';
@@ -32,17 +33,17 @@
     try {
       const result = await disconnectIntegration({ projectId, provider: 'sentry' });
       if (!result.ok) toast.error(result.error);
-      else toast.success('Sentry disconnected');
+      else toast.success(m.settings_dev_sentry_disconnected_toast());
     } finally {
       pending = false;
     }
   }
 </script>
 
-<section class="flex flex-col gap-4" aria-label="Sentry">
+<section class="flex flex-col gap-4" aria-label={'Sentry'}>
   <SectionHeading
-    title="Sentry"
-    description="Turn Sentry issue alerts into triage issues — one per Sentry issue, with the culprit, event count and a link — and note on the issue when Sentry marks it resolved. To link an existing Sentry issue, paste its URL as a link on the issue."
+    title={'Sentry'}
+    description={m.settings_dev_sentry_description()}
   >
     {#snippet icon()}<SentryMark class="size-4 text-[#7553ff]" />{/snippet}
   </SectionHeading>
@@ -51,27 +52,27 @@
     <div class="flex flex-col gap-3 rounded-lg border border-border p-4">
       <div class="flex items-center gap-2 text-sm">
         <span class="size-1.5 rounded-full bg-emerald-500" aria-hidden="true"></span>
-        Connected
+        {m.settings_dev_connected()}
         <span class="text-muted-foreground">
-          · {sentry.hasToken ? 'event counts on' : 'no auth token (no event counts)'}
+          · {sentry.hasToken ? m.settings_dev_sentry_counts_on() : m.settings_dev_sentry_no_token()}
         </span>
         {#if sentry.connectedByName}
           <span class="ml-auto text-xs text-muted-foreground">
-            Connected by {sentry.connectedByName}
+            {m.settings_dev_connected_by({ name: sentry.connectedByName })}
           </span>
         {/if}
       </div>
-      <Field id="sentry-url" label="Webhook URL">
-        <CopyField value={webhookUrl} label="Webhook URL" />
+      <Field id="sentry-url" label={m.settings_dev_webhook_url()}>
+        <CopyField value={webhookUrl} label={m.settings_dev_webhook_url()} />
       </Field>
       {#if canEdit}
         <div class="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onclick={() => (editing = true)} disabled={pending}>
-            Replace secret
+            {m.settings_dev_replace_secret()}
           </Button>
           <DisconnectButton
             name="Sentry"
-            description="Alerts stop creating issues here. Issues already created and their Sentry links are kept."
+            description={m.settings_dev_sentry_disconnect_desc()}
             disabled={pending}
             {pending}
             onConfirm={disconnect}
@@ -84,25 +85,20 @@
       class="flex max-w-2xl list-decimal flex-col gap-2 pl-5 text-sm text-muted-foreground"
     >
       <li>
-        In Sentry, open
-        <span class="text-foreground">Settings → Custom Integrations → Create New Integration</span>
-        and choose <span class="text-foreground">Internal Integration</span>.
+        {m.settings_dev_sentry_step1()}
       </li>
       <li>
-        Set the Webhook URL to:
+        {m.settings_dev_sentry_step2()}
         <div class="mt-1.5">
-          <CopyField value={webhookUrl} label="Webhook URL" />
+          <CopyField value={webhookUrl} label={m.settings_dev_webhook_url()} />
         </div>
       </li>
       <li>
-        Turn on <span class="text-foreground">Alert Rule Action</span>, give it
-        <span class="text-foreground">Issue &amp; Event: Read</span>, and under Webhooks subscribe to
-        <span class="text-foreground">issue</span> (for resolves). Save.
+        {m.settings_dev_sentry_step3()}
       </li>
-      <li>Paste the integration&apos;s Client Secret below (and a token for event counts).</li>
+      <li>{m.settings_dev_sentry_step4()}</li>
       <li>
-        In an issue alert rule, add the action
-        <span class="text-foreground">Send a notification via &lt;your integration&gt;</span>.
+        {m.settings_dev_sentry_step5()}
       </li>
     </ol>
     <SentryForm
@@ -111,6 +107,6 @@
       onCancel={sentry ? () => (editing = false) : undefined}
     />
   {:else}
-    <p class="text-sm text-muted-foreground">Not connected.</p>
+    <p class="text-sm text-muted-foreground">{m.settings_dev_not_connected()}</p>
   {/if}
 </section>

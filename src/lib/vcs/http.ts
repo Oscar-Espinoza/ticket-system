@@ -2,6 +2,7 @@
 // Asana / Shortcut importers): JSON in and out, timeout, errors carry the HTTP
 // status and the provider's own message. Server-only.
 
+import { m } from '@/lib/i18n';
 import { PROVIDER_TIMEOUT_MS } from '@/lib/integrations/timeouts';
 import { guardedRequest, type GuardedResponse } from '@/lib/integrations/url-guard';
 import { VCS_PROVIDER_LABEL, type VcsProvider } from '@/lib/vcs/providers';
@@ -71,20 +72,22 @@ export async function requestJson<T>(
 }
 
 export function describeVcsError(provider: VcsProvider, err: unknown, repo?: string): string {
-  const name = VCS_PROVIDER_LABEL[provider];
-  if (!(err instanceof VcsHttpError)) return `${name} error: ${err instanceof Error ? err.message : String(err)}`;
+  const label = VCS_PROVIDER_LABEL[provider];
+  if (!(err instanceof VcsHttpError)) {
+    return m.shared_vcs_err_generic({ provider: label, message: err instanceof Error ? err.message : String(err) });
+  }
   switch (err.status) {
     case 0:
-      return `Couldn't reach ${name}: ${err.message}`;
+      return m.shared_vcs_err_unreachable({ provider: label, message: err.message });
     case 401:
-      return `${name} rejected the access token. Check it hasn't expired and has the required scopes.`;
+      return m.shared_vcs_err_401({ provider: label });
     case 403:
-      return `${name} denied access${repo ? ` to ${repo}` : ''}. The token needs permission to manage webhooks.`;
+      return repo ? m.shared_vcs_err_403_repo({ provider: label, repo }) : m.shared_vcs_err_403({ provider: label });
     case 404:
-      return `${repo ?? 'The repository'} wasn't found on ${name}, or the token can't see it.`;
+      return repo ? m.shared_vcs_err_404_repo({ provider: label, repo }) : m.shared_vcs_err_404({ provider: label });
     case 429:
-      return `${name} rate-limited the request. Try again in a minute.`;
+      return m.shared_vcs_err_429({ provider: label });
     default:
-      return `${name} error (${err.status}): ${err.message}`;
+      return m.shared_vcs_err_status({ provider: label, status: String(err.status), message: err.message });
   }
 }

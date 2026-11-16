@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { DATE_TIME_MEDIUM_FORMAT } from '@/lib/format';
   import EllipsisIcon from '@lucide/svelte/icons/ellipsis';
   import Trash2Icon from '@lucide/svelte/icons/trash-2';
@@ -37,8 +38,8 @@
   <header class="flex items-center gap-2 text-sm">
     <HealthChip health={update.health} class="font-medium" />
     <span class="text-muted-foreground">·</span>
-    <Avatar name={update.author?.name ?? 'Someone'} src={update.author?.image} size={20} />
-    <span class="truncate">{update.author?.name ?? 'Someone'}</span>
+    <Avatar name={update.author?.name ?? m.projects_update_someone()} src={update.author?.image} size={20} />
+    <span class="truncate">{update.author?.name ?? m.projects_update_someone()}</span>
     <time
       datetime={createdAt.toISOString()}
       title={DATE_TIME_MEDIUM_FORMAT.format(createdAt)}
@@ -50,7 +51,7 @@
       <DropdownMenu>
         <DropdownMenuTrigger>
           {#snippet child({ props })}
-            <Button {...props} variant="ghost" size="icon-xs" class="ml-auto" aria-label="Update actions">
+            <Button {...props} variant="ghost" size="icon-xs" class="ml-auto" aria-label={m.projects_update_actions()}>
               <EllipsisIcon />
             </Button>
           {/snippet}
@@ -58,7 +59,7 @@
         <DropdownMenuContent align="end">
           <DropdownMenuItem variant="destructive" onSelect={onDelete}>
             <Trash2Icon />
-            Delete update
+            {m.projects_delete_update()}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

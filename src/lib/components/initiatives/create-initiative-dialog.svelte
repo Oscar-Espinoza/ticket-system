@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import CalendarDaysIcon from '@lucide/svelte/icons/calendar-days';
   import UserRoundIcon from '@lucide/svelte/icons/user-round';
   import { goto } from '$app/navigation';
@@ -82,7 +83,7 @@
         error = result.error;
         return;
       }
-      toast.success(`Created initiative “${name.trim()}”`);
+      toast.success(m.projects_initiative_created({ name: name.trim() }));
       name = '';
       description = '';
       status = 'planned';
@@ -99,8 +100,8 @@
 <Dialog bind:open={() => open, setOpen}>
   <DialogContent class="sm:max-w-xl">
     <DialogHeader>
-      <DialogTitle>New initiative</DialogTitle>
-      <DialogDescription>A goal that groups epics across this workspace’s projects.</DialogDescription>
+      <DialogTitle>{m.projects_initiative_new()}</DialogTitle>
+      <DialogDescription>{m.projects_initiative_new_desc()}</DialogDescription>
     </DialogHeader>
     <!-- ⌘Enter submits -->
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
@@ -112,31 +113,31 @@
       class="flex flex-col gap-4"
     >
       <div class="flex flex-col gap-1.5">
-        <Label for={`${uid}-name`}>Name</Label>
+        <Label for={`${uid}-name`}>{m.common_name()}</Label>
         <!-- svelte-ignore a11y_autofocus -->
         <Input
           id={`${uid}-name`}
           bind:value={name}
-          placeholder="Initiative name"
+          placeholder={m.projects_initiative_name_placeholder()}
           maxlength={INITIATIVE_NAME_MAX}
           autofocus
           aria-invalid={error ? true : undefined}
         />
       </div>
       <div class="flex flex-col gap-1.5">
-        <span class="text-sm font-medium">Description</span>
+        <span class="text-sm font-medium">{m.common_description()}</span>
         <RichTextEditor
-          aria-label="Description"
+          aria-label={m.common_description()}
           value={description}
           onChange={(next) => (description = next)}
-          placeholder="Why does this matter? Markdown supported."
+          placeholder={m.projects_initiative_description_placeholder()}
           maxLength={INITIATIVE_DESCRIPTION_MAX}
         />
       </div>
-      <div role="group" aria-label="Properties" class="flex flex-wrap gap-1.5">
+      <div role="group" aria-label={m.projects_properties()} class="flex flex-wrap gap-1.5">
         <InitiativeStatusPicker value={status} onChange={(next) => (status = next)}>
           {#snippet children({ props })}
-            <Chip {...props} aria-label={`Status: ${INITIATIVE_STATUS_LABEL[status]}`}>
+            <Chip {...props} aria-label={m.projects_epic_status_chip({ status: INITIATIVE_STATUS_LABEL[status] })}>
               <InitiativeStatusIcon {status} />
               <span class="text-foreground">{INITIATIVE_STATUS_LABEL[status]}</span>
             </Chip>
@@ -147,17 +148,17 @@
           {members}
           {viewerId}
           onChange={(next) => (ownerId = next)}
-          placeholder="Set owner…"
-          noneLabel="No owner"
+          placeholder={m.projects_initiative_set_owner()}
+          noneLabel={m.projects_initiative_no_owner()}
         >
           {#snippet children({ props })}
-            <Chip {...props} aria-label={`Owner: ${owner?.name ?? 'none'}`}>
+            <Chip {...props} aria-label={m.projects_initiative_owner_chip({ name: owner?.name ?? m.projects_initiative_owner_none() })}>
               {#if owner}
                 <Avatar name={owner.name} src={owner.image} size={20} class="-my-1 size-4" />
                 <span class="truncate text-foreground">{owner.name}</span>
               {:else}
                 <UserRoundIcon />
-                Owner
+                {m.projects_initiative_owner()}
               {/if}
             </Chip>
           {/snippet}
@@ -165,15 +166,15 @@
         <DatePicker
           value={targetDate}
           onChange={(next) => (targetDate = next)}
-          clearLabel="Clear target date"
+          clearLabel={m.projects_epic_clear_target()}
         >
           {#snippet children({ props })}
-            <Chip {...props} aria-label="Target date">
+            <Chip {...props} aria-label={m.projects_epic_target_date()}>
               <CalendarDaysIcon />
               {#if targetDate}
-                <span class="text-foreground">Target {formatDueDate(targetDate)}</span>
+                <span class="text-foreground">{m.projects_epic_target_on({ date: formatDueDate(targetDate) })}</span>
               {:else}
-                Target date
+                {m.projects_epic_target_date()}
               {/if}
             </Chip>
           {/snippet}
@@ -183,8 +184,8 @@
         <p role="alert" class="text-sm text-destructive">{error}</p>
       {/if}
       <DialogFooter>
-        <Button type="button" variant="outline" onclick={() => setOpen(false)}>Cancel</Button>
-        <Button type="submit" disabled={!name.trim() || pending}>Create initiative</Button>
+        <Button type="button" variant="outline" onclick={() => setOpen(false)}>{m.common_cancel()}</Button>
+        <Button type="submit" disabled={!name.trim() || pending}>{m.projects_initiative_create()}</Button>
       </DialogFooter>
     </form>
   </DialogContent>

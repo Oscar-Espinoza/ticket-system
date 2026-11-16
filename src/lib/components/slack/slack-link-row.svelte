@@ -1,5 +1,6 @@
 <!-- The viewer's own link to one Slack workspace: DM toggle, unlink. -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { toast } from 'svelte-sonner';
 
   import { setSlackDmNotify, unlinkSlack } from '@/lib/actions/settings-slack';
@@ -34,7 +35,7 @@
     try {
       const result = await unlinkSlack({ teamId: workspace.teamId });
       if (!result) return;
-      if (result.ok) toast.success(`Unlinked from ${workspace.teamName}`);
+      if (result.ok) toast.success(m.settings_slack_unlinked_toast({ name: workspace.teamName }));
       else toast.error(result.error);
     } finally {
       pending = false;
@@ -46,9 +47,9 @@
   <p class="min-w-0 flex-1 truncate text-sm font-medium">{workspace.teamName}</p>
   <div class="flex items-center gap-2">
     <Switch id={switchId} size="sm" bind:checked={() => notify, (next) => toggle(next)} disabled={pending} />
-    <Label for={switchId} class="font-normal">Send me notifications as DMs</Label>
+    <Label for={switchId} class="font-normal">{m.settings_slack_dm_notify()}</Label>
   </div>
   <Button size="sm" variant="ghost" class="text-muted-foreground" onclick={unlink} disabled={pending}>
-    Unlink
+    {m.settings_slack_unlink()}
   </Button>
 </li>

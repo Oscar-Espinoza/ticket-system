@@ -23,6 +23,8 @@
 <script lang="ts">
   import BoxesIcon from '@lucide/svelte/icons/boxes';
 
+  import { m } from '@/lib/i18n';
+
   import { epicPath } from '@/lib/epic-model';
   import EpicIcon from '@/lib/components/epics/epic-icon.svelte';
   import EpicPicker from '@/lib/components/epics/epic-picker.svelte';
@@ -74,7 +76,7 @@
       <EpicIcon color={epic.color} />
       <span class="truncate">{epic.name}</span>
       {#if foreignEpic}
-        <span class="shrink-0 font-mono text-[10px] text-muted-foreground" title={`Epic in ${foreignEpic.project.name}`}>
+        <span class="shrink-0 font-mono text-[10px] text-muted-foreground" title={m.shared_epic_in_project({ project: foreignEpic.project.name })}>
           {foreignEpic.project.ticketKey}
         </span>
       {/if}
@@ -82,11 +84,11 @@
       <BoxesIcon class="text-muted-foreground" />
       <span class="text-muted-foreground">
         {!issue.epicId
-          ? 'Add to epic'
+          ? m.shared_add_to_epic()
           : needsForeign && foreign === undefined
-            ? 'Loading…'
+            ? m.common_loading()
             : // Archived (not in project data), or an epic of a project the viewer can't see.
-              'Archived epic'}
+              m.shared_archived_epic()}
       </span>
     {/if}
   </Button>
@@ -98,14 +100,14 @@
     {#if milestone}
       <span class="truncate">{milestone.name}</span>
     {:else}
-      <span class="text-muted-foreground">Add milestone</span>
+      <span class="text-muted-foreground">{m.projects_add_milestone()}</span>
     {/if}
   </Button>
 {/snippet}
 
 <!-- Nothing to show or pick: keep the panel quiet. -->
 {#if issue.epicId || data.epics.length > 0 || foreign?.length}
-  <PropertyRow label="Epic">
+  <PropertyRow label={m.issues_epic()}>
     <div class="flex min-w-0 items-center">
       {#if canWrite}
         <EpicPicker
@@ -123,14 +125,14 @@
       {/if}
       {#if epicHref}
         <a href={epicHref} class="ml-1 shrink-0 text-xs text-muted-foreground hover:text-foreground">
-          Open
+          {m.common_open()}
         </a>
       {/if}
     </div>
   </PropertyRow>
 
   {#if epic && (epic.milestones.length > 0 || milestone)}
-    <PropertyRow label="Milestone">
+    <PropertyRow label={m.issues_prop_milestone()}>
       {#if canWrite}
         <MilestonePicker
           value={issue.milestoneId}

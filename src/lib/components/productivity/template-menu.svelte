@@ -1,5 +1,6 @@
 <!-- "Template" dropdown in the new-issue dialog header. -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import FileText from '@lucide/svelte/icons/file-text';
   import Settings2 from '@lucide/svelte/icons/settings-2';
 
@@ -37,16 +38,16 @@
     {#snippet child({ props })}
       <Button {...props} type="button" variant="ghost" size="xs" class="text-muted-foreground">
         <FileText />
-        Template
+        {m.issues_tpl()}
       </Button>
     {/snippet}
   </DropdownMenuTrigger>
   <DropdownMenuContent align="end" class="w-56">
-    <DropdownMenuLabel>Apply template</DropdownMenuLabel>
+    <DropdownMenuLabel>{m.issues_tpl_apply()}</DropdownMenuLabel>
     {#if templates.current === undefined}
-      <DropdownMenuItem disabled>Loading…</DropdownMenuItem>
+      <DropdownMenuItem disabled>{m.common_loading()}</DropdownMenuItem>
     {:else if templates.current.length === 0}
-      <DropdownMenuItem disabled>No templates yet</DropdownMenuItem>
+      <DropdownMenuItem disabled>{m.issues_tpl_none()}</DropdownMenuItem>
     {:else}
       {#each templates.current as template (template.id)}
         <DropdownMenuItem onSelect={() => onApply(template)}>
@@ -60,7 +61,7 @@
       {#snippet child({ props })}
         <a {...props} href={projectHref(data.project.id, 'settings/templates')}>
           <Settings2 />
-          Manage templates
+          {m.issues_tpl_manage()}
         </a>
       {/snippet}
     </DropdownMenuItem>

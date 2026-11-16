@@ -13,6 +13,7 @@
   import { Button } from '@/lib/components/ui/button';
   import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/lib/components/ui/dialog';
   import { Avatar, PriorityIcon, StateIcon } from '@/lib/components/ui-icons';
+  import { m } from '@/lib/i18n';
   import { issuePath } from '@/lib/issue-links';
   import { PRIORITY_LABEL, type IssueRow } from '@/lib/issue-model';
 
@@ -58,14 +59,14 @@
       <div class="flex items-center gap-2 pr-8 text-xs text-muted-foreground">
         <span class="font-mono">{current.key}</span>
         <span aria-hidden="true">·</span>
-        <span>Peek</span>
+        <span>{m.editor_peek()}</span>
         <span class="ml-auto hidden sm:inline">
-          <kbd class="font-sans">Enter</kbd> to open · <kbd class="font-sans">Space</kbd> to close
+          {m.editor_peek_hint()}
         </span>
       </div>
       <DialogTitle class="text-lg leading-snug font-medium">{current.title}</DialogTitle>
       <DialogDescription class="sr-only">
-        Preview of {current.key}. Press Enter to open it, Space or Escape to close.
+        {m.editor_peek_sr({ key: current.key })}
       </DialogDescription>
 
       <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
@@ -83,7 +84,7 @@
             {current.assignee.name}
           {:else}
             <UserRoundIcon class="size-4 text-muted-foreground" />
-            <span class="text-muted-foreground">Unassigned</span>
+            <span class="text-muted-foreground">{m.editor_unassigned()}</span>
           {/if}
         </span>
         {#if current.dueDate}
@@ -101,16 +102,16 @@
         {#if current.description?.trim()}
           <Markdown embeds={false} source={current.description} />
         {:else}
-          <p class="text-muted-foreground">No description.</p>
+          <p class="text-muted-foreground">{m.editor_inbox_no_description()}</p>
         {/if}
       </div>
 
       <div class="flex justify-end gap-2">
         <Button variant="ghost" size="sm" href={issuePath(current.projectId, current.key)}>
-          Full page
+          {m.editor_peek_full_page()}
           <ArrowUpRightIcon />
         </Button>
-        <Button size="sm" onclick={() => onOpen(current)}>Open issue</Button>
+        <Button size="sm" onclick={() => onOpen(current)}>{m.editor_inbox_open_issue()}</Button>
       </div>
     </DialogContent>
   {/if}

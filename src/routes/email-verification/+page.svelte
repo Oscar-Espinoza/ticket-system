@@ -11,6 +11,7 @@
   password?" (a reset proves the address and claims a squatted account).
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { onMount } from 'svelte';
   import { replaceState } from '$app/navigation';
   import { page } from '$app/state';
@@ -69,7 +70,7 @@
     if (!token || !tokenEmail) return;
     formError = null;
     if (!password) {
-      formError = 'Enter the password of this account.';
+      formError = m.auth_verify_enter_password();
       return;
     }
     loading = true;
@@ -80,13 +81,13 @@
     if (error) {
       loading = false;
       if (error.code === 'SSO_REQUIRED') {
-        formError = 'Your workspace requires single sign-on, so this account doesn’t need email verification.';
+        formError = m.auth_verify_sso();
       } else if (error.status === 401) {
-        formError = 'Wrong password for this account.';
+        formError = m.auth_verify_wrong_password();
       } else if (error.status === 429) {
-        formError = 'Too many attempts. Wait a moment and try again.';
+        formError = m.auth_login_too_many();
       } else {
-        formError = 'Something went wrong. Please try again.';
+        formError = m.auth_login_generic();
       }
       return;
     }
@@ -99,37 +100,33 @@
   const copy = $derived(
     {
       verified: {
-        title: 'Email verified',
-        body: data.signedIn
-          ? 'Your email address is verified. You can now also sign in with Google or GitHub using it.'
-          : 'Your email address is verified. Sign in to continue; you can now also sign in with Google or GitHub using it.',
+        title: m.auth_verify_verified_title(),
+        body: data.signedIn ? m.auth_verify_verified_body_in() : m.auth_verify_verified_body_out(),
       },
       expired: {
-        title: 'This link has expired',
+        title: m.auth_verify_expired_title(),
         body: data.signedIn
-          ? `Verification links work for ${data.linkHours} hours. Send yourself a new one.`
-          : `Verification links work for ${data.linkHours} hours. Sign in to send yourself a new one.`,
+          ? m.auth_verify_expired_body_in({ hours: data.linkHours })
+          : m.auth_verify_expired_body_out({ hours: data.linkHours }),
       },
       invalid: {
-        title: 'This link doesn’t work',
-        body: data.signedIn
-          ? 'It may have been cut off when copied. Send yourself a new link.'
-          : 'It may have been cut off when copied. Sign in to send yourself a new link.',
+        title: m.auth_reset_bad_link(),
+        body: data.signedIn ? m.auth_verify_invalid_body_in() : m.auth_verify_invalid_body_out(),
       },
       'sign-in': {
-        title: 'Sign in to verify',
-        body: 'A verification link only works for the account’s owner, so it needs that account’s password too.',
+        title: m.auth_verify_sign_in_title(),
+        body: m.auth_verify_sign_in_body(),
       },
       pending: {
-        title: 'Verify your email',
-        body: 'Open the link we emailed you, or send yourself a new one.',
+        title: m.auth_verify_pending_title(),
+        body: m.auth_verify_pending_body(),
       },
     }[data.state],
   );
 </script>
 
 <svelte:head>
-  <title>{copy.title} · Ticket System</title>
+  <title>{m.auth_page_title({ page: copy.title })}</title>
   <!-- The fragment never leaves the browser; this keeps the page's own URL out of any Referer too. -->
   <meta name="referrer" content="no-referrer" />
 </svelte:head>
@@ -153,17 +150,16 @@
         {#if token && tokenEmail}
           {#if data.signedInEmail && data.signedInEmail.toLowerCase() !== tokenEmail.toLowerCase()}
             <p class="text-sm text-muted-foreground">
-              You’re signed in as <span class="font-medium break-all">{data.signedInEmail}</span>; signing in below
-              switches to the account this link is for.
+              {m.auth_verify_signed_in_as({ email: data.signedInEmail })}
             </p>
           {/if}
           <form onsubmit={handleSubmit} class="flex flex-col gap-4" novalidate data-verify-sign-in>
             <div class="flex flex-col gap-2">
-              <Label for="verify-email">Email</Label>
+              <Label for="verify-email">{m.auth_email()}</Label>
               <Input id="verify-email" type="email" value={tokenEmail} readonly autocomplete="username" />
             </div>
             <div class="flex flex-col gap-2">
-              <Label for="verify-password">Password</Label>
+              <Label for="verify-password">{m.auth_password()}</Label>
               <Input
                 id="verify-password"
                 type="password"
@@ -175,23 +171,23 @@
             {#if formError}<p role="alert" class="text-destructive text-sm">{formError}</p>{/if}
             <Button type="submit" class="w-full" disabled={loading}>
               {#if loading}<Loader2Icon class="animate-spin" />{/if}
-              {loading ? 'Verifying…' : 'Sign in and verify'}
+              {loading ? m.auth_verify_verifying() : m.auth_verify_sign_in_and_verify()}
             </Button>
           </form>
           <p class="text-xs text-muted-foreground">
-            Use two-factor authentication? After entering your code, open the link in the email again.
+            {m.auth_verify_2fa_hint()}
           </p>
         {:else}
           <p class="text-sm text-muted-foreground">
-            Sign in to the account with its password, then open the link in the email again.
+            {m.auth_verify_sign_in_then_open()}
           </p>
-          <Button href={authHref('/login', data.redirectTo)} class="w-full">Sign in</Button>
+          <Button href={authHref('/login', data.redirectTo)} class="w-full">{m.auth_sign_in()}</Button>
         {/if}
         {#if data.passwordResetAvailable}
           <p class="text-xs text-muted-foreground">
-            Didn’t create this account, or don’t know its password? Someone may have signed up with your address.
-            <a href="/forgot-password" class="underline underline-offset-4">Reset the password</a> to take it back:
-            that proves the address is yours, signs everyone else out and removes what they set up.
+            {m.auth_verify_reset_intro()}
+            <a href="/forgot-password" class="underline underline-offset-4">{m.auth_verify_reset_link()}</a>
+            {m.auth_verify_reset_rest()}
           </p>
         {/if}
       {:else}
@@ -199,9 +195,9 @@
           <ResendVerificationButton email={data.resendEmail} variant="default" size="default" />
         {/if}
         {#if data.signedIn}
-          <Button href={data.redirectTo} variant={data.resendEmail ? 'ghost' : 'default'} class="w-full">Continue</Button>
+          <Button href={data.redirectTo} variant={data.resendEmail ? 'ghost' : 'default'} class="w-full">{m.common_continue()}</Button>
         {:else}
-          <Button href={authHref('/login', data.redirectTo)} class="w-full">Sign in</Button>
+          <Button href={authHref('/login', data.redirectTo)} class="w-full">{m.auth_sign_in()}</Button>
         {/if}
       {/if}
     </CardContent>

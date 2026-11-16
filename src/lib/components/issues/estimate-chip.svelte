@@ -1,5 +1,6 @@
 <!-- Estimate chip (triangle + value). -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import TriangleIcon from '@lucide/svelte/icons/triangle';
 
   import { formatEstimate } from '@/lib/estimates';
@@ -18,7 +19,7 @@
 
 {#if value !== null && scale !== 'none'}
   <span
-    title="Estimate"
+    title={m.issues_estimate()}
     class={cn(
       'inline-flex h-5 shrink-0 items-center gap-1 rounded border border-border px-1.5 text-xs text-muted-foreground tabular-nums',
       className,

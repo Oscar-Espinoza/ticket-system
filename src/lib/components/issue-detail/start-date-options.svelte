@@ -1,15 +1,16 @@
 <!-- Quick options + calendar for StartDatePicker. -->
 <script module lang="ts">
+  import { m } from '@/lib/i18n';
   import { addDays, toDateString } from '@/lib/dates';
 
   function quickOptions(today = new Date()) {
     // Next Monday (a week from today when today is Monday).
     const monday = addDays(today, ((8 - today.getDay()) % 7) || 7);
     return [
-      { label: 'Today', date: today },
-      { label: 'Tomorrow', date: addDays(today, 1) },
-      { label: 'Next week', date: monday },
-      { label: 'In two weeks', date: addDays(monday, 7) },
+      { label: m.common_today(), date: today },
+      { label: m.common_tomorrow(), date: addDays(today, 1) },
+      { label: m.shared_date_next_week(), date: monday },
+      { label: m.shared_date_in_two_weeks(), date: addDays(monday, 7) },
     ].map((option) => ({ ...option, value: toDateString(option.date) }));
   }
 </script>
@@ -36,7 +37,7 @@
 
 <div class="flex flex-col">
   <Command>
-    <CommandInput placeholder="Set start date…" />
+    <CommandInput placeholder={m.issues_startdate_placeholder()} />
     <CommandList>
       <CommandGroup>
         {#each options as option (option.label)}
@@ -47,9 +48,9 @@
           </CommandItem>
         {/each}
         {#if value}
-          <CommandItem value="Remove start date" onSelect={() => onSelect(null)}>
+          <CommandItem value={m.issues_startdate_remove()} onSelect={() => onSelect(null)}>
             <XIcon class="text-muted-foreground" />
-            Remove start date
+            {m.issues_startdate_remove()}
           </CommandItem>
         {/if}
       </CommandGroup>

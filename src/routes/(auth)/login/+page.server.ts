@@ -8,10 +8,9 @@ import { redirect } from '@sveltejs/kit';
 
 import { signInProviders } from '@/lib/auth-providers';
 import { emailVerificationAvailable, passwordResetAvailable } from '@/lib/email-verification';
+import { m } from '@/lib/i18n';
 import { safeRedirect } from '@/lib/safe-redirect';
 import type { PageServerLoad } from './$types';
-
-const SSO_REQUIRED_COPY = 'Your workspace requires single sign-on. Continue with SSO.';
 
 const normalizeCode = (value: string) => value.toLowerCase().replace(/\s+/g, '_').slice(0, 80);
 
@@ -24,12 +23,10 @@ const normalizeCode = (value: string) => value.toLowerCase().replace(/\s+/g, '_'
  * email can be requested from here while signed out.
  */
 function accountNotLinkedCopy(verificationAvailable: boolean): string {
-  const headline =
-    'An account with this email already exists, but its address isn’t verified yet, so Google or GitHub couldn’t be connected to it.';
-  const sso = 'Using single sign-on? Ask your admin to add an email_verified attribute in the identity provider.';
+  const headline = m.shared_login_account_not_linked();
   return verificationAvailable
     ? headline
-    : `${headline} Sign in with your password instead, or ask your admin to verify your address. ${sso}`;
+    : `${headline} ${m.shared_login_account_not_linked_password()} ${m.shared_login_account_not_linked_sso()}`;
 }
 
 /** Error codes from Better Auth / the SSO plugin redirects (spaces or underscores). */
@@ -37,19 +34,19 @@ function signInErrorCopy(value: string | null, verificationAvailable: boolean): 
   if (!value) return null;
   const code = normalizeCode(value);
   if (code.includes('email_domain_not_allowed')) {
-    return 'Your identity provider signed you in with an email outside this workspace’s SSO domain.';
+    return m.shared_login_domain_not_allowed();
   }
   if (code.includes('account_not_linked')) {
     return accountNotLinkedCopy(verificationAvailable);
   }
   if (code.includes('unable_to_create_session') || code.includes('sso_required')) {
-    return SSO_REQUIRED_COPY;
+    return m.shared_login_sso_required();
   }
-  if (code.includes('signup_disabled')) return 'Sign-ups through single sign-on are disabled.';
+  if (code.includes('signup_disabled')) return m.shared_login_signup_disabled();
   if (code.includes('invalid_state') || code.includes('state_mismatch')) {
-    return 'Your sign-in expired. Please try again.';
+    return m.shared_login_expired();
   }
-  return 'Sign-in failed. Try again or contact your workspace admin.';
+  return m.shared_login_failed();
 }
 
 export const load: PageServerLoad = async ({ url, locals }) => {
@@ -69,6 +66,6 @@ export const load: PageServerLoad = async ({ url, locals }) => {
     // Show the account_not_linked steps under the headline.
     offerVerification: verificationAvailable && !!errorParam && normalizeCode(errorParam).includes('account_not_linked'),
     passwordResetAvailable: passwordResetAvailable(),
-    initialSso: url.searchParams.get('sso') === '1' || error === SSO_REQUIRED_COPY,
+    initialSso: url.searchParams.get('sso') === '1' || error === m.shared_login_sso_required(),
   };
 };

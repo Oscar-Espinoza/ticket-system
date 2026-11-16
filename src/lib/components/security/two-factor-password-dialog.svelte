@@ -3,6 +3,7 @@
   used to disable 2FA and to regenerate backup codes. Mounted only while open.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
 
   import { Button } from '@/lib/components/ui/button';
@@ -40,7 +41,7 @@
   async function submit(e: SubmitEvent) {
     e.preventDefault();
     if (!password) {
-      error = 'Enter your password.';
+      error = m.settings_sec_enter_password();
       return;
     }
     pending = true;
@@ -66,7 +67,7 @@
         }}
       />
       <DialogFooter>
-        <Button type="button" variant="ghost" onclick={onClose}>Cancel</Button>
+        <Button type="button" variant="ghost" onclick={onClose}>{m.common_cancel()}</Button>
         <Button type="submit" variant={destructive ? 'destructive' : 'default'} disabled={pending}>
           {#if pending}<Loader2Icon class="animate-spin" />{/if}
           {confirmLabel}

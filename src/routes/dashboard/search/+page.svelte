@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import SearchIcon from '@lucide/svelte/icons/search';
   import SearchXIcon from '@lucide/svelte/icons/search-x';
 
@@ -13,15 +14,15 @@
 
   let { data }: PageProps = $props();
 
-  const title = $derived(data.q ? `Search: ${data.q.slice(0, 60)}` : 'Search');
+  const title = $derived(data.q ? m.issues_search_page_title_q({ q: data.q.slice(0, 60) }) : m.issues_search_page_title());
 </script>
 
 <svelte:head>
-  <title>{title} · Ticket System</title>
+  <title>{title}</title>
 </svelte:head>
 
 <div class="mx-auto flex w-full max-w-4xl flex-col gap-4">
-  <h1 class="text-xl font-medium">Search</h1>
+  <h1 class="text-xl font-medium">{m.issues_search()}</h1>
   <SearchControls
     query={data.q}
     projectId={data.projectId}
@@ -31,25 +32,25 @@
 
   {#if !data.q}
     <EmptyState
-      title="Search your issues"
-      description="Matches titles, descriptions and comments in every project you belong to. Try phrases in quotes, -word to exclude, or filters like label:bug assignee:me is:open."
+      title={m.issues_search_empty_title()}
+      description={m.issues_search_empty_description()}
     >
       {#snippet icon()}<SearchIcon />{/snippet}
     </EmptyState>
   {:else if data.results.length === 0 && data.docs.length === 0}
     <EmptyState
-      title="No results"
+      title={m.issues_search_no_results()}
       description={data.includeArchived
-        ? `Nothing matches “${data.q}”.`
-        : `Nothing matches “${data.q}”. Archived issues are excluded — turn on “Include archived” to search them too.`}
+        ? m.issues_search_nothing_matches({ q: data.q })
+        : m.issues_search_nothing_matches_archived({ q: data.q })}
     >
       {#snippet icon()}<SearchXIcon />{/snippet}
     </EmptyState>
   {:else}
     {#if data.docs.length > 0}
-      <section aria-label="Documents" class="flex flex-col gap-2">
+      <section aria-label={m.issues_search_documents()} class="flex flex-col gap-2">
         <p class="px-2 text-xs text-muted-foreground">
-          {data.docs.length === 1 ? '1 document' : `${data.docs.length} documents`}
+          {m.issues_search_documents_count({ count: data.docs.length })}
         </p>
         <ul class="flex flex-col gap-px">
           {#each data.docs as doc (doc.id)}
@@ -77,19 +78,19 @@
       </section>
     {/if}
     {#if data.results.length > 0}
-      <section aria-label="Results" class="flex flex-col gap-2">
+      <section aria-label={m.issues_search_results()} class="flex flex-col gap-2">
         <p class="px-2 text-xs text-muted-foreground">
-          {data.results.length === 1 ? '1 result' : `${data.results.length} results`}{#if data.results.length >= 50}{' (showing the best 50)'}{/if}
+          {m.issues_search_results_count({ count: data.results.length })}{#if data.results.length >= 50}{m.issues_search_best_50()}{/if}
         </p>
         <NavList class="flex flex-col gap-px">
           {#each data.results as { issue, title: resultTitle, snippet } (issue.id)}
             {#snippet titleContent()}<Highlight text={resultTitle} />{/snippet}
             {#snippet belowContent()}
               {#if snippet}
-                {#if snippet.source === 'comment'}<span class="font-medium">Comment: </span>{/if}
+                {#if snippet.source === 'comment'}<span class="font-medium">{m.issues_search_comment()}</span>{/if}
                 <Highlight text={snippet.text} />
               {:else}
-                Archived
+                {m.issues_search_archived()}
               {/if}
             {/snippet}
             <NavIssueRow

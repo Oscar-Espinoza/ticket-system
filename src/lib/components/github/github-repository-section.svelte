@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import ExternalLinkIcon from '@lucide/svelte/icons/external-link';
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
   import UnplugIcon from '@lucide/svelte/icons/unplug';
@@ -57,7 +58,7 @@
       return;
     }
     if (result.webhook === 'registered') toast.success(success);
-    else toast.warning(result.warning ?? 'Webhook not registered.');
+    else toast.warning(result.warning ?? m.settings_dev_webhook_not_registered());
   }
 
   async function run(kind: Action, fn: () => Promise<void>) {
@@ -75,14 +76,14 @@
     run('connect', async () => {
       if (!selected) return;
       const result = await connectRepository({ projectId, repo: selected });
-      toastConnect(result, `Connected ${result.ok ? result.repo : selected}`);
+      toastConnect(result, m.settings_github_repo_connected_toast({ repo: result.ok ? result.repo : selected }));
       if (result.ok) selected = null;
     });
 
   const reRegister = () =>
     run('webhook', async () => {
       const result = await registerWebhook(projectId);
-      toastConnect(result, 'Webhook registered');
+      toastConnect(result, m.settings_github_webhook_registered_toast());
       if (result.ok && result.webhook === 'registered') health.markCurrent();
     });
 
@@ -91,23 +92,19 @@
       const result = await disconnectRepository(projectId);
       if (!result.ok) toast.error(result.error);
       else if (result.warning) toast.warning(result.warning);
-      else toast.success('Repository disconnected');
+      else toast.success(m.settings_github_repo_disconnected_toast());
     });
 </script>
 
 <section class="flex flex-col gap-4" aria-labelledby="github-repo">
   <SectionHeading
-    title="Repository"
-    description="Issues link to pull requests in this repository, and branches are created here."
+    title={m.settings_github_repo_title()}
+    description={m.settings_github_repo_desc()}
   />
 
   {#if webhookUnreachable}
     <Callout tone="warning">
-      GitHub can&apos;t deliver webhooks to <span class="font-mono text-xs">{webhookUrl}</span>.
-      Branches still work, but pull request automation needs a public URL — set{' '}
-      <span class="font-mono text-xs">PUBLIC_APP_URL</span> (or{' '}
-      <span class="font-mono text-xs">GITHUB_WEBHOOK_BASE_URL</span> for a tunnel) and register the
-      webhook again.
+      {m.settings_github_webhook_unreachable({ url: webhookUrl })}
     </Callout>
   {/if}
 
@@ -126,7 +123,7 @@
         </a>
         {#if connectedByName}
           <span class="ml-auto shrink-0 text-xs text-muted-foreground">
-            Connected by {connectedByName}
+            {m.settings_dev_connected_by({ name: connectedByName })}
           </span>
         {/if}
       </div>
@@ -135,12 +132,12 @@
         {#if webhookRegistered}
           <span class="flex items-center gap-1.5">
             <span class="size-1.5 rounded-full bg-emerald-500" aria-hidden="true"></span>
-            Webhook active
+            {m.settings_dev_webhook_active()}
           </span>
         {:else}
           <span class="flex items-center gap-1.5 text-muted-foreground">
             <span class="size-1.5 rounded-full bg-amber-500" aria-hidden="true"></span>
-            Webhook not registered — pull requests won&apos;t update issues.
+            {m.settings_github_webhook_not_registered()}
           </span>
         {/if}
       </div>
@@ -148,19 +145,18 @@
         <Callout tone="warning">
           <span class="flex flex-wrap items-center gap-x-3 gap-y-2">
             <span>
-              The webhook doesn&apos;t send review and CI events yet, so pull requests can&apos;t
-              show approval and check status.
+              {m.settings_github_webhook_outdated()}
             </span>
             <Button size="xs" variant="outline" onclick={health.update} disabled={health.updating}>
               {#if health.updating}<Loader2Icon class="animate-spin" />{/if}
-              Update webhook
+              {m.settings_github_update_webhook()}
             </Button>
           </span>
         </Callout>
       {/if}
       {#if health.status === 'missing'}
         <Callout tone="warning">
-          The webhook was removed on GitHub. Register it again to keep pull requests in sync.
+          {m.settings_github_webhook_missing()}
         </Callout>
       {/if}
       {#if canEdit}
@@ -170,12 +166,10 @@
             size="sm"
             onclick={reRegister}
             disabled={pending || !accountReady}
-            title={accountReady
-              ? undefined
-              : 'Connect your GitHub account with repository access first'}
+            title={accountReady ? undefined : m.settings_github_connect_account_first()}
           >
             {#if pending && action === 'webhook'}<Loader2Icon class="animate-spin" />{/if}
-            {webhookRegistered ? 'Re-register webhook' : 'Register webhook'}
+            {webhookRegistered ? m.settings_dev_reregister_webhook() : m.settings_dev_register_webhook()}
           </Button>
           <AlertDialog>
             <AlertDialogTrigger>
@@ -186,22 +180,21 @@
                   {:else}
                     <UnplugIcon />
                   {/if}
-                  Disconnect
+                  {m.settings_dev_disconnect()}
                 </Button>
               {/snippet}
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Disconnect {repo}?</AlertDialogTitle>
+                <AlertDialogTitle>{m.settings_dev_disconnect_title({ name: repo })}</AlertDialogTitle>
                 <AlertDialogDescription>
-                  The webhook is removed from GitHub and pull requests stop updating issues.
-                  Existing links and branch names on issues are kept.
+                  {m.settings_github_disconnect_desc()}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
                 <AlertDialogAction variant="destructive" onclick={disconnect}>
-                  Disconnect
+                  {m.settings_dev_disconnect()}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
@@ -220,15 +213,15 @@
         />
         <Button onclick={connect} disabled={!selected || pending}>
           {#if pending && action === 'connect'}<Loader2Icon class="animate-spin" />{/if}
-          Connect repository
+          {m.settings_github_connect_repo()}
         </Button>
       </div>
     {:else}
       <p class="text-sm text-muted-foreground">
-        Connect your GitHub account with repository access above to pick a repository.
+        {m.settings_github_connect_account_hint()}
       </p>
     {/if}
   {:else}
-    <p class="text-sm text-muted-foreground">No repository connected.</p>
+    <p class="text-sm text-muted-foreground">{m.settings_github_no_repo()}</p>
   {/if}
 </section>

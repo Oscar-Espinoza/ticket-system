@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { page } from '$app/state';
   import CheckIcon from '@lucide/svelte/icons/check';
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
@@ -34,7 +35,7 @@
     });
     if (error) {
       pending = false;
-      toast.error(error.message ?? 'Could not start the GitHub connection.');
+      toast.error(error.message ?? m.settings_github_connect_failed());
     }
   };
 </script>
@@ -48,27 +49,25 @@
 
 <section class="flex flex-col gap-4" aria-labelledby="github-account">
   <SectionHeading
-    title="Your GitHub account"
-    description={`Branches and webhooks are created with your own GitHub authorization (${REQUIRED_SCOPES.join(', ')}). Your token never leaves the server.`}
+    title={m.settings_github_account_title()}
+    description={m.settings_github_account_desc({ scopes: REQUIRED_SCOPES.join(', ') })}
   />
   {#if linkError}
     <Callout tone="error">{linkError}</Callout>
   {/if}
   {#if !oauthConfigured && account.status !== 'connected'}
     <Callout tone="warning">
-      GitHub isn't set up on this server. An admin needs to create a GitHub OAuth app and set
-      <code class="font-mono text-xs">GITHUB_CLIENT_ID</code> and
-      <code class="font-mono text-xs">GITHUB_CLIENT_SECRET</code>, then restart (see docs/SELF_HOSTING.md).
+      {m.settings_github_not_set_up()}
     </Callout>
   {:else if account.status === 'none'}
-    <div>{@render linkButton('Connect GitHub')}</div>
+    <div>{@render linkButton(m.settings_github_connect())}</div>
   {/if}
   {#if account.status === 'invalid'}
-    <Callout tone="warning">Your GitHub authorization expired or was revoked.</Callout>
-    {#if oauthConfigured}<div>{@render linkButton('Reconnect GitHub')}</div>{/if}
+    <Callout tone="warning">{m.settings_github_auth_expired()}</Callout>
+    {#if oauthConfigured}<div>{@render linkButton(m.settings_github_reconnect())}</div>{/if}
   {/if}
   {#if account.status === 'error'}
-    <Callout tone="warning">GitHub couldn&apos;t be reached. Reload to try again.</Callout>
+    <Callout tone="warning">{m.settings_github_unreachable()}</Callout>
   {/if}
   {#if account.status === 'connected'}
     <div class="flex flex-col gap-3">
@@ -95,13 +94,13 @@
       {#if account.hasRequiredScopes}
         <p class="flex items-center gap-1.5 text-xs text-muted-foreground">
           <CheckIcon class="size-3.5 text-emerald-500" aria-hidden="true" />
-          Repository access granted.
+          {m.settings_github_access_granted()}
         </p>
       {:else}
         <p class="text-sm text-muted-foreground">
-          Grant repository access to connect repositories and create branches.
+          {m.settings_github_grant_hint()}
         </p>
-        <div>{@render linkButton('Grant repository access')}</div>
+        <div>{@render linkButton(m.settings_github_grant())}</div>
       {/if}
     </div>
   {/if}
