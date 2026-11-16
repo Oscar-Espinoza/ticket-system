@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { ProjectOverviewView } from '@/lib/server/mcp/contracts';
-  import { toDateString } from '@/lib/dates';
+  import { toDateString } from '@/lib/date-strings';
   import { host } from './lib/app.svelte';
   import { cyclePercent, shortDate, typeSegments } from './lib/model';
   import Burndown from './Burndown.svelte';

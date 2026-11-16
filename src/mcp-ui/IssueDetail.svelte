@@ -2,7 +2,7 @@
   import { untrack } from 'svelte';
 
   import type { IssueDetail, ProjectMetadataView } from '@/lib/server/mcp/contracts';
-  import { toDateString } from '@/lib/dates';
+  import { toDateString } from '@/lib/date-strings';
   import { callTool, holdRefresh, host, noteWrite, projectMetadata, reportChange } from './lib/app.svelte';
   import { IssueWriter, requestFor } from './lib/write.svelte';
   import { dueTone, relativeTime, safeColor, shortDate, STATE_TYPE_ORDER } from './lib/model';

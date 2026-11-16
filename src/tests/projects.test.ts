@@ -165,7 +165,11 @@ beforeAll(async () => {
     createdAt: now,
     updatedAt: now,
   });
-});
+  // Load the action modules here, not in the first test: a cold import now also
+  // compiles the interface messages (src/lib/i18n.ts) and can outlast the
+  // per-test timeout on a cold CI runner.
+  await import('@/lib/server/actions/projects');
+}, 60_000);
 
 afterAll(async () => {
   // Clean up the session mock user (cascade removes any projects it owns)

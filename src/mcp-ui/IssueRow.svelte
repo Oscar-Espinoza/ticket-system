@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { IssueDetail, IssueSummary } from '@/lib/server/mcp/contracts';
-  import { toDateString } from '@/lib/dates';
+  import { toDateString } from '@/lib/date-strings';
   import { host } from './lib/app.svelte';
   import { dueTone, issueRowLabel, plainText, safeColor, shortDate } from './lib/model';
   import Avatar from './Avatar.svelte';

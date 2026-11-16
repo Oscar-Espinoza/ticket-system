@@ -1,11 +1,17 @@
 // Pure helpers behind the views: grouping, dates, colours, progress and the
 // burndown geometry. No DOM, no Svelte, so they are unit-tested directly
 // (src/tests/mcp-ui-model.test.ts). The order and label tables come from
-// issue-model.ts, the one owner of state types and priorities.
+// issue-enums.ts (English, no i18n: the cards are rendered by the AI host).
 
 import type { CycleView, IssueSummary } from '@/lib/server/mcp/contracts';
-import { fromDateString, toDateString } from '@/lib/dates';
-import { PRIORITY_LABEL, PRIORITY_ORDER, STATE_TYPE_LABEL, STATE_TYPE_ORDER, type Priority } from '@/lib/issue-model';
+import { fromDateString, toDateString } from '@/lib/date-strings';
+import {
+  PRIORITY_LABEL_EN as PRIORITY_LABEL,
+  PRIORITY_ORDER,
+  STATE_TYPE_LABEL_EN as STATE_TYPE_LABEL,
+  STATE_TYPE_ORDER,
+  type Priority,
+} from '@/lib/issue-enums';
 
 export { PRIORITY_LABEL, PRIORITY_ORDER, STATE_TYPE_LABEL, STATE_TYPE_ORDER };
 
