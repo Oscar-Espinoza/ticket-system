@@ -1001,5 +1001,22 @@
   "projects_ws_teams": "Teams",
   "projects_ws_new_project_btn": "New project",
   "projects_ws_empty_admin": "Add one of your projects or create a new one in this workspace.",
-  "projects_ws_empty_member": "Create a project in this workspace to get started."
+  "projects_ws_empty_member": "Create a project in this workspace to get started.",
+  "projects_page_title_named": "{name} · Ticket System",
+  "projects_page_title_not_found": "404: This page could not be found.",
+  "projects_page_not_found": "This page could not be found.",
+  "projects_error_title": "Something went wrong",
+  "projects_error_desc": "This page failed to load. Try again, or come back in a moment.",
+  "projects_page_title_projects": "Projects · Ticket System",
+  "projects_github_connected": "GitHub connected",
+  "projects_github_not_connected": "GitHub not connected",
+  "projects_project_not_found_title": "Project not found · Ticket System",
+  "projects_project_not_found": "Project not found",
+  "projects_project_not_found_desc": "It doesn't exist, or you're not a member of it.",
+  "projects_back_to_projects": "Back to projects",
+  "projects_cycles_off_title": "Cycles are off",
+  "projects_cycles_off_desc": "Plan work in time-boxed iterations with progress, burndown and velocity.",
+  "projects_ws_security": "Security",
+  "projects_ws_audit_log": "Audit log",
+  "projects_initiatives_page_title": "Initiatives · {name} · Ticket System"
 }

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import InitiativeDetail from '@/lib/components/initiatives/initiative-detail.svelte';
   import type { PageProps } from './$types';
 
@@ -6,7 +7,7 @@
 </script>
 
 <svelte:head>
-  <title>{data.detail.initiative.name} · Ticket System</title>
+  <title>{m.projects_page_title_named({ name: data.detail.initiative.name })}</title>
 </svelte:head>
 
 <!-- Remount per initiative so drafts and pending

@@ -1,13 +1,3 @@
 {
-  "files": {
-    "src/routes/dashboard/+error.svelte": "pending translation (area projects, 2 strings)",
-    "src/routes/dashboard/+page.svelte": "pending translation (area projects, 1 strings)",
-    "src/routes/dashboard/projects/+error.svelte": "pending translation (area projects, 3 strings)",
-    "src/routes/dashboard/projects/[id]/cycles/+page.svelte": "pending translation (area projects, 2 strings)",
-    "src/routes/dashboard/projects/[id]/epics/+page.svelte": "pending translation (area projects, 1 strings)",
-    "src/routes/dashboard/projects/[id]/roadmap/+page.svelte": "pending translation (area projects, 1 strings)",
-    "src/routes/dashboard/workspaces/[slug]/+page.svelte": "pending translation (area projects, 1 strings)",
-    "src/routes/dashboard/workspaces/[slug]/initiatives/+page.svelte": "pending translation (area projects, 1 strings)",
-    "src/routes/dashboard/workspaces/[slug]/initiatives/[initiativeId]/+page.svelte": "pending translation (area projects, 1 strings)"
-  }
+  "files": {}
 }

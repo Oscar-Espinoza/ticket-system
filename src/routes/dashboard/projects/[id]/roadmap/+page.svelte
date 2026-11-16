@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import RoadmapView from '@/lib/components/roadmap/roadmap-view.svelte';
   import type { PageProps } from './$types';
 
@@ -6,7 +7,7 @@
 </script>
 
 <svelte:head>
-  <title>Roadmap</title>
+  <title>{m.projects_tab_roadmap()}</title>
 </svelte:head>
 
 <RoadmapView epics={data.epics} milestones={data.milestones} dependencies={data.dependencies} />
