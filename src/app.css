@@ -255,3 +255,8 @@ html[data-locale-switch]::view-transition-new(root) {
   animation-duration: 180ms;
   animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
 }
+/* The transition's overlay sits on top of the page: let clicks through, so a
+   click during the cross-fade isn't lost. */
+html[data-locale-switch]::view-transition {
+  pointer-events: none;
+}

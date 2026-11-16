@@ -29,12 +29,31 @@
   // or signing in to / out of an account with another language), switch in
   // place: <html lang> changes and the keyed subtree below renders again in the
   // new language (src/lib/svelte/locale-switch.ts).
+  // Switches run one at a time and always aim at the latest locale the data
+  // asked for, so a change that arrives while a cross-fade is in flight is
+  // applied right after it, and a stale one is never applied.
   let shown = $state(untrack(() => data.locale));
-  $effect(() => {
-    const next = toAppLocale(data.locale);
-    if (next && next !== untrack(() => shown)) {
-      void switchLocale(next, (locale) => (shown = locale));
+  let requested = untrack(() => data.locale);
+  let switching = false;
+  async function reconcile() {
+    if (switching) return;
+    switching = true;
+    try {
+      while (requested !== shown) {
+        const next = toAppLocale(requested);
+        if (!next) break;
+        await switchLocale(
+          () => toAppLocale(requested) ?? next,
+          (locale) => (shown = locale),
+        );
+      }
+    } finally {
+      switching = false;
     }
+  }
+  $effect(() => {
+    requested = data.locale;
+    void reconcile();
   });
 
   // Re-read when the language on screen changes (this layout isn't re-keyed).

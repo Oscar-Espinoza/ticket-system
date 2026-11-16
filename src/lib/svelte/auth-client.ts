@@ -26,9 +26,9 @@ import { ssoClient } from '@better-auth/sso/client';
  * client-side navigation instead of a document load, so signing in doesn't
  * reload the page (the interface language then switches in place, see
  * src/lib/svelte/locale-switch.ts). Other origins (GitHub, Google, SSO
- * providers) still get a full navigation, as before.
+ * providers) and server endpoints (/api/*) still get a full navigation.
  */
-const redirectInApp: BetterFetchPlugin = {
+export const redirectInApp: BetterFetchPlugin = {
   id: 'redirect-in-app',
   name: 'Redirect (client-side within the app)',
   hooks: {
@@ -36,12 +36,18 @@ const redirectInApp: BetterFetchPlugin = {
       const data = context.data as { url?: unknown; redirect?: unknown } | null;
       if (!data?.redirect || typeof data.url !== 'string' || !isSafeUrlScheme(data.url)) return;
       const target = new URL(data.url, window.location.href);
-      if (target.origin === window.location.origin) {
-        // eslint-disable-next-line svelte/no-navigation-without-resolve -- same-origin path, no base path
-        void goto(`${target.pathname}${target.search}${target.hash}`, { refreshAll: true });
-      } else {
+      // App pages: client-side. Other origins and server endpoints (/api/*,
+      // e.g. Better Auth's /api/auth/error) need a real navigation; so does a
+      // page navigation that fails.
+      const appPage = target.origin === window.location.origin && !/^\/api(\/|$)/.test(target.pathname);
+      if (!appPage) {
         window.location.href = target.href;
+        return;
       }
+      // eslint-disable-next-line svelte/no-navigation-without-resolve -- same-origin path, no base path
+      goto(`${target.pathname}${target.search}${target.hash}`, { refreshAll: true }).catch(() => {
+        window.location.href = target.href;
+      });
     },
   },
 };

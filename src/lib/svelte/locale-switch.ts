@@ -83,13 +83,19 @@ export function writeLocaleCookie(locale: AppLocale | null) {
 }
 
 /**
- * Shows the app in `next`: sets <html lang>, then `render(next)` (which
+ * Shows the app in `target()`: sets <html lang>, then `render(locale)` (which
  * re-keys the app subtree), with a short cross-fade when supported and motion
  * is allowed; scroll and focus are restored after the new DOM is in place.
  */
-export async function switchLocale(next: AppLocale, render: (locale: AppLocale) => void): Promise<void> {
+export async function switchLocale(
+  target: () => AppLocale,
+  render: (locale: AppLocale) => void,
+): Promise<void> {
   const view = captureView();
+  // Read the target when the swap actually runs (a transition's update can
+  // run later), so a newer request wins over the one that started this switch.
   const swap = async () => {
+    const next = target();
     document.documentElement.lang = next;
     render(next);
     await tick();
