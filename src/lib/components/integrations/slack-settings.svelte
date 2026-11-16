@@ -97,7 +97,7 @@
           url = v;
           error = undefined;
         }}
-        placeholder="{SLACK_URL_PREFIX}services/…"
+        placeholder={`${SLACK_URL_PREFIX}services/…`}
         autocomplete="off"
         spellcheck={false}
         class="font-mono text-xs"

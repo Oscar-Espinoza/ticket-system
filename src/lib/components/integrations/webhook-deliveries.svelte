@@ -1,6 +1,6 @@
 <!-- Delivery log of one webhook. Mounted while open. -->
 <script lang="ts">
-  import { pluralize } from '@/lib/format';
+  import { formatDate, m } from '@/lib/i18n';
   import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
   import HistoryIcon from '@lucide/svelte/icons/history';
   import LoaderCircleIcon from '@lucide/svelte/icons/loader-circle';
@@ -35,16 +35,27 @@
   let open = $state<string | null>(null);
   let sending = $state<string | null>(null);
 
+    const DATE_TIME_FULL: Intl.DateTimeFormatOptions = {
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric',
+    second: 'numeric',
+  };
+
   function deliveryOutcome(d: WebhookDeliveryView): { label: string; tone: 'ok' | 'pending' | 'failed' } {
-    if (d.deliveredAt) return { label: 'Delivered', tone: 'ok' };
+    if (d.deliveredAt) return { label: m.settings_wh_delivered(), tone: 'ok' };
     if (d.nextAttemptAt) {
       const at = new Date(d.nextAttemptAt);
       return {
-        label: at.getTime() <= Date.now() ? 'Retry due' : `Retrying ${relativeTime(at)}`,
+        label: at.getTime() <= Date.now()
+          ? m.settings_wh_retry_due()
+          : m.settings_wh_retrying({ when: relativeTime(at) }),
         tone: 'pending',
       };
     }
-    return { label: d.attempt > 1 ? `Gave up after ${d.attempt} attempts` : 'Failed', tone: 'failed' };
+    return { label: d.attempt > 1 ? m.settings_wh_gave_up({ count: d.attempt }) : m.settings_wh_failed(), tone: 'failed' };
   }
 
   // Loaded on open (a read action called from an effect).
@@ -80,8 +91,8 @@
     }
     deliveries = deliveries?.map((d) => (d.id === delivery.id ? result.delivery : d)) ?? null;
     onWebhookChange(result.webhook);
-    if (result.delivery.deliveredAt) toast.success(`Delivered (HTTP ${result.delivery.status})`);
-    else toast.error(result.delivery.error ?? 'Delivery failed');
+    if (result.delivery.deliveredAt) toast.success(m.settings_wh_delivered_toast({ status: result.delivery.status ?? '' }));
+    else toast.error(result.delivery.error ?? m.settings_wh_delivery_failed_toast());
   }
 </script>
 
@@ -92,7 +103,7 @@
 >
   <DialogContent class="sm:max-w-2xl">
     <DialogHeader>
-      <DialogTitle>Recent deliveries</DialogTitle>
+      <DialogTitle>{m.settings_wh_recent_deliveries()}</DialogTitle>
       <DialogDescription class="truncate font-mono text-xs" title={hook.url}>{hook.url}</DialogDescription>
     </DialogHeader>
 
@@ -105,8 +116,8 @@
     {:else if deliveries.length === 0}
       <EmptyState
         class="py-8"
-        title="No deliveries yet"
-        description="Deliveries appear here as issue events are sent. Try “Send test”."
+        title={m.settings_wh_no_deliveries()}
+        description={m.settings_wh_no_deliveries_hint()}
       >
         {#snippet icon()}<HistoryIcon />{/snippet}
       </EmptyState>
@@ -139,19 +150,23 @@
                 ></span>
                 <span class="truncate font-mono text-xs">{d.eventType}</span>
                 <span class="shrink-0 text-xs text-muted-foreground">
-                  {d.status === null ? 'Not sent' : d.status === 0 ? 'No response' : `HTTP ${d.status}`}
+                  {d.status === null
+                    ? m.settings_wh_not_sent()
+                    : d.status === 0
+                      ? m.settings_wh_no_response()
+                      : `HTTP ${d.status}`}
                 </span>
                 <span class="ml-auto shrink-0 text-xs text-muted-foreground">
-                  {outcome.label}{d.attempt > 1 && outcome.tone === 'ok' ? ` · attempt ${d.attempt}` : ''}{' · '}<span
-                    title={new Date(d.createdAt).toLocaleString()}>{relativeTime(new Date(d.createdAt))}</span
+                  {outcome.label}{d.attempt > 1 && outcome.tone === 'ok' ? ` · ${m.settings_wh_attempt_n({ count: d.attempt })}` : ''}{' · '}<span
+                    title={formatDate(d.createdAt, DATE_TIME_FULL)}>{relativeTime(new Date(d.createdAt))}</span
                   >
                 </span>
               </button>
               <Button
                 variant="ghost"
                 size="icon-sm"
-                aria-label="Redeliver"
-                title="Redeliver"
+                aria-label={m.settings_wh_redeliver()}
+                title={m.settings_wh_redeliver()}
                 disabled={sending !== null}
                 onclick={() => resend(d)}
               >
@@ -164,8 +179,8 @@
                   <p class="text-xs text-destructive">{d.error}</p>
                 {/if}
                 <p class="text-xs text-muted-foreground">
-                  {pluralize(d.attempt, 'attempt')}{d.deliveredAt
-                    ? ` · delivered ${new Date(d.deliveredAt).toLocaleString()}`
+                  {m.settings_wh_attempts_count({ count: d.attempt })}{d.deliveredAt
+                    ? ` · ${m.settings_wh_delivered_at({ date: formatDate(d.deliveredAt, DATE_TIME_FULL) })}`
                     : ''}
                 </p>
                 <pre

@@ -190,5 +190,79 @@
   "settings_int_slack_test_sent_toast": "Mensaje de prueba enviado",
   "settings_int_slack_webhook_link": "webhook de entrada",
   "settings_int_snippet_label": "Fragmento",
-  "settings_int_webhook_url": "URL del webhook"
+  "settings_int_webhook_url": "URL del webhook",
+  "settings_wh_actions": "Acciones del webhook",
+  "settings_wh_active": "Activo",
+  "settings_wh_add": "Añadir webhook",
+  "settings_wh_all_events": "Todos los eventos",
+  "settings_wh_attempt_n": "intento {count}",
+  "settings_wh_attempts_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} intento",
+        "countPlural=other": "{count} intentos"
+      }
+    }
+  ],
+  "settings_wh_created_toast": "Webhook creado",
+  "settings_wh_delete_desc": "{url} dejará de recibir eventos de inmediato.",
+  "settings_wh_delete_title": "¿Eliminar el webhook?",
+  "settings_wh_deleted_toast": "Webhook eliminado",
+  "settings_wh_delivered": "Entregado",
+  "settings_wh_delivered_at": "entregado {date}",
+  "settings_wh_delivered_toast": "Entregado (HTTP {status})",
+  "settings_wh_delivery_failed_toast": "Falló la entrega",
+  "settings_wh_dialog_desc": "Las entregas caducan a los 5 segundos. Los fallos se reintentan tras 1 min, 5 min, 30 min, 2 h y 12 h.",
+  "settings_wh_disable": "Desactivar webhook",
+  "settings_wh_edit_title": "Editar webhook",
+  "settings_wh_enable": "Activar webhook",
+  "settings_wh_events": "Eventos",
+  "settings_wh_events_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} evento",
+        "countPlural=other": "{count} eventos"
+      }
+    }
+  ],
+  "settings_wh_failed": "Fallido",
+  "settings_wh_gave_up": "Se abandonó tras {count} intentos",
+  "settings_wh_intro": "Envía un POST JSON firmado a tu endpoint cada vez que cambien los tickets. Verifica X-Webhook-Signature con el secreto.",
+  "settings_wh_n_selected": "{count} seleccionados.",
+  "settings_wh_never_delivered": "Nunca entregado",
+  "settings_wh_no_deliveries": "Aún no hay entregas",
+  "settings_wh_no_deliveries_hint": "Las entregas aparecen aquí a medida que se envían eventos de tickets. Prueba con «Enviar prueba».",
+  "settings_wh_no_response": "Sin respuesta",
+  "settings_wh_none": "No hay webhooks",
+  "settings_wh_none_hint": "Conecta tus propios servicios a los eventos de tickets.",
+  "settings_wh_none_selected": "Ninguno seleccionado: se envían todos los eventos.",
+  "settings_wh_not_sent": "No enviado",
+  "settings_wh_payload_url": "URL de destino",
+  "settings_wh_recent_deliveries": "Entregas recientes",
+  "settings_wh_redeliver": "Reenviar",
+  "settings_wh_retry_due": "Reintento pendiente",
+  "settings_wh_retrying": "Reintentando {when}",
+  "settings_wh_reveal_secret": "Mostrar secreto",
+  "settings_wh_secret": "Secreto",
+  "settings_wh_secret_created": "Webhook creado",
+  "settings_wh_send_test": "Enviar prueba",
+  "settings_wh_sending_test": "Enviando entrega de prueba…",
+  "settings_wh_signing_desc": "Calcula el HMAC-SHA256 del cuerpo sin procesar de la solicitud con este secreto y compáralo con el encabezado X-Webhook-Signature (sha256=…).",
+  "settings_wh_signing_secret": "Secreto de firma",
+  "settings_wh_updated_toast": "Webhook actualizado",
+  "settings_wh_webhooks": "Webhooks"
 }

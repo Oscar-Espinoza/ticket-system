@@ -190,5 +190,79 @@
   "settings_int_slack_test_sent_toast": "Test message sent",
   "settings_int_slack_webhook_link": "incoming webhook",
   "settings_int_snippet_label": "Snippet",
-  "settings_int_webhook_url": "Webhook URL"
+  "settings_int_webhook_url": "Webhook URL",
+  "settings_wh_actions": "Webhook actions",
+  "settings_wh_active": "Active",
+  "settings_wh_add": "Add webhook",
+  "settings_wh_all_events": "All events",
+  "settings_wh_attempt_n": "attempt {count}",
+  "settings_wh_attempts_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} attempt",
+        "countPlural=other": "{count} attempts"
+      }
+    }
+  ],
+  "settings_wh_created_toast": "Webhook created",
+  "settings_wh_delete_desc": "{url} will stop receiving events immediately.",
+  "settings_wh_delete_title": "Delete webhook?",
+  "settings_wh_deleted_toast": "Webhook deleted",
+  "settings_wh_delivered": "Delivered",
+  "settings_wh_delivered_at": "delivered {date}",
+  "settings_wh_delivered_toast": "Delivered (HTTP {status})",
+  "settings_wh_delivery_failed_toast": "Delivery failed",
+  "settings_wh_dialog_desc": "Deliveries time out after 5 seconds. Failures are retried after 1 min, 5 min, 30 min, 2 h and 12 h.",
+  "settings_wh_disable": "Disable webhook",
+  "settings_wh_edit_title": "Edit webhook",
+  "settings_wh_enable": "Enable webhook",
+  "settings_wh_events": "Events",
+  "settings_wh_events_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} event",
+        "countPlural=other": "{count} events"
+      }
+    }
+  ],
+  "settings_wh_failed": "Failed",
+  "settings_wh_gave_up": "Gave up after {count} attempts",
+  "settings_wh_intro": "Send a signed JSON POST to your endpoint whenever issues change. Verify X-Webhook-Signature with the secret.",
+  "settings_wh_n_selected": "{count} selected.",
+  "settings_wh_never_delivered": "Never delivered",
+  "settings_wh_no_deliveries": "No deliveries yet",
+  "settings_wh_no_deliveries_hint": "Deliveries appear here as issue events are sent. Try “Send test”.",
+  "settings_wh_no_response": "No response",
+  "settings_wh_none": "No webhooks",
+  "settings_wh_none_hint": "Connect your own services to issue events.",
+  "settings_wh_none_selected": "None selected — every event is sent.",
+  "settings_wh_not_sent": "Not sent",
+  "settings_wh_payload_url": "Payload URL",
+  "settings_wh_recent_deliveries": "Recent deliveries",
+  "settings_wh_redeliver": "Redeliver",
+  "settings_wh_retry_due": "Retry due",
+  "settings_wh_retrying": "Retrying {when}",
+  "settings_wh_reveal_secret": "Reveal secret",
+  "settings_wh_secret": "Secret",
+  "settings_wh_secret_created": "Webhook created",
+  "settings_wh_send_test": "Send test",
+  "settings_wh_sending_test": "Sending test delivery…",
+  "settings_wh_signing_desc": "Compute HMAC-SHA256 of the raw request body with this secret and compare it to the X-Webhook-Signature header (sha256=…).",
+  "settings_wh_signing_secret": "Signing secret",
+  "settings_wh_updated_toast": "Webhook updated",
+  "settings_wh_webhooks": "Webhooks"
 }
