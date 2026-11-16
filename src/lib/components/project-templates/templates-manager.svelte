@@ -21,7 +21,7 @@
       s.cyclesEnabled && m.projects_cycles(),
       s.triageEnabled && m.projects_planning_triage_heading(),
       s.sla && m.projects_template_sla(),
-    ].filter((part): part is string => typeof part === 'string');
+    ].filter((part) => typeof part === 'string').map(String);
   }
 </script>
 

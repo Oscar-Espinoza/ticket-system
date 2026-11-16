@@ -7,6 +7,7 @@
 // and scopes the target row by (id, projectId), so ids can't reach across
 // projects. neon-http: multi-row changes go through db.batch.
 
+import { m } from '@/lib/i18n';
 import { and, eq } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
@@ -54,19 +55,19 @@ export async function removeMember(
   const projectId = formField(formData, 'projectId');
   const memberId = formField(formData, 'memberId');
   if (!projectId || !memberId) {
-    return { errors: { server: 'Missing required fields.' } };
+    return { errors: { server: m.projects_err_missing_fields() } };
   }
 
   const authz = await authorizeProjectAction(projectId, 'admin');
   if (!authz.ok) return { errors: { server: authz.error } };
 
   const target = await loadTarget(projectId, memberId);
-  if (!target) return { errors: { server: 'Member not found.' } };
+  if (!target) return { errors: { server: m.projects_err_member_not_found() } };
   if (target.userId === authz.userId) {
-    return { errors: { server: 'You cannot remove yourself.' } };
+    return { errors: { server: m.projects_err_cannot_remove_self() } };
   }
   if (target.role === 'owner') {
-    return { errors: { server: 'The project owner cannot be removed.' } };
+    return { errors: { server: m.projects_err_owner_cannot_be_removed() } };
   }
   if (!canManageMember(authz.role, target.role)) {
     return { errors: { server: 'Forbidden' } };
@@ -98,9 +99,9 @@ export async function updateMemberRole(input: {
   if (!authz.ok) return authz;
 
   const target = await loadTarget(input.projectId, input.memberId);
-  if (!target) return fail('Member not found.');
+  if (!target) return fail(m.projects_err_member_not_found());
   if (target.userId === authz.userId) {
-    return fail('You cannot change your own role.');
+    return fail(m.projects_err_cannot_change_own_role());
   }
   if (target.role === input.role) return { ok: true };
   if (!canSetRole(authz.role, target.role, input.role)) {
@@ -142,11 +143,11 @@ export async function transferOwnership(input: {
 }): Promise<MemberActionResult> {
   const authz = await authorizeProjectAction(input?.projectId, 'admin');
   if (!authz.ok) return authz;
-  if (authz.role !== 'owner') return fail('Only the owner can transfer ownership.');
+  if (authz.role !== 'owner') return fail(m.projects_err_only_owner_transfer());
 
   const target = await loadTarget(input.projectId, input.memberId);
-  if (!target) return fail('Member not found.');
-  if (target.userId === authz.userId) return fail('You already own this project.');
+  if (!target) return fail(m.projects_err_member_not_found());
+  if (target.userId === authz.userId) return fail(m.projects_err_already_own());
 
   const now = new Date();
   const { stored, insert } = prepareIssueEvents([

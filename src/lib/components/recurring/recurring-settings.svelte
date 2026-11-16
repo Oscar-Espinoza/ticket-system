@@ -82,9 +82,9 @@
   {#if !cronConfigured}
     <p class="rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
       {#each m
-        .projects_recurring_cron({ secret: '\u0001', path: '\u0002' })
-        .split(/([\u0001\u0002])/) as part, i (i)}
-        {#if part === '\u0001'}<code class="font-mono">{'CRON_SECRET'}</code>{:else if part === '\u0002'}<code
+        .projects_recurring_cron({ secret: '\uE000', path: '\uE001' })
+        .split(/([\uE000\uE001])/) as part, i (i)}
+        {#if part === '\uE000'}<code class="font-mono">{'CRON_SECRET'}</code>{:else if part === '\uE001'}<code
             class="font-mono">{'/api/cron/daily'}</code
           >{:else}{part}{/if}
       {/each}

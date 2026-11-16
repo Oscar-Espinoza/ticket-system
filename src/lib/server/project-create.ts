@@ -3,24 +3,47 @@
 // states, labels, settings and issue templates) — no ownerless or stateless
 // project is ever visible.
 
-import { projectMembers, projects } from '@/db/schema';
+import { m } from '@/lib/i18n';
+import { projectMembers, projects, workflowStates } from '@/db/schema';
 import { fail, type Fail } from '@/lib/server/action-kit';
 import { db } from '@/lib/db';
 import { isUniqueViolation } from '@/lib/db-errors';
 import { getUsableTemplateConfig, projectSeed } from '@/lib/project-templates';
+import { workflowStateInserts } from '@/lib/workflow-server';
 
 const NAME_MAX = 100;
 const KEY_RE = /^[A-Z]{2,6}$/;
 
+/**
+ * The default workflow states, named in the creator's language (the request
+ * locale). They are stored data from here on: never translated on display.
+ */
+function localizedDefaultStates(projectId: string, now: Date) {
+  const names: Record<string, () => string> = {
+    Triage: m.projects_default_state_triage,
+    Backlog: m.projects_default_state_backlog,
+    Todo: m.projects_default_state_todo,
+    'In Progress': m.projects_default_state_in_progress,
+    'In Review': m.projects_default_state_in_review,
+    Done: m.projects_default_state_done,
+    Canceled: m.projects_default_state_canceled,
+    Duplicate: m.projects_default_state_duplicate,
+  };
+  return workflowStateInserts(projectId, now).map((state) => ({
+    ...state,
+    name: names[state.name]?.() ?? state.name,
+  }));
+}
+
 export const projectNameError = (name: string): string | null =>
   !name
-    ? 'Project name is required.'
+    ? m.projects_err_project_name_required()
     : name.length > NAME_MAX
-      ? `Project name must be ${NAME_MAX} characters or fewer.`
+      ? m.projects_err_project_name_max({ max: NAME_MAX })
       : null;
 
 export const projectKeyError = (ticketKey: string): string | null =>
-  KEY_RE.test(ticketKey) ? null : 'Key must be 2–6 uppercase letters.';
+  KEY_RE.test(ticketKey) ? null : m.projects_err_project_key();
 
 export type CreateProjectErrors = {
   name?: string;
@@ -34,7 +57,7 @@ export function firstProjectError(errors: CreateProjectErrors): Fail<keyof Creat
     const error = errors[field];
     if (error) return fail(error, field);
   }
-  return fail('Could not create the project.');
+  return fail(m.projects_err_project_create_failed());
 }
 
 export type CreateProjectOutcome =
@@ -63,12 +86,14 @@ export async function createProjectRecord(input: {
 
   const template = templateId ? await getUsableTemplateConfig(templateId, userId) : null;
   if (templateId && !template) {
-    return { ok: false, errors: { templateId: 'That template is no longer available.' } };
+    return { ok: false, errors: { templateId: m.projects_err_template_unavailable() } };
   }
 
   const projectId = crypto.randomUUID();
   const now = new Date();
   const seed = projectSeed(projectId, now, template, userId);
+  // Without a template, projectSeed's first statement inserts the default states in English.
+  if (!template) seed.statements[0] = db.insert(workflowStates).values(localizedDefaultStates(projectId, now));
   try {
     await db.batch([
       db.insert(projects).values({
@@ -93,7 +118,7 @@ export async function createProjectRecord(input: {
     ]);
   } catch (err) {
     if (isUniqueViolation(err)) {
-      return { ok: false, errors: { ticketKey: 'This key is already in use. Choose a different one.' } };
+      return { ok: false, errors: { ticketKey: m.projects_err_key_in_use() } };
     }
     throw err;
   }

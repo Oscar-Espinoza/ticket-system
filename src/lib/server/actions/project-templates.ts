@@ -4,6 +4,7 @@
 // to its owner unless shared with a workspace the owner belongs to, whose
 // members may then use (not edit) it. Only the owner edits or deletes.
 
+import { m } from '@/lib/i18n';
 import { and, eq } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
@@ -33,7 +34,7 @@ export type ProjectTemplateResult = ActionResult<{ template?: ProjectTemplateRow
 
 const NAME_MAX = 60;
 const DESCRIPTION_MAX = 500;
-const NOT_FOUND = fail('Template not found.');
+const notFound = () => fail(m.projects_err_template_not_found());
 
 function validate(input: { name?: unknown; description?: unknown }) {
   const name = requiredText(input.name, 'name', NAME_MAX);
@@ -51,10 +52,10 @@ async function resolveWorkspace(
   if (workspaceId === null || workspaceId === undefined || workspaceId === '') {
     return { ok: true, id: null };
   }
-  if (typeof workspaceId !== 'string') return fail('Invalid workspace.', 'workspaceId');
+  if (typeof workspaceId !== 'string') return fail(m.projects_err_invalid_workspace(), 'workspaceId');
   const membership = await getWorkspaceMembership(workspaceId, userId);
   if (!membership || membership.workspaceId !== workspaceId) {
-    return fail('You aren’t a member of that workspace.', 'workspaceId');
+    return fail(m.projects_err_not_in_workspace(), 'workspaceId');
   }
   return { ok: true, id: workspaceId };
 }
@@ -77,7 +78,7 @@ export async function createProjectTemplate(input: {
   const auth = await authorizeProjectAction(input?.projectId, 'admin');
   if (!auth.ok) {
     return auth.error === 'Forbidden'
-      ? fail('You need to be an admin of that project.', 'projectId')
+      ? fail(m.projects_err_need_project_admin(), 'projectId')
       : auth;
   }
   const fields = validate(input);
@@ -86,7 +87,7 @@ export async function createProjectTemplate(input: {
   if (!workspace.ok) return workspace;
 
   const config = await snapshotProject(input.projectId);
-  if (!config) return fail('Project not found.', 'projectId');
+  if (!config) return fail(m.projects_err_project_not_found(), 'projectId');
 
   const id = crypto.randomUUID();
   const now = new Date();
@@ -113,7 +114,7 @@ export async function updateProjectTemplate(input: {
 }): Promise<ProjectTemplateResult> {
   const session = await getSession();
   if (!session?.user) return NOT_AUTHENTICATED;
-  if (typeof input?.id !== 'string' || !input.id) return NOT_FOUND;
+  if (typeof input?.id !== 'string' || !input.id) return notFound();
   const fields = validate(input);
   if (!fields.ok) return fields;
   const workspace = await resolveWorkspace(input.workspaceId, session.user.id);
@@ -129,7 +130,7 @@ export async function updateProjectTemplate(input: {
     })
     .where(and(eq(projectTemplates.id, input.id), eq(projectTemplates.ownerId, session.user.id)))
     .returning({ id: projectTemplates.id });
-  if (updated.length === 0) return NOT_FOUND;
+  if (updated.length === 0) return notFound();
   refreshesData();
   const [template] = await readProjectTemplates(session.user.id, input.id);
   return { ok: true, template };
@@ -138,12 +139,12 @@ export async function updateProjectTemplate(input: {
 export async function deleteProjectTemplate(input: { id: string }): Promise<ProjectTemplateResult> {
   const session = await getSession();
   if (!session?.user) return NOT_AUTHENTICATED;
-  if (typeof input?.id !== 'string' || !input.id) return NOT_FOUND;
+  if (typeof input?.id !== 'string' || !input.id) return notFound();
   const deleted = await db
     .delete(projectTemplates)
     .where(and(eq(projectTemplates.id, input.id), eq(projectTemplates.ownerId, session.user.id)))
     .returning({ id: projectTemplates.id });
-  if (deleted.length === 0) return NOT_FOUND;
+  if (deleted.length === 0) return notFound();
   refreshesData();
   return { ok: true };
 }
