@@ -150,7 +150,7 @@
               .slice(0, 6);
             ticketKey = transformed;
             // Controlled: write the result back even when the
-            // state didn't change (a rejected keystroke leaves ticketKey as is).
+            // state did not change (a rejected keystroke leaves ticketKey as is).
             event.currentTarget.value = transformed;
           }}
           aria-invalid={formState.errors?.ticketKey ? true : undefined}

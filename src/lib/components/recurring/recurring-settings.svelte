@@ -84,8 +84,8 @@
       {#each m
         .projects_recurring_cron({ secret: '\u0001', path: '\u0002' })
         .split(/([\u0001\u0002])/) as part, i (i)}
-        {#if part === '\u0001'}<code class="font-mono">CRON_SECRET</code>{:else if part === '\u0002'}<code
-            class="font-mono">/api/cron/daily</code
+        {#if part === '\u0001'}<code class="font-mono">{'CRON_SECRET'}</code>{:else if part === '\u0002'}<code
+            class="font-mono">{'/api/cron/daily'}</code
           >{:else}{part}{/if}
       {/each}
     </p>

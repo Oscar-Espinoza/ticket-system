@@ -104,7 +104,7 @@
             ticketKey = event.currentTarget.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 6);
             errors = {};
             // Controlled: write the result back even when the
-            // state didn't change (a rejected keystroke leaves ticketKey as is).
+            // state did not change (a rejected keystroke leaves ticketKey as is).
             event.currentTarget.value = ticketKey;
           }}
           placeholder={'MOB'}
