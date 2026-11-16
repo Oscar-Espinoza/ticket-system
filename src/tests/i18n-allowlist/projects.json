@@ -1,15 +1,5 @@
 {
   "files": {
-    "src/lib/components/invite-panel-pending-row.svelte": "pending translation (area projects, 2 strings)",
-    "src/lib/components/invite-panel.svelte": "pending translation (area projects, 3 strings)",
-    "src/lib/components/join-project-button.svelte": "pending translation (area projects, 1 strings)",
-    "src/lib/components/member-list-row.svelte": "pending translation (area projects, 4 strings)",
-    "src/lib/components/project-list.svelte": "pending translation (area projects, 2 strings)",
-    "src/lib/components/project-templates/delete-template-dialog.svelte": "pending translation (area projects, 2 strings)",
-    "src/lib/components/project-templates/template-form.svelte": "pending translation (area projects, 4 strings)",
-    "src/lib/components/project-templates/template-select.svelte": "pending translation (area projects, 1 strings)",
-    "src/lib/components/project-templates/templates-manager.svelte": "pending translation (area projects, 3 strings)",
-    "src/lib/components/project/project-tabs.svelte": "pending translation (area projects, 2 strings)",
     "src/lib/components/recurring/recurring-editor.svelte": "pending translation (area projects, 9 strings)",
     "src/lib/components/recurring/recurring-row.svelte": "pending translation (area projects, 2 strings)",
     "src/lib/components/recurring/recurring-settings.svelte": "pending translation (area projects, 3 strings)",

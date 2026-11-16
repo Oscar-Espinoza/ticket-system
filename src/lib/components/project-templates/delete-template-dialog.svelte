@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
   import { toast } from 'svelte-sonner';
 
@@ -31,7 +32,7 @@
         return;
       }
       invalidateProjectTemplates();
-      toast.success(`Deleted “${target.name}”`);
+      toast.success(m.projects_template_deleted({ name: target.name }));
       onClose();
     } finally {
       pending = false;
@@ -47,16 +48,16 @@
 >
   <AlertDialogContent size="sm">
     <AlertDialogHeader>
-      <AlertDialogTitle>Delete “{template?.name}”?</AlertDialogTitle>
+      <AlertDialogTitle>{m.projects_template_delete_title({ name: template?.name ?? '' })}</AlertDialogTitle>
       <AlertDialogDescription>
-        Projects already created from it don’t change. This can’t be undone.
+        {m.projects_template_delete_desc()}
       </AlertDialogDescription>
     </AlertDialogHeader>
     <AlertDialogFooter>
-      <AlertDialogCancel>Cancel</AlertDialogCancel>
+      <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
       <Button variant="destructive" onclick={confirm} disabled={pending}>
         {#if pending}<Loader2Icon class="animate-spin" />{/if}
-        Delete
+        {m.common_delete()}
       </Button>
     </AlertDialogFooter>
   </AlertDialogContent>

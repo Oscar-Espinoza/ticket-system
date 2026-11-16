@@ -592,5 +592,145 @@
   ],
   "projects_roadmap_no_dated_title": "No hay épicas con fechas",
   "projects_roadmap_no_dated_desc": "Asigna una fecha de inicio o de objetivo a una épica para situarla en el cronograma.",
-  "projects_roadmap_no_dates": "Sin fechas · {count}"
+  "projects_roadmap_no_dates": "Sin fechas · {count}",
+  "projects_invitation_revoked": "Invitación para {email} revocada",
+  "projects_invite_expired": "Caducada",
+  "projects_invite_expires": "Caduca {time}",
+  "projects_invite_invited_by": " · invitada por {name}",
+  "projects_invite_actions": "Acciones de la invitación para {email}",
+  "projects_invite_renew_resend": "Renovar y reenviar",
+  "projects_invite_resend": "Reenviar correo",
+  "projects_invite_link": "Enlace de invitación",
+  "projects_invite_copy_link": "Copiar enlace de invitación",
+  "projects_invite_revoke": "Revocar invitación",
+  "projects_invite_link_regenerated": "Enlace de invitación regenerado",
+  "projects_invite_link_created": "Enlace de invitación creado",
+  "projects_invite_by_email": "Invitar por correo",
+  "projects_invite_by_email_desc": "Recibirán un enlace que funciona una sola vez, para esa dirección, durante 7 días.",
+  "projects_invite_email_address": "Dirección de correo",
+  "projects_invite_email_placeholder": "nombre@empresa.com",
+  "projects_role": "Rol",
+  "projects_invite_send": "Enviar invitación",
+  "projects_invite_pending": "Invitaciones pendientes · {count}",
+  "projects_invite_shareable": "Enlace para compartir",
+  "projects_invite_shareable_desc": "Cualquiera con este enlace puede unirse como miembro. Caduca en 30 días.",
+  "projects_invite_regenerate": "Regenerar",
+  "projects_invite_generate_desc": "Genera un enlace que cualquiera pueda usar para unirse como miembro.",
+  "projects_invite_generate": "Generar enlace de invitación",
+  "projects_join_error_invalid": "No se pudo unir. Puede que la invitación haya caducado o ya se haya usado.",
+  "projects_join_error_wrong_account": "Esta invitación se envió a otra dirección de correo.",
+  "projects_join_error_session": "Tu sesión caducó. Inicia sesión de nuevo para unirte.",
+  "projects_joining": "Uniéndote…",
+  "projects_join_project": "Unirse al proyecto",
+  "projects_member_now_role": "{name} ahora es {role}",
+  "projects_member_removed": "{name} fue eliminado",
+  "projects_member_now_owns": "{name} ahora es el propietario de este proyecto",
+  "projects_member_role_of": "Rol de {name}",
+  "projects_member_more_actions": "Más acciones para {name}",
+  "projects_transfer_ownership": "Transferir la propiedad",
+  "projects_remove_from_project": "Quitar del proyecto",
+  "projects_transfer_title": "¿Transferir la propiedad?",
+  "projects_transfer_desc": "{name} pasa a ser el propietario de este proyecto y tú pasas a ser administrador. Solo el nuevo propietario puede devolvértela.",
+  "projects_remove_member_title": "¿Quitar al miembro?",
+  "projects_remove_member_desc": "{name} perderá el acceso a este proyecto de inmediato. Puedes volver a invitarle más tarde.",
+  "projects_remove_member": "Quitar miembro",
+  "projects_role_owner": "Propietario",
+  "projects_role_admin": "Administrador",
+  "projects_role_member": "Miembro",
+  "projects_role_guest": "Invitado",
+  "projects_list_title": "Proyectos",
+  "projects_list_empty_title": "Aún no hay proyectos",
+  "projects_list_empty_desc": "Crea tu primer proyecto para empezar.",
+  "projects_list_counts": "{open} abiertos · {resolved} resueltos",
+  "projects_template_deleted": "«{name}» eliminada",
+  "projects_template_delete_title": "¿Eliminar «{name}»?",
+  "projects_template_delete_desc": "Los proyectos ya creados con ella no cambian. Esta acción no se puede deshacer.",
+  "projects_template_name_default": "Plantilla de {name}",
+  "projects_template_only_me": "Solo yo",
+  "projects_template_everyone_in": "Todos en {name}",
+  "projects_template_saved": "Plantilla «{name}» guardada",
+  "projects_template_updated": "Plantilla actualizada",
+  "projects_template_edit": "Editar plantilla",
+  "projects_template_save_as": "Guardar como plantilla",
+  "projects_template_edit_desc": "Cambia el nombre de la plantilla o quién puede usarla.",
+  "projects_template_save_desc": "Copia los estados del flujo de trabajo, las etiquetas, las estimaciones, la configuración de ciclos y clasificación, los SLA y las plantillas de tickets. No se copian los tickets ni los miembros.",
+  "projects_template_need_admin": "Debes ser propietario o administrador de un proyecto para guardarlo como plantilla.",
+  "projects_choose_project": "Elige un proyecto…",
+  "projects_template_name_placeholder": "Equipo de ingeniería",
+  "projects_template_description_placeholder": "¿Para qué tipo de equipo es?",
+  "projects_template_available_to": "Disponible para",
+  "projects_template_save": "Guardar plantilla",
+  "projects_template_default_workflow": "Flujo de trabajo predeterminado",
+  "projects_template_loading": "Cargando plantillas…",
+  "projects_template_states": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} estado",
+        "countPlural=other": "{count} estados"
+      }
+    }
+  ],
+  "projects_template_labels": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} etiqueta",
+        "countPlural=other": "{count} etiquetas"
+      }
+    }
+  ],
+  "projects_template_issue_templates": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} plantilla de tickets",
+        "countPlural=other": "{count} plantillas de tickets"
+      }
+    }
+  ],
+  "projects_template_estimates": "Estimaciones {scale}",
+  "projects_template_sla": "SLA",
+  "projects_template_someone": "Alguien",
+  "projects_templates_title": "Plantillas de proyecto",
+  "projects_template_new": "Plantilla nueva",
+  "projects_templates_intro": "Empieza proyectos nuevos con un flujo de trabajo, etiquetas y configuración ya preparados. Elige una plantilla en el cuadro «Crear proyecto».",
+  "projects_templates_empty_title": "Aún no hay plantillas",
+  "projects_templates_empty_desc": "Guarda como plantilla un proyecto que administres para reutilizar su configuración.",
+  "projects_template_actions": "Acciones de {name}",
+  "projects_template_edit_item": "Editar…",
+  "projects_template_delete_item": "Eliminar…",
+  "projects_tabs_nav": "Proyecto",
+  "projects_tab_issues": "Tickets",
+  "projects_tab_triage": "Clasificación",
+  "projects_tab_cycles": "Ciclos",
+  "projects_tab_epics": "Épicas",
+  "projects_tab_roadmap": "Hoja de ruta",
+  "projects_tab_views": "Vistas",
+  "projects_tab_docs": "Documentos",
+  "projects_tab_customers": "Clientes",
+  "projects_tab_insights": "Estadísticas",
+  "projects_tab_archive": "Archivo",
+  "projects_tab_trash": "Papelera",
+  "projects_tab_members": "Miembros",
+  "projects_tab_settings": "Configuración",
+  "projects_tabs_more": "Más páginas del proyecto"
 }

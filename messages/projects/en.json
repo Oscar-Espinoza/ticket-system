@@ -592,5 +592,145 @@
   ],
   "projects_roadmap_no_dated_title": "No dated epics",
   "projects_roadmap_no_dated_desc": "Give an epic a start or target date to place it on the timeline.",
-  "projects_roadmap_no_dates": "No dates · {count}"
+  "projects_roadmap_no_dates": "No dates · {count}",
+  "projects_invitation_revoked": "Invitation for {email} revoked",
+  "projects_invite_expired": "Expired",
+  "projects_invite_expires": "Expires {time}",
+  "projects_invite_invited_by": " · invited by {name}",
+  "projects_invite_actions": "Actions for the invitation to {email}",
+  "projects_invite_renew_resend": "Renew and resend",
+  "projects_invite_resend": "Resend email",
+  "projects_invite_link": "Invite link",
+  "projects_invite_copy_link": "Copy invite link",
+  "projects_invite_revoke": "Revoke invitation",
+  "projects_invite_link_regenerated": "Invite link regenerated",
+  "projects_invite_link_created": "Invite link created",
+  "projects_invite_by_email": "Invite by email",
+  "projects_invite_by_email_desc": "They’ll get a link that works once, for that address, for 7 days.",
+  "projects_invite_email_address": "Email address",
+  "projects_invite_email_placeholder": "name@company.com",
+  "projects_role": "Role",
+  "projects_invite_send": "Send invite",
+  "projects_invite_pending": "Pending invitations · {count}",
+  "projects_invite_shareable": "Shareable link",
+  "projects_invite_shareable_desc": "Anyone with this link can join as a member. It expires in 30 days.",
+  "projects_invite_regenerate": "Regenerate",
+  "projects_invite_generate_desc": "Generate a link anyone can use to join as a member.",
+  "projects_invite_generate": "Generate invite link",
+  "projects_join_error_invalid": "Unable to join. The invitation may have expired or already been used.",
+  "projects_join_error_wrong_account": "This invitation was sent to a different email address.",
+  "projects_join_error_session": "Your session expired. Sign in again to join.",
+  "projects_joining": "Joining…",
+  "projects_join_project": "Join project",
+  "projects_member_now_role": "{name} is now {role}",
+  "projects_member_removed": "{name} was removed",
+  "projects_member_now_owns": "{name} now owns this project",
+  "projects_member_role_of": "Role of {name}",
+  "projects_member_more_actions": "More actions for {name}",
+  "projects_transfer_ownership": "Transfer ownership",
+  "projects_remove_from_project": "Remove from project",
+  "projects_transfer_title": "Transfer ownership?",
+  "projects_transfer_desc": "{name} becomes the owner of this project and you become an admin. Only the new owner can transfer it back.",
+  "projects_remove_member_title": "Remove member?",
+  "projects_remove_member_desc": "{name} will immediately lose access to this project. You can invite them again later.",
+  "projects_remove_member": "Remove member",
+  "projects_role_owner": "Owner",
+  "projects_role_admin": "Admin",
+  "projects_role_member": "Member",
+  "projects_role_guest": "Guest",
+  "projects_list_title": "Projects",
+  "projects_list_empty_title": "No projects yet",
+  "projects_list_empty_desc": "Create your first project to get started.",
+  "projects_list_counts": "{open} open · {resolved} resolved",
+  "projects_template_deleted": "Deleted “{name}”",
+  "projects_template_delete_title": "Delete “{name}”?",
+  "projects_template_delete_desc": "Projects already created from it don’t change. This can’t be undone.",
+  "projects_template_name_default": "{name} template",
+  "projects_template_only_me": "Only me",
+  "projects_template_everyone_in": "Everyone in {name}",
+  "projects_template_saved": "Saved template “{name}”",
+  "projects_template_updated": "Template updated",
+  "projects_template_edit": "Edit template",
+  "projects_template_save_as": "Save as template",
+  "projects_template_edit_desc": "Rename the template or change who can use it.",
+  "projects_template_save_desc": "Copies the workflow states, labels, estimates, cycle and triage settings, SLAs and issue templates. Issues and members aren’t copied.",
+  "projects_template_need_admin": "You need to be an owner or admin of a project to save it as a template.",
+  "projects_choose_project": "Choose a project…",
+  "projects_template_name_placeholder": "Engineering team",
+  "projects_template_description_placeholder": "What kind of team is this for?",
+  "projects_template_available_to": "Available to",
+  "projects_template_save": "Save template",
+  "projects_template_default_workflow": "Default workflow",
+  "projects_template_loading": "Loading templates…",
+  "projects_template_states": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} state",
+        "countPlural=other": "{count} states"
+      }
+    }
+  ],
+  "projects_template_labels": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} label",
+        "countPlural=other": "{count} labels"
+      }
+    }
+  ],
+  "projects_template_issue_templates": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} issue template",
+        "countPlural=other": "{count} issue templates"
+      }
+    }
+  ],
+  "projects_template_estimates": "{scale} estimates",
+  "projects_template_sla": "SLAs",
+  "projects_template_someone": "Someone",
+  "projects_templates_title": "Project templates",
+  "projects_template_new": "New template",
+  "projects_templates_intro": "Start new projects with a ready-made workflow, labels and settings. Pick a template in the “Create project” dialog.",
+  "projects_templates_empty_title": "No templates yet",
+  "projects_templates_empty_desc": "Save a project you administer as a template to reuse its setup.",
+  "projects_template_actions": "Actions for {name}",
+  "projects_template_edit_item": "Edit…",
+  "projects_template_delete_item": "Delete…",
+  "projects_tabs_nav": "Project",
+  "projects_tab_issues": "Issues",
+  "projects_tab_triage": "Triage",
+  "projects_tab_cycles": "Cycles",
+  "projects_tab_epics": "Epics",
+  "projects_tab_roadmap": "Roadmap",
+  "projects_tab_views": "Views",
+  "projects_tab_docs": "Docs",
+  "projects_tab_customers": "Customers",
+  "projects_tab_insights": "Insights",
+  "projects_tab_archive": "Archive",
+  "projects_tab_trash": "Trash",
+  "projects_tab_members": "Members",
+  "projects_tab_settings": "Settings",
+  "projects_tabs_more": "More project pages"
 }

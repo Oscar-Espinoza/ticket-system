@@ -3,28 +3,30 @@
   Links styled as a line tab bar (they're routes, not in-page panels).
 -->
 <script module lang="ts">
+  import { m } from '@/lib/i18n';
+
   import ArchiveIcon from '@lucide/svelte/icons/archive';
   import SettingsIcon from '@lucide/svelte/icons/settings';
   import Trash2Icon from '@lucide/svelte/icons/trash-2';
   import UsersIcon from '@lucide/svelte/icons/users';
 
   const TABS = [
-    { segment: '', label: 'Issues' },
-    { segment: 'triage', label: 'Triage' },
-    { segment: 'cycles', label: 'Cycles' },
-    { segment: 'epics', label: 'Epics' },
-    { segment: 'roadmap', label: 'Roadmap' },
-    { segment: 'views', label: 'Views' },
-    { segment: 'docs', label: 'Docs' },
-    { segment: 'customers', label: 'Customers' },
-    { segment: 'insights', label: 'Insights' },
+    { segment: '', get label() { return m.projects_tab_issues(); } },
+    { segment: 'triage', get label() { return m.projects_tab_triage(); } },
+    { segment: 'cycles', get label() { return m.projects_tab_cycles(); } },
+    { segment: 'epics', get label() { return m.projects_tab_epics(); } },
+    { segment: 'roadmap', get label() { return m.projects_tab_roadmap(); } },
+    { segment: 'views', get label() { return m.projects_tab_views(); } },
+    { segment: 'docs', get label() { return m.projects_tab_docs(); } },
+    { segment: 'customers', get label() { return m.projects_tab_customers(); } },
+    { segment: 'insights', get label() { return m.projects_tab_insights(); } },
   ];
 
   const MORE = [
-    { segment: 'archive', label: 'Archive', icon: ArchiveIcon },
-    { segment: 'trash', label: 'Trash', icon: Trash2Icon },
-    { segment: 'settings/members', label: 'Members', icon: UsersIcon },
-    { segment: 'settings', label: 'Settings', icon: SettingsIcon },
+    { segment: 'archive', get label() { return m.projects_tab_archive(); }, icon: ArchiveIcon },
+    { segment: 'trash', get label() { return m.projects_tab_trash(); }, icon: Trash2Icon },
+    { segment: 'settings/members', get label() { return m.projects_tab_members(); }, icon: UsersIcon },
+    { segment: 'settings', get label() { return m.projects_tab_settings(); }, icon: SettingsIcon },
   ];
 </script>
 
@@ -57,7 +59,7 @@
 </script>
 
 <nav
-  aria-label="Project"
+  aria-label={m.projects_tabs_nav()}
   data-project-tabs
   class="mb-4 flex items-center gap-1 overflow-x-auto overflow-y-hidden border-b border-border"
 >
@@ -85,7 +87,7 @@
           {...props}
           variant="ghost"
           size="icon-sm"
-          aria-label="More project pages"
+          aria-label={m.projects_tabs_more()}
           class={cn('ml-1 shrink-0', inMore && 'text-foreground')}
         >
           <MoreHorizontalIcon />

@@ -10,6 +10,7 @@
 </script>
 
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import type { ProjectTemplateRow } from '@/lib/actions/project-templates';
   import {
     Select,
@@ -36,7 +37,7 @@
   const current = $derived(known ? value || DEFAULT : DEFAULT);
   const selected = $derived(templates?.find((t) => t.id === current));
   const items = $derived([
-    { value: DEFAULT, label: 'Default workflow' },
+    { value: DEFAULT, label: m.projects_template_default_workflow() },
     ...(templates ?? []).map((t) => ({ value: t.id, label: t.name })),
   ]);
 </script>
@@ -53,14 +54,14 @@
           <span class="text-xs text-muted-foreground">· {selected.workspaceName}</span>
         {/if}
       {:else}
-        Default workflow
+        {m.projects_template_default_workflow()}
       {/if}
     </SelectValue>
   </SelectTrigger>
   <SelectContent>
-    <SelectItem value={DEFAULT}>Default workflow</SelectItem>
+    <SelectItem value={DEFAULT}>{m.projects_template_default_workflow()}</SelectItem>
     {#if templates === undefined}
-      <SelectItem value="__loading" disabled>Loading templates…</SelectItem>
+      <SelectItem value="__loading" disabled>{m.projects_template_loading()}</SelectItem>
     {:else}
       {#each templates as template (template.id)}
         <SelectItem value={template.id}>
