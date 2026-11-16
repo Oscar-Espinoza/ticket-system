@@ -2,6 +2,7 @@
   import CircleCheckIcon from '@lucide/svelte/icons/circle-check';
   import ResendVerificationButton from '@/lib/components/auth/resend-verification-button.svelte';
   import PasswordForm from '@/lib/components/settings/password-form.svelte';
+  import LanguageForm from '@/lib/components/settings/language-form.svelte';
   import ProfileForm from '@/lib/components/settings/profile-form.svelte';
   import { Separator } from '@/lib/components/ui/separator';
   import type { PageProps } from './$types';
@@ -25,6 +26,10 @@
   timezone={data.profile.timezone}
   timezones={data.profile.timezones}
 />
+
+<Separator class="my-10" />
+
+<LanguageForm locale={data.locale} />
 
 <Separator class="my-10" />
 

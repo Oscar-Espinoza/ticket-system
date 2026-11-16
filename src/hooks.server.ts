@@ -1,5 +1,5 @@
 // Server hooks: self-hosted startup, CSRF, Better Auth session + /api/auth/*,
-// the /dashboard sign-in guard, gzip, and the density boot snippet.
+// the interface language, the /dashboard sign-in guard, gzip, and the density boot snippet.
 import type { Handle, HandleServerError, ServerInit } from '@sveltejs/kit/hooks';
 import { sequence } from '@sveltejs/kit/hooks';
 import { building, dev } from '$app/env';
@@ -7,6 +7,8 @@ import { isAuthPath } from 'better-auth/svelte-kit';
 import { auth, CLIENT_IP_HEADER } from '@/lib/auth';
 import { DENSITY_BOOT_SCRIPT, DENSITY_CSS } from '@/lib/density';
 import { warnIfBehindUnconfiguredProxy } from '@/lib/server/proxy-warning';
+import { setRequestUserLocale } from '@/lib/server/i18n';
+import { paraglideMiddleware } from '@/lib/paraglide/server';
 
 // Awaited before the first request is served (adapter-node: before listen).
 // Self-hosted: apply migrations and schedule the daily jobs.
@@ -83,8 +85,19 @@ const session: Handle = async ({ event, resolve }) => {
   const s = await auth.api.getSession({ headers: event.request.headers });
   event.locals.user = s?.user ?? null;
   event.locals.session = s?.session ?? null;
+  if (s?.user) setRequestUserLocale(event.request, (s.user as { locale?: unknown }).locale);
   return resolve(event);
 };
+
+// Interface language for the rest of the request (src/lib/server/i18n.ts):
+// m.*() messages, getLocale() and the Intl formatters in server code, loads,
+// remote functions and SSR all see it. Fills <html lang="%paraglide.lang%">.
+const i18n: Handle = ({ event, resolve }) =>
+  paraglideMiddleware(event.request, ({ locale }) =>
+    resolve(event, {
+      transformPageChunk: ({ html }) => html.replace('%paraglide.lang%', locale),
+    }),
+  );
 
 // Signed-out requests under /dashboard go to /login before any load runs. A
 // layout load does not protect its pages' __data.json requests (they run in
@@ -133,7 +146,7 @@ const compress: Handle = async ({ event, resolve }) => {
   });
 };
 
-export const handle = sequence(compress, csrf, session, dashboardGuard, density);
+export const handle = sequence(compress, csrf, session, i18n, dashboardGuard, density);
 
 export const handleError: HandleServerError = ({ kind, error, event }) => {
   if (kind === 'unknown') {

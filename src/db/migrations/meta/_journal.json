@@ -99,6 +99,13 @@
       "when": 1794511777113,
       "tag": "0013_vcs_webhook_deliveries",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1794790531501,
+      "tag": "0014_user_locale",
+      "breakpoints": true
     }
   ]
 }

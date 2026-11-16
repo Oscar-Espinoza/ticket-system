@@ -1,0 +1,16 @@
+{
+  "files": {
+    "src/mcp-ui/App.svelte": "MCP Apps cards (src/mcp-ui): a separate bundle rendered inside Claude/ChatGPT, outside the app; translating it is out of scope.",
+    "src/mcp-ui/Avatar.svelte": "MCP Apps cards (src/mcp-ui): a separate bundle rendered inside Claude/ChatGPT, outside the app; translating it is out of scope.",
+    "src/mcp-ui/Burndown.svelte": "MCP Apps cards (src/mcp-ui): a separate bundle rendered inside Claude/ChatGPT, outside the app; translating it is out of scope.",
+    "src/mcp-ui/ExpandedIssue.svelte": "MCP Apps cards (src/mcp-ui): a separate bundle rendered inside Claude/ChatGPT, outside the app; translating it is out of scope.",
+    "src/mcp-ui/IssueDetail.svelte": "MCP Apps cards (src/mcp-ui): a separate bundle rendered inside Claude/ChatGPT, outside the app; translating it is out of scope.",
+    "src/mcp-ui/IssueList.svelte": "MCP Apps cards (src/mcp-ui): a separate bundle rendered inside Claude/ChatGPT, outside the app; translating it is out of scope.",
+    "src/mcp-ui/IssueRow.svelte": "MCP Apps cards (src/mcp-ui): a separate bundle rendered inside Claude/ChatGPT, outside the app; translating it is out of scope.",
+    "src/mcp-ui/NotificationRow.svelte": "MCP Apps cards (src/mcp-ui): a separate bundle rendered inside Claude/ChatGPT, outside the app; translating it is out of scope.",
+    "src/mcp-ui/OpenLink.svelte": "MCP Apps cards (src/mcp-ui): a separate bundle rendered inside Claude/ChatGPT, outside the app; translating it is out of scope.",
+    "src/mcp-ui/ProjectList.svelte": "MCP Apps cards (src/mcp-ui): a separate bundle rendered inside Claude/ChatGPT, outside the app; translating it is out of scope.",
+    "src/mcp-ui/ProjectOverview.svelte": "MCP Apps cards (src/mcp-ui): a separate bundle rendered inside Claude/ChatGPT, outside the app; translating it is out of scope.",
+    "src/mcp-ui/Skeleton.svelte": "MCP Apps cards (src/mcp-ui): a separate bundle rendered inside Claude/ChatGPT, outside the app; translating it is out of scope."
+  }
+}
