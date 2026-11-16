@@ -3,7 +3,7 @@
   background); a refresh — or any fresh server load — re-seeds it.
 -->
 <script lang="ts">
-  import { pluralize } from '@/lib/format';
+  import { m } from '@/lib/i18n';
   import { goto } from '$app/navigation';
   import Archive from '@lucide/svelte/icons/archive';
   import CheckCheck from '@lucide/svelte/icons/check-check';
@@ -69,7 +69,7 @@
   const unreadCount = $derived(groups.filter((g) => g.unread).length);
 
   async function run(action: () => Promise<ActionResult>) {
-    const result = await action().catch(() => ({ ok: false as const, error: 'Something went wrong' }));
+    const result = await action().catch(() => ({ ok: false as const, error: m.editor_inbox_something_wrong() }));
     if (!result.ok) {
       toast.error(result.error);
       void refreshAfterWrite();
@@ -116,9 +116,9 @@
     const ids = group.items.map((n) => n.id);
     removeGroup(group);
     void run(() => archiveNotifications({ ids, archived: true }));
-    toast('Archived', {
+    toast(m.editor_inbox_archived(), {
       action: {
-        label: 'Undo',
+        label: m.editor_inbox_undo(),
         onClick: () => {
           restoreGroup(group.items);
           void run(() => archiveNotifications({ ids, archived: false }));
@@ -131,9 +131,9 @@
     const ids = group.items.map((n) => n.id);
     removeGroup(group);
     void run(() => snoozeNotifications({ ids, until: until.toISOString() }));
-    toast(`Snoozed until ${formatWhen(until)}`, {
+    toast(m.editor_inbox_snoozed_until({ when: formatWhen(until) }), {
       action: {
-        label: 'Undo',
+        label: m.editor_inbox_undo(),
         onClick: () => {
           // The snooze already marked them unread on the server.
           restoreGroup(group.items.map((n) => ({ ...n, readAt: null })));
@@ -152,7 +152,7 @@
   function archiveAllRead() {
     const remaining = items.filter((n) => !n.readAt);
     if (remaining.length === items.length) {
-      toast('Nothing read to archive');
+      toast(m.editor_inbox_nothing_read());
       return;
     }
     items = remaining;
@@ -162,10 +162,10 @@
     void (async () => {
       const result = await archiveReadNotifications().catch(() => null);
       if (!result?.ok) {
-        toast.error(result?.error ?? 'Something went wrong');
+        toast.error(result?.error ?? m.editor_inbox_something_wrong());
         void refreshAfterWrite();
       } else {
-        toast(`Archived ${pluralize(result.count, 'read notification')}`);
+        toast(m.editor_inbox_archived_read({ count: result.count }));
       }
     })();
   }
@@ -185,12 +185,12 @@
 
   $effect(() =>
     registerHotkeys([
-      { key: 'j', scope: 'Inbox', description: 'Next notification', handler: () => move(1) },
-      { key: 'k', scope: 'Inbox', description: 'Previous notification', handler: () => move(-1) },
+      { key: 'j', scope: 'Inbox', description: m.editor_inbox_hk_next(), handler: () => move(1) },
+      { key: 'k', scope: 'Inbox', description: m.editor_inbox_hk_prev(), handler: () => move(-1) },
       {
         key: 'Enter',
         scope: 'Inbox',
-        description: 'Open issue',
+        description: m.editor_inbox_hk_open(),
         // Only from a row (or nothing focused) — Enter on a toolbar button keeps its own meaning.
         when: (event) =>
           event.target === document.body ||
@@ -203,7 +203,7 @@
       {
         key: 'u',
         scope: 'Inbox',
-        description: 'Mark as read / unread',
+        description: m.editor_inbox_hk_toggle_read(),
         handler: () => {
           if (selected) setRead(selected, selected.unread);
         },
@@ -211,7 +211,7 @@
       {
         key: 'e',
         scope: 'Inbox',
-        description: 'Archive notification',
+        description: m.editor_inbox_hk_archive(),
         handler: () => {
           if (selected) archive(selected);
         },
@@ -230,7 +230,7 @@
 {#snippet inboxRow(group: InboxGroup, issue: IssueRow | null, active: boolean)}
   {@const latest = group.latest}
   {@const key = issue?.key ?? latest.data.key}
-  {@const title = issue?.title ?? latest.data.title ?? 'Notification'}
+  {@const title = issue?.title ?? latest.data.title ?? m.editor_inbox_notification()}
   <button
     {@attach rowRef(group.key)}
     type="button"
@@ -244,7 +244,7 @@
     )}
   >
     <span
-      aria-label={group.unread ? 'Unread' : undefined}
+      aria-label={group.unread ? m.editor_inbox_unread() : undefined}
       class={cn('size-1.5 shrink-0 rounded-full', group.unread ? 'bg-primary' : 'bg-transparent')}
     ></span>
     <NotificationGlyph notification={latest} />
@@ -267,31 +267,31 @@
 
 <div class="-mx-4 -my-6 flex h-[calc(100vh-3.5rem)] sm:-mx-6 sm:-my-8">
   <section
-    aria-label="Notifications"
+    aria-label={m.editor_inbox_notifications()}
     class={cn(
       'flex w-full min-w-0 flex-col border-border md:w-[380px] md:shrink-0 md:border-r',
       selected && 'hidden md:flex',
     )}
   >
     <div class="flex h-11 shrink-0 items-center gap-2 border-b border-border px-3">
-      <h1 class="text-sm font-medium">Inbox</h1>
+      <h1 class="text-sm font-medium">{m.common_inbox()}</h1>
       <ToggleGroup
         type="single"
         size="sm"
         spacing={0}
         bind:value={() => filter, (value) => value && (filter = value as Filter)}
-        aria-label="Filter notifications"
+        aria-label={m.editor_inbox_filter()}
         class="ml-2"
       >
-        <ToggleGroupItem value="all" class="h-6 px-2 text-xs">All</ToggleGroupItem>
+        <ToggleGroupItem value="all" class="h-6 px-2 text-xs">{m.editor_inbox_all()}</ToggleGroupItem>
         <ToggleGroupItem value="unread" class="h-6 px-2 text-xs">
-          Unread{#if unreadCount > 0}<span class="tabular-nums text-muted-foreground">{unreadCount}</span>{/if}
+          {m.editor_inbox_unread()}{#if unreadCount > 0}<span class="tabular-nums text-muted-foreground">{unreadCount}</span>{/if}
         </ToggleGroupItem>
       </ToggleGroup>
       <DropdownMenu>
         <DropdownMenuTrigger>
           {#snippet child({ props })}
-            <Button {...props} variant="ghost" size="icon-sm" class="ml-auto" aria-label="Inbox actions">
+            <Button {...props} variant="ghost" size="icon-sm" class="ml-auto" aria-label={m.editor_inbox_actions()}>
               <Ellipsis />
             </Button>
           {/snippet}
@@ -299,11 +299,11 @@
         <DropdownMenuContent align="end" class="w-52">
           <DropdownMenuItem onSelect={markAllRead} disabled={unreadCount === 0}>
             <CheckCheck />
-            Mark all as read
+            {m.editor_inbox_mark_all_read()}
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={archiveAllRead}>
             <Archive />
-            Archive all read
+            {m.editor_inbox_archive_all_read()}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -313,10 +313,10 @@
       {#if visible.length === 0}
         <EmptyState
           icon={inboxIcon}
-          title={filter === 'unread' ? 'No unread notifications' : 'Inbox zero'}
+          title={filter === 'unread' ? m.editor_inbox_empty_unread() : m.editor_inbox_empty()}
           description={filter === 'unread'
-            ? 'You are all caught up.'
-            : 'Assignments, mentions, comments and status changes on issues you follow show up here.'}
+            ? m.editor_inbox_caught_up()
+            : m.editor_inbox_empty_body()}
           class="py-24"
         />
       {:else}
@@ -330,7 +330,7 @@
   </section>
 
   <section
-    aria-label="Notification details"
+    aria-label={m.editor_inbox_details()}
     class={cn('min-w-0 flex-1 overflow-y-auto', !selected && 'hidden md:block')}
   >
     {#if selected}
@@ -347,8 +347,8 @@
     {:else if visible.length > 0}
       <EmptyState
         icon={inboxIcon}
-        title="No notification selected"
-        description="Pick one from the list, or use J / K to move and U / E to mark read or archive."
+        title={m.editor_inbox_none_selected()}
+        description={m.editor_inbox_none_selected_body()}
         class="h-full"
       />
     {/if}
