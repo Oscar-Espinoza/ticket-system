@@ -9,7 +9,7 @@ import { db } from '@/lib/db';
 import { userProfiles } from '@/db/schema';
 import { formField as field, refreshesData } from '@/lib/server/action-kit';
 import { getSession } from '@/lib/session';
-import { NAME_RULE_MESSAGE, validUserName } from '@/lib/auth-rules';
+import { nameRuleMessage, validUserName } from '@/lib/auth-rules';
 import { m, toAppLocale } from '@/lib/i18n';
 
 export type ProfileState = {
@@ -57,7 +57,7 @@ export async function updateProfile(
 
   const errors: NonNullable<ProfileState['errors']> = {};
   if (!name) errors.name = m.settings_err_name_required();
-  else if (!validUserName(name)) errors.name = NAME_RULE_MESSAGE;
+  else if (!validUserName(name)) errors.name = nameRuleMessage();
   // Only http(s): the value lands in <img src> for every teammate.
   if (image && (image.length > 2048 || !isHttpUrl(image))) {
     errors.image = m.settings_err_image_url();

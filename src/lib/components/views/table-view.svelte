@@ -358,7 +358,7 @@
               <SelectCheckbox
                 checked={allChecked}
                 tabIndex={0}
-                label={allChecked === true ? 'Deselect all issues' : 'Select all issues'}
+                label={allChecked === true ? m.shared_deselect_all_issues() : m.shared_select_all_issues()}
                 onToggle={() => selection.set(allChecked === true ? [] : selectableIds)}
               />
             </th>

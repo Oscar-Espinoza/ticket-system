@@ -27,9 +27,9 @@
 </script>
 
 <Command filter={keywordFilter}>
-  <CommandInput bind:value={search} placeholder={onCreate ? 'Find or create customer…' : 'Find customer…'} />
+  <CommandInput bind:value={search} placeholder={onCreate ? m.shared_customer_find_or_create() : m.shared_customer_find()} />
   <CommandList>
-    <CommandEmpty>{onCreate ? 'Type a name to create a customer.' : 'No customers found.'}</CommandEmpty>
+    <CommandEmpty>{onCreate ? m.shared_customer_type_to_create() : m.shared_customer_none_found()}</CommandEmpty>
     {#if options.length > 0}
       <CommandGroup>
         {#each options as option (option.id)}

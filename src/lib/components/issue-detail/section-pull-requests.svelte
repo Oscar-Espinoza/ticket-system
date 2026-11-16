@@ -20,22 +20,22 @@
   type Icon = typeof GitPullRequestIcon;
 
   const STATUS: Record<Status, { label: string; icon: Icon; className: string }> = {
-    open: { label: 'Open', icon: GitPullRequestIcon, className: 'text-emerald-600 dark:text-emerald-400' },
-    draft: { label: 'Draft', icon: GitPullRequestDraftIcon, className: 'text-muted-foreground' },
-    merged: { label: 'Merged', icon: GitMergeIcon, className: 'text-violet-600 dark:text-violet-400' },
-    closed: { label: 'Closed', icon: GitPullRequestClosedIcon, className: 'text-red-600 dark:text-red-400' },
+    open: { get label() { return m.shared_pr_open(); }, icon: GitPullRequestIcon, className: 'text-emerald-600 dark:text-emerald-400' },
+    draft: { get label() { return m.shared_pr_draft(); }, icon: GitPullRequestDraftIcon, className: 'text-muted-foreground' },
+    merged: { get label() { return m.shared_pr_merged(); }, icon: GitMergeIcon, className: 'text-violet-600 dark:text-violet-400' },
+    closed: { get label() { return m.shared_pr_closed(); }, icon: GitPullRequestClosedIcon, className: 'text-red-600 dark:text-red-400' },
   };
 
   const REVIEW: Record<ReviewDecision, { label: string; className: string }> = {
-    approved: { label: 'Approved', className: 'text-emerald-600 dark:text-emerald-400' },
-    changes_requested: { label: 'Changes requested', className: 'text-red-600 dark:text-red-400' },
-    review_required: { label: 'Review required', className: 'text-muted-foreground' },
+    approved: { get label() { return m.shared_pr_approved(); }, className: 'text-emerald-600 dark:text-emerald-400' },
+    changes_requested: { get label() { return m.shared_pr_changes_requested(); }, className: 'text-red-600 dark:text-red-400' },
+    review_required: { get label() { return m.shared_pr_review_required(); }, className: 'text-muted-foreground' },
   };
 
   const CHECKS: Record<ChecksState, { label: string; icon: Icon; className: string }> = {
-    success: { label: 'Checks passing', icon: CircleCheckIcon, className: 'text-emerald-600 dark:text-emerald-400' },
-    failure: { label: 'Checks failing', icon: CircleXIcon, className: 'text-red-600 dark:text-red-400' },
-    pending: { label: 'Checks running', icon: CircleDotIcon, className: 'text-amber-500' },
+    success: { get label() { return m.shared_pr_checks_passing(); }, icon: CircleCheckIcon, className: 'text-emerald-600 dark:text-emerald-400' },
+    failure: { get label() { return m.shared_pr_checks_failing(); }, icon: CircleXIcon, className: 'text-red-600 dark:text-red-400' },
+    pending: { get label() { return m.shared_pr_checks_running(); }, icon: CircleDotIcon, className: 'text-amber-500' },
   };
 
   function statusOf(pr: PullRequestView): Status {

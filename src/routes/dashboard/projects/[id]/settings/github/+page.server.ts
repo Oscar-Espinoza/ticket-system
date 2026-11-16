@@ -12,14 +12,15 @@ import { isUnreachableUrl } from '@/lib/vcs/webhook-url';
 import { roleAllows } from '@/lib/roles';
 import { loadViewerProject } from '../../project-load';
 import type { PageServerLoad } from './$types';
+import { m } from '@/lib/i18n';
+import { lazyLabels } from '@/lib/lazy-labels';
 
 // Better Auth redirects back with ?error=<code> when linking fails.
-const LINK_ERRORS: Record<string, string> = {
-  account_already_linked_to_different_user:
-    'That GitHub account is already linked to another user here.',
-  unable_to_link_account: "GitHub didn't confirm your email address, so the account wasn't linked.",
-  access_denied: 'GitHub access was not granted.',
-};
+const LINK_ERRORS: Record<string, string> = lazyLabels({
+  account_already_linked_to_different_user: m.shared_gh_link_other_user,
+  unable_to_link_account: m.shared_gh_link_unverified,
+  access_denied: m.shared_gh_link_denied,
+});
 
 export const load: PageServerLoad = async ({ params, url }) => {
   const { id } = params;
@@ -43,7 +44,9 @@ export const load: PageServerLoad = async ({ params, url }) => {
     account,
     oauthConfigured: githubOAuthConfigured(),
     linkError: errorCode
-      ? (LINK_ERRORS[errorCode] ?? `GitHub linking failed (${errorCode}).`)
+      ? Object.hasOwn(LINK_ERRORS, errorCode)
+        ? LINK_ERRORS[errorCode]
+        : m.shared_gh_link_failed({ code: errorCode })
       : null,
     repo: project.repo,
     webhookRegistered: !!project.webhookId,

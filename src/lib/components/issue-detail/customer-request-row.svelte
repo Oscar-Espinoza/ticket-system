@@ -118,7 +118,7 @@
           </span>
         {/if}
       {:else}
-        <span class="truncate text-muted-foreground">{requester ?? 'Unknown requester'}</span>
+        <span class="truncate text-muted-foreground">{requester ?? m.shared_unknown_requester()}</span>
         {#if canWrite && !pending}
           <PickerPopover class="w-64">
             {#snippet content(close)}

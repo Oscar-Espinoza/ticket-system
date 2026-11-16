@@ -1,5 +1,7 @@
 // Sign-in rules the server enforces and the forms mirror. Client-safe.
 
+import { m } from '@/lib/i18n';
+
 /** Shortest password Better Auth accepts (emailAndPassword.minPasswordLength). */
 export const MIN_PASSWORD_LENGTH = 8;
 
@@ -28,5 +30,5 @@ export function validUserName(name: unknown): name is string {
   );
 }
 
-/** The error every name check shows. */
-export const NAME_RULE_MESSAGE = `Name must be 1 to ${MAX_NAME_LENGTH} characters on one line.`;
+/** The error every name check shows, in the current interface language. */
+export const nameRuleMessage = () => m.shared_name_rule({ max: MAX_NAME_LENGTH });
