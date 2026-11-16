@@ -4,6 +4,7 @@
 // default project or uninstalling also needs admin on the current default
 // project (or being the installer), so one member can't hijack another team's Asks.
 
+import { m } from '@/lib/i18n';
 import { and, eq, inArray } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
@@ -63,12 +64,12 @@ export async function setSlackDefaultProject(input: {
   const userId = await sessionUserId();
   if (!userId) return NOT_AUTHENTICATED;
   const install = await manageable(userId, input?.teamId);
-  if (!install) return fail("You can't manage this Slack workspace.");
+  if (!install) return fail(m.settings_err_slack_manage());
 
   const projectId = input.projectId || null;
   if (projectId) {
     const gate = await authorizeProjectAction(projectId, 'admin');
-    if (!gate.ok) return fail('Only project admins can route Asks to a project.');
+    if (!gate.ok) return fail(m.settings_err_slack_route());
   }
   await db
     .update(slackInstallations)
@@ -82,7 +83,7 @@ export async function uninstallSlack(input: { teamId: string }): Promise<ActionR
   const userId = await sessionUserId();
   if (!userId) return NOT_AUTHENTICATED;
   const install = await manageable(userId, input?.teamId);
-  if (!install) return fail("You can't manage this Slack workspace.");
+  if (!install) return fail(m.settings_err_slack_manage());
 
   // Best effort on Slack's side; forgetting the token is what matters.
   const config = slackConfig();
@@ -103,7 +104,7 @@ export async function setSlackDmNotify(input: { teamId: string; notify: boolean 
   const userId = await sessionUserId();
   if (!userId) return NOT_AUTHENTICATED;
   if (typeof input?.teamId !== 'string' || typeof input.notify !== 'boolean') {
-    return fail('Invalid input');
+    return fail(m.settings_err_invalid_input());
   }
   await db
     .update(slackUserLinks)
@@ -116,7 +117,7 @@ export async function setSlackDmNotify(input: { teamId: string; notify: boolean 
 export async function unlinkSlack(input: { teamId: string }): Promise<ActionResult> {
   const userId = await sessionUserId();
   if (!userId) return NOT_AUTHENTICATED;
-  if (typeof input?.teamId !== 'string') return fail('Invalid input');
+  if (typeof input?.teamId !== 'string') return fail(m.settings_err_invalid_input());
   await db
     .delete(slackUserLinks)
     .where(and(eq(slackUserLinks.userId, userId), eq(slackUserLinks.teamId, input.teamId)));

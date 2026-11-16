@@ -3,6 +3,7 @@
 // credential — so it only ever reveals the project name, silently drops likely
 // spam (honeypot, too-fast submits) and caps the rate per project.
 
+import { formatNumber, m } from '@/lib/i18n';
 import { and, count, eq, gte } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
@@ -88,27 +89,27 @@ export async function submitIntakeRequest(
     return { status: 'success' };
   }
   if (stamp === 'expired') {
-    return { values, errors: { server: 'This page was open too long. Reload it and try again.' } };
+    return { values, errors: { server: m.settings_err_intake_stale() } };
   }
 
   const errors: IntakeFormState['errors'] = {};
-  if (values.name.length > NAME_MAX) errors.name = `Name must be ${NAME_MAX} characters or fewer.`;
-  if (!values.email) errors.email = 'Email is required so the team can follow up.';
+  if (values.name.length > NAME_MAX) errors.name = m.settings_err_intake_name({ max: NAME_MAX });
+  if (!values.email) errors.email = m.settings_err_intake_email_required();
   else if (values.email.length > EMAIL_MAX || !EMAIL_RE.test(values.email)) {
-    errors.email = 'Enter a valid email address.';
+    errors.email = m.settings_err_intake_email();
   }
-  if (!values.title) errors.title = 'Give your request a short summary.';
+  if (!values.title) errors.title = m.settings_err_intake_summary();
   else if (values.title.length > TITLE_MAX) {
-    errors.title = `Summary must be ${TITLE_MAX} characters or fewer.`;
+    errors.title = m.settings_err_intake_summary_max({ max: TITLE_MAX });
   }
   if (values.description.length > DESCRIPTION_MAX) {
-    errors.description = `Details must be ${DESCRIPTION_MAX.toLocaleString('en')} characters or fewer.`;
+    errors.description = m.settings_err_intake_details_max({ max: formatNumber(DESCRIPTION_MAX) });
   }
   if (Object.keys(errors).length > 0) return { values, errors };
 
   const unavailable: IntakeFormState = {
     values,
-    errors: { server: 'This form is no longer accepting requests.' },
+    errors: { server: m.settings_err_intake_closed() },
   };
   if (!token) return unavailable;
 
@@ -129,7 +130,7 @@ export async function submitIntakeRequest(
   if (recent.total >= RATE_MAX) {
     return {
       values,
-      errors: { server: 'This form is receiving a lot of requests. Try again in a few minutes.' },
+      errors: { server: m.settings_err_intake_busy() },
     };
   }
 
@@ -150,7 +151,7 @@ export async function submitIntakeRequest(
   });
   if (!result.ok) {
     console.error('[intake] createIssue failed', result.error);
-    return { values, errors: { server: 'Something went wrong. Please try again.' } };
+    return { values, errors: { server: m.common_error_generic() } };
   }
 
   // A known customer's domain links the request to them. Best effort: the

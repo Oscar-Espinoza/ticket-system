@@ -2,6 +2,7 @@
 // with authorizeProjectAction and scopes webhook rows by (id, project id), so a
 // webhook id from another project is simply "not found".
 
+import { m } from '@/lib/i18n';
 import { after } from '@/lib/kit/request';
 import { and, count, eq } from 'drizzle-orm';
 
@@ -94,7 +95,9 @@ async function admin(projectId: unknown): Promise<Fail | null> {
 
 function statusError(status: number, service: string): Fail {
   return fail(
-    status === 0 ? `Could not reach ${service}.` : `${service} responded with HTTP ${status}.`,
+    status === 0
+      ? m.settings_err_could_not_reach({ service })
+      : m.settings_err_responded_http({ service, status }),
   );
 }
 
@@ -118,14 +121,14 @@ export async function saveSlackSettings(input: {
   }
 
   if (!url.startsWith(SLACK_URL_PREFIX) || url.length > SLACK_URL_MAX || url.includes('#')) {
-    return fail(`Paste a Slack incoming webhook URL (${SLACK_URL_PREFIX}…).`, 'url');
+    return fail(m.settings_err_slack_url({ prefix: SLACK_URL_PREFIX }), 'url');
   }
   try {
     new URL(url);
   } catch {
-    return fail('Enter a valid URL.', 'url');
+    return fail(m.settings_err_valid_url(), 'url');
   }
-  if (!Array.isArray(input.events)) return fail('Invalid events.', 'events');
+  if (!Array.isArray(input.events)) return fail(m.settings_err_invalid_events(), 'events');
   const events = normalizeSlackEvents(input.events);
 
   // Both columns on every save — this is also what drops a legacy
@@ -152,7 +155,7 @@ export async function sendSlackTest(input: { projectId: string }): Promise<Resul
     .where(eq(projects.id, input.projectId))
     .limit(1);
   const setting = parseSlackSetting(project?.slackWebhookUrl, project?.slackEvents);
-  if (!project || !setting) return fail('Save a Slack webhook URL first.');
+  if (!project || !setting) return fail(m.settings_err_save_slack_first());
 
   const status = await sendSlackMessage(setting.url, {
     text: `Test message from ${project.name}`,
@@ -170,7 +173,7 @@ export async function sendSlackTest(input: { projectId: string }): Promise<Resul
 }
 
 function normalizeEvents(raw: unknown): string[] | Fail {
-  if (!Array.isArray(raw)) return fail('Invalid events.', 'events');
+  if (!Array.isArray(raw)) return fail(m.settings_err_invalid_events(), 'events');
   return [...new Set(raw.filter(isWebhookEventType))];
 }
 
@@ -194,7 +197,7 @@ export async function createWebhook(input: {
     .from(webhooks)
     .where(eq(webhooks.projectId, projectId));
   if (total >= WEBHOOKS_MAX) {
-    return fail(`A project can have at most ${WEBHOOKS_MAX} webhooks.`);
+    return fail(m.settings_err_webhooks_max({ max: WEBHOOKS_MAX }));
   }
 
   const secret = generateWebhookSecret();
@@ -239,7 +242,7 @@ export async function updateWebhook(input: {
   }
   if (input.enabled !== undefined) set.enabled = input.enabled === true;
   if (typeof input.id !== 'string' || Object.keys(set).length === 0) {
-    return fail('Nothing to update.');
+    return fail(m.settings_err_nothing_to_update());
   }
 
   const [row] = await db
@@ -247,7 +250,7 @@ export async function updateWebhook(input: {
     .set(set)
     .where(and(eq(webhooks.id, input.id), eq(webhooks.projectId, projectId)))
     .returning(webhookColumns);
-  if (!row) return fail('Webhook not found.');
+  if (!row) return fail(m.settings_err_webhook_not_found());
   refreshesData();
   return { ok: true, webhook: toView(row) };
 }
@@ -255,13 +258,13 @@ export async function updateWebhook(input: {
 export async function deleteWebhook(input: { projectId: string; id: string }): Promise<Result> {
   const denied = await admin(input?.projectId);
   if (denied) return denied;
-  if (typeof input.id !== 'string') return fail('Webhook not found.');
+  if (typeof input.id !== 'string') return fail(m.settings_err_webhook_not_found());
 
   const [row] = await db
     .delete(webhooks)
     .where(and(eq(webhooks.id, input.id), eq(webhooks.projectId, input.projectId)))
     .returning({ id: webhooks.id });
-  if (!row) return fail('Webhook not found.');
+  if (!row) return fail(m.settings_err_webhook_not_found());
   refreshesData();
   return { ok: true };
 }
@@ -272,14 +275,14 @@ export async function revealWebhookSecret(input: {
 }): Promise<Result<{ secret: string }>> {
   const denied = await admin(input?.projectId);
   if (denied) return denied;
-  if (typeof input.id !== 'string') return fail('Webhook not found.');
+  if (typeof input.id !== 'string') return fail(m.settings_err_webhook_not_found());
 
   const [row] = await db
     .select({ secret: webhooks.secret })
     .from(webhooks)
     .where(and(eq(webhooks.id, input.id), eq(webhooks.projectId, input.projectId)))
     .limit(1);
-  return row ? { ok: true, secret: row.secret } : fail('Webhook not found.');
+  return row ? { ok: true, secret: row.secret } : fail(m.settings_err_webhook_not_found());
 }
 
 export async function sendWebhookTest(input: {
@@ -289,7 +292,7 @@ export async function sendWebhookTest(input: {
   const auth = await authorizeProjectAction(input?.projectId, 'admin');
   if (!auth.ok) return auth;
   const hook = await findWebhook(input.projectId, input.id);
-  if (!hook) return fail('Webhook not found.');
+  if (!hook) return fail(m.settings_err_webhook_not_found());
 
   // Logged like any delivery, but never retried.
   const delivery = await sendLoggedDelivery(
@@ -314,8 +317,8 @@ export async function sendWebhookTest(input: {
   if (!isSuccess(delivery.status)) {
     return fail(
       delivery.status === 0
-        ? (delivery.error ?? 'Could not reach the endpoint.')
-        : `The endpoint responded with HTTP ${delivery.status}.`,
+        ? (delivery.error ?? m.settings_err_endpoint_unreachable())
+        : m.settings_err_endpoint_http({ status: delivery.status ?? '' }),
     );
   }
   return { ok: true, webhook: toView(row), delivery: toDeliveryView(delivery) };
@@ -353,7 +356,7 @@ export async function listWebhookDeliveries(input: {
   const denied = await admin(input?.projectId);
   if (denied) return denied;
   const hook = await findWebhook(input.projectId, input.webhookId);
-  if (!hook) return fail('Webhook not found.');
+  if (!hook) return fail(m.settings_err_webhook_not_found());
   const rows = await recentDeliveries(hook.id, 20);
   return { ok: true, deliveries: rows.map(toDeliveryView) };
 }
@@ -367,14 +370,14 @@ export async function redeliverWebhookDelivery(input: {
   const denied = await admin(input?.projectId);
   if (denied) return denied;
   const hook = await findWebhook(input.projectId, input.webhookId);
-  if (!hook || typeof input.deliveryId !== 'string') return fail('Delivery not found.');
+  if (!hook || typeof input.deliveryId !== 'string') return fail(m.settings_err_delivery_not_found());
 
   const [delivery] = await db
     .select()
     .from(webhookDeliveries)
     .where(and(eq(webhookDeliveries.id, input.deliveryId), eq(webhookDeliveries.webhookId, hook.id)))
     .limit(1);
-  if (!delivery) return fail('Delivery not found.');
+  if (!delivery) return fail(m.settings_err_delivery_not_found());
 
   const updated = await redeliver(hook, delivery);
   const [row] = await db

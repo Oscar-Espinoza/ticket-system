@@ -1,6 +1,7 @@
 // Delivery settings: email digest cadence, account-wide push switch and a
 // test push. Everything is pinned to the session user.
 
+import { m } from '@/lib/i18n';
 import { eq } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
@@ -17,9 +18,9 @@ export async function updateDeliverySettings(input: {
   const session = await getSession();
   if (!session?.user) return NOT_AUTHENTICATED;
   const { digest, push } = input ?? {};
-  if (digest !== undefined && !isDigestFrequency(digest)) return fail('Invalid request');
-  if (push !== undefined && typeof push !== 'boolean') return fail('Invalid request');
-  if (digest === undefined && push === undefined) return fail('Invalid request');
+  if (digest !== undefined && !isDigestFrequency(digest)) return fail(m.settings_err_invalid_request());
+  if (push !== undefined && typeof push !== 'boolean') return fail(m.settings_err_invalid_request());
+  if (digest === undefined && push === undefined) return fail(m.settings_err_invalid_request());
 
   const now = new Date();
   const set = {
@@ -39,20 +40,20 @@ export async function updateDeliverySettings(input: {
 export async function sendTestPush(): Promise<ActionResult<{ sent: number; devices: number }>> {
   const session = await getSession();
   if (!session?.user) return NOT_AUTHENTICATED;
-  if (!pushConfigured()) return fail('Push notifications are not configured on this server.');
+  if (!pushConfigured()) return fail(m.settings_err_push_not_configured());
 
   const subscriptions = await db
     .select({ endpoint: pushSubscriptions.endpoint, p256dh: pushSubscriptions.p256dh, auth: pushSubscriptions.auth })
     .from(pushSubscriptions)
     .where(eq(pushSubscriptions.userId, session.user.id));
-  if (subscriptions.length === 0) return fail('No devices are subscribed yet.');
+  if (subscriptions.length === 0) return fail(m.settings_err_no_devices());
 
   const { sent } = await sendPushes(
     subscriptions.map((sub) => ({
       ...sub,
       payload: {
-        title: 'Test notification',
-        body: 'Push notifications are working on this device.',
+        title: m.settings_push_test_title(),
+        body: m.settings_push_test_body(),
         url: '/dashboard/settings/notifications',
         tag: 'test',
       },

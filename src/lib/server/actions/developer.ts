@@ -7,6 +7,7 @@
 // read/write by project id. Access tokens are encrypted before they're stored
 // and never returned to the client.
 
+import { m } from '@/lib/i18n';
 import { and, desc, eq } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
@@ -68,7 +69,7 @@ export async function getPullRequests(input: {
 }): Promise<{ ok: true; pullRequests: PullRequestView[] } | Fail> {
   const authz = await authorizeProjectAction(input?.projectId, 'read');
   if (!authz.ok) return authz;
-  if (typeof input.ticketId !== 'string') return fail('Issue not found.');
+  if (typeof input.ticketId !== 'string') return fail(m.settings_err_issue_not_found());
   const rows = await db
     .select({
       id: githubPullRequests.id,
@@ -197,7 +198,7 @@ async function registerHook(
     return { webhook: 'registered' };
   } catch (err) {
     console.error(`[${provider}] create webhook failed`, err);
-    return { webhook: 'failed', warning: `Couldn't register the webhook. ${describeVcsError(provider, err, config.repo)}` };
+    return { webhook: 'failed', warning: m.settings_err_register_webhook({ reason: describeVcsError(provider, err, config.repo) }) };
   }
 }
 
@@ -227,11 +228,11 @@ export async function connectGitlab(input: {
   const authz = await authorizeProjectAction(input?.projectId, 'admin');
   if (!authz.ok) return authz;
   const baseUrl = normalizeGitlabUrl(input.baseUrl);
-  if (!baseUrl) return fail('Enter a public http(s) GitLab URL, e.g. https://gitlab.com.');
+  if (!baseUrl) return fail(m.settings_err_gitlab_url());
   const path = clippedTextOrEmpty(input.repo, 300).replace(/^\/+|\/+$/g, '').replace(/\.git$/, '');
-  if (!isGitlabPath(path)) return fail('Use the project path, e.g. group/project.');
+  if (!isGitlabPath(path)) return fail(m.settings_err_gitlab_path());
   const token = clippedTextOrEmpty(input.token, TOKEN_MAX);
-  if (!token) return fail('Enter an access token.');
+  if (!token) return fail(m.settings_err_access_token());
 
   let remote;
   try {
@@ -258,9 +259,9 @@ export async function connectBitbucket(input: {
   const authz = await authorizeProjectAction(input?.projectId, 'admin');
   if (!authz.ok) return authz;
   const repo = clippedTextOrEmpty(input.repo, 200).replace(/^\/+|\/+$/g, '').replace(/\.git$/, '');
-  if (!isBitbucketRepo(repo)) return fail('Use the workspace/repository form, e.g. acme/web.');
+  if (!isBitbucketRepo(repo)) return fail(m.settings_err_bitbucket_repo());
   const token = clippedTextOrEmpty(input.token, TOKEN_MAX);
-  if (!token) return fail('Enter an access token.');
+  if (!token) return fail(m.settings_err_access_token());
   const username = clippedTextOrEmpty(input.username, 200) || null;
   const auth: BitbucketAuth = { token, username };
 
@@ -286,11 +287,11 @@ export async function registerIntegrationWebhook(input: {
 }): Promise<VcsConnectResult> {
   const authz = await authorizeProjectAction(input?.projectId, 'admin');
   if (!authz.ok) return authz;
-  if (!isHookHost(input.provider)) return fail('Unknown provider.');
+  if (!isHookHost(input.provider)) return fail(m.settings_err_unknown_provider());
   const row = await getProjectIntegration<HookConfig>(input.projectId, input.provider);
-  if (!row) return fail('Not connected.');
+  if (!row) return fail(m.settings_dev_not_connected());
   const token = await decryptToken(row.token);
-  if (!token) return fail('The stored access token can no longer be read. Connect again with a new token.');
+  if (!token) return fail(m.settings_err_token_unreadable());
 
   await deleteHook(input.provider, row.config, token);
   const secret = newSecret();
@@ -310,7 +311,7 @@ export async function disconnectIntegration(input: {
 }): Promise<{ ok: true; warning?: string } | Fail> {
   const authz = await authorizeProjectAction(input?.projectId, 'admin');
   if (!authz.ok) return authz;
-  if (!isIntegrationProvider(input.provider)) return fail('Unknown provider.');
+  if (!isIntegrationProvider(input.provider)) return fail(m.settings_err_unknown_provider());
   const row = await getProjectIntegration<Partial<GitlabConfig & BitbucketConfig>>(input.projectId, input.provider);
   if (!row) return { ok: true };
 
@@ -325,7 +326,7 @@ export async function disconnectIntegration(input: {
       return false;
     });
     if (!removed) {
-      warning = `Couldn't remove the webhook from ${row.config.repo} — delete it in the repository's webhook settings. It no longer has any effect here.`;
+      warning = m.settings_err_remove_webhook_repo({ repo: row.config.repo ?? '' });
     }
   }
   // Deleting the row (and its secret) is what cuts the link: leftover hooks fail verification.
@@ -343,7 +344,7 @@ export async function connectSentry(input: {
   if (!authz.ok) return authz;
   const clientSecret = clippedTextOrEmpty(input.clientSecret, 200);
   if (clientSecret.length < 16 || /\s/.test(clientSecret)) {
-    return fail("Paste the integration's Client Secret from Sentry.");
+    return fail(m.settings_err_sentry_secret());
   }
   const authToken = clippedTextOrEmpty(input.authToken, TOKEN_MAX);
   const now = new Date();
@@ -398,12 +399,12 @@ export async function updateGithubWebhookEvents(projectId: string): Promise<{ ok
   const authz = await authorizeProjectAction(projectId, 'admin');
   if (!authz.ok) return authz;
   const [hook, octokit] = await Promise.all([githubHook(projectId), userOctokit(authz.userId)]);
-  if (!hook) return fail('No webhook is registered. Register it first.');
-  if (!octokit) return fail('Connect your GitHub account first.');
+  if (!hook) return fail(m.settings_err_no_webhook());
+  if (!octokit) return fail(m.settings_err_connect_github_first());
   try {
     await updateRepoWebhookEvents(octokit, hook.repo, hook.webhookId);
     return { ok: true };
   } catch (err) {
-    return fail(`Couldn't update the webhook: ${githubMessage(err)}`);
+    return fail(m.settings_err_update_webhook({ reason: githubMessage(err) }));
   }
 }

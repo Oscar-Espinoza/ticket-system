@@ -8,6 +8,7 @@
 // change (same rule as stateTransitionTimestamps). Each action writes one
 // project-level activity row (ticketId null) with a `summary`.
 
+import { m } from '@/lib/i18n';
 import { and, eq, ne, sql, type SQL } from 'drizzle-orm';
 import type { BatchItem } from 'drizzle-orm/batch';
 
@@ -34,7 +35,7 @@ export type WorkflowStateResult = ActionResult<{ id?: string }, WorkflowStateFie
 
 const NAME_MAX = 40;
 const DESCRIPTION_MAX = 200;
-const DUPLICATE = fail('A state with this name already exists.', 'name');
+const DUPLICATE = fail(m.settings_err_state_exists(), 'name');
 
 async function nameTaken(projectId: string, name: string, exceptId?: string) {
   const [row] = await db
@@ -65,7 +66,7 @@ export async function createWorkflowState(input: {
   const authz = await authorizeProjectAction(input?.projectId, 'admin');
   if (!authz.ok) return authz;
 
-  if (!isStateType(input.type)) return fail('Pick a state type.', 'type');
+  if (!isStateType(input.type)) return fail(m.settings_err_state_type(), 'type');
   const name = requiredText(input.name, 'name', NAME_MAX);
   if (isFail(name)) return name;
   const color = hexColor(input.color);
@@ -77,7 +78,7 @@ export async function createWorkflowState(input: {
   const sameType = states.filter((s) => s.type === input.type);
   // Linear has a single triage inbox; B7's triage view assumes one.
   if (input.type === 'triage' && sameType.length > 0) {
-    return fail('A project has at most one triage state.', 'type');
+    return fail(m.settings_err_one_triage(), 'type');
   }
   if (states.some((s) => s.name.toLowerCase() === name.toLowerCase())) return DUPLICATE;
 
@@ -125,7 +126,7 @@ export async function updateWorkflowState(input: {
   if (!authz.ok) return authz;
 
   const [current] = (await projectStatesQuery(input.projectId)).filter((s) => s.id === input.id);
-  if (!current) return fail('State not found.');
+  if (!current) return fail(m.settings_err_state_not_found());
 
   const changes: { name?: string; color?: string; description?: string | null } = {};
   if (input.name !== undefined) {
@@ -183,12 +184,12 @@ export async function moveWorkflowState(input: {
   const authz = await authorizeProjectAction(input?.projectId, 'admin');
   if (!authz.ok) return authz;
   if (input.direction !== 'up' && input.direction !== 'down') {
-    return fail('Invalid direction.');
+    return fail(m.settings_err_direction());
   }
 
   const states = await projectStatesQuery(input.projectId);
   const state = states.find((s) => s.id === input.id);
-  if (!state) return fail('State not found.');
+  if (!state) return fail(m.settings_err_state_not_found());
 
   const ordered = states
     .filter((s) => s.type === state.type)
@@ -251,18 +252,18 @@ export async function deleteWorkflowState(input: {
       .limit(1),
   ]);
   const state = states.find((s) => s.id === input.id);
-  if (!state || !project) return fail('State not found.');
+  if (!state || !project) return fail(m.settings_err_state_not_found());
   const replacement = states.find((s) => s.id === input.replacementId);
   if (!replacement || replacement.id === state.id) {
-    return fail('Pick another state for its issues.', 'replacementId');
+    return fail(m.settings_err_pick_replacement(), 'replacementId');
   }
 
   const remainingOfType = states.filter((s) => s.type === state.type && s.id !== state.id);
   if (state.type === 'triage' && project.triageEnabled) {
-    return fail('Turn off triage before deleting the triage state.');
+    return fail(m.settings_err_turn_off_triage());
   }
   if (state.type !== 'triage' && remainingOfType.length === 0) {
-    return fail(`Keep at least one ${STATE_TYPE_LABEL[state.type].toLowerCase()} state.`);
+    return fail(m.settings_err_keep_one({ type: STATE_TYPE_LABEL[state.type].toLowerCase() }));
   }
 
   const [{ count }] = await db

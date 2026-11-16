@@ -5,6 +5,7 @@
 // (`sso-<workspaceId>`, `scim-<workspaceId>`), so client ids can't reach
 // another workspace's configuration. See src/lib/sso.ts for the trust model.
 
+import { m } from '@/lib/i18n';
 import { headers } from '@/lib/kit/request';
 import { isAPIError } from 'better-auth/api';
 import { and, eq, ne } from 'drizzle-orm';
@@ -77,18 +78,18 @@ export async function revokeSession(input: { sessionId: string }): Promise<Secur
   const sessionId = typeof input?.sessionId === 'string' ? input.sessionId : '';
   if (!sessionId) return FORBIDDEN;
   if (sessionId === session.session.id) {
-    return fail('This is your current session — use Log out instead.');
+    return fail(m.settings_err_current_session());
   }
   const [row] = await db
     .select({ token: sessions.token })
     .from(sessions)
     .where(and(eq(sessions.id, sessionId), eq(sessions.userId, session.user.id)))
     .limit(1);
-  if (!row) return fail('Session not found.');
+  if (!row) return fail(m.settings_err_session_not_found());
   try {
     await auth.api.revokeSession({ headers: await headers(), body: { token: row.token } });
   } catch (err) {
-    return fail(apiErrorMessage(err, 'Couldn’t revoke the session.'));
+    return fail(apiErrorMessage(err, m.settings_err_revoke_session()));
   }
   refreshesData();
   return { ok: true };
@@ -100,7 +101,7 @@ export async function revokeOtherSessions(): Promise<SecurityResult> {
   try {
     await auth.api.revokeOtherSessions({ headers: await headers() });
   } catch (err) {
-    return fail(apiErrorMessage(err, 'Couldn’t sign out other sessions.'));
+    return fail(apiErrorMessage(err, m.settings_err_sign_out_others()));
   }
   refreshesData();
   return { ok: true };
@@ -197,14 +198,14 @@ function buildSamlConfig(
 
   if (metadata) {
     if (new TextEncoder().encode(metadata).length > METADATA_MAX_BYTES) {
-      return fail('Metadata is larger than 100 KB.', 'samlMetadata');
+      return fail(m.settings_err_metadata_large(), 'samlMetadata');
     }
     if (!/<(?:\w+:)?EntityDescriptor[\s>]/.test(metadata) || !/IDPSSODescriptor/.test(metadata)) {
-      return fail('That doesn’t look like IdP metadata XML.', 'samlMetadata');
+      return fail(m.settings_err_metadata_invalid(), 'samlMetadata');
     }
     const entityId = /entityID\s*=\s*"([^"]+)"/.exec(metadata)?.[1] ?? '';
     const issuer = clippedTextOrEmpty(input.samlIssuer, 500) || entityId;
-    if (!issuer) return fail('Add the IdP entity ID.', 'samlIssuer');
+    if (!issuer) return fail(m.settings_err_add_entity_id(), 'samlIssuer');
     const entryPoint = /SingleSignOnService[^>]*Location\s*=\s*"([^"]+)"/.exec(metadata)?.[1];
     return {
       issuer,
@@ -214,12 +215,12 @@ function buildSamlConfig(
 
   const entryPoint = httpUrl(entryPointInput);
   if (!entryPoint) {
-    return fail('Paste IdP metadata, or enter the SSO URL.', 'samlEntryPoint');
+    return fail(m.settings_err_metadata_or_url(), 'samlEntryPoint');
   }
   const issuer = clippedTextOrEmpty(input.samlIssuer, 500);
-  if (!issuer) return fail('Enter the IdP entity ID (issuer).', 'samlIssuer');
+  if (!issuer) return fail(m.settings_err_enter_entity_id(), 'samlIssuer');
   const cert = normalizeCert(clippedTextOrEmpty(input.samlCert, 25_000) || existing?.cert || '');
-  if (!cert) return fail('Paste the IdP’s X.509 signing certificate.', 'samlCert');
+  if (!cert) return fail(m.settings_err_paste_cert(), 'samlCert');
   return {
     issuer,
     config: {
@@ -240,12 +241,12 @@ async function buildOidcConfig(
   existing: StoredOidcConfig | null,
 ): Promise<{ issuer: string; config: StoredOidcConfig } | SecurityFailure> {
   const issuer = httpUrl(clippedTextOrEmpty(input.oidcIssuer, FIELD_MAX));
-  if (!issuer) return fail('Enter the issuer URL (https://…).', 'oidcIssuer');
+  if (!issuer) return fail(m.settings_err_issuer_url(), 'oidcIssuer');
   const clientId = clippedTextOrEmpty(input.oidcClientId, 256);
-  if (!clientId) return fail('Enter the client ID.', 'oidcClientId');
+  if (!clientId) return fail(m.settings_err_client_id(), 'oidcClientId');
   const clientSecret = clippedTextOrEmpty(input.oidcClientSecret, 1_000) || existing?.clientSecret || '';
   if (!clientSecret) {
-    return fail('Enter the client secret.', 'oidcClientSecret');
+    return fail(m.settings_err_client_secret(), 'oidcClientSecret');
   }
   let discovered: Awaited<ReturnType<typeof discoverOidcEndpoints>>;
   try {
@@ -254,7 +255,7 @@ async function buildOidcConfig(
     const reason = err instanceof Error ? err.message : 'unknown error';
     return {
       ok: false,
-      error: `Couldn’t read ${issuer}/.well-known/openid-configuration — ${reason}`,
+      error: m.settings_err_oidc_discovery({ issuer, reason }),
       field: 'oidcIssuer',
     };
   }
@@ -283,9 +284,9 @@ export async function saveWorkspaceSso(input: SaveSsoInput): Promise<SecurityRes
   if (input.protocol !== 'saml' && input.protocol !== 'oidc') return FORBIDDEN;
 
   const domain = normalizeDomain(input.domain);
-  if (!domain) return fail('Enter a domain like acme.com.', 'domain');
+  if (!domain) return fail(m.settings_err_domain(), 'domain');
   if (isFreeMailDomain(domain)) {
-    return fail('Public email domains can’t use SSO.', 'domain');
+    return fail(m.settings_err_public_domain(), 'domain');
   }
 
   const urls = workspaceSsoUrls(workspaceId);
@@ -306,7 +307,7 @@ export async function saveWorkspaceSso(input: SaveSsoInput): Promise<SecurityRes
   if (!domainProofOptional() && !(await hasDomainTxtRecord(domain, workspaceId))) {
     return {
       ok: false,
-      error: `Verify ${domain} first: add the ${DOMAIN_TXT_LABEL}.${domain} TXT record shown below, then save again.`,
+      error: m.settings_err_verify_domain({ domain, record: `${DOMAIN_TXT_LABEL}.${domain}` }),
       field: 'domain',
     };
   }
@@ -317,7 +318,7 @@ export async function saveWorkspaceSso(input: SaveSsoInput): Promise<SecurityRes
     .from(ssoProviders)
     .where(ne(ssoProviders.providerId, urls.providerId));
   if (others.some((o) => domainMatches(domain, o.domain) || domainMatches(o.domain, domain))) {
-    return fail('Another workspace already uses SSO for this domain.', 'domain');
+    return fail(m.settings_err_domain_taken(), 'domain');
   }
 
   let issuer: string;
@@ -376,7 +377,7 @@ export async function removeWorkspaceSso(input: { workspaceId: string }): Promis
     .from(ssoProviders)
     .where(eq(ssoProviders.providerId, providerId))
     .limit(1);
-  if (!provider) return fail('SSO isn’t set up.');
+  if (!provider) return fail(m.settings_err_sso_not_set_up());
 
   // Linked SSO identities stay, so re-adding the provider restores them.
   await db.batch([
@@ -406,7 +407,7 @@ export async function setSsoEnforced(input: {
   const enforced = input.enforced === true;
 
   const view = await getWorkspaceSso(workspaceId);
-  if (!view.provider) return fail('Set up SSO first.');
+  if (!view.provider) return fail(m.settings_err_set_up_sso_first());
   if (view.enforced === enforced) return { ok: true };
   if (
     enforced &&
@@ -415,7 +416,7 @@ export async function setSsoEnforced(input: {
   ) {
     return {
       ok: false,
-      error: `Publish the ${DOMAIN_TXT_LABEL}.${view.provider.domain} TXT record before requiring SSO.`,
+      error: m.settings_err_publish_txt({ record: `${DOMAIN_TXT_LABEL}.${view.provider.domain}` }),
     };
   }
   // Lock-out guard: an admin on the domain must have used SSO successfully.
@@ -426,7 +427,7 @@ export async function setSsoEnforced(input: {
   ) {
     return {
       ok: false,
-      error: 'Sign in with SSO once (log out → Continue with SSO) before enforcing it, so you can’t lock yourself out.',
+      error: m.settings_err_sso_once(),
     };
   }
 
@@ -508,7 +509,7 @@ export async function generateScimToken(input: {
     });
     token = result.scimToken;
   } catch (err) {
-    return fail(apiErrorMessage(err, 'Couldn’t generate a SCIM token.'));
+    return fail(apiErrorMessage(err, m.settings_err_scim_token()));
   }
 
   const now = new Date();

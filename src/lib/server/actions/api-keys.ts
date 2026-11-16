@@ -1,6 +1,7 @@
 // Personal API keys. Scoped to the session user: a key id belonging to someone
 // else is "not found". The plaintext key is returned once, from createApiKey.
 
+import { m } from '@/lib/i18n';
 import { and, count, eq, isNull } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
@@ -42,7 +43,7 @@ export async function createApiKey(input: {
     .from(apiKeys)
     .where(and(eq(apiKeys.userId, userId), isNull(apiKeys.revokedAt)));
   if (total >= KEYS_MAX) {
-    return fail(`You can have at most ${KEYS_MAX} active keys. Revoke one first.`);
+    return fail(m.settings_err_keys_max({ max: KEYS_MAX }));
   }
 
   const { key, prefix, hash } = generateApiKey();
@@ -61,7 +62,7 @@ export async function createApiKey(input: {
 export async function revokeApiKey(input: { id: string }): Promise<ActionResult> {
   const session = await getSession();
   if (!session?.user) return NOT_AUTHENTICATED;
-  if (typeof input?.id !== 'string') return fail('Key not found.');
+  if (typeof input?.id !== 'string') return fail(m.settings_err_key_not_found());
 
   const [row] = await db
     .update(apiKeys)
@@ -74,7 +75,7 @@ export async function revokeApiKey(input: { id: string }): Promise<ActionResult>
       ),
     )
     .returning({ id: apiKeys.id });
-  if (!row) return fail('Key not found.');
+  if (!row) return fail(m.settings_err_key_not_found());
 
   refreshesData();
   return { ok: true };

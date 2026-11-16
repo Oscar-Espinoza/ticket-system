@@ -1,6 +1,7 @@
 // Label mutations (write level): validate (names 1–40 chars, colors #rrggbb),
 // then the labels service applies them and enforces name uniqueness per project.
 
+import { m } from '@/lib/i18n';
 import { authorizeProjectAction } from '@/lib/action-auth';
 import {
   createLabel as createProjectLabel,
@@ -22,7 +23,7 @@ import {
 
 export type LabelActionResult = ActionResult<{ label?: IssueLabel }, 'name' | 'color' | 'description'>;
 
-const DUPLICATE = fail('A label with this name already exists.', 'name');
+const DUPLICATE = fail(m.settings_err_label_exists(), 'name');
 
 export async function createLabel(input: {
   projectId: string;
@@ -76,7 +77,7 @@ export async function updateLabel(input: {
   if (Object.keys(changes).length === 0) return { ok: true };
 
   const updated = await updateProjectLabel(input.projectId, input.id, changes);
-  if (!updated.ok) return updated.reason === 'duplicate' ? DUPLICATE : fail('Label not found.');
+  if (!updated.ok) return updated.reason === 'duplicate' ? DUPLICATE : fail(m.settings_err_label_not_found());
   refreshesData();
   return { ok: true, label: updated.label };
 }
@@ -88,7 +89,7 @@ export async function deleteLabel(input: {
 }): Promise<LabelActionResult> {
   const authz = await authorizeProjectAction(input?.projectId, 'write');
   if (!authz.ok) return authz;
-  if (!(await deleteProjectLabel(input.projectId, input.id))) return fail('Label not found.');
+  if (!(await deleteProjectLabel(input.projectId, input.id))) return fail(m.settings_err_label_not_found());
   refreshesData();
   return { ok: true };
 }
