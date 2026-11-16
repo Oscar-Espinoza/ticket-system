@@ -19,9 +19,9 @@
   let value = $state(untrack(() => ticketKey));
   const error = $derived(form.state.errors?.ticketKey);
   const changed = $derived(value !== ticketKey);
-  const descParts = $derived(m.settings_project_key_desc({ example: '\u0000' }).split('\u0000'));
+  const descParts = $derived(m.settings_project_key_desc({ example: '\uE000' }).split('\uE000'));
   const warnParts = $derived(
-    m.settings_project_key_warning({ from: '\u0000', to: '\u0001' }).split(/[\u0000\u0001]/),
+    m.settings_project_key_warning({ from: '\uE000', to: '\uE001' }).split(/[\uE000\uE001]/),
   );
 </script>
 
