@@ -22,8 +22,9 @@
 //   to unverified accounts, and only takes effect while verification is
 //   available, so an instance without email can never lock everyone out.
 
-import { CLAIM_AFTERCARE, type ClaimReport, claimedItems } from '@/lib/account-claim';
+import { claimAftercare, type ClaimReport, claimedItems } from '@/lib/account-claim';
 import { emailConfigured } from '@/lib/email';
+import { formatDate, m } from '@/lib/i18n';
 import { DEFAULT_AUTH_REDIRECT, safeRedirect } from '@/lib/safe-redirect';
 
 type Env = Record<string, string | undefined>;
@@ -118,16 +119,16 @@ export function verificationEmail(user: { email: string }, url: string) {
   const hours = VERIFICATION_LINK_TTL_SECONDS / 3600;
   return {
     to: user.email,
-    subject: 'Verify your email address',
+    subject: m.email_verify_subject(),
     text: [
-      'Hi,',
+      m.email_greeting(),
       '',
-      `Confirm that ${user.email} is your email address:`,
+      m.email_verify_confirm({ email: user.email }),
       url,
       '',
-      `The link expires in ${hours} hours. It only works while you are signed in to this account with its password (the page asks you to sign in if you aren't). Once your address is verified you can also sign in with Google or GitHub using it.`,
+      m.email_verify_expires({ hours }),
       '',
-      'If you didn’t create this account, someone else used your address: don’t sign in to it. To take the address back, use "Forgot password?" on the sign-in page; resetting the password signs everyone else out and removes what they set up.',
+      m.email_verify_not_you(),
     ].join('\n'),
   };
 }
@@ -137,23 +138,20 @@ export function passwordResetEmail(user: { email: string; emailVerified?: boolea
   const minutes = PASSWORD_RESET_TTL_SECONDS / 60;
   const claim = user.emailVerified
     ? []
-    : [
-        '',
-        'This account’s email address was never verified, so resetting also secures it: two-factor, API keys, connected apps and assistants, linked Google/GitHub sign-ins, the Slack link, push subscriptions and pending invitations are removed. The page lists them before you confirm. If you still know your password, sign in and verify your email instead: then nothing is removed.',
-      ];
+    : ['', m.email_reset_claim()];
   return {
     to: user.email,
-    subject: 'Reset your password',
+    subject: m.email_reset_subject(),
     text: [
-      'Hi,',
+      m.email_greeting(),
       '',
-      `Someone asked to reset the password of the account for ${user.email}. To choose a new password, open:`,
+      m.email_reset_asked({ email: user.email }),
       url,
       '',
-      `The link works once, for ${minutes} minutes. Resetting signs out every session of this account and verifies the address.`,
+      m.email_reset_works({ minutes }),
       ...claim,
       '',
-      'If you didn’t ask for this, ignore this email: your password stays as it is.',
+      m.email_reset_ignore(),
     ].join('\n'),
   };
 }
@@ -167,28 +165,22 @@ export function accountSecuredEmail(
   email: string,
   notice: { via: 'sso' | 'password_reset'; at: string; removed: ClaimReport },
 ) {
-  const when = new Date(notice.at).toUTCString();
-  const how =
-    notice.via === 'sso'
-      ? 'someone signed in to it through your workspace’s single sign-on'
-      : 'its password was reset with a link sent to this address';
+  const when = formatDate(notice.at, { dateStyle: 'long', timeStyle: 'long', timeZone: 'UTC' });
   const removed = claimedItems(notice.removed).map(({ label, count }) => `- ${label}${count > 1 ? ` (${count})` : ''}`);
-  const notMe =
-    notice.via === 'sso'
-      ? 'If this wasn’t you, tell your workspace admin now: the sign-in came through your company’s identity provider.'
-      : 'If this wasn’t you, someone can read this mailbox: secure your email account, then use "Forgot password?" on the sign-in page to take the account back.';
+  const how = notice.via === 'sso' ? m.email_secured_how_sso({ when, email }) : m.email_secured_how_reset({ when, email });
+  const notMe = notice.via === 'sso' ? m.email_secured_not_me_sso() : m.email_secured_not_me_reset();
   return {
     to: email,
-    subject: 'Your account was secured',
+    subject: m.email_secured_subject(),
     text: [
-      'Hi,',
+      m.email_greeting(),
       '',
-      `On ${when}, ${how}. The account for ${email} had never verified its email address, so the app could not tell whether whoever set it up owned the address. To make sure nobody else keeps a way in, every session was signed out and these were removed:`,
-      ...(removed.length > 0 ? removed : ['- Nothing besides the sessions: none of the usual extras were set up.']),
+      how,
+      ...(removed.length > 0 ? removed : [m.email_secured_nothing()]),
       '',
-      'The address is now verified. What to do next:',
-      ...CLAIM_AFTERCARE.map((line) => `- ${line}`),
-      'Apps that already had an access token may keep using it until it expires, within an hour.',
+      m.email_secured_verified(),
+      ...claimAftercare().map((line) => `- ${line}`),
+      m.email_secured_tokens(),
       '',
       notMe,
     ].join('\n'),

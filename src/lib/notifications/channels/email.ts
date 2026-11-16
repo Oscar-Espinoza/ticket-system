@@ -9,6 +9,7 @@ import { notifications } from '@/db/schema';
 import { appUrl } from '@/lib/integrations/app-url';
 import { issuePath } from '@/lib/issue-links';
 import { sendEmail } from '@/lib/email';
+import { recipientLocales, withLocale } from '@/lib/server/i18n';
 import { notificationEmail, settingsUrl, type EmailItem } from '@/lib/notifications/email-templates';
 import { DIGEST_IMMEDIATE_TYPES, describeNotification, type NotificationData } from '@/lib/notifications/types';
 
@@ -39,23 +40,27 @@ export async function deliverEmail(rows: ChannelNotification[], personById: Map<
   const origin = appUrl();
   const settings = settingsUrl();
   const emailed: string[] = [];
+  const locales = await recipientLocales([...byUser.keys()]);
 
   // Sequential: the free Resend tier rate-limits bursts.
   for (const [userId, list] of byUser) {
     const person = personById.get(userId)!;
-    const items: EmailItem[] = list.map((row) => {
-      const data = (row.data ?? {}) as NotificationData;
-      const actor = row.actorId ? (personById.get(row.actorId)?.name ?? null) : null;
-      const key = data.key ?? '';
-      return {
-        sentence: describeNotification(row.type, data, actor),
-        key,
-        title: data.title ?? '',
-        url: row.projectId && key ? `${origin}${issuePath(row.projectId, key)}` : `${origin}/dashboard/inbox`,
-        excerpt: data.excerpt,
-      };
+    // In the recipient's language (subject, text and HTML).
+    const message = await withLocale(locales.get(userId)!, () => {
+      const items: EmailItem[] = list.map((row) => {
+        const data = (row.data ?? {}) as NotificationData;
+        const actor = row.actorId ? (personById.get(row.actorId)?.name ?? null) : null;
+        const key = data.key ?? '';
+        return {
+          sentence: describeNotification(row.type, data, actor),
+          key,
+          title: data.title ?? '',
+          url: row.projectId && key ? `${origin}${issuePath(row.projectId, key)}` : `${origin}/dashboard/inbox`,
+          excerpt: data.excerpt,
+        };
+      });
+      return notificationEmail(items, settings);
     });
-    const message = notificationEmail(items, settings);
     if (await sendEmail({ to: person.email, ...message })) {
       emailed.push(...list.map((row) => row.id));
     }

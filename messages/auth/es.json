@@ -1,3 +1,106 @@
 {
-  "$schema": "https://inlang.com/schema/inlang-message-format"
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "auth_claim_item_password": "La contraseña (a partir de ahora, inicia sesión con inicio de sesión único)",
+  "auth_claim_item_two_factor": "La autenticación en dos pasos (app de autenticación y códigos de respaldo)",
+  "auth_claim_item_api_keys": "Las claves de API",
+  "auth_claim_item_connected_apps": "Las apps y los asistentes de IA conectados (Claude, ChatGPT y otras conexiones MCP u OAuth)",
+  "auth_claim_item_linked_sign_ins": "Los inicios de sesión de Google y GitHub vinculados",
+  "auth_claim_item_oauth_apps": "Las apps de OAuth registradas desde esta cuenta (se desactivan, no se eliminan)",
+  "auth_claim_item_slack": "La vinculación con Slack",
+  "auth_claim_item_push": "Las notificaciones push en navegadores y dispositivos",
+  "auth_claim_item_invitations": "Las invitaciones pendientes enviadas desde esta cuenta",
+  "auth_claim_aftercare_two_factor": "Vuelve a configurar la autenticación en dos pasos (Configuración → Seguridad).",
+  "auth_claim_aftercare_keys": "Crea claves de API nuevas y vuelve a conectar las apps y los asistentes que uses (Configuración → Claves de API, Configuración → Apps de OAuth).",
+  "auth_claim_aftercare_slack_push": "Vuelve a vincular Slack y a activar las notificaciones push si las usas.",
+  "auth_claim_aftercare_review": "Revisa los miembros, las invitaciones pendientes, los webhooks y las integraciones de tu espacio de trabajo: quien tuviera esta cuenta antes pudo haberlos cambiado.",
+  "auth_claim_secured_title": "Se aseguró tu cuenta.",
+  "auth_claim_secured_body_sso": "Su dirección de correo nunca se había verificado, así que cuando iniciaste sesión con inicio de sesión único, se cerraron todas las sesiones y se eliminó todo lo que otra persona pudiera haber configurado.",
+  "auth_claim_secured_body_reset": "Su dirección de correo nunca se había verificado, así que cuando se restableció la contraseña, se cerraron todas las sesiones y se eliminó todo lo que otra persona pudiera haber configurado.",
+  "auth_claim_secured_body_sso_at": "Su dirección de correo nunca se había verificado, así que cuando iniciaste sesión con inicio de sesión único ({when}), se cerraron todas las sesiones y se eliminó todo lo que otra persona pudiera haber configurado.",
+  "auth_claim_secured_body_reset_at": "Su dirección de correo nunca se había verificado, así que cuando se restableció la contraseña ({when}), se cerraron todas las sesiones y se eliminó todo lo que otra persona pudiera haber configurado.",
+  "auth_claim_removed": "Eliminado",
+  "auth_claim_nothing_else": "No había nada más configurado en la cuenta.",
+  "auth_claim_what_now": "Qué hacer ahora",
+  "auth_claim_also_emailed": "También te enviamos esta lista por correo.",
+  "auth_dismiss": "Descartar",
+  "auth_continue_google": "Continuar con Google",
+  "auth_google_failed": "Falló el inicio de sesión con Google. Inténtalo de nuevo o usa tu correo y tu contraseña.",
+  "auth_verify_banner_title": "Verifica tu dirección de correo.",
+  "auth_verify_banner_body": "Abre el enlace que enviamos a {email}. Hasta entonces no podrás iniciar sesión con Google ni GitHub con esta dirección.",
+  "auth_verify_banner_resend": "Reenviar correo",
+  "email_greeting": "Hola:",
+  "email_verify_subject": "Verifica tu dirección de correo",
+  "email_verify_confirm": "Confirma que {email} es tu dirección de correo:",
+  "email_verify_expires": "El enlace caduca en {hours} horas. Solo funciona mientras tengas la sesión iniciada en esta cuenta con su contraseña (la página te pide iniciar sesión si no la tienes). Cuando tu dirección esté verificada, también podrás iniciar sesión con Google o GitHub usándola.",
+  "email_verify_not_you": "Si no creaste esta cuenta, otra persona usó tu dirección: no inicies sesión en ella. Para recuperar la dirección, usa «¿Olvidaste tu contraseña?» en la página de inicio de sesión; al restablecer la contraseña se cierran las sesiones de los demás y se elimina lo que hayan configurado.",
+  "email_reset_subject": "Restablece tu contraseña",
+  "email_reset_asked": "Alguien pidió restablecer la contraseña de la cuenta de {email}. Para elegir una contraseña nueva, abre:",
+  "email_reset_works": "El enlace funciona una sola vez, durante {minutes} minutos. Al restablecer la contraseña se cierran todas las sesiones de esta cuenta y se verifica la dirección.",
+  "email_reset_claim": "La dirección de correo de esta cuenta nunca se verificó, así que al restablecer la contraseña también se asegura la cuenta: se eliminan la autenticación en dos pasos, las claves de API, las apps y los asistentes conectados, los inicios de sesión de Google y GitHub vinculados, la vinculación con Slack, las suscripciones push y las invitaciones pendientes. La página las lista antes de que confirmes. Si aún recuerdas tu contraseña, inicia sesión y verifica tu correo: así no se elimina nada.",
+  "email_reset_ignore": "Si no lo pediste, ignora este correo: tu contraseña no cambia.",
+  "email_secured_subject": "Se aseguró tu cuenta",
+  "email_secured_how_sso": "El {when}, alguien inició sesión en ella mediante el inicio de sesión único de tu espacio de trabajo. La cuenta de {email} nunca había verificado su dirección de correo, así que la app no podía saber si quien la creó era el dueño de la dirección. Para que nadie más conserve una forma de entrar, se cerraron todas las sesiones y se eliminó lo siguiente:",
+  "email_secured_how_reset": "El {when}, se restableció su contraseña con un enlace enviado a esta dirección. La cuenta de {email} nunca había verificado su dirección de correo, así que la app no podía saber si quien la creó era el dueño de la dirección. Para que nadie más conserve una forma de entrar, se cerraron todas las sesiones y se eliminó lo siguiente:",
+  "email_secured_nothing": "- Nada aparte de las sesiones: no había configurado ninguno de los extras habituales.",
+  "email_secured_verified": "La dirección ya está verificada. Qué hacer a continuación:",
+  "email_secured_tokens": "Las apps que ya tenían un token de acceso pueden seguir usándolo hasta que caduque, en menos de una hora.",
+  "email_secured_not_me_sso": "Si no fuiste tú, avisa ahora al administrador de tu espacio de trabajo: el inicio de sesión vino del proveedor de identidad de tu empresa.",
+  "email_secured_not_me_reset": "Si no fuiste tú, alguien puede leer este buzón: protege tu cuenta de correo y luego usa «¿Olvidaste tu contraseña?» en la página de inicio de sesión para recuperar la cuenta.",
+  "email_digest_subject": [
+    {
+      "declarations": [
+        "input frequency",
+        "input updates",
+        "input issues",
+        "local updatesPlural = updates: plural",
+        "local issuesPlural = issues: plural"
+      ],
+      "selectors": [
+        "frequency",
+        "updatesPlural",
+        "issuesPlural"
+      ],
+      "match": {
+        "frequency=daily updatesPlural=one issuesPlural=one": "Tu resumen diario — {updates} actualización en {issues} ticket",
+        "frequency=daily updatesPlural=one issuesPlural=other": "Tu resumen diario — {updates} actualización en {issues} tickets",
+        "frequency=daily updatesPlural=other issuesPlural=one": "Tu resumen diario — {updates} actualizaciones en {issues} ticket",
+        "frequency=daily updatesPlural=other issuesPlural=other": "Tu resumen diario — {updates} actualizaciones en {issues} tickets",
+        "frequency=weekly updatesPlural=one issuesPlural=one": "Tu resumen semanal — {updates} actualización en {issues} ticket",
+        "frequency=weekly updatesPlural=one issuesPlural=other": "Tu resumen semanal — {updates} actualización en {issues} tickets",
+        "frequency=weekly updatesPlural=other issuesPlural=one": "Tu resumen semanal — {updates} actualizaciones en {issues} ticket",
+        "frequency=weekly updatesPlural=other issuesPlural=other": "Tu resumen semanal — {updates} actualizaciones en {issues} tickets"
+      }
+    }
+  ],
+  "email_digest_subject_no_issues": [
+    {
+      "declarations": [
+        "input frequency",
+        "input updates",
+        "local updatesPlural = updates: plural"
+      ],
+      "selectors": [
+        "frequency",
+        "updatesPlural"
+      ],
+      "match": {
+        "frequency=daily updatesPlural=one": "Tu resumen diario — {updates} actualización",
+        "frequency=daily updatesPlural=other": "Tu resumen diario — {updates} actualizaciones",
+        "frequency=weekly updatesPlural=one": "Tu resumen semanal — {updates} actualización",
+        "frequency=weekly updatesPlural=other": "Tu resumen semanal — {updates} actualizaciones"
+      }
+    }
+  ],
+  "email_notification_subject_one_issue": "{count} actualizaciones en {key}",
+  "email_notification_subject_issues": "{count} actualizaciones en {issues} tickets",
+  "email_footer": "Recibes estos correos por tu configuración de notificaciones. {link}.",
+  "email_footer_change": "Cámbiala",
+  "email_notification_settings": "Configuración de notificaciones: {url}",
+  "email_digest_more": "+{count} más",
+  "email_digest_more_in_inbox": "{count} más en tu bandeja de entrada.",
+  "email_digest_open_inbox": "Abre tu bandeja de entrada",
+  "email_digest_inbox": "Bandeja de entrada: {url}",
+  "email_test_subject": "Correo de notificación de prueba",
+  "email_test_body": "Hola, {name}: esto es una prueba. Los correos de notificación se verán así y enlazarán al ticket.",
+  "email_pulse_title": "Pulso semanal"
 }

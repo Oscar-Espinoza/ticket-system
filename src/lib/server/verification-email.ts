@@ -16,6 +16,7 @@ import { randomUUID } from 'node:crypto';
 
 import { db } from '@/lib/db';
 import { sendEmail } from '@/lib/email';
+import { recipientLocale, withLocale } from '@/lib/server/i18n';
 import {
   passwordResetEmail,
   passwordResetLink,
@@ -69,7 +70,10 @@ export async function sendVerificationEmail({
   url: string;
 }): Promise<void> {
   if (!(await claimSendSlot('verification-email-sent', user.id))) return;
-  await sendEmail(verificationEmail(user, verificationLink(url)));
+  const message = await withLocale(await recipientLocale(user.id), () =>
+    verificationEmail(user, verificationLink(url)),
+  );
+  await sendEmail(message);
 }
 
 /** Better Auth's reset identifiers (`reset-password:<token>`, value = user id). */
@@ -96,5 +100,8 @@ export async function sendPasswordReset({
     return;
   }
   await db.delete(verifications).where(and(userResets, ne(verifications.identifier, current)));
-  await sendEmail(passwordResetEmail(user, passwordResetLink(url, token)));
+  const message = await withLocale(await recipientLocale(user.id), () =>
+    passwordResetEmail(user, passwordResetLink(url, token)),
+  );
+  await sendEmail(message);
 }

@@ -9,6 +9,8 @@
 // (a reset link) or the domain (the workspace's SSO) takes the account over,
 // and nothing the previous holder set up may keep working for them.
 
+import { m } from '@/lib/i18n';
+
 /** Everything a claim removes (besides every session), in display order. */
 export const CLAIM_ITEMS = [
   'password',
@@ -29,18 +31,29 @@ export type ClaimReport = Record<ClaimItem, number>;
 
 export const EMPTY_CLAIM_REPORT: ClaimReport = Object.fromEntries(CLAIM_ITEMS.map((item) => [item, 0])) as ClaimReport;
 
-/** What each item is, as a list entry. */
-export const CLAIM_ITEM_LABEL: Record<ClaimItem, string> = {
-  password: 'The password (sign in with single sign-on from now on)',
-  twoFactor: 'Two-factor authentication (authenticator app and backup codes)',
-  apiKeys: 'API keys',
-  connectedApps: 'Connected apps and AI assistants (Claude, ChatGPT and other MCP or OAuth connections)',
-  linkedSignIns: 'Linked Google and GitHub sign-ins',
-  oauthApps: 'OAuth apps registered from this account (disabled, not deleted)',
-  slack: 'The Slack link',
-  push: 'Push notifications on browsers and devices',
-  invitations: 'Pending invitations sent from this account',
-};
+/** What each item is, as a list entry, in the current language. */
+export function claimItemLabel(item: ClaimItem): string {
+  switch (item) {
+    case 'password':
+      return m.auth_claim_item_password();
+    case 'twoFactor':
+      return m.auth_claim_item_two_factor();
+    case 'apiKeys':
+      return m.auth_claim_item_api_keys();
+    case 'connectedApps':
+      return m.auth_claim_item_connected_apps();
+    case 'linkedSignIns':
+      return m.auth_claim_item_linked_sign_ins();
+    case 'oauthApps':
+      return m.auth_claim_item_oauth_apps();
+    case 'slack':
+      return m.auth_claim_item_slack();
+    case 'push':
+      return m.auth_claim_item_push();
+    case 'invitations':
+      return m.auth_claim_item_invitations();
+  }
+}
 
 /** What a password-reset claim covers: everything but the password it just set. */
 export const RESET_CLAIM_ITEMS: readonly ClaimItem[] = CLAIM_ITEMS.filter((item) => item !== 'password');
@@ -50,7 +63,7 @@ export function claimedItems(report: Partial<ClaimReport> | null | undefined) {
   return CLAIM_ITEMS.filter((item) => (report?.[item] ?? 0) > 0).map((item) => ({
     item,
     count: report![item]!,
-    label: CLAIM_ITEM_LABEL[item],
+    label: claimItemLabel(item),
   }));
 }
 
@@ -69,12 +82,14 @@ export function parseClaimReport(value: unknown): ClaimReport | null {
 }
 
 /** What to set up again afterwards (the success page, the notice, the email). */
-export const CLAIM_AFTERCARE = [
-  'Set up two-factor authentication again (Settings → Security).',
-  'Create new API keys and reconnect the apps and assistants you use (Settings → API keys, Settings → OAuth apps).',
-  'Link Slack and turn push notifications on again if you use them.',
-  'Review your workspace’s members, pending invitations, webhooks and integrations: whoever held this account before could have changed them.',
-] as const;
+export function claimAftercare(): string[] {
+  return [
+    m.auth_claim_aftercare_two_factor(),
+    m.auth_claim_aftercare_keys(),
+    m.auth_claim_aftercare_slack_push(),
+    m.auth_claim_aftercare_review(),
+  ];
+}
 
 // --- Password reset ----------------------------------------------------------
 

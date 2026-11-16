@@ -16,6 +16,7 @@ import { db } from '@/lib/db';
 import { emailConfigured, sendEmail } from '@/lib/email';
 import { accountSecuredEmail } from '@/lib/email-verification';
 import { after } from '@/lib/kit/request';
+import { recipientLocaleByEmail, withLocale } from '@/lib/server/i18n';
 
 export type ClaimVia = 'sso' | 'password_reset';
 
@@ -74,5 +75,8 @@ export async function takeClaimNotice(userId: string): Promise<ClaimNotice | nul
  */
 export function sendAccountSecuredEmail(email: string, notice: ClaimNotice) {
   if (!emailConfigured()) return;
-  after(() => sendEmail(accountSecuredEmail(email, notice)));
+  after(async () => {
+    const message = await withLocale(await recipientLocaleByEmail(email), () => accountSecuredEmail(email, notice));
+    await sendEmail(message);
+  });
 }

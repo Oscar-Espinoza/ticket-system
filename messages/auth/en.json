@@ -1,3 +1,106 @@
 {
-  "$schema": "https://inlang.com/schema/inlang-message-format"
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "auth_claim_item_password": "The password (sign in with single sign-on from now on)",
+  "auth_claim_item_two_factor": "Two-factor authentication (authenticator app and backup codes)",
+  "auth_claim_item_api_keys": "API keys",
+  "auth_claim_item_connected_apps": "Connected apps and AI assistants (Claude, ChatGPT and other MCP or OAuth connections)",
+  "auth_claim_item_linked_sign_ins": "Linked Google and GitHub sign-ins",
+  "auth_claim_item_oauth_apps": "OAuth apps registered from this account (disabled, not deleted)",
+  "auth_claim_item_slack": "The Slack link",
+  "auth_claim_item_push": "Push notifications on browsers and devices",
+  "auth_claim_item_invitations": "Pending invitations sent from this account",
+  "auth_claim_aftercare_two_factor": "Set up two-factor authentication again (Settings → Security).",
+  "auth_claim_aftercare_keys": "Create new API keys and reconnect the apps and assistants you use (Settings → API keys, Settings → OAuth apps).",
+  "auth_claim_aftercare_slack_push": "Link Slack and turn push notifications on again if you use them.",
+  "auth_claim_aftercare_review": "Review your workspace’s members, pending invitations, webhooks and integrations: whoever held this account before could have changed them.",
+  "auth_claim_secured_title": "Your account was secured.",
+  "auth_claim_secured_body_sso": "Its email address had never been verified, so when you signed in with single sign-on, every session was signed out and anything someone else could have set up was removed.",
+  "auth_claim_secured_body_reset": "Its email address had never been verified, so when the password was reset, every session was signed out and anything someone else could have set up was removed.",
+  "auth_claim_secured_body_sso_at": "Its email address had never been verified, so when you signed in with single sign-on ({when}), every session was signed out and anything someone else could have set up was removed.",
+  "auth_claim_secured_body_reset_at": "Its email address had never been verified, so when the password was reset ({when}), every session was signed out and anything someone else could have set up was removed.",
+  "auth_claim_removed": "Removed",
+  "auth_claim_nothing_else": "Nothing else was set up on the account.",
+  "auth_claim_what_now": "What to do now",
+  "auth_claim_also_emailed": "We also emailed you this list.",
+  "auth_dismiss": "Dismiss",
+  "auth_continue_google": "Continue with Google",
+  "auth_google_failed": "Google sign-in failed. Try again or use email and password.",
+  "auth_verify_banner_title": "Verify your email address.",
+  "auth_verify_banner_body": "Open the link we sent to {email}. Until then you can’t sign in with Google or GitHub using this address.",
+  "auth_verify_banner_resend": "Resend email",
+  "email_greeting": "Hi,",
+  "email_verify_subject": "Verify your email address",
+  "email_verify_confirm": "Confirm that {email} is your email address:",
+  "email_verify_expires": "The link expires in {hours} hours. It only works while you are signed in to this account with its password (the page asks you to sign in if you aren't). Once your address is verified you can also sign in with Google or GitHub using it.",
+  "email_verify_not_you": "If you didn’t create this account, someone else used your address: don’t sign in to it. To take the address back, use \"Forgot password?\" on the sign-in page; resetting the password signs everyone else out and removes what they set up.",
+  "email_reset_subject": "Reset your password",
+  "email_reset_asked": "Someone asked to reset the password of the account for {email}. To choose a new password, open:",
+  "email_reset_works": "The link works once, for {minutes} minutes. Resetting signs out every session of this account and verifies the address.",
+  "email_reset_claim": "This account’s email address was never verified, so resetting also secures it: two-factor, API keys, connected apps and assistants, linked Google/GitHub sign-ins, the Slack link, push subscriptions and pending invitations are removed. The page lists them before you confirm. If you still know your password, sign in and verify your email instead: then nothing is removed.",
+  "email_reset_ignore": "If you didn’t ask for this, ignore this email: your password stays as it is.",
+  "email_secured_subject": "Your account was secured",
+  "email_secured_how_sso": "On {when}, someone signed in to it through your workspace’s single sign-on. The account for {email} had never verified its email address, so the app could not tell whether whoever set it up owned the address. To make sure nobody else keeps a way in, every session was signed out and these were removed:",
+  "email_secured_how_reset": "On {when}, its password was reset with a link sent to this address. The account for {email} had never verified its email address, so the app could not tell whether whoever set it up owned the address. To make sure nobody else keeps a way in, every session was signed out and these were removed:",
+  "email_secured_nothing": "- Nothing besides the sessions: none of the usual extras were set up.",
+  "email_secured_verified": "The address is now verified. What to do next:",
+  "email_secured_tokens": "Apps that already had an access token may keep using it until it expires, within an hour.",
+  "email_secured_not_me_sso": "If this wasn’t you, tell your workspace admin now: the sign-in came through your company’s identity provider.",
+  "email_secured_not_me_reset": "If this wasn’t you, someone can read this mailbox: secure your email account, then use \"Forgot password?\" on the sign-in page to take the account back.",
+  "email_digest_subject": [
+    {
+      "declarations": [
+        "input frequency",
+        "input updates",
+        "input issues",
+        "local updatesPlural = updates: plural",
+        "local issuesPlural = issues: plural"
+      ],
+      "selectors": [
+        "frequency",
+        "updatesPlural",
+        "issuesPlural"
+      ],
+      "match": {
+        "frequency=daily updatesPlural=one issuesPlural=one": "Your daily digest — {updates} update on {issues} issue",
+        "frequency=daily updatesPlural=one issuesPlural=other": "Your daily digest — {updates} update on {issues} issues",
+        "frequency=daily updatesPlural=other issuesPlural=one": "Your daily digest — {updates} updates on {issues} issue",
+        "frequency=daily updatesPlural=other issuesPlural=other": "Your daily digest — {updates} updates on {issues} issues",
+        "frequency=weekly updatesPlural=one issuesPlural=one": "Your weekly digest — {updates} update on {issues} issue",
+        "frequency=weekly updatesPlural=one issuesPlural=other": "Your weekly digest — {updates} update on {issues} issues",
+        "frequency=weekly updatesPlural=other issuesPlural=one": "Your weekly digest — {updates} updates on {issues} issue",
+        "frequency=weekly updatesPlural=other issuesPlural=other": "Your weekly digest — {updates} updates on {issues} issues"
+      }
+    }
+  ],
+  "email_digest_subject_no_issues": [
+    {
+      "declarations": [
+        "input frequency",
+        "input updates",
+        "local updatesPlural = updates: plural"
+      ],
+      "selectors": [
+        "frequency",
+        "updatesPlural"
+      ],
+      "match": {
+        "frequency=daily updatesPlural=one": "Your daily digest — {updates} update",
+        "frequency=daily updatesPlural=other": "Your daily digest — {updates} updates",
+        "frequency=weekly updatesPlural=one": "Your weekly digest — {updates} update",
+        "frequency=weekly updatesPlural=other": "Your weekly digest — {updates} updates"
+      }
+    }
+  ],
+  "email_notification_subject_one_issue": "{count} updates on {key}",
+  "email_notification_subject_issues": "{count} updates on {issues} issues",
+  "email_footer": "You get these emails because of your notification settings. {link}.",
+  "email_footer_change": "Change them",
+  "email_notification_settings": "Notification settings: {url}",
+  "email_digest_more": "+{count} more",
+  "email_digest_more_in_inbox": "{count} more in your inbox.",
+  "email_digest_open_inbox": "Open your inbox",
+  "email_digest_inbox": "Inbox: {url}",
+  "email_test_subject": "Test notification email",
+  "email_test_body": "Hi {name}, this is a test. Notification emails will look like this and link back to the issue.",
+  "email_pulse_title": "Weekly pulse"
 }
