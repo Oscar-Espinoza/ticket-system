@@ -4,6 +4,7 @@
   Quiet by design: renders nothing until loaded and nothing when there are none.
 -->
 <script module lang="ts">
+  import { m } from '@/lib/i18n';
   import CircleCheckIcon from '@lucide/svelte/icons/circle-check';
   import CircleDotIcon from '@lucide/svelte/icons/circle-dot';
   import CircleXIcon from '@lucide/svelte/icons/circle-x';
@@ -87,9 +88,9 @@
 />
 
 {#if list.length}
-  <section aria-label="Pull requests" class="flex flex-col gap-1">
+  <section aria-label={m.issues_pull_requests()} class="flex flex-col gap-1">
     <div class="flex min-h-7 items-center gap-2">
-      <h3 class="text-xs font-medium text-muted-foreground">Pull requests</h3>
+      <h3 class="text-xs font-medium text-muted-foreground">{m.issues_pull_requests()}</h3>
       <span class="text-xs text-muted-foreground tabular-nums">{list.length}</span>
     </div>
     <ul class="flex flex-col">

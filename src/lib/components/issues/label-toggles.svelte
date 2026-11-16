@@ -1,5 +1,6 @@
 <!-- Bulk label toggles: check = every selected issue has it, minus = some do. -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import MinusIcon from '@lucide/svelte/icons/minus';
 
   import { keywordFilter } from '@/lib/components/issue-pickers';
@@ -22,9 +23,9 @@
 </script>
 
 <Command filter={keywordFilter}>
-  <CommandInput placeholder="Add or remove labels…" />
+  <CommandInput placeholder={m.issues_labels_toggle_placeholder()} />
   <CommandList>
-    <CommandEmpty>No labels found.</CommandEmpty>
+    <CommandEmpty>{m.issues_labels_none_found()}</CommandEmpty>
     <CommandGroup>
       {#each data.labels as label (label.id)}
         {@const coverage = labelCoverage(issues, label.id)}

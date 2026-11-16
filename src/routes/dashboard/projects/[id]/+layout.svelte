@@ -5,6 +5,7 @@
   membership check come from +layout.server.ts.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import ProjectLoading from '@/lib/components/app-shell/project-loading.svelte';
   import { useNavigationLoading } from '@/lib/components/app-shell/navigation-loading.svelte';
   import DisplayOptionsProvider from '@/lib/components/issues/display-options-provider.svelte';
@@ -23,7 +24,7 @@
 
 <svelte:head>
   <!-- generateMetadata: pages below override it with their own title. -->
-  <title>{project.name} · Ticket System</title>
+  <title>{m.issues_project_page_title({ name: project.name })}</title>
 </svelte:head>
 
 <!-- Remount per project (state, providers, star). -->

@@ -4,6 +4,7 @@
   project header kept around it.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import FolderXIcon from '@lucide/svelte/icons/folder-x';
@@ -33,17 +34,17 @@
 </svelte:head>
 
 {#if page.status === 404}
-  <EmptyState title="Project not found" description="It doesn't exist, or you're not a member of it.">
+  <EmptyState title={m.issues_project_not_found()} description={m.issues_project_not_found_description()}>
     {#snippet icon()}<FolderXIcon />{/snippet}
     {#snippet action()}
-      <Button size="sm" variant="outline" href="/dashboard">Back to projects</Button>
+      <Button size="sm" variant="outline" href="/dashboard">{m.issues_back_to_projects()}</Button>
     {/snippet}
   </EmptyState>
 {:else}
-  <EmptyState title="Something went wrong" description="This page failed to load. Try again, or come back in a moment.">
+  <EmptyState title={m.issues_error_title()} description={m.issues_error_load_description()}>
     {#snippet icon()}<TriangleAlertIcon />{/snippet}
     {#snippet action()}
-      <Button size="sm" variant="outline" onclick={() => void retry()}>Try again</Button>
+      <Button size="sm" variant="outline" onclick={() => void retry()}>{m.common_retry()}</Button>
     {/snippet}
   </EmptyState>
 {/if}

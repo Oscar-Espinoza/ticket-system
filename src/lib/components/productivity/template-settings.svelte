@@ -1,5 +1,6 @@
 <!-- Settings → Templates: the project's issue templates with create / edit / delete. -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import FileText from '@lucide/svelte/icons/file-text';
   import Plus from '@lucide/svelte/icons/plus';
   import { toast } from 'svelte-sonner';
@@ -41,7 +42,7 @@
   async function confirmDelete(template: IssueTemplate) {
     const result = await deleteTemplate({ projectId, id: template.id });
     if (!result.ok) toast.error(result.error);
-    else toast.success(`Deleted template “${template.name}”`);
+    else toast.success(m.issues_tpl_deleted({ name: template.name }));
   }
 
   const editorKey = $derived(editing === 'new' ? 'new' : (editing?.id ?? 'closed'));
@@ -50,7 +51,7 @@
 {#snippet newButton()}
   <Button size="sm" onclick={() => (editing = 'new')}>
     <Plus />
-    New template
+    {m.issues_tpl_new_button()}
   </Button>
 {/snippet}
 
@@ -64,8 +65,8 @@
   {#if templates.length === 0}
     <EmptyState
       icon={fileTextIcon}
-      title="No templates yet"
-      description="Save a template for issues you create often — bug reports, feature requests, chores."
+      title={m.issues_tpl_none()}
+      description={m.issues_tpl_empty_description()}
       action={canEdit ? newButton : undefined}
     />
   {:else}
@@ -93,13 +94,13 @@
   <AlertDialog bind:open={() => deleting !== null, (open) => !open && (deleting = null)}>
     <AlertDialogContent size="sm">
       <AlertDialogHeader>
-        <AlertDialogTitle>Delete “{deleting?.name}”?</AlertDialogTitle>
+        <AlertDialogTitle>{m.issues_tpl_delete_title({ name: deleting?.name ?? '' })}</AlertDialogTitle>
         <AlertDialogDescription>
-          Issues created from it keep their content. This can’t be undone.
+          {m.issues_tpl_delete_description()}
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>
-        <AlertDialogCancel>Cancel</AlertDialogCancel>
+        <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
         <AlertDialogAction
           variant="destructive"
           onclick={() => {
@@ -107,7 +108,7 @@
             deleting = null;
           }}
         >
-          Delete
+          {m.common_delete()}
         </AlertDialogAction>
       </AlertDialogFooter>
     </AlertDialogContent>

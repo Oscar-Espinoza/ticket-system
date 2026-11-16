@@ -42,6 +42,7 @@ import {
   type StateType,
   type WorkflowState,
 } from '@/lib/issue-model';
+import { m } from '@/lib/i18n';
 
 export type FilterPropertyId =
   | 'status'
@@ -98,19 +99,19 @@ export function filterProperties(data: Pick<ProjectData, 'project' | 'states' | 
     label: m.name,
     icon: { kind: 'avatar', name: m.name, src: m.image },
   }));
-  const me: FilterOption = { value: ME, label: 'Me', icon: lucide(UserRoundIcon, 'text-muted-foreground') };
+  const me: FilterOption = { value: ME, label: m.issues_fp_me(), icon: lucide(UserRoundIcon, 'text-muted-foreground') };
 
   const properties: (FilterProperty | false)[] = [
     {
       id: 'status',
-      label: 'Status',
+      label: m.common_status(),
       icon: CircleDashedIcon,
       options: [
         ...states.map((s): FilterOption => ({ value: s.id, label: s.name, icon: { kind: 'state', state: s } })),
         ...presentTypes.map(
           (type): FilterOption => ({
             value: `${TYPE_PREFIX}${type}`,
-            label: `Any ${STATE_TYPE_LABEL[type].toLowerCase()}`,
+            label: m.issues_fp_any_type({ type: STATE_TYPE_LABEL[type].toLowerCase() }),
             icon: { kind: 'status', type },
           }),
         ),
@@ -125,11 +126,11 @@ export function filterProperties(data: Pick<ProjectData, 'project' | 'states' | 
     },
     {
       id: 'assignee',
-      label: 'Assignee',
+      label: m.common_assignee(),
       icon: UserRoundIcon,
       options: [
         me,
-        { value: UNASSIGNED, label: 'No assignee', icon: lucide(UserRoundIcon, 'text-muted-foreground/60') },
+        { value: UNASSIGNED, label: m.issues_no_assignee(), icon: lucide(UserRoundIcon, 'text-muted-foreground/60') },
         ...people,
       ],
       get: (f) => f.assigneeIds,
@@ -137,11 +138,11 @@ export function filterProperties(data: Pick<ProjectData, 'project' | 'states' | 
     },
     {
       id: 'waitingOn',
-      label: 'Waiting on',
+      label: m.issues_waiting_on(),
       icon: HourglassIcon,
       options: [
         me,
-        { value: NONE, label: 'Not waiting', icon: lucide(HourglassIcon, 'text-muted-foreground/60') },
+        { value: NONE, label: m.issues_waiting_on_not(), icon: lucide(HourglassIcon, 'text-muted-foreground/60') },
         ...people,
       ],
       get: (f) => f.waitingOnIds,
@@ -149,7 +150,7 @@ export function filterProperties(data: Pick<ProjectData, 'project' | 'states' | 
     },
     {
       id: 'creator',
-      label: 'Creator',
+      label: m.issues_fp_creator(),
       icon: UserRoundPenIcon,
       options: [me, ...people],
       get: (f) => f.creatorIds,
@@ -157,7 +158,7 @@ export function filterProperties(data: Pick<ProjectData, 'project' | 'states' | 
     },
     {
       id: 'priority',
-      label: 'Priority',
+      label: m.common_priority(),
       icon: SignalIcon,
       options: PRIORITY_ORDER.map((p) => ({
         value: p,
@@ -169,10 +170,10 @@ export function filterProperties(data: Pick<ProjectData, 'project' | 'states' | 
     },
     {
       id: 'labels',
-      label: 'Labels',
+      label: m.common_labels(),
       icon: TagIcon,
       options: [
-        { value: NONE, label: 'No label', icon: lucide(TagIcon, 'text-muted-foreground/60') },
+        { value: NONE, label: m.issues_fp_no_label(), icon: lucide(TagIcon, 'text-muted-foreground/60') },
         ...labels.map((l) => ({ value: l.id, label: l.name, icon: dot(l.color) })),
       ],
       get: (f) => f.labelIds,
@@ -180,13 +181,13 @@ export function filterProperties(data: Pick<ProjectData, 'project' | 'states' | 
     },
     (project.cyclesEnabled || cycles.length > 0) && {
       id: 'cycle',
-      label: 'Cycle',
+      label: m.common_cycle(),
       icon: RefreshCcwIcon,
       options: [
-        { value: NONE, label: 'No cycle', icon: lucide(RefreshCcwIcon, 'text-muted-foreground/60') },
+        { value: NONE, label: m.issues_fp_no_cycle(), icon: lucide(RefreshCcwIcon, 'text-muted-foreground/60') },
         ...cycles.map((c) => ({
           value: c.id,
-          label: c.name || `Cycle ${c.number}`,
+          label: c.name || m.issues_fp_cycle_number({ number: c.number }),
           icon: lucide(RefreshCcwIcon, 'text-muted-foreground'),
         })),
       ],
@@ -195,10 +196,10 @@ export function filterProperties(data: Pick<ProjectData, 'project' | 'states' | 
     },
     epics.length > 0 && {
       id: 'epic',
-      label: 'Epic',
+      label: m.issues_epic(),
       icon: LayersIcon,
       options: [
-        { value: NONE, label: 'No epic', icon: lucide(LayersIcon, 'text-muted-foreground/60') },
+        { value: NONE, label: m.issues_fp_no_epic(), icon: lucide(LayersIcon, 'text-muted-foreground/60') },
         ...epics.map((e) => ({ value: e.id, label: e.name, icon: dot(e.color) })),
       ],
       get: (f) => f.epicIds,
@@ -206,7 +207,7 @@ export function filterProperties(data: Pick<ProjectData, 'project' | 'states' | 
     },
     {
       id: 'due',
-      label: 'Due date',
+      label: m.common_due_date(),
       icon: CalendarDaysIcon,
       options: DUE_FILTERS.map((d) => ({
         value: d,
@@ -218,7 +219,7 @@ export function filterProperties(data: Pick<ProjectData, 'project' | 'states' | 
     },
     {
       id: 'followUp',
-      label: 'Follow-up',
+      label: m.issues_followup(),
       icon: CalendarClockIcon,
       options: DUE_FILTERS.map((d) => ({
         value: d,
@@ -230,7 +231,7 @@ export function filterProperties(data: Pick<ProjectData, 'project' | 'states' | 
     },
     {
       id: 'created',
-      label: 'Created',
+      label: m.issues_created(),
       icon: ClockIcon,
       single: true,
       options: RELATIVE_RANGES.map((r) => ({ value: r, label: RELATIVE_RANGE_LABEL[r] })),
@@ -239,7 +240,7 @@ export function filterProperties(data: Pick<ProjectData, 'project' | 'states' | 
     },
     {
       id: 'updated',
-      label: 'Updated',
+      label: m.issues_updated(),
       icon: HistoryIcon,
       single: true,
       options: RELATIVE_RANGES.map((r) => ({ value: r, label: RELATIVE_RANGE_LABEL[r] })),
@@ -248,7 +249,7 @@ export function filterProperties(data: Pick<ProjectData, 'project' | 'states' | 
     },
     {
       id: 'hierarchy',
-      label: 'Sub-issues',
+      label: m.issues_subissues(),
       icon: NetworkIcon,
       options: HIERARCHY_FILTERS.map((h) => ({ value: h, label: HIERARCHY_FILTER_LABEL[h] })),
       get: (f) => f.hierarchy,
@@ -284,6 +285,6 @@ export function toggleValue(property: FilterProperty, filters: IssueFilters, val
 }
 
 export function valuesText(property: FilterProperty, values: string[]): string {
-  const labels = values.map((v) => property.options.find((o) => o.value === v)?.label ?? 'Unknown');
+  const labels = values.map((v) => property.options.find((o) => o.value === v)?.label ?? m.issues_fp_unknown());
   return labels.length <= 2 ? labels.join(', ') : `${labels.slice(0, 2).join(', ')} +${labels.length - 2}`;
 }

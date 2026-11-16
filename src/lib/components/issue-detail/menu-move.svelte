@@ -5,6 +5,7 @@
   navigation carry on.
 -->
 <script module lang="ts">
+  import { m } from '@/lib/i18n';
   import { toast } from 'svelte-sonner';
 
   import { moveIssueToProject, type MoveTarget } from '@/lib/actions/move';
@@ -14,23 +15,23 @@
   type Targets = MoveTarget[] | 'loading' | { error: string } | null;
 
   async function move(issue: IssueRow, target: MoveTarget, navigate: (href: string) => void) {
-    const pending = toast.loading(`Moving ${issue.key} to ${target.name}…`);
+    const pending = toast.loading(m.issues_move_moving({ key: issue.key, name: target.name }));
     const result = await moveIssueToProject({
       projectId: issue.projectId,
       id: issue.id,
       toProjectId: target.id,
     });
     if (!result.ok) {
-      toast.error(actionErrorText(result.error, "You don't have permission to do that."), {
+      toast.error(actionErrorText(result.error, m.issues_no_permission()), {
         id: pending,
       });
       return;
     }
     const extra = [
-      result.moved > 1 && `with ${pluralize(result.moved - 1, 'sub-issue')}`,
-      result.droppedLabels.length > 0 && `dropped labels: ${result.droppedLabels.join(', ')}`,
+      result.moved > 1 && m.issues_move_with_sub_issues({ count: result.moved - 1 }),
+      result.droppedLabels.length > 0 && m.issues_move_dropped_labels({ labels: result.droppedLabels.join(', ') }),
     ].filter(Boolean);
-    toast.success(`Moved ${result.fromKey} → ${result.key}`, {
+    toast.success(m.issues_move_done({ from: result.fromKey, to: result.key }), {
       id: pending,
       description: extra.length ? extra.join(' · ') : undefined,
     });
@@ -39,7 +40,6 @@
 </script>
 
 <script lang="ts">
-  import { pluralize } from '@/lib/format';
   import ArrowRightLeftIcon from '@lucide/svelte/icons/arrow-right-left';
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
   import { goto } from '$app/navigation';
@@ -73,18 +73,18 @@
   <DropdownMenuSub onOpenChange={(open) => open && void load()}>
     <DropdownMenuSubTrigger>
       <ArrowRightLeftIcon />
-      Move to project
+      {m.issues_move_to_project()}
     </DropdownMenuSubTrigger>
     <DropdownMenuSubContent class="max-h-72 w-56 overflow-y-auto">
       {#if targets === null || targets === 'loading'}
         <DropdownMenuItem disabled>
           <Loader2Icon class="animate-spin" />
-          Loading projects…
+          {m.issues_move_loading()}
         </DropdownMenuItem>
       {:else if !Array.isArray(targets)}
-        <DropdownMenuItem disabled>Couldn’t load projects.</DropdownMenuItem>
+        <DropdownMenuItem disabled>{m.issues_move_load_failed()}</DropdownMenuItem>
       {:else if targets.length === 0}
-        <DropdownMenuItem disabled>No other projects you can write to.</DropdownMenuItem>
+        <DropdownMenuItem disabled>{m.issues_move_no_targets()}</DropdownMenuItem>
       {:else}
         {#each targets as target (target.id)}
           <DropdownMenuItem onSelect={() => void move(issue, target, (href) => void goto(href))}>

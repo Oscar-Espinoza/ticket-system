@@ -5,6 +5,7 @@
   or Bitbucket).
 -->
 <script module lang="ts">
+  import { m } from '@/lib/i18n';
   const isMac = () => typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.userAgent);
 </script>
 
@@ -65,11 +66,11 @@
 
   const createDisabledReason = $derived(
     !repo
-      ? 'Connect a repository in Settings → GitHub'
+      ? m.issues_github_connect_repo()
       : !canWrite
-        ? "You don't have permission to create branches"
+        ? m.issues_github_no_permission()
         : github && !github.connected
-          ? 'Connect your GitHub account in Settings → GitHub'
+          ? m.issues_github_connect_account()
           : null,
   );
 
@@ -77,8 +78,8 @@
     // Synchronous with the click / keypress: clipboard writes need the gesture.
     const name = branch;
     navigator.clipboard.writeText(name).then(
-      () => toast.success('Copied git branch name', { description: name }),
-      () => toast.error("Couldn't copy to the clipboard"),
+      () => toast.success(m.issues_github_branch_copied(), { description: name }),
+      () => toast.error(m.issues_github_copy_failed()),
     );
     if (!issue.githubBranch && canWrite) {
       void saveBranchName({ projectId: data.project.id, ticketId: issue.id, name }).then((result) => {
@@ -99,13 +100,18 @@
         toast.error(result.error);
         return;
       }
-      toast.success(result.existed ? 'Branch already exists on GitHub' : 'Branch created', {
+      toast.success(result.existed ? m.issues_github_branch_exists() : m.issues_github_branch_created(), {
         description: result.branch,
-        action: { label: 'Open', onClick: () => window.open(result.url, '_blank', 'noopener') },
+        action: { label: m.common_open(), onClick: () => window.open(result.url, '_blank', 'noopener') },
       });
     } finally {
       creating = false;
     }
+  }
+
+  function keepOpenAndCreate(event: Event) {
+    event.preventDefault(); // keep the menu's spinner visible until done
+    void create();
   }
 
   // Re-registered when the issue or the create option changes; handlers always run the latest copy/create.
@@ -115,12 +121,12 @@
     return untrack(() => {
       // Shift hotkeys also match the physical key, so ⌘⇧. works where Shift turns "." into ">".
       const unregisterKeys = registerHotkeys([
-        { key: '.', mod: true, shift: true, scope: 'Issue', description: 'Copy git branch name', handler: () => copy() },
+        { key: '.', mod: true, shift: true, scope: m.common_issue(), description: m.issues_github_copy_branch(), handler: () => copy() },
       ]);
       const unregisterCommands = registerPaletteCommands([
-        { id: 'github.copy-branch', label: 'Copy git branch name', section: 'Issue', keywords: ['git', 'branch'], run: () => copy() },
+        { id: 'github.copy-branch', label: m.issues_github_copy_branch(), section: m.common_issue(), keywords: ['git', 'branch'], run: () => copy() },
         ...(withCreate
-          ? [{ id: 'github.create-branch', label: 'Create branch on GitHub', section: 'Issue', keywords: ['git', 'branch', 'github'], run: () => void create() }]
+          ? [{ id: 'github.create-branch', label: m.issues_github_create_branch(), section: m.common_issue(), keywords: ['git', 'branch', 'github'], run: () => void create() }]
           : []),
       ]);
       return () => {
@@ -134,20 +140,17 @@
 {#snippet createItem()}
   <DropdownMenuItem
     disabled={!!createDisabledReason || creating}
-    onSelect={(event: Event) => {
-      event.preventDefault(); // keep the menu's spinner visible until done
-      void create();
-    }}
+    onSelect={keepOpenAndCreate}
   >
     {#if creating}<Loader2Icon class="animate-spin" />{:else}<GitBranchPlusIcon />{/if}
-    Create branch on GitHub
+    {m.issues_github_create_branch()}
   </DropdownMenuItem>
 {/snippet}
 
 <DropdownMenu>
   <DropdownMenuTrigger>
     {#snippet child({ props })}
-      <Button {...props} variant="ghost" size="icon-sm" aria-label="Git branch">
+      <Button {...props} variant="ghost" size="icon-sm" aria-label={m.issues_github_git_branch()}>
         <GitBranchIcon />
       </Button>
     {/snippet}
@@ -162,7 +165,7 @@
     <DropdownMenuSeparator />
     <DropdownMenuItem onSelect={copy}>
       <CopyIcon />
-      Copy git branch name
+      {m.issues_github_copy_branch()}
       <DropdownMenuShortcut>{isMac() ? '⌘⇧.' : 'Ctrl+Shift+.'}</DropdownMenuShortcut>
     </DropdownMenuItem>
     {#if offersCreate}
@@ -187,7 +190,7 @@
         {#snippet child({ props })}
           <a {...props} href={branchUrl(host.provider, host.webUrl, issue.githubBranch!)} target="_blank" rel="noreferrer">
             <ExternalLinkIcon />
-            Open branch on {VCS_PROVIDER_LABEL[host.provider]}
+            {m.issues_github_open_branch({ provider: VCS_PROVIDER_LABEL[host.provider] })}
           </a>
         {/snippet}
       </DropdownMenuItem>

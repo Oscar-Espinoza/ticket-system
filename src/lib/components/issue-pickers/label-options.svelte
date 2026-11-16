@@ -1,5 +1,6 @@
 <!-- Multi-select: toggles stay open; "Create label" when nothing matches exactly. -->
 <script module lang="ts">
+  import { m } from '@/lib/i18n';
   export interface LabelOptionsProps {
     /** Selected label ids. */
     value: string[];
@@ -39,7 +40,7 @@
       const color = LABEL_COLORS[Math.floor(Math.random() * LABEL_COLORS.length)];
       const result = await createLabel({ projectId: data.project.id, name, color });
       if (!result.ok || !result.label) {
-        toast.error(result.ok ? 'Could not create the label.' : result.error);
+        toast.error(result.ok ? m.issues_label_create_failed() : result.error);
         return;
       }
       search = '';
@@ -51,9 +52,9 @@
 </script>
 
 <Command filter={keywordFilter}>
-  <CommandInput bind:value={search} placeholder="Add labels…" />
+  <CommandInput bind:value={search} placeholder={m.issues_labels_add_placeholder()} />
   <CommandList>
-    <CommandEmpty>{canCreate.current ? 'Type a name to create a label.' : 'No labels found.'}</CommandEmpty>
+    <CommandEmpty>{canCreate.current ? m.issues_labels_type_to_create() : m.issues_labels_none_found()}</CommandEmpty>
     <CommandGroup>
       {#each data.labels as label (label.id)}
         <CommandItem
@@ -71,7 +72,7 @@
         <CommandItem value={CREATE} forceMount disabled={creating} onSelect={() => void create()}>
           <PlusIcon />
           <span class="truncate">
-            Create label “{name}”
+            {m.issues_label_create({ name })}
           </span>
         </CommandItem>
       {/if}

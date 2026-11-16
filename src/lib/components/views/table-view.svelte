@@ -3,6 +3,7 @@
   inline editing through the shared pickers, sortable headers (= ordering).
 -->
 <script lang="ts">
+  import { currentLocale, m } from '@/lib/i18n';
   import ArrowDownIcon from '@lucide/svelte/icons/arrow-down';
   import UserRoundIcon from '@lucide/svelte/icons/user-round';
 
@@ -61,22 +62,22 @@
   }
 
   const ALL_COLUMNS: Column[] = [
-    { id: 'id', label: 'ID', className: 'w-24 min-w-24' },
-    { id: 'status', label: 'Status', className: 'w-40 min-w-40' },
-    { id: 'title', label: 'Title', className: 'w-full min-w-64 max-w-0', orderBy: 'title' },
-    { id: 'priority', label: 'Priority', className: 'w-32 min-w-32', orderBy: 'priority' },
-    { id: 'assignee', label: 'Assignee', className: 'w-44 min-w-44' },
-    { id: 'labels', label: 'Labels', className: 'w-52 min-w-52' },
-    { id: 'estimate', label: 'Estimate', className: 'w-28 min-w-28' },
-    { id: 'dueDate', label: 'Due date', className: 'w-32 min-w-32', orderBy: 'dueDate' },
-    { id: 'startDate', label: 'Start date', className: 'w-32 min-w-32' },
-    { id: 'sla', label: 'SLA', className: 'w-28 min-w-28' },
-    { id: 'cycle', label: 'Cycle', className: 'w-36 min-w-36' },
-    { id: 'epic', label: 'Epic', className: 'w-44 min-w-44' },
-    { id: 'milestone', label: 'Milestone', className: 'w-40 min-w-40' },
-    { id: 'subIssues', label: 'Sub-issues', className: 'w-28 min-w-28' },
-    { id: 'created', label: 'Created', className: 'w-28 min-w-28', orderBy: 'created' },
-    { id: 'updated', label: 'Updated', className: 'w-28 min-w-28', orderBy: 'updated' },
+    { id: 'id', label: m.issues_table_id(), className: 'w-24 min-w-24' },
+    { id: 'status', label: m.common_status(), className: 'w-40 min-w-40' },
+    { id: 'title', label: m.issues_title(), className: 'w-full min-w-64 max-w-0', orderBy: 'title' },
+    { id: 'priority', label: m.common_priority(), className: 'w-32 min-w-32', orderBy: 'priority' },
+    { id: 'assignee', label: m.common_assignee(), className: 'w-44 min-w-44' },
+    { id: 'labels', label: m.common_labels(), className: 'w-52 min-w-52' },
+    { id: 'estimate', label: m.issues_estimate(), className: 'w-28 min-w-28' },
+    { id: 'dueDate', label: m.common_due_date(), className: 'w-32 min-w-32', orderBy: 'dueDate' },
+    { id: 'startDate', label: m.issues_startdate(), className: 'w-32 min-w-32' },
+    { id: 'sla', label: m.issues_sla(), className: 'w-28 min-w-28' },
+    { id: 'cycle', label: m.common_cycle(), className: 'w-36 min-w-36' },
+    { id: 'epic', label: m.issues_epic(), className: 'w-44 min-w-44' },
+    { id: 'milestone', label: m.issues_table_milestone(), className: 'w-40 min-w-40' },
+    { id: 'subIssues', label: m.issues_subissues(), className: 'w-28 min-w-28' },
+    { id: 'created', label: m.issues_created(), className: 'w-28 min-w-28', orderBy: 'created' },
+    { id: 'updated', label: m.issues_updated(), className: 'w-28 min-w-28', orderBy: 'updated' },
   ];
 
   const displayOptions = useDisplayOptions();
@@ -152,7 +153,7 @@
 {#snippet timeCell(date: Date, verb: string)}
   <time
     datetime={new Date(date).toISOString()}
-    title={`${verb} ${new Date(date).toLocaleString()}`}
+    title={m.issues_table_time_title({ verb, date: new Date(date).toLocaleString(currentLocale()) })}
     class="px-1.5 text-xs tabular-nums text-muted-foreground"
   >
     {relativeTime(date)}
@@ -175,7 +176,7 @@
     <span class="truncate">{issue.assignee.name}</span>
   {:else}
     <UserRoundIcon class="size-4 text-muted-foreground/60" />
-    <span class="text-muted-foreground">Unassigned</span>
+    <span class="text-muted-foreground">{m.issues_unassigned()}</span>
   {/if}
 {/snippet}
 
@@ -268,7 +269,7 @@
         onCloseAutoFocus={edit.refocus}
       >
         {#snippet children({ props }: { props: Record<string, unknown> })}
-          <TableCellButton {...props} label="Change labels" class="w-full">
+          <TableCellButton {...props} label={m.issues_table_change_labels()} class="w-full">
             {@render labelsContent(issue)}
           </TableCellButton>
         {/snippet}
@@ -284,7 +285,7 @@
         onCloseAutoFocus={edit.refocus}
       >
         {#snippet children({ props }: { props: Record<string, unknown> })}
-          <TableCellButton {...props} label="Change estimate">
+          <TableCellButton {...props} label={m.issues_table_change_estimate()}>
             {@render estimateContent(issue)}
           </TableCellButton>
         {/snippet}
@@ -300,7 +301,7 @@
         onCloseAutoFocus={edit.refocus}
       >
         {#snippet children({ props }: { props: Record<string, unknown> })}
-          <TableCellButton {...props} label="Change due date">
+          <TableCellButton {...props} label={m.issues_table_change_due()}>
             {@render dueDateContent(issue)}
           </TableCellButton>
         {/snippet}
@@ -316,7 +317,7 @@
         onCloseAutoFocus={edit.refocus}
       >
         {#snippet children({ props }: { props: Record<string, unknown> })}
-          <TableCellButton {...props} label="Change start date">
+          <TableCellButton {...props} label={m.issues_table_change_start()}>
             {@render startDateContent(issue)}
           </TableCellButton>
         {/snippet}
@@ -339,17 +340,17 @@
   {:else if column.id === 'subIssues'}
     <TableSubIssuesCell {issue} />
   {:else if column.id === 'created'}
-    {@render timeCell(issue.createdAt, 'Created')}
+    {@render timeCell(issue.createdAt, m.issues_created())}
   {:else if column.id === 'updated'}
-    {@render timeCell(issue.updatedAt, 'Updated')}
+    {@render timeCell(issue.updatedAt, m.issues_updated())}
   {/if}
 {/snippet}
 
 {#if issues.length === 0}
-  <EmptyState title="No issues" description="Nothing to show in this view." />
+  <EmptyState title={m.issues_none_title()} description={m.issues_none_description()} />
 {:else}
   <div class="max-h-[calc(100dvh-14rem)] min-h-0 overflow-auto rounded-md border border-border">
-    <table class="w-full border-separate border-spacing-0 text-sm" aria-label="Issues">
+    <table class="w-full border-separate border-spacing-0 text-sm" aria-label={m.issues_issues()}>
       <thead>
         <tr>
           {#if selection.enabled}

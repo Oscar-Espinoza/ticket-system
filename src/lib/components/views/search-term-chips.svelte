@@ -1,5 +1,6 @@
 <!-- Read-only chips for the filter terms of a query (search page header). -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { formatSearchTerm, parseSearchQuery } from '@/lib/issue-filtering';
   import { cn } from '@/lib/utils';
 
@@ -9,7 +10,7 @@
 </script>
 
 {#if terms.length > 0}
-  <ul aria-label="Search filters" class={cn('flex flex-wrap gap-1', className)}>
+  <ul aria-label={m.issues_search_filters()} class={cn('flex flex-wrap gap-1', className)}>
     {#each terms as term, i (i)}
       <li
         class={cn(

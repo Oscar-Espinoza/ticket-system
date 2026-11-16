@@ -3,6 +3,7 @@
   through /api/collab; saves as you type via `onSave` and flushes on unmount.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import type { Editor } from '@tiptap/core';
   import { untrack } from 'svelte';
 
@@ -97,7 +98,7 @@
   {#if snapshot.synced && collab.extensions}
     <div hidden={!ready}>
       <MarkdownEditor
-        aria-label="Description"
+        aria-label={m.common_description()}
         value={saved}
         onChange={collabEditor.onChange}
         controlled={false}
@@ -108,7 +109,7 @@
         onCancel={onClose}
         onBlur={onClose}
         disabled={!snapshot.canWrite}
-        placeholder="Add a description… (type / for commands)"
+        placeholder={m.issues_description_placeholder_commands()}
         projectId={issue.projectId}
         ticketId={issue.id}
         textareaClassName="min-h-32"

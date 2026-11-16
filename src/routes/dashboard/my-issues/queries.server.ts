@@ -7,12 +7,33 @@ import { db } from '@/lib/db';
 import { activities, issueSubscribers, tickets } from '@/db/schema';
 import type { IssueRow } from '@/lib/issue-model';
 import { activeIssue, memberOfIssueProject, queryIssues } from '@/lib/tickets';
+import { m } from '@/lib/i18n';
 
 export const MY_ISSUES_TABS = [
-  { id: 'assigned', label: 'Assigned' },
-  { id: 'created', label: 'Created' },
-  { id: 'subscribed', label: 'Subscribed' },
-  { id: 'activity', label: 'Activity' },
+  {
+    id: 'assigned',
+    get label() {
+      return m.issues_mine_tab_assigned();
+    },
+  },
+  {
+    id: 'created',
+    get label() {
+      return m.issues_mine_tab_created();
+    },
+  },
+  {
+    id: 'subscribed',
+    get label() {
+      return m.issues_mine_tab_subscribed();
+    },
+  },
+  {
+    id: 'activity',
+    get label() {
+      return m.issues_mine_tab_activity();
+    },
+  },
 ] as const;
 
 export type MyIssuesTab = (typeof MY_ISSUES_TABS)[number]['id'];

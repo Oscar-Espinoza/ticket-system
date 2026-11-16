@@ -4,6 +4,7 @@
   upcoming ones, then recent past ones.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import IterationCwIcon from '@lucide/svelte/icons/iteration-cw';
 
   import { projectHref } from '@/lib/components/app-shell/routes';
@@ -31,13 +32,13 @@
       <span class="truncate">{cycleName(cycle)}</span>
     {:else}
       <IterationCwIcon class="text-muted-foreground" />
-      <span class="text-muted-foreground">Add to cycle</span>
+      <span class="text-muted-foreground">{m.issues_cycle_add()}</span>
     {/if}
   </Button>
 {/snippet}
 
 {#if data.project.cyclesEnabled || cycle}
-  <PropertyRow label="Cycle">
+  <PropertyRow label={m.common_cycle()}>
     <div class="flex min-w-0 items-center gap-1">
       {#if canWrite && data.project.cyclesEnabled}
         <CyclePicker value={issue.cycleId} onChange={(cycleId) => mutations.update(issue, { cycleId })}>
@@ -50,9 +51,9 @@
         <a
           href={projectHref(data.project.id, `cycles/${cycle.id}`)}
           class="shrink-0 text-xs text-muted-foreground hover:text-foreground"
-          aria-label={`Open ${cycleName(cycle)}`}
+          aria-label={m.issues_cycle_open_named({ name: cycleName(cycle) })}
         >
-          Open
+          {m.common_open()}
         </a>
       {/if}
     </div>

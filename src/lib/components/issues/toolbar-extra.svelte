@@ -7,6 +7,7 @@
   nothing here.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import BookmarkPlusIcon from '@lucide/svelte/icons/bookmark-plus';
   import LoaderCircleIcon from '@lucide/svelte/icons/loader-circle';
   import SaveIcon from '@lucide/svelte/icons/save';
@@ -82,7 +83,7 @@
         toast.error(result.error);
         return;
       }
-      toast.success(`Updated “${view.name}”`);
+      toast.success(m.issues_view_updated({ name: view.name }));
       // updateView's wrapper refreshes the page.
     } finally {
       saving = false;
@@ -96,16 +97,16 @@
       size="sm"
       variant={dirty ? 'secondary' : 'ghost'}
       disabled={!dirty || saving}
-      title={dirty ? 'Save the current filters and display to this view' : 'No unsaved changes'}
+      title={dirty ? m.issues_view_update_title() : m.issues_view_no_changes()}
       onclick={update}
     >
       {#if saving}<LoaderCircleIcon class="animate-spin" />{:else}<SaveIcon />{/if}
-      Update view
+      {m.issues_view_update()}
     </Button>
   {/if}
   <Button size="sm" variant="ghost" onclick={openDialog}>
     <BookmarkPlusIcon />
-    {onViewPage ? 'Save as new' : 'Save view'}
+    {onViewPage ? m.issues_view_save_new() : m.issues_view_save()}
   </Button>
   {#if dialog > 0}
     {#key dialog}
@@ -116,7 +117,7 @@
         filters={current.filters}
         display={current.display}
         {canShare}
-        defaultName={onViewPage ? `${openView?.name ?? shownView?.name ?? 'View'} (copy)` : ''}
+        defaultName={onViewPage ? m.issues_view_copy_name({ name: openView?.name ?? shownView?.name ?? m.issues_view_default_name() }) : ''}
       />
     {/key}
   {/if}

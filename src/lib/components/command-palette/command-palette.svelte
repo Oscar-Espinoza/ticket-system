@@ -1,5 +1,6 @@
 <!-- ⌘K command palette: built-in commands (props) + registered extensions. -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import {
     Command,
     CommandDialog,
@@ -27,7 +28,7 @@
     const order: string[] = [];
     const bySection = new Map<string, PaletteCommand[]>();
     for (const command of all) {
-      const section = command.section ?? 'General';
+      const section = command.section ?? m.issues_palette_general();
       if (!bySection.has(section)) {
         bySection.set(section, []);
         order.push(section);
@@ -38,12 +39,12 @@
   });
 </script>
 
-<CommandDialog {open} {onOpenChange} title="Command palette" description="Search projects and actions.">
+<CommandDialog {open} {onOpenChange} title={m.issues_palette_title()} description={m.issues_palette_description()}>
   <!-- radix-nova's CommandDialog does NOT wrap children in <Command>
        — the root must be provided here -->
   <Command>
-    <CommandInput placeholder="Search or jump to…" />
-    <CommandEmpty>No results.</CommandEmpty>
+    <CommandInput placeholder={m.issues_palette_placeholder()} />
+    <CommandEmpty>{m.issues_no_results_period()}</CommandEmpty>
     <CommandList>
       {#each grouped as group (group.section)}
         <CommandGroup heading={group.section}>

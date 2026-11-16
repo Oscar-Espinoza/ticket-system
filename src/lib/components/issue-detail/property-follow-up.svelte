@@ -3,6 +3,7 @@
   daily job notifies the assignee when it arrives (src/lib/cron/jobs/follow-ups.ts).
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import CalendarClockIcon from '@lucide/svelte/icons/calendar-clock';
 
   import PropertyRow from '@/lib/components/issue-detail/property-row.svelte';
@@ -25,17 +26,17 @@
       <DueDateChip dueDate={issue.followUp} stateType={issue.state.type} kind="followUp" class="border-0 px-0" />
     {:else}
       <CalendarClockIcon class="text-muted-foreground" />
-      <span class="text-muted-foreground">Set follow-up</span>
+      <span class="text-muted-foreground">{m.issues_followup_set()}</span>
     {/if}
   </Button>
 {/snippet}
 
-<PropertyRow label="Follow-up">
+<PropertyRow label={m.issues_followup()}>
   {#if canWrite}
     <DueDatePicker
       value={issue.followUp}
-      placeholder="Follow up on…"
-      removeLabel="Remove follow-up date"
+      placeholder={m.issues_followup_placeholder()}
+      removeLabel={m.issues_followup_remove()}
       onChange={(followUp) => mutations.update(issue, { followUp })}
     >
       {#snippet children({ props })}{@render trigger(props)}{/snippet}

@@ -1,4 +1,5 @@
 <script module lang="ts">
+  import { m } from '@/lib/i18n';
   export interface DraftListItem {
     id: string;
     title: string;
@@ -63,14 +64,14 @@
   const remove = (id: string) =>
     optimistic({ type: 'delete', id }, async () => {
       const result = await deleteDraft({ id }).catch(() => null);
-      if (!result?.ok) toast.error('Could not delete the draft.');
+      if (!result?.ok) toast.error(m.issues_drafts_delete_failed());
     });
 
   const clear = () =>
     optimistic({ type: 'clear' }, async () => {
       const result = await discardAllDrafts().catch(() => null);
-      if (!result?.ok) toast.error('Could not discard the drafts.');
-      else toast.success('Discarded all drafts');
+      if (!result?.ok) toast.error(m.issues_drafts_discard_failed());
+      else toast.success(m.issues_drafts_discarded());
     });
 </script>
 
@@ -78,7 +79,7 @@
 
 <div class="flex flex-col">
   <div class="mb-3 flex items-center gap-2">
-    <h1 class="text-xl font-medium">Drafts</h1>
+    <h1 class="text-xl font-medium">{m.issues_drafts()}</h1>
     {#if list.length > 0}
       <span class="text-sm tabular-nums text-muted-foreground">{list.length}</span>
     {/if}
@@ -87,22 +88,21 @@
         <AlertDialogTrigger>
           {#snippet child({ props })}
             <Button {...props} variant="ghost" size="sm" class="ml-auto text-muted-foreground">
-              Discard all
+              {m.issues_drafts_discard_all()}
             </Button>
           {/snippet}
         </AlertDialogTrigger>
         <AlertDialogContent size="sm">
           <AlertDialogHeader>
-            <AlertDialogTitle>Discard all drafts?</AlertDialogTitle>
+            <AlertDialogTitle>{m.issues_drafts_discard_all_title()}</AlertDialogTitle>
             <AlertDialogDescription>
-              {list.length === 1 ? 'Your draft' : `All ${list.length} drafts`} will be deleted.
-              This can’t be undone.
+              {list.length === 1 ? m.issues_drafts_deleted_one() : m.issues_drafts_deleted_many({ count: list.length })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
             <AlertDialogAction variant="destructive" onclick={() => void clear()}>
-              Discard all
+              {m.issues_drafts_discard_all()}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -113,8 +113,8 @@
   {#if list.length === 0}
     <EmptyState
       icon={filePenIcon}
-      title="No drafts"
-      description="Issues you start writing but don’t create are saved here automatically."
+      title={m.issues_drafts_empty()}
+      description={m.issues_drafts_empty_description()}
     />
   {:else}
     <ul class="flex flex-col gap-px">
@@ -127,7 +127,7 @@
             <FilePen class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
             <span class="flex min-w-0 flex-1 items-baseline gap-2">
               <span class={draft.title.trim() ? 'truncate' : 'truncate italic text-muted-foreground'}>
-                {draft.title.trim() || 'Untitled draft'}
+                {draft.title.trim() || m.issues_drafts_untitled()}
               </span>
               {#if draft.description}
                 <span class="hidden truncate text-xs text-muted-foreground sm:inline">
@@ -149,7 +149,7 @@
           <Button
             variant="ghost"
             size="icon-xs"
-            aria-label="Delete draft {draft.title.trim() || 'Untitled draft'}"
+            aria-label={m.issues_drafts_delete_named({ title: draft.title.trim() || m.issues_drafts_untitled() })}
             onclick={() => void remove(draft.id)}
             class="absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
           >

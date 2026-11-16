@@ -3,6 +3,7 @@
   issues, each opening in a new tab so the draft stays put.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import ExternalLinkIcon from '@lucide/svelte/icons/external-link';
 
   import { StateIcon } from '@/lib/components/ui-icons';
@@ -33,11 +34,11 @@
 
 {#if similar.current.length > 0}
   <section
-    aria-label="Possible duplicates"
+    aria-label={m.issues_possible_duplicates()}
     aria-live="polite"
     class={cn('flex flex-col gap-0.5 rounded-md border border-dashed border-border px-2 py-1.5', className)}
   >
-    <h3 class="px-1 text-xs text-muted-foreground">Possible duplicates</h3>
+    <h3 class="px-1 text-xs text-muted-foreground">{m.issues_possible_duplicates()}</h3>
     <ul class="flex flex-col">
       {#each similar.current as { issue, reason } (issue.id)}
         <li>
@@ -45,7 +46,7 @@
             href={issuePath(issue.projectId, issue.key)}
             target="_blank"
             rel="noopener noreferrer"
-            title={`${reason} — opens in a new tab`}
+            title={m.issues_possible_duplicates_open({ reason })}
             class="group/dup flex h-7 items-center gap-2 rounded-sm px-1 text-sm outline-none hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring/50"
           >
             <StateIcon state={issue.state} size={14} />

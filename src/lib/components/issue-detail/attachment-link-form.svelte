@@ -1,5 +1,6 @@
 <!-- "Add link" form of SectionAttachments. -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
 
   import { parseLinkUrl } from '@/lib/attachment-utils';
@@ -35,17 +36,17 @@
   <Input
     autofocus
     type="url"
-    aria-label="Link URL"
-    placeholder="https://…"
+    aria-label={m.issues_attachment_link_url()}
+    placeholder={'https://…'}
     bind:value={url}
     aria-invalid={invalid || undefined}
     oninput={() => (invalid = false)}
     class="h-7"
   />
-  <Input aria-label="Link title" placeholder="Title (optional)" bind:value={title} maxlength={255} class="h-7" />
-  {#if invalid}<p class="text-xs text-destructive">Enter an http(s) URL.</p>{/if}
+  <Input aria-label={m.issues_attachment_link_title()} placeholder={m.issues_attachment_title_optional()} bind:value={title} maxlength={255} class="h-7" />
+  {#if invalid}<p class="text-xs text-destructive">{m.issues_attachment_invalid_url()}</p>{/if}
   <Button type="submit" size="sm" class="self-end" disabled={busy || !url.trim()}>
     {#if busy}<Loader2Icon class="animate-spin" />{/if}
-    Add link
+    {m.issues_attachment_add_link()}
   </Button>
 </form>

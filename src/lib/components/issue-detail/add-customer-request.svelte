@@ -3,6 +3,7 @@
   the customer, then importance + an optional note.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
 
   import {
@@ -55,19 +56,19 @@
     }}
   >
     <div class="flex items-center gap-2 text-sm">
-      <Button variant="ghost" size="icon-xs" aria-label="Back to customers" onclick={() => (customer = null)}>
+      <Button variant="ghost" size="icon-xs" aria-label={m.issues_customer_back()} onclick={() => (customer = null)}>
         <ArrowLeftIcon />
       </Button>
       <CustomerLogo name={customer.name} size={16} />
       <span class="truncate font-medium">{customer.name}</span>
-      {#if !customer.id}<span class="shrink-0 text-xs text-muted-foreground">New</span>{/if}
+      {#if !customer.id}<span class="shrink-0 text-xs text-muted-foreground">{m.issues_customer_new()}</span>{/if}
     </div>
     <div class="flex flex-col gap-1.5">
-      <span class="text-xs text-muted-foreground">Importance</span>
+      <span class="text-xs text-muted-foreground">{m.issues_customer_importance()}</span>
       <!-- svelte-ignore a11y_interactive_supports_focus -->
       <div
         role="radiogroup"
-        aria-label="Importance"
+        aria-label={m.issues_customer_importance()}
         class="grid grid-cols-4 gap-1"
         onkeydown={digitShortcut('', (digit) => {
           const level = levels[digit - 1];
@@ -97,15 +98,15 @@
     <Textarea
       autofocus
       bind:value={body}
-      placeholder="What did they ask for? (optional)"
+      placeholder={m.issues_customer_request_placeholder()}
       maxlength={REQUEST_BODY_MAX}
-      aria-label="Request note"
+      aria-label={m.issues_customer_request_note()}
       class="min-h-20 text-sm"
     />
     <div class="flex items-center gap-2">
-      <span class="text-xs text-muted-foreground">⌘Enter to add</span>
+      <span class="text-xs text-muted-foreground">{m.issues_customer_enter_to_add()}</span>
       <Button size="sm" class="ml-auto" onclick={submit}>
-        Add request
+        {m.issues_customer_add_request()}
       </Button>
     </div>
   </div>

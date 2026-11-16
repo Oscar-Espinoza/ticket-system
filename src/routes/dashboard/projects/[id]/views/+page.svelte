@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import LayersIcon from '@lucide/svelte/icons/layers';
 
   import ViewList from '@/lib/components/navigation/view-list.svelte';
@@ -9,13 +10,13 @@
 </script>
 
 <svelte:head>
-  <title>Views</title>
+  <title>{m.issues_views()}</title>
 </svelte:head>
 
 {#if data.items.length === 0}
   <EmptyState
-    title="No views in this project"
-    description="Filter and arrange the issue list, then choose “Save view” in the toolbar. Shared views appear here for everyone in the project."
+    title={m.issues_views_project_empty()}
+    description={m.issues_views_project_empty_description()}
   >
     {#snippet icon()}<LayersIcon />{/snippet}
   </EmptyState>

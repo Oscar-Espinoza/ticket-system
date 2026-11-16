@@ -1,5 +1,6 @@
 <!-- Quick options + calendar for StartDatePicker. -->
 <script module lang="ts">
+  import { m } from '@/lib/i18n';
   import { addDays, toDateString } from '@/lib/dates';
 
   function quickOptions(today = new Date()) {
@@ -36,7 +37,7 @@
 
 <div class="flex flex-col">
   <Command>
-    <CommandInput placeholder="Set start date…" />
+    <CommandInput placeholder={m.issues_startdate_placeholder()} />
     <CommandList>
       <CommandGroup>
         {#each options as option (option.label)}
@@ -47,9 +48,9 @@
           </CommandItem>
         {/each}
         {#if value}
-          <CommandItem value="Remove start date" onSelect={() => onSelect(null)}>
+          <CommandItem value={m.issues_startdate_remove()} onSelect={() => onSelect(null)}>
             <XIcon class="text-muted-foreground" />
-            Remove start date
+            {m.issues_startdate_remove()}
           </CommandItem>
         {/if}
       </CommandGroup>

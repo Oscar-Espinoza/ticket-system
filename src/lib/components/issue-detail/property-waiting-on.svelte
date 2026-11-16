@@ -3,6 +3,7 @@
   as the assignee (project members only).
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import HourglassIcon from '@lucide/svelte/icons/hourglass';
 
   import PropertyRow from '@/lib/components/issue-detail/property-row.svelte';
@@ -26,17 +27,17 @@
       <span class="truncate">{issue.waitingOn.name}</span>
     {:else}
       <HourglassIcon class="text-muted-foreground" />
-      <span class="text-muted-foreground">Not waiting</span>
+      <span class="text-muted-foreground">{m.issues_waiting_on_not()}</span>
     {/if}
   </Button>
 {/snippet}
 
-<PropertyRow label="Waiting on">
+<PropertyRow label={m.issues_waiting_on()}>
   {#if canWrite}
     <AssigneePicker
       value={issue.waitingOn?.id ?? null}
-      placeholder="Waiting on…"
-      noneLabel="Not waiting on anyone"
+      placeholder={m.issues_waiting_on_placeholder()}
+      noneLabel={m.issues_waiting_on_none()}
       onChange={(waitingOnId) => mutations.update(issue, { waitingOnId })}
     >
       {#snippet children({ props })}{@render trigger(props)}{/snippet}

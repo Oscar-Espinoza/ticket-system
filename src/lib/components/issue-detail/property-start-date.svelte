@@ -3,6 +3,7 @@
   StartDatePicker lives in ./start-date-picker.svelte.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import AlertTriangleIcon from '@lucide/svelte/icons/triangle-alert';
   import CalendarArrowUpIcon from '@lucide/svelte/icons/calendar-arrow-up';
 
@@ -27,16 +28,16 @@
       <CalendarArrowUpIcon class="text-muted-foreground" />
       <span>{formatDueDate(issue.startDate)}</span>
       {#if afterDue}
-        <AlertTriangleIcon class="text-amber-600 dark:text-amber-400" aria-label="Starts after the due date" />
+        <AlertTriangleIcon class="text-amber-600 dark:text-amber-400" aria-label={m.issues_startdate_after_due()} />
       {/if}
     {:else}
       <CalendarArrowUpIcon class="text-muted-foreground" />
-      <span class="text-muted-foreground">Set start date</span>
+      <span class="text-muted-foreground">{m.issues_startdate_set()}</span>
     {/if}
   </Button>
 {/snippet}
 
-<PropertyRow label="Start date">
+<PropertyRow label={m.issues_startdate()}>
   {#if canWrite}
     <StartDatePicker value={issue.startDate} onChange={(startDate) => mutations.update(issue, { startDate })}>
       {#snippet children({ props })}{@render trigger(props)}{/snippet}

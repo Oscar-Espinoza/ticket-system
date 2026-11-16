@@ -24,6 +24,8 @@ import { useOptionalProjectData } from '@/lib/components/project/project-data.sv
 import { isAppHydrated, markAppHydrated } from '@/lib/svelte/hydration';
 import { readStorage, writeStorage } from '@/lib/svelte/storage';
 import { isGroupBy, isOrderBy, type GroupBy, type OrderBy } from '@/lib/issue-grouping';
+import { lazyLabels } from '@/lib/lazy-labels';
+import { m } from '@/lib/i18n';
 
 export type { OrderBy };
 
@@ -55,26 +57,26 @@ export type DisplayProperty =
   | 'subIssues'
   | 'pullRequests';
 
-export const DISPLAY_PROPERTY_LABEL: Record<DisplayProperty, string> = {
-  id: 'ID',
-  status: 'Status',
-  priority: 'Priority',
-  assignee: 'Assignee',
-  waitingOn: 'Waiting on',
-  labels: 'Labels',
-  estimate: 'Estimate',
-  dueDate: 'Due date',
-  followUp: 'Follow-up',
-  startDate: 'Start date',
-  sla: 'SLA',
-  created: 'Created',
-  updated: 'Updated',
-  cycle: 'Cycle',
-  epic: 'Epic',
-  milestone: 'Milestone',
-  subIssues: 'Sub-issues',
-  pullRequests: 'Pull requests',
-};
+export const DISPLAY_PROPERTY_LABEL: Record<DisplayProperty, string> = lazyLabels({
+  id: m.issues_prop_id,
+  status: m.common_status,
+  priority: m.common_priority,
+  assignee: m.common_assignee,
+  waitingOn: m.issues_waiting_on,
+  labels: m.common_labels,
+  estimate: m.issues_estimate,
+  dueDate: m.common_due_date,
+  followUp: m.issues_followup,
+  startDate: m.issues_startdate,
+  sla: m.issues_sla,
+  created: m.issues_created,
+  updated: m.issues_updated,
+  cycle: m.common_cycle,
+  epic: m.issues_epic,
+  milestone: m.issues_prop_milestone,
+  subIssues: m.issues_subissues,
+  pullRequests: m.issues_prop_pull_requests,
+});
 
 export interface DisplayOptions {
   layout: ViewLayout;

@@ -25,6 +25,7 @@ import {
   suggestTriage,
   type TriageSuggestions,
 } from '@/lib/triage';
+import { m } from '@/lib/i18n';
 
 export type TriageActionResult = ActionResult<{ warning?: string }>;
 
@@ -33,10 +34,10 @@ async function triageIssue(
   projectId: string,
   id: unknown,
 ): Promise<{ issue: IssueRow } | { error: string }> {
-  if (typeof id !== 'string' || !id) return { error: 'Issue not found.' };
+  if (typeof id !== 'string' || !id) return { error: m.issues_err_issue_not_found() };
   const issue = await getTicketById(projectId, id);
-  if (!issue || issue.deletedAt) return { error: 'Issue not found.' };
-  if (issue.state.type !== 'triage') return { error: `${issue.key} is no longer in triage.` };
+  if (!issue || issue.deletedAt) return { error: m.issues_err_issue_not_found() };
+  if (issue.state.type !== 'triage') return { error: m.issues_err_not_in_triage({ key: issue.key }) };
   return { issue };
 }
 
@@ -54,11 +55,11 @@ export async function acceptTriageIssue(input: {
 
   const states = await projectStatesQuery(input.projectId);
   if (!acceptStates(states).some((s) => s.id === input.stateId)) {
-    return fail('Pick an open workflow state.');
+    return fail(m.issues_err_pick_state());
   }
   const patch: IssuePatch = { stateId: input.stateId };
   if (input.priority !== undefined) {
-    if (!isPriority(input.priority)) return fail('Invalid priority.');
+    if (!isPriority(input.priority)) return fail(m.issues_err_invalid_priority());
     patch.priority = input.priority;
   }
   // Membership of the assignee is validated by the issue service.
@@ -81,11 +82,11 @@ export async function declineTriageIssue(input: {
   if ('error' in found) return fail(found.error);
   const reason = typeof input.reason === 'string' ? input.reason.trim() : '';
   if (reason.length > TRIAGE_REASON_MAX) {
-    return fail(`Keep the reason under ${TRIAGE_REASON_MAX} characters.`);
+    return fail(m.issues_err_reason_length({ max: TRIAGE_REASON_MAX }));
   }
 
   const target = declineState(await projectStatesQuery(input.projectId));
-  if (!target) return fail('This project has no canceled state.');
+  if (!target) return fail(m.issues_err_no_canceled());
   const { issue } = found;
   // The decline line commits with the state change.
   const result = await updateIssueFields(
@@ -125,10 +126,10 @@ export async function markTriageDuplicate(input: {
   const found = await triageIssue(input.projectId, input.id);
   if ('error' in found) return fail(found.error);
   if (typeof input.originalId !== 'string' || !input.originalId) {
-    return fail('Pick the original issue.');
+    return fail(m.issues_err_pick_original());
   }
   if (input.originalId === found.issue.id) {
-    return fail("An issue can't duplicate itself.");
+    return fail(m.issues_err_self_duplicate());
   }
 
   // The relation service checks the original is in this project and not

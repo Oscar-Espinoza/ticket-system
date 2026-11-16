@@ -5,6 +5,7 @@
   IssuesView and the issue permalink page.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { untrack, type ComponentProps } from 'svelte';
   import { toast } from 'svelte-sonner';
 
@@ -115,7 +116,7 @@
       const has = (event: KeyboardEvent) => !event.shiftKey && hasTarget();
       const edit = (key: string, kind: IssueCommand, description: string): Hotkey => ({
         key,
-        scope: 'Issue',
+        scope: m.issues_scope_issue(),
         description,
         when: has,
         handler: () => {
@@ -128,8 +129,8 @@
         {
           mod: true,
           key: '.',
-          scope: 'Issue',
-          description: 'Copy issue ID',
+          scope: m.issues_scope_issue(),
+          description: m.issues_sc_copy_id(),
           when: has,
           handler: () => act('copyId'),
         },
@@ -137,8 +138,8 @@
           mod: true,
           shift: true,
           key: ',',
-          scope: 'Issue',
-          description: 'Copy issue link',
+          scope: m.issues_scope_issue(),
+          description: m.issues_sc_copy_link(),
           when: hasTarget,
           handler: () => act('copyLink'),
         },
@@ -148,7 +149,7 @@
           {
             // The list binds `s` for its focused / cursor row (inline menu); this
             // one covers board cards and the open issue.
-            ...edit('s', 'status', 'Change status'),
+            ...edit('s', 'status', m.issues_sc_change_status()),
             when: (event) => has(event) && !focusedIssueRowId(),
             handler: () => {
               const issue = target();
@@ -159,31 +160,31 @@
               });
             },
           },
-          edit('p', 'priority', 'Set priority'),
-          edit('a', 'assignee', 'Assign to…'),
+          edit('p', 'priority', m.issues_sc_set_priority()),
+          edit('a', 'assignee', m.issues_sc_assign_to()),
           {
             key: 'i',
-            scope: 'Issue',
-            description: 'Assign to me',
+            scope: m.issues_scope_issue(),
+            description: m.issues_sc_assign_me(),
             when: has,
             handler: () => act('assignMe'),
           },
-          edit('l', 'labels', 'Change labels'),
-          ...(estimates ? [edit('e', 'estimate', 'Set estimate')] : []),
-          { ...edit('d', 'dueDate', 'Set due date'), shift: true, when: hasTarget },
+          edit('l', 'labels', m.issues_sc_change_labels()),
+          ...(estimates ? [edit('e', 'estimate', m.issues_sc_set_estimate())] : []),
+          { ...edit('d', 'dueDate', m.issues_sc_set_due()), shift: true, when: hasTarget },
           {
             key: 'a',
             shift: true,
-            scope: 'Issue',
-            description: 'Archive issue',
+            scope: m.issues_scope_issue(),
+            description: m.issues_sc_archive(),
             when: hasTarget,
             handler: () => act('archive'),
           },
           {
             mod: true,
             key: 'Backspace',
-            scope: 'Issue',
-            description: 'Move issue to trash',
+            scope: m.issues_scope_issue(),
+            description: m.issues_sc_trash(),
             when: (event) => has(event) && !hasOpenLayer(),
             handler: () => act('trash'),
           },
@@ -244,7 +245,7 @@
     const mine = assignedToMe;
     if (!id || !key) return;
     return untrack(() => {
-      const section = `Issue ${key}`;
+      const section = m.issues_pal_section({ key });
       const cmd = (cmdId: string, label: string, kind: PaletteAction, keywords: string[] = []): PaletteCommand => ({
         id: `b10-issue-${cmdId}`,
         label,
@@ -257,25 +258,25 @@
       const commands: PaletteCommand[] = [];
       if (writer) {
         commands.push(
-          cmd('status', 'Change status…', 'status', ['state', 'workflow']),
-          cmd('priority', 'Set priority…', 'priority', ['urgent', 'high']),
-          cmd('assignee', 'Assign to…', 'assignee', ['assignee', 'owner']),
-          ...(mine ? [] : [cmd('assign-me', 'Assign to me', 'assignMe', ['self', 'mine'])]),
-          cmd('labels', 'Add labels…', 'labels', ['tag', 'label']),
-          ...(estimates ? [cmd('estimate', 'Set estimate…', 'estimate', ['points'])] : []),
-          cmd('due', 'Set due date…', 'dueDate', ['deadline', 'date']),
+          cmd('status', m.issues_pal_change_status(), 'status', ['state', 'workflow']),
+          cmd('priority', m.issues_pal_set_priority(), 'priority', ['urgent', 'high']),
+          cmd('assignee', m.issues_sc_assign_to(), 'assignee', ['assignee', 'owner']),
+          ...(mine ? [] : [cmd('assign-me', m.issues_sc_assign_me(), 'assignMe', ['self', 'mine'])]),
+          cmd('labels', m.issues_pal_add_labels(), 'labels', ['tag', 'label']),
+          ...(estimates ? [cmd('estimate', m.issues_pal_set_estimate(), 'estimate', ['points'])] : []),
+          cmd('due', m.issues_pal_set_due(), 'dueDate', ['deadline', 'date']),
         );
       }
       commands.push(
-        cmd('copy-id', 'Copy ID', 'copyId', ['clipboard', 'key']),
-        cmd('copy-link', 'Copy link', 'copyLink', ['clipboard', 'url', 'permalink']),
-        cmd('copy-markdown', 'Copy as markdown link', 'copyMarkdown', ['clipboard']),
+        cmd('copy-id', m.issues_copy_id(), 'copyId', ['clipboard', 'key']),
+        cmd('copy-link', m.issues_copy_link(), 'copyLink', ['clipboard', 'url', 'permalink']),
+        cmd('copy-markdown', m.issues_copy_markdown_link(), 'copyMarkdown', ['clipboard']),
       );
       if (writer) {
         commands.push(
-          cmd('duplicate', 'Duplicate issue', 'duplicate', ['copy', 'clone']),
-          cmd('archive', 'Archive', 'archive'),
-          cmd('trash', 'Move to trash…', 'trash', ['delete', 'remove']),
+          cmd('duplicate', m.issues_duplicate(), 'duplicate', ['copy', 'clone']),
+          cmd('archive', m.issues_archive(), 'archive'),
+          cmd('trash', m.issues_move_to_trash_ellipsis(), 'trash', ['delete', 'remove']),
         );
       }
       return registerPaletteCommands(commands);
@@ -290,8 +291,8 @@
       registerPaletteCommands(
         list.map((template) => ({
           id: `b10-template-${template.id}`,
-          label: `New issue from template: ${template.name}`,
-          section: 'Templates',
+          label: m.issues_new_from_template({ name: template.name }),
+          section: m.issues_templates(),
           keywords: ['create', 'template', template.name],
           run: () =>
             afterTask(() =>
@@ -342,7 +343,7 @@
               draftId: saved.id,
             });
           })
-          .catch(() => toast.error('Could not open the draft.'));
+          .catch(() => toast.error(m.issues_draft_open_failed()));
       } else if (templateId) {
         const template = list?.find((t) => t.id === templateId);
         afterTask(() =>
@@ -383,13 +384,13 @@
 >
   <AlertDialogContent size="sm">
     <AlertDialogHeader>
-      <AlertDialogTitle>Move {trashIssue?.key} to trash?</AlertDialogTitle>
+      <AlertDialogTitle>{m.issues_trash_confirm_one({ key: trashIssue?.key ?? '' })}</AlertDialogTitle>
       <AlertDialogDescription>
-        {trashIssue?.title} — you can restore it from the trash.
+        {m.issues_trash_restore_one({ title: trashIssue?.title ?? '' })}
       </AlertDialogDescription>
     </AlertDialogHeader>
     <AlertDialogFooter>
-      <AlertDialogCancel>Cancel</AlertDialogCancel>
+      <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
       <AlertDialogAction
         variant="destructive"
         onclick={() => {
@@ -397,7 +398,7 @@
           trashId = null;
         }}
       >
-        Move to trash
+        {m.issues_move_to_trash()}
       </AlertDialogAction>
     </AlertDialogFooter>
   </AlertDialogContent>

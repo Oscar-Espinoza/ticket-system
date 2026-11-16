@@ -1,3 +1,785 @@
 {
-  "$schema": "https://inlang.com/schema/inlang-message-format"
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "issues_customer_back": "Volver a clientes",
+  "issues_customer_new": "Nuevo",
+  "issues_customer_importance": "Importancia",
+  "issues_customer_request_placeholder": "¿Qué pidieron? (opcional)",
+  "issues_customer_request_note": "Nota de la solicitud",
+  "issues_customer_enter_to_add": "⌘Enter para añadir",
+  "issues_customer_add_request": "Añadir solicitud",
+  "issues_search_issues_placeholder": "Buscar tickets…",
+  "issues_attachment_link_url": "URL del enlace",
+  "issues_attachment_link_title": "Título del enlace",
+  "issues_attachment_title_optional": "Título (opcional)",
+  "issues_attachment_invalid_url": "Introduce una URL http(s).",
+  "issues_attachment_add_link": "Añadir enlace",
+  "issues_description_placeholder_commands": "Añade una descripción… (escribe / para ver comandos)",
+  "issues_description_placeholder": "Añade una descripción…",
+  "issues_description_none": "Sin descripción.",
+  "issues_description_edit": "Editar descripción",
+  "issues_customer_create_option": "Crear cliente «{name}»",
+  "issues_customer_importance_label": "Importancia: {value}",
+  "issues_customer_importance_none": "ninguna",
+  "issues_customer_no_importance": "Sin importancia",
+  "issues_customer_link": "Vincular cliente",
+  "issues_customer_remove_request": "Quitar solicitud",
+  "issues_customer_remove_request_from": "Quitar solicitud de {name}",
+  "issues_github_connect_repo": "Conecta un repositorio en Configuración → GitHub",
+  "issues_github_no_permission": "No tienes permiso para crear ramas",
+  "issues_github_connect_account": "Conecta tu cuenta de GitHub en Configuración → GitHub",
+  "issues_github_branch_copied": "Nombre de la rama copiado",
+  "issues_github_copy_failed": "No se pudo copiar al portapapeles",
+  "issues_github_branch_exists": "La rama ya existe en GitHub",
+  "issues_github_branch_created": "Rama creada",
+  "issues_github_copy_branch": "Copiar nombre de la rama",
+  "issues_github_create_branch": "Crear rama en GitHub",
+  "issues_github_git_branch": "Rama de git",
+  "issues_no_permission": "No tienes permiso para hacer eso.",
+  "issues_subscribe_failed": "No se pudo suscribir al ticket.",
+  "issues_unsubscribe_failed": "No se pudo cancelar la suscripción al ticket.",
+  "issues_subscribed_manage": "Suscrito: gestionar suscripción",
+  "issues_not_subscribed_manage": "Sin suscripción: gestionar suscripción",
+  "issues_unsubscribe": "Cancelar suscripción",
+  "issues_subscribe": "Suscribirse",
+  "issues_subscribers_loading": "Cargando suscriptores…",
+  "issues_subscribers_none": "Nadie está suscrito a este ticket.",
+  "issues_subscribers_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} suscriptor",
+        "countPlural=other": "{count} suscriptores"
+      }
+    }
+  ],
+  "issues_you": "Tú",
+  "issues_template_saved": "Plantilla «{name}» guardada",
+  "issues_copy_markdown_link": "Copiar como enlace markdown",
+  "issues_duplicate": "Duplicar ticket",
+  "issues_save_as_template": "Guardar como plantilla",
+  "issues_move_moving": "Moviendo {key} a {name}…",
+  "issues_move_with_sub_issues": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "con {count} subticket",
+        "countPlural=other": "con {count} subtickets"
+      }
+    }
+  ],
+  "issues_move_dropped_labels": "etiquetas descartadas: {labels}",
+  "issues_move_done": "Se movió {from} → {to}",
+  "issues_move_to_project": "Mover a otro proyecto",
+  "issues_move_loading": "Cargando proyectos…",
+  "issues_move_load_failed": "No se pudieron cargar los proyectos.",
+  "issues_move_no_targets": "No hay otros proyectos en los que puedas escribir.",
+  "issues_cycle_add": "Añadir a un ciclo",
+  "issues_cycle_open_named": "Abrir {name}",
+  "issues_followup": "Seguimiento",
+  "issues_followup_set": "Definir seguimiento",
+  "issues_followup_placeholder": "Hacer seguimiento el…",
+  "issues_followup_remove": "Quitar fecha de seguimiento",
+  "issues_parent_placeholder": "Definir ticket padre…",
+  "issues_parent_remove": "Quitar ticket padre",
+  "issues_parent_set": "Definir ticket padre",
+  "issues_parent_change": "Cambiar ticket padre",
+  "issues_parent": "Padre",
+  "issues_parent_open": "Abrir {key}",
+  "issues_parent_archived": "Ticket archivado",
+  "issues_sla": "SLA",
+  "issues_sla_due": "Vence el {date}",
+  "issues_in_status": "En el estado",
+  "issues_startdate_after_due": "Empieza después de la fecha de vencimiento",
+  "issues_startdate": "Fecha de inicio",
+  "issues_startdate_set": "Definir fecha de inicio",
+  "issues_waiting_on": "En espera de",
+  "issues_waiting_on_placeholder": "En espera de…",
+  "issues_waiting_on_none": "No espera a nadie",
+  "issues_waiting_on_not": "Sin espera",
+  "issues_remind_set_failed": "No se pudo crear el recordatorio",
+  "issues_remind_cancel_failed": "No se pudo cancelar el recordatorio",
+  "issues_remind_set_for": "Recordatorio creado para {when}",
+  "issues_remind_inbox": "Aparecerá en tu bandeja de entrada.",
+  "issues_remind_me": "Recordarme",
+  "issues_remind_about": "Recuérdame este ticket",
+  "issues_remind_submit": "Crear recordatorio",
+  "issues_attach_too_large": "{name} es demasiado grande (máx. {max}).",
+  "issues_attach_upload_failed": "No se pudo subir {name}.",
+  "issues_attach_empty": "{name} está vacío.",
+  "issues_attach_larger_than": "{name} supera {max}.",
+  "issues_attach_upload_error": "Error al subir el archivo.",
+  "issues_attach_delete_failed": "Algo salió mal: no se eliminó el adjunto.",
+  "issues_attach_link_failed": "Algo salió mal: no se añadió el enlace.",
+  "issues_attach_uploading": "Subiendo…",
+  "issues_attach_delete_named": "Eliminar {title}",
+  "issues_attachments": "Adjuntos",
+  "issues_attach_add_link": "Añadir enlace",
+  "issues_attach_upload_files": "Subir archivos",
+  "issues_attach_upload_files_max": "Subir archivos (máx. {max} cada uno)",
+  "issues_attach_drop_hint": "Suelta los archivos aquí o haz clic para subirlos",
+  "issues_attach_drop_to_attach": "Suelta para adjuntar (máx. {max} cada uno)",
+  "issues_customers_created": "Cliente «{name}» creado",
+  "issues_customers_save_failed": "Algo salió mal: no se guardó la solicitud.",
+  "issues_customers_change_failed": "Algo salió mal: no se guardó el cambio.",
+  "issues_customers_remove_failed": "Algo salió mal: no se quitó la solicitud.",
+  "issues_customer_requests": "Solicitudes de clientes",
+  "issues_customer_add_request_label": "Añadir solicitud de cliente",
+  "issues_customers_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} cliente",
+        "countPlural=other": "{count} clientes"
+      }
+    }
+  ],
+  "issues_customers_arr": "{revenue} ARR entre",
+  "issues_pull_requests": "Pull requests",
+  "issues_relations_marked_duplicate": "Se marcó {key} como duplicado de {other}",
+  "issues_relations_save_failed": "Algo salió mal: no se guardó la relación.",
+  "issues_relations_remove_failed": "Algo salió mal: no se quitó la relación.",
+  "issues_relations": "Relaciones",
+  "issues_relations_add": "Añadir relación",
+  "issues_relations_remove": "Quitar relación",
+  "issues_similar_failed": "Algo salió mal: no se cambió nada.",
+  "issues_similar": "Tickets similares",
+  "issues_similar_match": "{reason} · {percent}% de coincidencia",
+  "issues_similar_dismiss": "Descartar",
+  "issues_similar_mark_aria": "Marcar {key} como duplicado de {other}",
+  "issues_mark_duplicate": "Marcar como duplicado",
+  "issues_subissues": "Subtickets",
+  "issues_subissues_add_existing_placeholder": "Añadir un ticket existente como subticket…",
+  "issues_subissues_add_existing": "Añadir ticket existente",
+  "issues_subissues_add": "Añadir subticket",
+  "issues_subissues_remove": "Quitar del ticket padre",
+  "issues_subissues_title": "Título del subticket",
+  "issues_subissues_title_hint": "Título del subticket: Enter para crear, Esc para cerrar",
+  "issues_subissues_percent_done": "{percent}% completado",
+  "issues_startdate_placeholder": "Definir fecha de inicio…",
+  "issues_startdate_remove": "Quitar fecha de inicio",
+  "issues_actions": "Acciones del ticket",
+  "issues_copy_link": "Copiar enlace",
+  "issues_copy_id": "Copiar ID",
+  "issues_restore": "Restaurar",
+  "issues_archive": "Archivar",
+  "issues_move_to_trash": "Mover a la papelera",
+  "issues_close": "Cerrar ticket",
+  "issues_in_trash": "Este ticket está en la papelera.",
+  "issues_is_archived": "Este ticket está archivado.",
+  "issues_title": "Título",
+  "issues_set_priority": "Definir prioridad",
+  "issues_unassigned": "Sin asignar",
+  "issues_add_label": "Añadir etiqueta",
+  "issues_set_estimate": "Definir estimación",
+  "issues_set_due_date": "Definir fecha de vencimiento",
+  "issues_estimate": "Estimación",
+  "issues_branch": "Rama",
+  "issues_created_by": "Creado por",
+  "issues_created": "Creado",
+  "issues_updated": "Actualizado",
+  "issues_properties": "Propiedades",
+  "issues_github_open_branch": "Abrir rama en {provider}",
+  "issues_palette_title": "Paleta de comandos",
+  "issues_palette_description": "Busca proyectos y acciones.",
+  "issues_palette_placeholder": "Buscar o ir a…",
+  "issues_no_results_period": "Sin resultados.",
+  "issues_palette_general": "General",
+  "issues_search_none": "No se encontraron tickets.",
+  "issues_clear": "Borrar",
+  "issues_assign_to_placeholder": "Asignar a…",
+  "issues_no_assignee": "Sin responsable",
+  "issues_member_none_found": "No se encontró ningún miembro.",
+  "issues_unassigned_keyword": "Sin asignar",
+  "issues_you_paren": "(tú)",
+  "issues_estimate_set_placeholder": "Definir estimación…",
+  "issues_estimate_none_found": "No se encontró ninguna estimación.",
+  "issues_estimate_none": "Sin estimación",
+  "issues_estimate_points": "{label} puntos",
+  "issues_label_create_failed": "No se pudo crear la etiqueta.",
+  "issues_labels_add_placeholder": "Añadir etiquetas…",
+  "issues_labels_type_to_create": "Escribe un nombre para crear una etiqueta.",
+  "issues_labels_none_found": "No se encontraron etiquetas.",
+  "issues_label_create": "Crear etiqueta «{name}»",
+  "issues_priority_set_placeholder": "Definir prioridad…",
+  "issues_priority_none_found": "No se encontró ninguna prioridad.",
+  "issues_status_change_placeholder": "Cambiar estado…",
+  "issues_status_none_found": "No se encontró ningún estado.",
+  "issues_view": "Vista",
+  "issues_waiting_on_named": "En espera de {name}",
+  "issues_scope": "Tickets",
+  "issues_scope_issue": "Ticket",
+  "issues_bulk_trash_selected": "Mover los tickets seleccionados a la papelera",
+  "issues_bulk_aria": "Acciones en lote para {count} tickets seleccionados",
+  "issues_bulk_selected": "{count} seleccionados",
+  "issues_bulk_clear": "Borrar selección",
+  "issues_bulk_clear_esc": "Borrar selección (Esc)",
+  "issues_bulk_copy_ids": "Copiar IDs",
+  "issues_bulk_remove_due": "Quitar fechas de vencimiento",
+  "issues_epic": "Épica",
+  "issues_trash_confirm_one": "¿Mover {key} a la papelera?",
+  "issues_trash_confirm_many": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "¿Mover {count} ticket a la papelera?",
+        "countPlural=other": "¿Mover {count} tickets a la papelera?"
+      }
+    }
+  ],
+  "issues_trash_restore_one": "{title}: puedes restaurarlo desde la papelera.",
+  "issues_trash_restore_many": "Puedes restaurarlos desde la papelera.",
+  "issues_context_open_new_tab": "Abrir en una pestaña nueva",
+  "issues_remove_due_date": "Quitar fecha de vencimiento",
+  "issues_copy_ids": "Copiar IDs",
+  "issues_copy_links": "Copiar enlaces",
+  "issues_move_to_trash_ellipsis": "Mover a la papelera…",
+  "issues_filter_issues": "Filtrar tickets",
+  "issues_filter_placeholder": "Filtrar… (label:bug)",
+  "issues_filter_aria": "Filtrar tickets por título, ID o consulta (label:bug, assignee:me)",
+  "issues_filter_enter_hint": "Pulsa Enter para convertir los filtros en chips",
+  "issues_filter_free_text": "El texto libre busca en títulos e IDs.",
+  "issues_filter_clear": "Borrar",
+  "issues_sc_copy_id": "Copiar ID del ticket",
+  "issues_sc_copy_link": "Copiar enlace del ticket",
+  "issues_sc_change_status": "Cambiar estado",
+  "issues_sc_set_priority": "Definir prioridad",
+  "issues_sc_assign_to": "Asignar a…",
+  "issues_sc_assign_me": "Asignarme",
+  "issues_sc_change_labels": "Cambiar etiquetas",
+  "issues_sc_set_estimate": "Definir estimación",
+  "issues_sc_set_due": "Definir fecha de vencimiento",
+  "issues_sc_archive": "Archivar ticket",
+  "issues_sc_trash": "Mover ticket a la papelera",
+  "issues_pal_section": "Ticket {key}",
+  "issues_pal_change_status": "Cambiar estado…",
+  "issues_pal_set_priority": "Definir prioridad…",
+  "issues_pal_add_labels": "Añadir etiquetas…",
+  "issues_pal_set_estimate": "Definir estimación…",
+  "issues_pal_set_due": "Definir fecha de vencimiento…",
+  "issues_templates": "Plantillas",
+  "issues_new_from_template": "Nuevo ticket desde la plantilla: {name}",
+  "issues_draft_open_failed": "No se pudo abrir el borrador.",
+  "issues_new_issue": "Nuevo ticket",
+  "issues_empty_title": "Aún no hay tickets",
+  "issues_empty_description": "Crea el primer ticket de este proyecto.",
+  "issues_nomatch_title": "Ningún ticket coincide",
+  "issues_nomatch_description": "Ningún ticket coincide con los filtros actuales.",
+  "issues_clear_filters": "Borrar filtros",
+  "issues_unsaved_changes": "Cambios sin guardar",
+  "issues_view_unsaved_title": "{name} (cambios sin guardar)",
+  "issues_labels_toggle_placeholder": "Añadir o quitar etiquetas…",
+  "issues_error_title": "Algo salió mal",
+  "issues_error_load_description": "No se pudo cargar esta página. Inténtalo de nuevo o vuelve en un momento.",
+  "issues_draft_saved": "Borrador guardado",
+  "issues_draft_view_drafts": "Ver borradores",
+  "issues_draft_saving": "Guardando borrador…",
+  "issues_draft_not_saved": "Borrador sin guardar",
+  "issues_new_dialog_description": "Título, descripción y propiedades del nuevo ticket de {key}.",
+  "issues_new_title_placeholder": "Título del ticket",
+  "issues_discard": "Descartar",
+  "issues_create_more": "Crear más",
+  "issues_create_issue": "Crear ticket",
+  "issues_view_updated": "«{name}» actualizada",
+  "issues_view_update_title": "Guardar los filtros y la visualización actuales en esta vista",
+  "issues_view_no_changes": "No hay cambios sin guardar",
+  "issues_view_update": "Actualizar vista",
+  "issues_view_save_new": "Guardar como nueva",
+  "issues_view_save": "Guardar vista",
+  "issues_view_copy_name": "{name} (copia)",
+  "issues_view_default_name": "Vista",
+  "issues_drafts_delete_failed": "No se pudo eliminar el borrador.",
+  "issues_drafts_discard_failed": "No se pudieron descartar los borradores.",
+  "issues_drafts_discarded": "Se descartaron todos los borradores",
+  "issues_drafts": "Borradores",
+  "issues_drafts_discard_all": "Descartar todos",
+  "issues_drafts_discard_all_title": "¿Descartar todos los borradores?",
+  "issues_drafts_deleted_one": "Tu borrador se eliminará. Esta acción no se puede deshacer.",
+  "issues_drafts_deleted_many": "Los {count} borradores se eliminarán. Esta acción no se puede deshacer.",
+  "issues_drafts_empty": "Sin borradores",
+  "issues_drafts_empty_description": "Los tickets que empiezas a escribir pero no creas se guardan aquí automáticamente.",
+  "issues_drafts_untitled": "Borrador sin título",
+  "issues_drafts_delete_named": "Eliminar borrador {title}",
+  "issues_cmd_assign_to": "Asignar a",
+  "issues_cmd_hint": "Escribe para filtrar, Enter para aplicar, Esc para cerrar.",
+  "issues_chip_status_aria": "Estado: {value}",
+  "issues_chip_priority_aria": "Prioridad: {value}",
+  "issues_chip_assignee_aria": "Responsable: {value}",
+  "issues_chip_waiting_aria": "En espera de: {value}",
+  "issues_chip_labels_aria": "Etiquetas: {value}",
+  "issues_chip_none": "ninguno",
+  "issues_chip_no_one": "nadie",
+  "issues_chip_labels_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} etiqueta",
+        "countPlural=other": "{count} etiquetas"
+      }
+    }
+  ],
+  "issues_followup_date": "Fecha de seguimiento",
+  "issues_tpl_updated": "Plantilla actualizada",
+  "issues_tpl_created": "Plantilla «{name}» creada",
+  "issues_tpl_edit": "Editar plantilla",
+  "issues_tpl_new": "Nueva plantilla",
+  "issues_tpl_description": "Los tickets nuevos de esta plantilla empiezan con estos valores.",
+  "issues_tpl_name": "Nombre de la plantilla",
+  "issues_tpl_name_placeholder": "Informe de error",
+  "issues_tpl_title": "Título del ticket",
+  "issues_tpl_title_hint": "Opcional: se rellena cuando el título del ticket nuevo está vacío.",
+  "issues_tpl_title_placeholder": "Error: ",
+  "issues_tpl_description_placeholder": "## Pasos para reproducirlo\n\n## Resultado esperado\n\n## Resultado actual",
+  "issues_tpl_default_properties": "Propiedades predeterminadas",
+  "issues_tpl_create": "Crear plantilla",
+  "issues_tpl": "Plantilla",
+  "issues_tpl_apply": "Aplicar plantilla",
+  "issues_tpl_none": "Aún no hay plantillas",
+  "issues_tpl_manage": "Gestionar plantillas",
+  "issues_tpl_status_title": "Estado: {name}",
+  "issues_tpl_actions": "Acciones de {name}",
+  "issues_tpl_create_issue": "Crear ticket",
+  "issues_tpl_deleted": "Plantilla «{name}» eliminada",
+  "issues_tpl_new_button": "Nueva plantilla",
+  "issues_tpl_empty_description": "Guarda una plantilla para los tickets que creas a menudo: informes de errores, solicitudes de funciones, tareas.",
+  "issues_tpl_delete_title": "¿Eliminar «{name}»?",
+  "issues_tpl_delete_description": "Los tickets creados con ella conservan su contenido. Esta acción no se puede deshacer.",
+  "issues_possible_duplicates": "Posibles duplicados",
+  "issues_possible_duplicates_open": "{reason}: se abre en una pestaña nueva",
+  "issues_triage_accept_title": "Aceptar {key}",
+  "issues_triage_pick_status": "Elige un estado",
+  "issues_triage_no_states": "Este proyecto no tiene estados de pendientes, sin empezar o en curso donde aceptar.",
+  "issues_triage_accept": "Aceptar",
+  "issues_triage_decline_title": "Rechazar {key}",
+  "issues_triage_decline_description": "El ticket pasa a Cancelado. El motivo queda registrado en su actividad.",
+  "issues_triage_reason": "Motivo (opcional)",
+  "issues_triage_reason_placeholder": "p. ej. No se corregirá, fuera de alcance",
+  "issues_triage_decline": "Rechazar",
+  "issues_triage_dup_title": "Marcar {key} como duplicado",
+  "issues_triage_dup_description": "Busca el ticket original.",
+  "issues_triage_dup_placeholder": "{key} es un duplicado de…",
+  "issues_triage_dup_none": "No se encontró ningún ticket.",
+  "issues_triage_based_on": "Basado en {keys}",
+  "issues_triage_based_on_more": "Basado en {keys}…",
+  "issues_triage_scope": "Clasificación",
+  "issues_triage_apply_suggestions": "Aplicar sugerencias",
+  "issues_triage_hint_similar": "{basedOn} · {pct} de los tickets similares",
+  "issues_triage_add_label": "Añadir etiqueta {name}",
+  "issues_triage_assign_to": "Asignar a {name}",
+  "issues_triage_set_priority_to": "Definir prioridad en {priority}",
+  "issues_triage_dup_hint": "{title} · {pct} de coincidencia",
+  "issues_triage_mark_dup_of": "Marcar como duplicado de {key}",
+  "issues_triage_suggestions_for": "Sugerencias para {key}",
+  "issues_triage_suggested": "Sugerido",
+  "issues_triage_duplicate_of": "Duplicado de",
+  "issues_triage_apply_all": "Aplicar todo",
+  "issues_triage_failed": "Algo salió mal: no se cambió nada.",
+  "issues_triage_no_permission": "No tienes permiso para clasificar.",
+  "issues_triage_accepted": "{key} aceptado",
+  "issues_triage_declined": "{key} rechazado",
+  "issues_triage_next": "Ticket siguiente",
+  "issues_triage_previous": "Ticket anterior",
+  "issues_triage_empty": "La clasificación está al día",
+  "issues_triage_empty_description": "Los tickets nuevos del formulario de entrada, de la API y de personas ajenas al proyecto llegan aquí para su revisión.",
+  "issues_triage_to_triage": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} ticket por clasificar",
+        "countPlural=other": "{count} tickets por clasificar"
+      }
+    }
+  ],
+  "issues_triage_aria": "Clasificar {key}",
+  "issues_triage_duplicate": "Duplicado",
+  "issues_triage_list": "Tickets por clasificar",
+  "issues_triage_external": "Externo",
+  "issues_cal_day_aria": "{day}, {issues}",
+  "issues_cal_more": "+{count} más",
+  "issues_cal_no_due_date": "Sin fecha de vencimiento",
+  "issues_cal_all_dated": "Todos los tickets tienen fecha de vencimiento.",
+  "issues_cal_prev": "Mes anterior",
+  "issues_cal_next": "Mes siguiente",
+  "issues_display_no_subgrouping": "Sin subagrupación",
+  "issues_display_subgrouping": "Subagrupación",
+  "issues_display_swimlanes": "Carriles",
+  "issues_display_show_empty": "Mostrar grupos vacíos",
+  "issues_display_show_subissues": "Mostrar subtickets",
+  "issues_display_options_aria": "Opciones de visualización (Shift+V)",
+  "issues_display": "Visualización",
+  "issues_display_layout": "Diseño",
+  "issues_display_grouping": "Agrupación",
+  "issues_display_ordering": "Orden",
+  "issues_display_properties": "Propiedades visibles",
+  "issues_display_reset": "Restablecer valores predeterminados",
+  "issues_filter_f": "Filtrar (F)",
+  "issues_filter": "Filtrar",
+  "issues_filter_by": "Filtrar por…",
+  "issues_syntax": "Sintaxis de búsqueda",
+  "issues_syntax_default_note": "Combina filtros con texto libre.",
+  "issues_syntax_rules": "Pon entre comillas los valores con espacios, separa las alternativas con comas y antepón - para excluir.",
+  "issues_search_filters": "Filtros de búsqueda",
+  "issues_table_id": "ID",
+  "issues_table_milestone": "Hito",
+  "issues_table_change_labels": "Cambiar etiquetas",
+  "issues_table_change_estimate": "Cambiar estimación",
+  "issues_table_change_due": "Cambiar fecha de vencimiento",
+  "issues_table_change_start": "Cambiar fecha de inicio",
+  "issues_table_time_title": "{verb} {date}",
+  "issues_none_title": "Sin tickets",
+  "issues_none_description": "No hay nada que mostrar en esta vista.",
+  "issues_issues": "Tickets",
+  "issues_tl_week": "Semana",
+  "issues_tl_month": "Mes",
+  "issues_tl_no_due": "{range} · sin fecha de vencimiento",
+  "issues_tl_hint_write": "Arrastra las barras para reprogramar · línea discontinua = sin fecha de vencimiento",
+  "issues_tl_hint_read": "Línea discontinua = sin fecha de vencimiento",
+  "issues_tl_zoom": "Zoom",
+  "issues_tl_aria": "Cronología de tickets",
+  "issues_drafts_page_title": "Borradores · Ticket System",
+  "issues_mine_page_title": "Mis tickets · Ticket System",
+  "issues_mine": "Mis tickets",
+  "issues_mine_assigned_title": "Nada asignado a ti",
+  "issues_mine_assigned_description": "Los tickets que te asignen en cualquiera de tus proyectos aparecen aquí.",
+  "issues_mine_created_title": "Aún no has creado tickets",
+  "issues_mine_created_description": "Los tickets que crees en cualquier proyecto aparecen aquí.",
+  "issues_mine_subscribed_title": "Sin suscripciones",
+  "issues_mine_subscribed_description": "Suscríbete a un ticket para seguir sus novedades; aparecerá aquí.",
+  "issues_mine_activity_title": "Sin actividad reciente",
+  "issues_mine_activity_description": "Los tickets que cambies o comentes aparecen aquí, los más recientes primero.",
+  "issues_mine_you_acted": "Actuaste tú",
+  "issues_project_not_found": "Proyecto no encontrado",
+  "issues_project_not_found_description": "No existe o no eres miembro de él.",
+  "issues_back_to_projects": "Volver a los proyectos",
+  "issues_project_page_title": "{name} · Ticket System",
+  "issues_archive_title": "Archivo",
+  "issues_trash_title": "Papelera",
+  "issues_triage_off": "La clasificación está desactivada",
+  "issues_triage_off_description": "Envía los tickets nuevos del formulario de entrada, de la API y de personas ajenas al proyecto a una cola de revisión antes de que lleguen a pendientes.",
+  "issues_views": "Vistas",
+  "issues_views_project_empty": "No hay vistas en este proyecto",
+  "issues_views_project_empty_description": "Filtra y ordena la lista de tickets y elige «Guardar vista» en la barra de herramientas. Las vistas compartidas aparecen aquí para todos los miembros del proyecto.",
+  "issues_views_all": "Todas las vistas",
+  "issues_views_shared_title": "Compartida con los miembros del proyecto",
+  "issues_views_shared": "Compartida",
+  "issues_views_created_by": "Creada por {name}",
+  "issues_search_page_title_q": "Búsqueda: {q} · Ticket System",
+  "issues_search_page_title": "Búsqueda · Ticket System",
+  "issues_search": "Búsqueda",
+  "issues_search_empty_title": "Busca tus tickets",
+  "issues_search_empty_description": "Busca en títulos, descripciones y comentarios de todos los proyectos a los que perteneces. Prueba frases entre comillas, -palabra para excluir o filtros como label:bug assignee:me is:open.",
+  "issues_search_no_results": "Sin resultados",
+  "issues_search_nothing_matches": "Nada coincide con «{q}».",
+  "issues_search_nothing_matches_archived": "Nada coincide con «{q}». Los tickets archivados están excluidos: activa «Incluir archivados» para buscar también en ellos.",
+  "issues_search_documents": "Documentos",
+  "issues_search_documents_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} documento",
+        "countPlural=other": "{count} documentos"
+      }
+    }
+  ],
+  "issues_search_results": "Resultados",
+  "issues_search_results_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} resultado",
+        "countPlural=other": "{count} resultados"
+      }
+    }
+  ],
+  "issues_search_best_50": " (se muestran los 50 mejores)",
+  "issues_search_comment": "Comentario: ",
+  "issues_search_archived": "Archivado",
+  "issues_templates_page_title": "Plantillas de proyecto · Ticket System",
+  "issues_views_page_title": "Vistas · Ticket System",
+  "issues_views_empty": "Aún no hay vistas guardadas",
+  "issues_views_empty_description": "Filtra y ordena los tickets de un proyecto y elige «Guardar vista» en la barra de herramientas. Las vistas que comparta tu equipo también aparecen aquí.",
+  "issues_views_yours": "Tus vistas",
+  "issues_views_shared_with_you": "Compartidas contigo",
+  "issues_copied_what": "Copiado: {what}",
+  "issues_copy_failed": "No se pudo copiar al portapapeles.",
+  "issues_copy_what_link": "enlace",
+  "issues_due_end_of_week": "Final de esta semana",
+  "issues_due_in_week": "En una semana",
+  "issues_due_in_two_weeks": "En dos semanas",
+  "issues_prop_id": "ID",
+  "issues_prop_milestone": "Hito",
+  "issues_prop_pull_requests": "Pull requests",
+  "issues_sel_toggle": "Seleccionar o deseleccionar el ticket enfocado",
+  "issues_sel_all": "Seleccionar todos los tickets",
+  "issues_view_list": "Lista",
+  "issues_view_board": "Tablero",
+  "issues_view_table": "Tabla",
+  "issues_view_calendar": "Calendario",
+  "issues_view_timeline": "Cronología",
+  "issues_switch_to_manual": "Cambia el orden a Manual para reordenar los tickets.",
+  "issues_fp_me": "Yo",
+  "issues_fp_any_type": "Cualquier {type}",
+  "issues_fp_creator": "Creador",
+  "issues_fp_no_label": "Sin etiqueta",
+  "issues_fp_no_cycle": "Sin ciclo",
+  "issues_fp_cycle_number": "Ciclo {number}",
+  "issues_fp_no_epic": "Sin épica",
+  "issues_fp_unknown": "Desconocido",
+  "issues_group_label": "Etiqueta",
+  "issues_group_none": "Sin agrupación",
+  "issues_order_manual": "Manual",
+  "issues_group_no_label": "Sin etiqueta",
+  "issues_group_all": "Todos los tickets",
+  "issues_est_none": "Sin usar",
+  "issues_est_linear": "Lineal (1, 2, 3, 4, 5)",
+  "issues_est_fibonacci": "Fibonacci (0, 1, 2, 3, 5, 8)",
+  "issues_est_exponential": "Exponencial (1, 2, 4, 8, 16)",
+  "issues_est_tshirt": "Tallas (XS, S, M, L, XL)",
+  "issues_mine_tab_assigned": "Asignados",
+  "issues_mine_tab_created": "Creados",
+  "issues_mine_tab_subscribed": "Suscritos",
+  "issues_mine_tab_activity": "Actividad",
+  "issues_undo": "Deshacer",
+  "issues_undo_hotkey": "Deshacer el último cambio de ticket",
+  "issues_undid": "Se deshizo: {label}",
+  "issues_undo_nothing": "No hay nada que deshacer",
+  "issues_outbox_other_account": "Iniciaste sesión con otra cuenta en otra pestaña: recarga para continuar.",
+  "issues_outbox_discarded": "No se pudo sincronizar {label}: se descartó el cambio.",
+  "issues_outbox_waiting_account": "Hay cambios sin conexión esperando a su cuenta: inicia sesión con ese usuario para sincronizarlos.",
+  "issues_outbox_sync_failed": "No se pudo sincronizar {label}: {reason}",
+  "issues_outbox_no_permission": "no tienes permiso para hacerlo en este proyecto",
+  "issues_outbox_synced": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Se sincronizó {count} cambio sin conexión",
+        "countPlural=other": "Se sincronizaron {count} cambios sin conexión"
+      }
+    }
+  ],
+  "issues_fw_title": "título",
+  "issues_fw_description": "descripción",
+  "issues_fw_status": "estado",
+  "issues_fw_priority": "prioridad",
+  "issues_fw_estimate": "estimación",
+  "issues_fw_start_date": "fecha de inicio",
+  "issues_fw_due_date": "fecha de vencimiento",
+  "issues_fw_assignee": "responsable",
+  "issues_fw_waiting_on": "en espera de",
+  "issues_fw_follow_up": "seguimiento",
+  "issues_fw_parent": "ticket padre",
+  "issues_fw_cycle": "ciclo",
+  "issues_fw_epic": "épica",
+  "issues_fw_milestone": "hito",
+  "issues_fw_order": "orden",
+  "issues_fw_labels": "etiquetas",
+  "issues_mut_change_of": "cambio de {words}",
+  "issues_mut_change": "cambio",
+  "issues_mut_on_issue": "el {what} en {key}",
+  "issues_mut_on_issues": [
+    {
+      "declarations": [
+        "input count",
+        "input what",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "el {what} en {count} ticket",
+        "countPlural=other": "el {what} en {count} tickets"
+      }
+    }
+  ],
+  "issues_mut_save_failed": "Algo salió mal: no se guardó el cambio.",
+  "issues_mut_updated_many": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Se actualizó {count} ticket",
+        "countPlural=other": "Se actualizaron {count} tickets"
+      }
+    }
+  ],
+  "issues_mut_archiving": "el archivado de {key}",
+  "issues_mut_unarchiving": "el desarchivado de {key}",
+  "issues_mut_trashing": "el traslado de {key} a la papelera",
+  "issues_mut_restoring": "la restauración de {key}",
+  "issues_mut_archived": "{key} archivado",
+  "issues_mut_trashed": "{key} movido a la papelera",
+  "issues_mut_archiving_many": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "el archivado de {count} ticket",
+        "countPlural=other": "el archivado de {count} tickets"
+      }
+    }
+  ],
+  "issues_mut_unarchiving_many": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "el desarchivado de {count} ticket",
+        "countPlural=other": "el desarchivado de {count} tickets"
+      }
+    }
+  ],
+  "issues_mut_trashing_many": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "el traslado de {count} ticket a la papelera",
+        "countPlural=other": "el traslado de {count} tickets a la papelera"
+      }
+    }
+  ],
+  "issues_mut_restoring_many": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "la restauración de {count} ticket",
+        "countPlural=other": "la restauración de {count} tickets"
+      }
+    }
+  ],
+  "issues_mut_archived_many": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Se archivó {count} ticket",
+        "countPlural=other": "Se archivaron {count} tickets"
+      }
+    }
+  ],
+  "issues_mut_trashed_many": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Se movió {count} ticket a la papelera",
+        "countPlural=other": "Se movieron {count} tickets a la papelera"
+      }
+    }
+  ],
+  "issues_mut_creating_titled": "la creación de «{title}»",
+  "issues_mut_creating": "la creación de {key}",
+  "issues_mut_created": "{key} creado",
+  "issues_mut_queued": "Guardado sin conexión: el ticket se creará cuando vuelvas a conectarte.",
+  "issues_mut_issue_created": "Ticket creado",
+  "issues_mut_create_failed": "Algo salió mal: no se creó el ticket.",
+  "issues_err_issue_not_found": "Ticket no encontrado.",
+  "issues_err_invalid_draft": "Borrador no válido.",
+  "issues_err_draft_not_found": "Borrador no encontrado.",
+  "issues_err_template_not_found": "Plantilla no encontrada.",
+  "issues_err_invalid_title": "Título no válido.",
+  "issues_err_invalid_favorite": "Favorito no válido.",
+  "issues_err_view_share": "Solo los miembros que pueden editar tickets pueden compartir vistas.",
+  "issues_err_view_name": "Ponle un nombre a la vista.",
+  "issues_err_view_settings": "Configuración de vista no válida.",
+  "issues_err_view_not_found": "Vista no encontrada.",
+  "issues_err_view_owner": "Solo el propietario puede cambiar esta vista.",
+  "issues_err_not_in_triage": "{key} ya no está en clasificación.",
+  "issues_err_pick_state": "Elige un estado de flujo abierto.",
+  "issues_err_invalid_priority": "Prioridad no válida.",
+  "issues_err_reason_length": "Mantén el motivo en menos de {max} caracteres.",
+  "issues_err_no_canceled": "Este proyecto no tiene un estado cancelado.",
+  "issues_err_pick_original": "Elige el ticket original.",
+  "issues_err_self_duplicate": "Un ticket no puede ser duplicado de sí mismo.",
+  "issues_err_move_forbidden": "No puedes crear tickets en ese proyecto."
 }
