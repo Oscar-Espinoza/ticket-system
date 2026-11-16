@@ -4,6 +4,7 @@
 // Stored shape per widget: { id, type, title, x, y, w, h, config }. Order is
 // the array order (x mirrors the index); w/h are the size preset in grid cells.
 
+import { m } from '@/lib/i18n';
 import { normalizeIssueFilters, type IssueFilters } from '@/lib/issue-filtering';
 import type { IssueRow } from '@/lib/issue-model';
 import type { ProjectData } from '@/lib/project-data-types';
@@ -12,31 +13,31 @@ export const WIDGET_TYPES = ['number', 'bar', 'line', 'list', 'cycle', 'epic', '
 export type WidgetType = (typeof WIDGET_TYPES)[number];
 
 export const WIDGET_TYPE_LABEL: Record<WidgetType, string> = {
-  number: 'Number',
-  bar: 'Bar chart',
-  line: 'Created vs completed',
-  list: 'Issue list',
-  cycle: 'Cycle progress',
-  epic: 'Epic progress',
-  timeInStatus: 'Time in status',
+  get number() { return m.editor_widget_type_number(); },
+  get bar() { return m.editor_widget_type_bar(); },
+  get line() { return m.editor_widget_type_line(); },
+  get list() { return m.editor_widget_type_list(); },
+  get cycle() { return m.editor_widget_type_cycle(); },
+  get epic() { return m.editor_widget_type_epic(); },
+  get timeInStatus() { return m.editor_widget_type_status(); },
 };
 
 export const WIDGET_TYPE_DESCRIPTION: Record<WidgetType, string> = {
-  number: 'Count of issues matching filters',
-  bar: 'Issues grouped by a property',
-  line: 'Issues created and completed per week',
-  list: 'The top issues matching filters',
-  cycle: 'Progress of the current cycle',
-  epic: 'Done vs total per epic',
-  timeInStatus: 'How long open issues sit in each status',
+  get number() { return m.editor_widget_desc_number(); },
+  get bar() { return m.editor_widget_desc_bar(); },
+  get line() { return m.editor_widget_desc_line(); },
+  get list() { return m.editor_widget_desc_list(); },
+  get cycle() { return m.editor_widget_desc_cycle(); },
+  get epic() { return m.editor_widget_desc_epic(); },
+  get timeInStatus() { return m.editor_widget_desc_status(); },
 };
 
 export type WidgetSize = 's' | 'm' | 'l' | 'xl';
 export const WIDGET_SIZES: { id: WidgetSize; label: string; w: number; h: number }[] = [
-  { id: 's', label: 'Small', w: 1, h: 1 },
-  { id: 'm', label: 'Medium', w: 2, h: 1 },
-  { id: 'l', label: 'Large', w: 2, h: 2 },
-  { id: 'xl', label: 'Full width', w: 4, h: 2 },
+  { id: 's', get label() { return m.editor_widget_size_s(); }, w: 1, h: 1 },
+  { id: 'm', get label() { return m.editor_widget_size_m(); }, w: 2, h: 1 },
+  { id: 'l', get label() { return m.editor_widget_size_l(); }, w: 2, h: 2 },
+  { id: 'xl', get label() { return m.editor_widget_size_xl(); }, w: 4, h: 2 },
 ];
 
 export function sizeOf(widget: Pick<Widget, 'w' | 'h'>): WidgetSize {
@@ -46,12 +47,12 @@ export function sizeOf(widget: Pick<Widget, 'w' | 'h'>): WidgetSize {
 export const BAR_GROUPS = ['state', 'priority', 'assignee', 'label', 'customer', 'project'] as const;
 export type BarGroupBy = (typeof BAR_GROUPS)[number];
 export const BAR_GROUP_LABEL: Record<BarGroupBy, string> = {
-  state: 'Status',
-  priority: 'Priority',
-  assignee: 'Assignee',
-  label: 'Label',
-  customer: 'Customer',
-  project: 'Project',
+  get state() { return m.common_status(); },
+  get priority() { return m.common_priority(); },
+  get assignee() { return m.common_assignee(); },
+  get label() { return m.editor_field_label(); },
+  get customer() { return m.editor_noun_customer(); },
+  get project() { return m.common_project(); },
 };
 
 export const LINE_WEEKS = [4, 8, 12, 26, 52] as const;
@@ -59,10 +60,10 @@ export const LIST_LIMITS = [5, 10, 20, 50] as const;
 export const LIST_ORDERS = ['updated', 'created', 'priority', 'dueDate'] as const;
 export type ListOrder = (typeof LIST_ORDERS)[number];
 export const LIST_ORDER_LABEL: Record<ListOrder, string> = {
-  updated: 'Last updated',
-  created: 'Newest',
-  priority: 'Priority',
-  dueDate: 'Due date',
+  get updated() { return m.editor_widget_order_updated(); },
+  get created() { return m.editor_widget_order_created(); },
+  get priority() { return m.common_priority(); },
+  get dueDate() { return m.common_due_date(); },
 };
 
 export interface WidgetConfig {
@@ -93,13 +94,13 @@ export const MAX_WIDGETS = 24;
 const MAX_TITLE = 80;
 
 const DEFAULTS: Record<WidgetType, { title: string; size: WidgetSize; config?: Partial<WidgetConfig>; q?: string }> = {
-  number: { title: 'Open issues', size: 's', q: 'is:open' },
-  bar: { title: 'Open issues by status', size: 'm', q: 'is:open', config: { groupBy: 'state' } },
-  line: { title: 'Created vs completed', size: 'l', config: { weeks: 12 } },
-  list: { title: 'Recently updated', size: 'l', q: 'is:open', config: { orderBy: 'updated', limit: 10 } },
-  cycle: { title: 'Current cycle', size: 'm' },
-  epic: { title: 'Epic progress', size: 'm' },
-  timeInStatus: { title: 'Time in status', size: 'm', q: 'is:open' },
+  number: { get title() { return m.editor_widget_default_number(); }, size: 's', q: 'is:open' },
+  bar: { get title() { return m.editor_widget_default_bar(); }, size: 'm', q: 'is:open', config: { groupBy: 'state' } },
+  line: { get title() { return m.editor_widget_type_line(); }, size: 'l', config: { weeks: 12 } },
+  list: { get title() { return m.editor_widget_default_list(); }, size: 'l', q: 'is:open', config: { orderBy: 'updated', limit: 10 } },
+  cycle: { get title() { return m.editor_widget_default_cycle(); }, size: 'm' },
+  epic: { get title() { return m.editor_widget_type_epic(); }, size: 'm' },
+  timeInStatus: { get title() { return m.editor_widget_type_status(); }, size: 'm', q: 'is:open' },
 };
 
 const BASE_CONFIG: WidgetConfig = {

@@ -228,5 +228,198 @@
       }
     }
   ],
-  "editor_retry": "Reintentar"
+  "editor_retry": "Reintentar",
+  "editor_duplicate": "Duplicar",
+  "editor_delete_ellipsis": "Eliminar…",
+  "editor_edit_ellipsis": "Editar…",
+  "editor_rename_ellipsis": "Renombrar…",
+  "editor_unassigned": "Sin responsable",
+  "editor_field_title": "Título",
+  "editor_field_type": "Tipo",
+  "editor_field_size": "Tamaño",
+  "editor_field_filter": "Filtro",
+  "editor_field_label": "Etiqueta",
+  "editor_field_scope": "Ámbito",
+  "editor_dash_rename_title": "Renombrar el panel",
+  "editor_dash_new_title": "Nuevo panel",
+  "editor_dash_intro": "Empieza con algunos widgets que puedes editar. Los paneles de proyecto se pueden compartir con el proyecto.",
+  "editor_dash_name_placeholder": "Salud del equipo",
+  "editor_dash_scope_personal": "Todos mis proyectos (personal)",
+  "editor_dash_create": "Crear panel",
+  "editor_dash_deleted": "Panel eliminado",
+  "editor_dash_shared_tip": "Compartido con los miembros del proyecto",
+  "editor_dash_shared": "Compartido",
+  "editor_dash_all_projects": "Todos los proyectos",
+  "editor_dash_widgets": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} widget",
+        "countPlural=other": "{count} widgets"
+      }
+    }
+  ],
+  "editor_dash_you": "Tú",
+  "editor_dash_updated": "Actualizado {date}",
+  "editor_dash_actions_for": "Acciones de {name}",
+  "editor_dash_empty_title": "Aún no hay paneles",
+  "editor_dash_empty_body": "Crea números, gráficos y listas de tickets a partir de filtros, para un proyecto o para todos los tuyos.",
+  "editor_dash_yours": "Tus paneles",
+  "editor_dash_shared_with_you": "Compartidos contigo",
+  "editor_dash_delete_title": "¿Eliminar «{name}»?",
+  "editor_dash_delete_body": "Esta acción no se puede deshacer.",
+  "editor_dash_delete_body_shared": "Los miembros del proyecto también perderán el acceso. Esta acción no se puede deshacer.",
+  "editor_dash_max_widgets": "Un panel admite hasta {max} widgets.",
+  "editor_dash_private_toast": "El panel ahora es privado",
+  "editor_dash_duplicated": "Panel duplicado",
+  "editor_dash_add_widget_cmd": "Añadir un widget al panel",
+  "editor_dash_add_widget": "Añadir widget",
+  "editor_dash_all_your_projects": "Todos tus proyectos",
+  "editor_dash_shared_by": "compartido por {name}",
+  "editor_dash_former_member": "un antiguo miembro",
+  "editor_dash_needs_edit": "Requiere permiso de edición en el proyecto",
+  "editor_dash_actions": "Acciones del panel",
+  "editor_dash_truncated": "Se muestran los 5000 tickets más recientes; los más antiguos no se cuentan.",
+  "editor_dash_no_widgets": "Aún no hay widgets",
+  "editor_dash_no_widgets_owner": "Añade números, gráficos y listas de tickets creados con filtros.",
+  "editor_dash_no_widgets_viewer": "El propietario aún no ha añadido widgets.",
+  "editor_dash_copy_title": "{title} (copia)",
+  "editor_pulse_last_days": "Últimos 7 días",
+  "editor_pulse_empty": "No se crearon ni completaron tickets en tus proyectos esta semana.",
+  "editor_pulse_completed": "completados",
+  "editor_pulse_created": "creados",
+  "editor_pulse_updates": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "actualización",
+        "countPlural=other": "actualizaciones"
+      }
+    }
+  ],
+  "editor_pulse_epic_updates": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Actualizaciones de épicas · último día",
+        "countPlural=other": "Actualizaciones de épicas · últimos {count} días"
+      }
+    }
+  ],
+  "editor_pulse_no_updates": "Aún no hay actualizaciones de épicas",
+  "editor_pulse_no_updates_body": "Publica una actualización en una épica (estado de salud y una nota breve) y aparecerá aquí y en el resumen semanal de todos.",
+  "editor_pulse_changed_to": "cambió a",
+  "editor_widget_inaccessible": "Este widget usa un proyecto al que no tienes acceso.",
+  "editor_widget_issue_word": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "ticket",
+        "countPlural=other": "tickets"
+      }
+    }
+  ],
+  "editor_widget_no_customers": "Aún no hay tickets vinculados a clientes.",
+  "editor_widget_no_matching": "No hay tickets que coincidan.",
+  "editor_widget_no_cycle": "No hay un ciclo activo.",
+  "editor_widget_last_day": "Último día",
+  "editor_widget_days_left": "Quedan {days} d",
+  "editor_widget_cycle_stats": "{percent}% · {completed} hechos · {started} en curso · {rest} sin empezar",
+  "editor_widget_no_epics": "No hay épicas en este ámbito.",
+  "editor_widget_no_open": "No hay tickets abiertos.",
+  "editor_widget_issue_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} ticket",
+        "countPlural=other": "{count} tickets"
+      }
+    }
+  ],
+  "editor_widget_status_tip": "{issues} · mediana {median} · máximo {longest}",
+  "editor_days_hours": "{n} h",
+  "editor_days_days": "{n} d",
+  "editor_days_weeks": "{n} sem",
+  "editor_widget_edit_title": "Editar widget",
+  "editor_widget_matches": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} ticket coincide con los filtros actuales.",
+        "countPlural=other": "{count} tickets coinciden con los filtros actuales."
+      }
+    }
+  ],
+  "editor_widget_filter_help": "El texto libre coincide con títulos e identificadores.",
+  "editor_widget_group_by": "Agrupar por",
+  "editor_widget_range": "Rango",
+  "editor_widget_last_weeks": "Últimas {weeks} semanas",
+  "editor_widget_order": "Orden",
+  "editor_widget_show": "Mostrar",
+  "editor_widget_n_issues": "{count} tickets",
+  "editor_widget_all_epics": "Todas las épicas",
+  "editor_widget_unknown_epic": "Épica desconocida",
+  "editor_widget_save": "Guardar widget",
+  "editor_widget_move_earlier": "Mover antes",
+  "editor_widget_move_later": "Mover después",
+  "editor_widget_type_number": "Número",
+  "editor_widget_type_bar": "Gráfico de barras",
+  "editor_widget_type_line": "Creados frente a completados",
+  "editor_widget_type_list": "Lista de tickets",
+  "editor_widget_type_cycle": "Progreso del ciclo",
+  "editor_widget_type_epic": "Progreso de épicas",
+  "editor_widget_type_status": "Tiempo en cada estado",
+  "editor_widget_desc_number": "Cantidad de tickets que coinciden con los filtros",
+  "editor_widget_desc_bar": "Tickets agrupados por una propiedad",
+  "editor_widget_desc_line": "Tickets creados y completados por semana",
+  "editor_widget_desc_list": "Los primeros tickets que coinciden con los filtros",
+  "editor_widget_desc_cycle": "Progreso del ciclo actual",
+  "editor_widget_desc_epic": "Hechos frente al total por épica",
+  "editor_widget_desc_status": "Cuánto tiempo pasan los tickets abiertos en cada estado",
+  "editor_widget_size_s": "Pequeño",
+  "editor_widget_size_m": "Mediano",
+  "editor_widget_size_l": "Grande",
+  "editor_widget_size_xl": "Ancho completo",
+  "editor_widget_order_updated": "Última actualización",
+  "editor_widget_order_created": "Más recientes",
+  "editor_widget_default_number": "Tickets abiertos",
+  "editor_widget_default_bar": "Tickets abiertos por estado",
+  "editor_widget_default_list": "Actualizados recientemente",
+  "editor_widget_default_cycle": "Ciclo actual"
 }

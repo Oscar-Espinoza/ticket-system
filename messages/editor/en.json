@@ -228,5 +228,198 @@
       }
     }
   ],
-  "editor_retry": "Retry"
+  "editor_retry": "Retry",
+  "editor_duplicate": "Duplicate",
+  "editor_delete_ellipsis": "Delete…",
+  "editor_edit_ellipsis": "Edit…",
+  "editor_rename_ellipsis": "Rename…",
+  "editor_unassigned": "Unassigned",
+  "editor_field_title": "Title",
+  "editor_field_type": "Type",
+  "editor_field_size": "Size",
+  "editor_field_filter": "Filter",
+  "editor_field_label": "Label",
+  "editor_field_scope": "Scope",
+  "editor_dash_rename_title": "Rename dashboard",
+  "editor_dash_new_title": "New dashboard",
+  "editor_dash_intro": "Starts with a few widgets you can edit. Project dashboards can be shared with the project.",
+  "editor_dash_name_placeholder": "Team health",
+  "editor_dash_scope_personal": "All my projects (personal)",
+  "editor_dash_create": "Create dashboard",
+  "editor_dash_deleted": "Dashboard deleted",
+  "editor_dash_shared_tip": "Shared with project members",
+  "editor_dash_shared": "Shared",
+  "editor_dash_all_projects": "All projects",
+  "editor_dash_widgets": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} widget",
+        "countPlural=other": "{count} widgets"
+      }
+    }
+  ],
+  "editor_dash_you": "You",
+  "editor_dash_updated": "Updated {date}",
+  "editor_dash_actions_for": "Actions for {name}",
+  "editor_dash_empty_title": "No dashboards yet",
+  "editor_dash_empty_body": "Build numbers, charts and issue lists from filters — for one project or across all of yours.",
+  "editor_dash_yours": "Your dashboards",
+  "editor_dash_shared_with_you": "Shared with you",
+  "editor_dash_delete_title": "Delete “{name}”?",
+  "editor_dash_delete_body": "This can’t be undone.",
+  "editor_dash_delete_body_shared": "Project members will lose access too. This can’t be undone.",
+  "editor_dash_max_widgets": "A dashboard holds up to {max} widgets.",
+  "editor_dash_private_toast": "Dashboard is now private",
+  "editor_dash_duplicated": "Dashboard duplicated",
+  "editor_dash_add_widget_cmd": "Add widget to dashboard",
+  "editor_dash_add_widget": "Add widget",
+  "editor_dash_all_your_projects": "All your projects",
+  "editor_dash_shared_by": "shared by {name}",
+  "editor_dash_former_member": "a former member",
+  "editor_dash_needs_edit": "Needs edit access to the project",
+  "editor_dash_actions": "Dashboard actions",
+  "editor_dash_truncated": "Showing the most recent 5,000 issues — older issues aren’t counted.",
+  "editor_dash_no_widgets": "No widgets yet",
+  "editor_dash_no_widgets_owner": "Add numbers, charts and issue lists built from filters.",
+  "editor_dash_no_widgets_viewer": "The owner hasn’t added any widgets yet.",
+  "editor_dash_copy_title": "{title} (copy)",
+  "editor_pulse_last_days": "Last 7 days",
+  "editor_pulse_empty": "No issues created or completed in your projects this week.",
+  "editor_pulse_completed": "completed",
+  "editor_pulse_created": "created",
+  "editor_pulse_updates": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "update",
+        "countPlural=other": "updates"
+      }
+    }
+  ],
+  "editor_pulse_epic_updates": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Epic updates · last {count} day",
+        "countPlural=other": "Epic updates · last {count} days"
+      }
+    }
+  ],
+  "editor_pulse_no_updates": "No epic updates yet",
+  "editor_pulse_no_updates_body": "Post an update on an epic (health + a short note) and it shows up here and in everyone's weekly pulse.",
+  "editor_pulse_changed_to": "changed to",
+  "editor_widget_inaccessible": "This widget uses a project you can’t access.",
+  "editor_widget_issue_word": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "issue",
+        "countPlural=other": "issues"
+      }
+    }
+  ],
+  "editor_widget_no_customers": "No issues are linked to customers yet.",
+  "editor_widget_no_matching": "No matching issues.",
+  "editor_widget_no_cycle": "No active cycle.",
+  "editor_widget_last_day": "Last day",
+  "editor_widget_days_left": "{days}d left",
+  "editor_widget_cycle_stats": "{percent}% · {completed} done · {started} in progress · {rest} not started",
+  "editor_widget_no_epics": "No epics in scope.",
+  "editor_widget_no_open": "No open issues.",
+  "editor_widget_issue_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} issue",
+        "countPlural=other": "{count} issues"
+      }
+    }
+  ],
+  "editor_widget_status_tip": "{issues} · median {median} · longest {longest}",
+  "editor_days_hours": "{n}h",
+  "editor_days_days": "{n}d",
+  "editor_days_weeks": "{n}w",
+  "editor_widget_edit_title": "Edit widget",
+  "editor_widget_matches": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} issue matches the current filters.",
+        "countPlural=other": "{count} issues match the current filters."
+      }
+    }
+  ],
+  "editor_widget_filter_help": "Free text matches titles and IDs.",
+  "editor_widget_group_by": "Group by",
+  "editor_widget_range": "Range",
+  "editor_widget_last_weeks": "Last {weeks} weeks",
+  "editor_widget_order": "Order",
+  "editor_widget_show": "Show",
+  "editor_widget_n_issues": "{count} issues",
+  "editor_widget_all_epics": "All epics",
+  "editor_widget_unknown_epic": "Unknown epic",
+  "editor_widget_save": "Save widget",
+  "editor_widget_move_earlier": "Move earlier",
+  "editor_widget_move_later": "Move later",
+  "editor_widget_type_number": "Number",
+  "editor_widget_type_bar": "Bar chart",
+  "editor_widget_type_line": "Created vs completed",
+  "editor_widget_type_list": "Issue list",
+  "editor_widget_type_cycle": "Cycle progress",
+  "editor_widget_type_epic": "Epic progress",
+  "editor_widget_type_status": "Time in status",
+  "editor_widget_desc_number": "Count of issues matching filters",
+  "editor_widget_desc_bar": "Issues grouped by a property",
+  "editor_widget_desc_line": "Issues created and completed per week",
+  "editor_widget_desc_list": "The top issues matching filters",
+  "editor_widget_desc_cycle": "Progress of the current cycle",
+  "editor_widget_desc_epic": "Done vs total per epic",
+  "editor_widget_desc_status": "How long open issues sit in each status",
+  "editor_widget_size_s": "Small",
+  "editor_widget_size_m": "Medium",
+  "editor_widget_size_l": "Large",
+  "editor_widget_size_xl": "Full width",
+  "editor_widget_order_updated": "Last updated",
+  "editor_widget_order_created": "Newest",
+  "editor_widget_default_number": "Open issues",
+  "editor_widget_default_bar": "Open issues by status",
+  "editor_widget_default_list": "Recently updated",
+  "editor_widget_default_cycle": "Current cycle"
 }

@@ -2,6 +2,7 @@
 // same filter matcher the issue views use — so a widget's filters mean exactly
 // what they mean on a list, and edits re-render without a server round trip.
 
+import { m } from '@/lib/i18n';
 import { filterIssues, parseSearchQuery, wantsArchived, type FilterContext } from '@/lib/issue-filtering';
 import { sortIssues } from '@/lib/issue-grouping';
 import { PRIORITY_ORDER, type IssueRow, type StateType } from '@/lib/issue-model';
@@ -79,7 +80,7 @@ export function barRows(widget: Widget, issues: IssueRow[], dataset: DashboardDa
         break;
       case 'assignee':
         bump(issue.assignee?.id ?? 'unassigned', () => ({
-          label: issue.assignee?.name ?? 'Unassigned',
+          label: issue.assignee?.name ?? m.editor_unassigned(),
           image: issue.assignee?.image ?? null,
         }));
         break;
@@ -90,7 +91,7 @@ export function barRows(widget: Widget, issues: IssueRow[], dataset: DashboardDa
         break;
       case 'project': {
         const project = dataset.projects.find((p) => p.project.id === issue.projectId)?.project;
-        bump(issue.projectId, () => ({ label: project?.name ?? 'Unknown project' }));
+        bump(issue.projectId, () => ({ label: project?.name ?? m.editor_nav_unknown_project() }));
         break;
       }
       case 'customer':
@@ -267,7 +268,7 @@ export function timeInStatus(issues: IssueRow[], now: number): StatusTime[] {
 
 /** "4h" · "2.5d" · "3w" */
 export function formatDays(days: number): string {
-  if (days < 1) return `${Math.max(1, Math.round(days * 24))}h`;
-  if (days < 14) return `${days < 10 ? days.toFixed(1) : Math.round(days)}d`;
-  return `${Math.round(days / 7)}w`;
+  if (days < 1) return m.editor_days_hours({ n: Math.max(1, Math.round(days * 24)) });
+  if (days < 14) return m.editor_days_days({ n: days < 10 ? days.toFixed(1) : Math.round(days) });
+  return m.editor_days_weeks({ n: Math.round(days / 7) });
 }
