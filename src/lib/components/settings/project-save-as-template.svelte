@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import LayoutTemplateIcon from '@lucide/svelte/icons/layout-template';
 
   import TemplateDialog from '@/lib/components/project-templates/template-dialog.svelte';
@@ -13,15 +14,14 @@
 
 <section class="flex flex-col gap-3">
   <div>
-    <h2 class="text-base font-medium">Project template</h2>
+    <h2 class="text-base font-medium">{m.settings_project_template_title()}</h2>
     <p class="mt-1 text-sm text-muted-foreground">
-      Reuse this project&rsquo;s workflow, labels, estimates, cycle and triage settings, SLAs and
-      issue templates when creating new projects.
+      {m.settings_project_template_desc()}
     </p>
   </div>
   <Button variant="outline" class="w-fit" onclick={() => (open = true)}>
     <LayoutTemplateIcon />
-    Save as template…
+    {m.settings_project_save_template()}
   </Button>
   <TemplateDialog
     bind:open

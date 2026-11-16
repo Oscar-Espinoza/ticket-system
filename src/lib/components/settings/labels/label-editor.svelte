@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { untrack } from 'svelte';
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
   import { toast } from 'svelte-sonner';
@@ -44,7 +45,9 @@
         if (!result.field) toast.error(result.error);
         return;
       }
-      toast.success(label ? 'Label updated' : `Created “${name.trim()}”`);
+      toast.success(
+        label ? m.settings_labels_updated_toast() : m.settings_labels_created_toast({ name: name.trim() }),
+      );
       onDone();
     } finally {
       isPending = false;
@@ -65,7 +68,7 @@
     class="flex flex-col gap-2 sm:flex-row sm:items-center"
   >
     <div class="flex flex-1 items-center gap-2">
-      <ColorPicker value={color} onChange={(next) => (color = next)} label="Label color" />
+      <ColorPicker value={color} onChange={(next) => (color = next)} label={m.settings_labels_color()} />
       <!-- Svelte's autofocus only works when nothing has focus; focus on mount instead. -->
       <Input
         {@attach focusOnMount}
@@ -73,25 +76,25 @@
         oninput={() => {
           if (error) error = null;
         }}
-        placeholder="Label name"
+        placeholder={m.settings_labels_name()}
         maxlength={LABEL_NAME_MAX}
-        aria-label="Label name"
+        aria-label={m.settings_labels_name()}
         aria-invalid={error?.field === 'name' ? true : undefined}
         class="h-7 w-40"
       />
       <Input
         bind:value={description}
-        placeholder="Description (optional)"
+        placeholder={m.settings_labels_description_optional()}
         maxlength={LABEL_DESCRIPTION_MAX}
-        aria-label="Description"
+        aria-label={m.common_description()}
         class="h-7 min-w-0 flex-1"
       />
     </div>
     <div class="flex justify-end gap-1.5">
-      <Button type="button" variant="ghost" size="sm" onclick={onDone}>Cancel</Button>
+      <Button type="button" variant="ghost" size="sm" onclick={onDone}>{m.common_cancel()}</Button>
       <Button type="submit" size="sm" disabled={isPending || !name.trim()}>
         {#if isPending}<Loader2Icon class="animate-spin" />{/if}
-        {label ? 'Save' : 'Create label'}
+        {label ? m.common_save() : m.settings_labels_create()}
       </Button>
     </div>
   </form>

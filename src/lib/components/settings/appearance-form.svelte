@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import type { Component } from 'svelte';
   import MonitorIcon from '@lucide/svelte/icons/monitor';
   import MoonIcon from '@lucide/svelte/icons/moon';
@@ -15,14 +16,14 @@
   type Option = { value: string; label: string; icon: Component; hint?: string };
 
   const THEMES: Option[] = [
-    { value: 'light', label: 'Light', icon: SunIcon },
-    { value: 'dark', label: 'Dark', icon: MoonIcon },
-    { value: 'system', label: 'System', icon: MonitorIcon, hint: 'Follows your OS' },
+    { value: 'light', label: m.settings_appearance_light(), icon: SunIcon },
+    { value: 'dark', label: m.settings_appearance_dark(), icon: MoonIcon },
+    { value: 'system', label: m.settings_appearance_system(), icon: MonitorIcon, hint: m.settings_appearance_system_hint() },
   ];
 
   const DENSITIES: Option[] = [
-    { value: 'comfortable', label: 'Comfortable', icon: Rows2Icon },
-    { value: 'compact', label: 'Compact', icon: Rows4Icon, hint: 'Smaller text and spacing' },
+    { value: 'comfortable', label: m.settings_appearance_comfortable(), icon: Rows2Icon },
+    { value: 'compact', label: m.settings_appearance_compact(), icon: Rows4Icon, hint: m.settings_appearance_compact_hint() },
   ];
 
   const theme = useTheme();
@@ -40,9 +41,9 @@
   });
 </script>
 
-{#snippet optionCards(name: string, value: string, onChange: (value: string) => void, options: Option[])}
+{#snippet optionCards(name: string, label: string, value: string, onChange: (value: string) => void, options: Option[])}
   <RadioGroup
-    aria-label={name}
+    aria-label={label}
     {value}
     onValueChange={onChange}
     class="grid-cols-1 sm:grid-cols-3"
@@ -79,18 +80,19 @@
 {:else}
   <div class="flex flex-col gap-8">
     <section>
-      <h2 class="mb-1 text-base font-medium">Theme</h2>
-      <p class="mb-3 text-sm text-muted-foreground">Choose a theme, or follow your system setting.</p>
-      {@render optionCards('Theme', theme.theme ?? 'system', theme.setTheme, THEMES)}
+      <h2 class="mb-1 text-base font-medium">{m.settings_appearance_theme()}</h2>
+      <p class="mb-3 text-sm text-muted-foreground">{m.settings_appearance_theme_desc()}</p>
+      {@render optionCards('Theme', m.settings_appearance_theme(), theme.theme ?? 'system', theme.setTheme, THEMES)}
     </section>
 
     <section>
-      <h2 class="mb-1 text-base font-medium">Interface density</h2>
+      <h2 class="mb-1 text-base font-medium">{m.settings_appearance_density()}</h2>
       <p class="mb-3 text-sm text-muted-foreground">
-        Compact fits more issues on screen. Saved on this device.
+        {m.settings_appearance_density_desc()}
       </p>
       {@render optionCards(
         'Density',
+        m.settings_appearance_density_label(),
         density,
         (next) => {
           const value = next === 'compact' ? 'compact' : 'comfortable';

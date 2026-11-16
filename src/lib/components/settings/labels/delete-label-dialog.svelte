@@ -13,7 +13,7 @@
     AlertDialogTitle,
   } from '@/lib/components/ui/alert-dialog';
   import type { ProjectLabel } from '@/lib/project-data-types';
-  import { pluralize } from '@/lib/format';
+  import { m } from '@/lib/i18n';
 
   let {
     projectId,
@@ -38,7 +38,7 @@
     try {
       const result = await deleteLabel({ projectId, id: target.id });
       if (!result.ok) toast.error(result.error);
-      else toast.success(`Deleted “${target.name}”`);
+      else toast.success(m.settings_labels_deleted_toast({ name: target.name }));
       onClose();
     } finally {
       isPending = false;
@@ -54,17 +54,17 @@
 >
   <AlertDialogContent>
     <AlertDialogHeader>
-      <AlertDialogTitle>Delete “{label?.name}”?</AlertDialogTitle>
+      <AlertDialogTitle>{m.settings_labels_delete_title({ name: label?.name ?? '' })}</AlertDialogTitle>
       <AlertDialogDescription>
         {count > 0
-          ? `It will be removed from ${pluralize(count, 'issue')}. This can’t be undone.`
-          : 'No issues use this label. This can’t be undone.'}
+          ? m.settings_labels_delete_in_use({ issues: m.common_issue_count({ count }) })
+          : m.settings_labels_delete_unused()}
       </AlertDialogDescription>
     </AlertDialogHeader>
     <AlertDialogFooter>
-      <AlertDialogCancel>Cancel</AlertDialogCancel>
+      <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
       <AlertDialogAction variant="destructive" onclick={confirm} disabled={isPending}>
-        Delete label
+        {m.settings_labels_delete_label()}
       </AlertDialogAction>
     </AlertDialogFooter>
   </AlertDialogContent>

@@ -24,6 +24,7 @@
 </script>
 
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { untrack } from 'svelte';
   import CheckIcon from '@lucide/svelte/icons/check';
 
@@ -34,7 +35,7 @@
   let {
     value,
     onChange,
-    label = 'Color',
+    label = m.settings_color_default_label(),
     disabled,
   }: {
     value: string;
@@ -69,7 +70,7 @@
     {/snippet}
   </PopoverTrigger>
   <PopoverContent align="start" class="w-56 p-2">
-    <div class="grid grid-cols-7 gap-1" role="listbox" aria-label="Preset colors">
+    <div class="grid grid-cols-7 gap-1" role="listbox" aria-label={m.settings_color_preset()}>
       {#each PRESET_COLORS as color (color)}
         {@const selected = color === value.toLowerCase()}
         <button
@@ -122,7 +123,7 @@
           }
         }}
         maxlength={7}
-        aria-label="Hex color"
+        aria-label={m.settings_color_hex()}
         aria-invalid={!HEX_RE.test(draft) ? true : undefined}
         class={cn('h-7 font-mono text-xs')}
       />

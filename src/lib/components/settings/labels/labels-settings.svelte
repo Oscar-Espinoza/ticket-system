@@ -4,7 +4,7 @@
   so the list refreshes itself after every change.
 -->
 <script lang="ts">
-  import { pluralize } from '@/lib/format';
+  import { m } from '@/lib/i18n';
   import PlusIcon from '@lucide/svelte/icons/plus';
   import SearchIcon from '@lucide/svelte/icons/search';
   import TagIcon from '@lucide/svelte/icons/tag';
@@ -56,8 +56,8 @@
       <Input
         type="search"
         bind:value={query}
-        placeholder="Filter labels…"
-        aria-label="Filter labels"
+        placeholder={m.settings_labels_filter_placeholder()}
+        aria-label={m.settings_labels_filter()}
         class="pl-8"
       />
     </div>
@@ -69,7 +69,7 @@
         }}
       >
         <PlusIcon />
-        New label
+        {m.settings_labels_new()}
       </Button>
     {/if}
   </div>
@@ -77,14 +77,14 @@
   {#snippet newLabelAction()}
     <Button variant="outline" onclick={() => (adding = true)}>
       <PlusIcon />
-      New label
+      {m.settings_labels_new()}
     </Button>
   {/snippet}
 
   {#if labels.length === 0 && !adding}
     <EmptyState
-      title="No labels yet"
-      description="Labels categorize issues across states — Bug, Feature, Design. Create one here or from any issue’s label picker."
+      title={m.settings_labels_none()}
+      description={m.settings_labels_none_hint()}
       action={canEdit ? newLabelAction : undefined}
     >
       {#snippet icon()}<TagIcon />{/snippet}
@@ -112,7 +112,7 @@
       {/each}
       {#if visible.length === 0 && labels.length > 0}
         <li class="px-3 py-6 text-center text-sm text-muted-foreground">
-          No labels match “{query.trim()}”.
+          {m.settings_labels_no_match({ query: query.trim() })}
         </li>
       {/if}
     </ul>
@@ -120,7 +120,7 @@
 
   {#if labels.length > 0}
     <p class="px-1 text-xs text-muted-foreground">
-      {pluralize(labels.length, 'label')}
+      {m.settings_labels_count({ count: labels.length })}
     </p>
   {/if}
 

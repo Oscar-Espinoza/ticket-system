@@ -5,6 +5,7 @@
   action wrappers refresh (refreshesData).
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import PlusIcon from '@lucide/svelte/icons/plus';
 
   import { useProjectData } from '@/lib/components/project/project-data.svelte';
@@ -21,12 +22,12 @@
   import StateRow from './state-row.svelte';
 
   const TYPE_HINT: Record<StateType, string> = {
-    triage: 'New issues from intake and integrations wait here for review.',
-    backlog: 'Ideas and work not yet planned.',
-    unstarted: 'Planned work nobody has started.',
-    started: 'Work in progress.',
-    completed: 'Done. Counts toward progress.',
-    canceled: 'Won’t do, duplicates and other closed-without-doing states.',
+    triage: m.settings_workflow_hint_triage(),
+    backlog: m.settings_workflow_hint_backlog(),
+    unstarted: m.settings_workflow_hint_unstarted(),
+    started: m.settings_workflow_hint_started(),
+    completed: m.settings_workflow_hint_completed(),
+    canceled: m.settings_workflow_hint_canceled(),
   };
 
   let {
@@ -66,7 +67,7 @@
               variant="ghost"
               size="icon-xs"
               class="ml-auto"
-              aria-label="Add {STATE_TYPE_LABEL[type].toLowerCase()} state"
+              aria-label={m.settings_workflow_add_type({ type: STATE_TYPE_LABEL[type].toLowerCase() })}
               onclick={() => {
                 editing = null;
                 adding = type;
@@ -101,7 +102,7 @@
           {/if}
           {#if ofType.length === 0 && adding !== type}
             <li class="px-3 py-2.5 text-sm text-muted-foreground">
-              No triage state. Add one to review incoming issues before they reach the backlog.
+              {m.settings_workflow_no_triage()}
             </li>
           {/if}
         </ul>
