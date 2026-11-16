@@ -20,6 +20,7 @@
     type CustomerListRow,
     type CustomerStatus,
   } from '@/lib/customer-model';
+  import { m } from '@/lib/i18n';
   import { useProjectData, useProjectPermission } from '@/lib/components/project/project-data.svelte';
   import { Button } from '@/lib/components/ui/button';
   import {
@@ -111,8 +112,8 @@
     return registerPaletteCommands([
       {
         id: 'new-customer',
-        label: 'New customer',
-        section: 'Customers',
+        label: m.auth_customers_palette_new(),
+        section: m.auth_customers_palette_section(),
         keywords: ['create', 'company', 'account'],
         run: () => (creating = true),
       },
@@ -129,8 +130,8 @@
       rows[Math.max(0, Math.min(rows.length - 1, next))]?.focus();
     };
     return registerHotkeys([
-      { key: 'j', description: 'Next customer', scope: 'Customers', handler: () => move(1) },
-      { key: 'k', description: 'Previous customer', scope: 'Customers', handler: () => move(-1) },
+      { key: 'j', description: m.auth_customers_hotkey_next(), scope: m.auth_customers_palette_section(), handler: () => move(1) },
+      { key: 'k', description: m.auth_customers_hotkey_prev(), scope: m.auth_customers_palette_section(), handler: () => move(-1) },
     ]);
   });
 
@@ -181,7 +182,7 @@
   <button
     type="button"
     onclick={() => toggleSort(key)}
-    aria-label="Sort by {label}"
+    aria-label={m.auth_customers_sort_by({ label })}
     class={cn(
       'flex items-center gap-1 rounded-sm outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50',
       alignEnd && 'justify-end',
@@ -212,8 +213,8 @@
             e.currentTarget.blur();
           }
         }}
-        placeholder="Search customers…"
-        aria-label="Search customers"
+        placeholder={m.auth_customers_search_placeholder()}
+        aria-label={m.auth_customers_search()}
         class="h-7 pl-7 text-sm"
       />
     </div>
@@ -225,11 +226,11 @@
       bind:value={() => status, (value) => {
         if (value) setSearchParams({ status: value === 'all' ? null : value });
       }}
-      aria-label="Filter customers by status"
+      aria-label={m.auth_customers_filter_status()}
     >
       {#each STATUS_OPTIONS as s (s)}
         <ToggleGroupItem value={s} class="gap-1.5 px-2.5 text-xs">
-          {s === 'all' ? 'All' : CUSTOMER_STATUS_LABEL[s]}
+          {s === 'all' ? m.auth_customers_all() : CUSTOMER_STATUS_LABEL[s]}
           <span class="text-muted-foreground tabular-nums">{counts[s]}</span>
         </ToggleGroupItem>
       {/each}
@@ -239,7 +240,7 @@
         <DropdownMenuTrigger>
           {#snippet child({ props })}
             <Button {...props} variant="outline" size="sm" class="font-normal">
-              {#if tier}<span>Tier: {tier}</span>{:else}<span class="text-muted-foreground">Tier</span>{/if}
+              {#if tier}<span>{m.auth_customers_tier_filter({ tier })}</span>{:else}<span class="text-muted-foreground">{m.auth_customers_tier()}</span>{/if}
               <ChevronDownIcon class="text-muted-foreground" />
             </Button>
           {/snippet}
@@ -247,7 +248,7 @@
         <DropdownMenuContent align="start" class="w-44">
           <DropdownMenuItem onSelect={() => setSearchParams({ tier: null })}>
             <CheckIcon class={cn(tier && 'invisible')} />
-            All tiers
+            {m.auth_customers_all_tiers()}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           {#each tiers as t (t)}
@@ -262,55 +263,55 @@
     {#if canWrite.current}
       <Button size="sm" class="ml-auto" onclick={() => (creating = true)}>
         <PlusIcon />
-        New customer
+        {m.auth_customers_new()}
       </Button>
     {/if}
   </div>
 
   {#if customers.length === 0}
     <EmptyState
-      title="No customers yet"
-      description="Track the companies you build for — revenue, owner, and which issues they asked for. Intake requests from their email domains link up automatically."
+      title={m.auth_customers_empty_title()}
+      description={m.auth_customers_empty_description()}
       action={canWrite.current ? newCustomerAction : undefined}
     >
       {#snippet icon()}<Building2Icon />{/snippet}
     </EmptyState>
   {:else if shown.length === 0}
-    <EmptyState title="No matching customers" description="Try a different search or clear the filters.">
+    <EmptyState title={m.auth_customers_no_match_title()} description={m.auth_customers_no_match_description()}>
       {#snippet icon()}<SearchXIcon />{/snippet}
       {#snippet action()}
-        <Button size="sm" variant="outline" onclick={clearFilters}>Clear filters</Button>
+        <Button size="sm" variant="outline" onclick={clearFilters}>{m.auth_customers_clear_filters()}</Button>
       {/snippet}
     </EmptyState>
   {:else}
-    <div role="table" aria-label="Customers" class="flex flex-col border-t border-border">
+    <div role="table" aria-label={m.auth_customers_title()} class="flex flex-col border-t border-border">
       <div
         role="row"
         class="flex items-center gap-3 border-b border-border px-3 py-1.5 text-xs text-muted-foreground"
       >
         <span role="columnheader" class="flex-1">
-          {@render header('name', 'Name')}
+          {@render header('name', m.auth_customers_col_name())}
         </span>
         <span role="columnheader" class="hidden w-20 md:block">
-          {@render header('status', 'Status')}
+          {@render header('status', m.auth_customers_col_status())}
         </span>
         <span role="columnheader" class="hidden w-24 lg:block">
-          {@render header('tier', 'Tier')}
+          {@render header('tier', m.auth_customers_tier())}
         </span>
         <span role="columnheader" class="w-20">
-          {@render header('revenue', 'Revenue', 'ml-auto', true)}
+          {@render header('revenue', m.auth_customers_revenue(), 'ml-auto', true)}
         </span>
         <span role="columnheader" class="hidden w-16 lg:block">
-          {@render header('size', 'Size', 'ml-auto', true)}
+          {@render header('size', m.auth_customers_size(), 'ml-auto', true)}
         </span>
         <span role="columnheader" class="hidden w-6 md:block">
-          <span class="sr-only">Owner</span>
+          <span class="sr-only">{m.auth_customers_owner()}</span>
         </span>
         <span role="columnheader" class="hidden w-18 sm:block">
-          {@render header('requests', 'Requests', 'ml-auto', true)}
+          {@render header('requests', m.auth_customers_col_requests(), 'ml-auto', true)}
         </span>
         <span role="columnheader" class="w-12">
-          {@render header('open', 'Open', 'ml-auto', true)}
+          {@render header('open', m.auth_customers_col_open(), 'ml-auto', true)}
         </span>
       </div>
       {#each shown as customer (customer.id)}
@@ -350,6 +351,6 @@
 {#snippet newCustomerAction()}
   <Button size="sm" onclick={() => (creating = true)}>
     <PlusIcon />
-    New customer
+    {m.auth_customers_new()}
   </Button>
 {/snippet}

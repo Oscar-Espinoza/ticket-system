@@ -1,4 +1,3 @@
-import { pluralize } from '@/lib/format';
 // Shared tail of every importer: chunked import with progress → result summary.
 // Chunks run sequentially so issue numbers follow file order.
 //

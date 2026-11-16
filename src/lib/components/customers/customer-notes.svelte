@@ -2,6 +2,7 @@
 <script lang="ts">
   import PencilIcon from '@lucide/svelte/icons/pencil';
 
+  import { m } from '@/lib/i18n';
   import { CUSTOMER_NOTES_MAX } from '@/lib/customer-model';
   import Markdown from '@/lib/components/editor/markdown.svelte';
   import MarkdownEditor from '@/lib/components/editor/markdown-editor.svelte';
@@ -37,26 +38,26 @@
   <div class="flex flex-col gap-2">
     <MarkdownEditor
       autoFocus
-      aria-label="Notes"
+      aria-label={m.auth_customers_notes()}
       value={draft}
       onChange={(value) => (draft = value)}
       onSubmit={commit}
       onCancel={() => (editing = false)}
-      placeholder="Context, contacts, contract details… Markdown supported."
+      placeholder={m.auth_customers_notes_placeholder()}
       maxLength={CUSTOMER_NOTES_MAX}
     />
     <div class="flex items-center justify-end gap-2">
-      <span class="mr-auto text-xs text-muted-foreground">⌘Enter to save · Esc to cancel</span>
-      <Button size="sm" variant="outline" onclick={() => (editing = false)}>Cancel</Button>
-      <Button size="sm" onclick={commit}>Save</Button>
+      <span class="mr-auto text-xs text-muted-foreground">{m.auth_customers_notes_shortcuts()}</span>
+      <Button size="sm" variant="outline" onclick={() => (editing = false)}>{m.common_cancel()}</Button>
+      <Button size="sm" onclick={commit}>{m.common_save()}</Button>
     </div>
   </div>
 {:else}
-  <section aria-label="Notes" class="group relative">
+  <section aria-label={m.auth_customers_notes()} class="group relative">
     {#if notes}
       <Markdown source={notes} />
     {:else}
-      <p class="text-sm text-muted-foreground">{canWrite ? 'Add notes…' : 'No notes.'}</p>
+      <p class="text-sm text-muted-foreground">{canWrite ? m.auth_customers_add_notes() : m.auth_customers_no_notes()}</p>
     {/if}
     {#if canWrite}
       <Button

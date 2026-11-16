@@ -5,6 +5,7 @@
   before anyone with write access opened it.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import type { Editor } from '@tiptap/core';
   import { toast } from 'svelte-sonner';
 
@@ -76,13 +77,13 @@
   <div class="flex flex-col gap-3">
     {#if unavailable}
       <p role="status" class="rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
-        Live editing is unavailable right now — showing the last saved version. Reload to try again.
+        {m.auth_docs_unavailable()}
       </p>
     {/if}
     {#if doc.content}
       <Markdown source={doc.content} />
     {:else}
-      <p class="text-sm text-muted-foreground">This document is empty.</p>
+      <p class="text-sm text-muted-foreground">{m.auth_docs_empty()}</p>
     {/if}
   </div>
 {:else}
@@ -102,7 +103,7 @@
     <div hidden={!ready}>
       <!-- A footer toolbar at the end of a long page helps no one: shortcuts, `/` and paste do the work. -->
       <MarkdownEditor
-        aria-label="Document"
+        aria-label={m.auth_docs_editor_label()}
         value={doc.content}
         onChange={collabEditor.onChange}
         controlled={false}
@@ -110,7 +111,7 @@
         extensions={collab.extensions}
         onEditor={handleEditor}
         disabled={!canWrite || !snapshot.canWrite}
-        placeholder="Write something, or type / for commands…"
+        placeholder={m.auth_docs_editor_placeholder()}
         projectId={doc.projectId}
         toolbar={false}
         class="rounded-none border-0 bg-transparent opacity-100 focus-within:border-0 focus-within:ring-0 dark:bg-transparent"

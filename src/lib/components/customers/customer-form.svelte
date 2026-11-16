@@ -4,6 +4,7 @@
   import UserRoundIcon from '@lucide/svelte/icons/user-round';
   import { toast } from 'svelte-sonner';
 
+  import { m } from '@/lib/i18n';
   import { createCustomer, updateCustomer } from '@/lib/actions/customers';
   import MemberPicker from '@/lib/components/epics/member-picker.svelte';
   import { useProjectData } from '@/lib/components/project/project-data.svelte';
@@ -105,7 +106,7 @@
           error = { message: result.error, field: result.field as Field | undefined };
           return;
         }
-        toast.success('Customer updated');
+        toast.success(m.auth_customers_updated());
         onDone();
         return;
       }
@@ -115,7 +116,7 @@
         error = { message: result.error, field: result.field as Field | undefined };
         return;
       }
-      toast.success(`Created customer “${name.trim()}”`);
+      toast.success(m.auth_customers_created({ name: name.trim() }));
       onDone();
       if (openAfterCreate) void goto(customerPath(projectId, result.id));
     } finally {
@@ -128,10 +129,8 @@
 </script>
 
 <DialogHeader>
-  <DialogTitle>{customer ? 'Edit customer' : 'New customer'}</DialogTitle>
-  <DialogDescription>
-    Requests from these email domains are linked to the customer automatically.
-  </DialogDescription>
+  <DialogTitle>{customer ? m.auth_customers_edit_title() : m.auth_customers_new()}</DialogTitle>
+  <DialogDescription>{m.auth_customers_form_description()}</DialogDescription>
 </DialogHeader>
 <!-- ⌘Enter submits from any field (the keydown bubbles up from the inputs). -->
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
@@ -143,32 +142,32 @@
   class="flex flex-col gap-4"
 >
   <div class="flex flex-col gap-1.5">
-    <Label for="{uid}-name">Name</Label>
+    <Label for="{uid}-name">{m.common_name()}</Label>
     <Input
       id="{uid}-name"
       bind:value={name}
-      placeholder="Acme Inc."
+      placeholder={m.auth_customers_name_placeholder()}
       maxlength={CUSTOMER_NAME_MAX}
       autofocus
       aria-invalid={invalid('name')}
     />
   </div>
   <div class="flex flex-col gap-1.5">
-    <Label for="{uid}-domains">Domains</Label>
+    <Label for="{uid}-domains">{m.auth_customers_domains()}</Label>
     <Input
       id="{uid}-domains"
       bind:value={domains}
-      placeholder="acme.com, acme.io"
+      placeholder={m.auth_customers_domains_placeholder()}
       aria-invalid={invalid('domains')}
       aria-describedby="{uid}-domains-hint"
     />
     <p id="{uid}-domains-hint" class="text-xs text-muted-foreground">
-      Separate with commas. Subdomains match too.
+      {m.auth_customers_domains_hint()}
     </p>
   </div>
   <div class="grid grid-cols-2 gap-3">
     <div class="flex flex-col gap-1.5">
-      <Label for="{uid}-status">Status</Label>
+      <Label for="{uid}-status">{m.common_status()}</Label>
       <Select
         items={statusItems}
         bind:value={() => status, (v) => {
@@ -194,11 +193,11 @@
       </Select>
     </div>
     <div class="flex flex-col gap-1.5">
-      <Label for="{uid}-tier">Tier</Label>
+      <Label for="{uid}-tier">{m.auth_customers_tier()}</Label>
       <Input
         id="{uid}-tier"
         bind:value={tier}
-        placeholder="Enterprise"
+        placeholder={m.auth_customers_tier_placeholder()}
         maxlength={CUSTOMER_TIER_MAX}
         list="{uid}-tiers"
         aria-invalid={invalid('tier')}
@@ -210,7 +209,7 @@
       </datalist>
     </div>
     <div class="flex flex-col gap-1.5">
-      <Label for="{uid}-revenue">Annual revenue (USD)</Label>
+      <Label for="{uid}-revenue">{m.auth_customers_annual_revenue()}</Label>
       <Input
         id="{uid}-revenue"
         bind:value={revenue}
@@ -220,7 +219,7 @@
       />
     </div>
     <div class="flex flex-col gap-1.5">
-      <Label for="{uid}-size">Size (employees)</Label>
+      <Label for="{uid}-size">{m.auth_customers_size_employees()}</Label>
       <Input
         id="{uid}-size"
         bind:value={size}
@@ -231,14 +230,14 @@
     </div>
   </div>
   <div class="flex flex-col gap-1.5">
-    <span class="text-sm font-medium">Owner</span>
+    <span class="text-sm font-medium">{m.auth_customers_owner()}</span>
     <MemberPicker
       value={ownerId}
       members={data.members}
       viewerId={data.viewer.id}
       onChange={(id) => (ownerId = id)}
-      placeholder="Set owner…"
-      noneLabel="No owner"
+      placeholder={m.auth_customers_set_owner()}
+      noneLabel={m.auth_customers_no_owner()}
     >
       {#snippet children({ props })}
         <Button
@@ -247,14 +246,14 @@
           variant="outline"
           size="sm"
           class="w-fit font-normal"
-          aria-label="Owner: {owner?.name ?? 'none'}"
+          aria-label={owner ? m.auth_customers_owner_aria({ name: owner.name }) : m.auth_customers_owner_aria_none()}
         >
           {#if owner}
             <Avatar name={owner.name} src={owner.image} size={20} class="-my-1 size-4" />
             {owner.name}
           {:else}
             <UserRoundIcon />
-            <span class="text-muted-foreground">No owner</span>
+            <span class="text-muted-foreground">{m.auth_customers_no_owner()}</span>
           {/if}
         </Button>
       {/snippet}
@@ -267,9 +266,9 @@
     </p>
   {/if}
   <DialogFooter>
-    <Button type="button" variant="outline" onclick={onDone}>Cancel</Button>
+    <Button type="button" variant="outline" onclick={onDone}>{m.common_cancel()}</Button>
     <Button type="submit" disabled={!name.trim() || pending}>
-      {customer ? 'Save' : 'Create customer'}
+      {customer ? m.common_save() : m.auth_customers_create()}
     </Button>
   </DialogFooter>
 </form>

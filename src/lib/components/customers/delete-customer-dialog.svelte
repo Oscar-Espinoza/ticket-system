@@ -2,6 +2,8 @@
 <script lang="ts">
   import { toast } from 'svelte-sonner';
 
+  import { m } from '@/lib/i18n';
+
   import type { CustomerRow } from '@/lib/customer-model';
   import { deleteCustomer } from '@/lib/actions/customers';
   import { useProjectData } from '@/lib/components/project/project-data.svelte';
@@ -41,7 +43,7 @@
         toast.error(result.error);
         return;
       }
-      toast.success(`Deleted ${target.name}`);
+      toast.success(m.auth_customers_deleted({ name: target.name }));
       onOpenChange(false);
       onDeleted?.();
     } finally {
@@ -54,13 +56,11 @@
 <AlertDialog bind:open={() => customer !== null, (next) => onOpenChange(next)}>
   <AlertDialogContent size="sm">
     <AlertDialogHeader>
-      <AlertDialogTitle>Delete {customer?.name}?</AlertDialogTitle>
-      <AlertDialogDescription>
-        The customer is removed permanently. Their requests stay on the issues, without a customer.
-      </AlertDialogDescription>
+      <AlertDialogTitle>{m.auth_customers_delete_title({ name: customer?.name ?? '' })}</AlertDialogTitle>
+      <AlertDialogDescription>{m.auth_customers_delete_description()}</AlertDialogDescription>
     </AlertDialogHeader>
     <AlertDialogFooter>
-      <AlertDialogCancel>Cancel</AlertDialogCancel>
+      <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
       <AlertDialogAction
         variant="destructive"
         disabled={pending}
@@ -69,7 +69,7 @@
           void remove();
         }}
       >
-        Delete customer
+        {m.auth_customers_delete_confirm()}
       </AlertDialogAction>
     </AlertDialogFooter>
   </AlertDialogContent>

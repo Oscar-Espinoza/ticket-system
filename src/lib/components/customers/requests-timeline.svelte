@@ -4,6 +4,8 @@
   import UnlinkIcon from '@lucide/svelte/icons/unlink';
   import { toast } from 'svelte-sonner';
 
+  import { dateFormat as intlDate, m } from '@/lib/i18n';
+
   import {
     IMPORTANCE_LABEL,
     REQUEST_SOURCE_LABEL,
@@ -27,7 +29,7 @@
     canWrite: boolean;
   } = $props();
 
-  const dateFormat = new Intl.DateTimeFormat('en', { dateStyle: 'medium' });
+  const dateFormat = $derived(intlDate({ dateStyle: 'medium' }));
 
   let hidden = $state<ReadonlySet<string>>(new Set());
   const shown = $derived(requests.filter((r) => !hidden.has(r.id)));
@@ -46,14 +48,14 @@
 
 <section aria-labelledby="customer-requests" class="flex flex-col gap-2">
   <h3 id="customer-requests" class="flex items-center gap-2 text-sm font-medium">
-    Requests
+    {m.auth_customers_requests()}
     <span class="text-xs font-normal text-muted-foreground tabular-nums">{shown.length}</span>
   </h3>
   {#if shown.length === 0}
     <EmptyState
       class="rounded-lg border border-dashed border-border py-8"
-      title="No requests yet"
-      description="Requests arrive from the intake form (matched by email domain), Slack, or when someone adds this customer to an issue."
+      title={m.auth_customers_no_requests_title()}
+      description={m.auth_customers_no_requests_description()}
     >
       {#snippet icon()}<MessageSquareTextIcon />{/snippet}
     </EmptyState>
@@ -89,8 +91,8 @@
                 <Button
                   variant="ghost"
                   size="icon-xs"
-                  aria-label="Unlink request from this customer"
-                  title="Unlink from customer"
+                  aria-label={m.auth_customers_unlink_aria()}
+                  title={m.auth_customers_unlink_title()}
                   onclick={() => unlink(request)}
                   class="opacity-0 group-hover/request:opacity-100 focus-visible:opacity-100"
                 >
@@ -118,7 +120,7 @@
                 </span>
               </a>
             {:else}
-              <span class="text-xs text-muted-foreground">Not linked to an issue</span>
+              <span class="text-xs text-muted-foreground">{m.auth_customers_not_linked()}</span>
             {/if}
           </div>
         </li>

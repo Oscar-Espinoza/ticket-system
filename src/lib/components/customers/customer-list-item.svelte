@@ -4,7 +4,8 @@
   import PencilIcon from '@lucide/svelte/icons/pencil';
   import Trash2Icon from '@lucide/svelte/icons/trash-2';
 
-  import { copyToClipboard } from '@/lib/components/clipboard';
+  import { m } from '@/lib/i18n';
+  import { copyCustomerLink } from './copy-customer-link';
   import {
     customerPath,
     formatRevenue,
@@ -41,7 +42,7 @@
 
   const href = $derived(customerPath(projectId, customer.id));
 
-  const copyLink = () => copyToClipboard(new URL(href, window.location.origin).toString(), 'customer link');
+  const copyLink = () => copyCustomerLink(new URL(href, window.location.origin).toString());
 </script>
 
 <ContextMenu>
@@ -100,24 +101,24 @@
   <ContextMenuContent class="w-48">
     <ContextMenuItem>
       {#snippet child({ props })}
-        <a {...props} {href}>Open</a>
+        <a {...props} {href}>{m.common_open()}</a>
       {/snippet}
     </ContextMenuItem>
     <ContextMenuItem onSelect={copyLink}>
       <Link2Icon />
-      Copy link
+      {m.auth_copy_link()}
     </ContextMenuItem>
     {#if canWrite}
       <ContextMenuSeparator />
       <ContextMenuItem onSelect={onEdit}>
         <PencilIcon />
-        Edit…
+        {m.auth_customers_edit_item()}
       </ContextMenuItem>
     {/if}
     {#if isAdmin}
       <ContextMenuItem variant="destructive" onSelect={onDelete}>
         <Trash2Icon />
-        Delete…
+        {m.auth_customers_delete_short()}
       </ContextMenuItem>
     {/if}
   </ContextMenuContent>

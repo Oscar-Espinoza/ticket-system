@@ -1,5 +1,6 @@
 <!-- Confirm-and-delete for one document. -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { toast } from 'svelte-sonner';
 
   import { deleteDocument } from '@/lib/actions/documents';
@@ -30,13 +31,11 @@
 <AlertDialog open={document !== null} {onOpenChange}>
   <AlertDialogContent>
     <AlertDialogHeader>
-      <AlertDialogTitle>Delete “{document?.title}”?</AlertDialogTitle>
-      <AlertDialogDescription>
-        The document and its edit history are removed for everyone. This can’t be undone — archive it to keep a copy.
-      </AlertDialogDescription>
+      <AlertDialogTitle>{m.auth_docs_delete_title({ title: document?.title ?? '' })}</AlertDialogTitle>
+      <AlertDialogDescription>{m.auth_docs_delete_description()}</AlertDialogDescription>
     </AlertDialogHeader>
     <AlertDialogFooter>
-      <AlertDialogCancel>Cancel</AlertDialogCancel>
+      <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
       <AlertDialogAction
         variant="destructive"
         disabled={pending}
@@ -49,7 +48,7 @@
               const result = await deleteDocument({ id: target.id });
               if (!result.ok) toast.error(result.error);
               else {
-                toast.success('Document deleted');
+                toast.success(m.auth_docs_deleted());
                 onDeleted();
               }
             } finally {
@@ -58,7 +57,7 @@
           })();
         }}
       >
-        Delete
+        {m.common_delete()}
       </AlertDialogAction>
     </AlertDialogFooter>
   </AlertDialogContent>

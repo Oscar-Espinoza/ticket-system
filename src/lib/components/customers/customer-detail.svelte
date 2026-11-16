@@ -13,7 +13,8 @@
   import UserRoundIcon from '@lucide/svelte/icons/user-round';
   import { toast } from 'svelte-sonner';
 
-  import { copyToClipboard } from '@/lib/components/clipboard';
+  import { m } from '@/lib/i18n';
+  import { copyCustomerLink } from './copy-customer-link';
   import {
     CUSTOMER_STATUSES,
     CUSTOMER_STATUS_LABEL,
@@ -87,17 +88,28 @@
     }
   }
 
-  const copyLink = () => copyToClipboard(window.location.href.split('?')[0], 'customer link');
+  const copyLink = () => copyCustomerLink(window.location.href.split('?')[0]);
 
   const openIssues = $derived(issues.filter((issue) => !issue.archivedAt && !isClosed(issue.state.type)).length);
   const owner = $derived(customer.owner);
   const propertyButtonClass = '-ml-2 max-w-full gap-2 font-normal';
 
   const facts = $derived([
-    ['Tier', customer.tier],
-    ['Revenue', customer.revenue != null ? `${formatRevenue(customer.revenue, true)} / yr` : null],
-    ['Size', customer.size != null ? `${formatSize(customer.size)} employees` : null],
-  ] as const);
+    { label: m.auth_customers_tier(), set: m.auth_customers_set_tier(), value: customer.tier },
+    {
+      label: m.auth_customers_revenue(),
+      set: m.auth_customers_set_revenue(),
+      value:
+        customer.revenue != null
+          ? m.auth_customers_revenue_per_year({ amount: formatRevenue(customer.revenue, true) })
+          : null,
+    },
+    {
+      label: m.auth_customers_size(),
+      set: m.auth_customers_set_size(),
+      value: customer.size != null ? m.auth_customers_employees({ size: formatSize(customer.size) }) : null,
+    },
+  ]);
 </script>
 
 {#snippet statusTrigger(props: Record<string, unknown>)}
@@ -114,14 +126,14 @@
       <span class="truncate">{owner.name}</span>
     {:else}
       <UserRoundIcon class="text-muted-foreground" />
-      <span class="text-muted-foreground">No owner</span>
+      <span class="text-muted-foreground">{m.auth_customers_no_owner()}</span>
     {/if}
   </Button>
 {/snippet}
 
 <div class="flex min-h-0 flex-1 flex-col">
   <div class="mb-2 flex items-center gap-1 text-xs text-muted-foreground">
-    <a href={customersPath(data.project.id)} class="hover:text-foreground">Customers</a>
+    <a href={customersPath(data.project.id)} class="hover:text-foreground">{m.auth_customers_title()}</a>
     <ChevronRightIcon class="size-3" />
     <span class="truncate text-foreground">{customer.name}</span>
   </div>
@@ -141,13 +153,13 @@
       {#if canWrite.current}
         <Button variant="ghost" size="sm" onclick={() => (editing = true)}>
           <PencilIcon />
-          Edit
+          {m.common_edit()}
         </Button>
       {/if}
       <DropdownMenu>
         <DropdownMenuTrigger>
           {#snippet child({ props })}
-            <Button {...props} variant="ghost" size="icon-sm" aria-label="Customer actions">
+            <Button {...props} variant="ghost" size="icon-sm" aria-label={m.auth_customers_actions()}>
               <EllipsisIcon />
             </Button>
           {/snippet}
@@ -155,13 +167,13 @@
         <DropdownMenuContent align="end" class="w-48">
           <DropdownMenuItem onSelect={copyLink}>
             <Link2Icon />
-            Copy link
+            {m.auth_copy_link()}
           </DropdownMenuItem>
           {#if isAdmin.current}
             <DropdownMenuSeparator />
             <DropdownMenuItem variant="destructive" onSelect={() => (deleting = true)}>
               <Trash2Icon />
-              Delete customer…
+              {m.auth_customers_delete_item()}
             </DropdownMenuItem>
           {/if}
         </DropdownMenuContent>
@@ -179,13 +191,11 @@
       <RequestsTimeline {requests} projectId={data.project.id} canWrite={canWrite.current} />
       <section aria-labelledby="customer-issues" class="flex flex-col gap-1">
         <h3 id="customer-issues" class="flex items-center gap-2 text-sm font-medium">
-          Issues
+          {m.auth_customers_issues()}
           <span class="text-xs font-normal text-muted-foreground tabular-nums">{issues.length}</span>
         </h3>
         {#if issues.length === 0}
-          <p class="text-sm text-muted-foreground">
-            No linked issues. Add this customer from an issue’s “Customer requests” section.
-          </p>
+          <p class="text-sm text-muted-foreground">{m.auth_customers_no_linked_issues()}</p>
         {:else}
           <div class="flex flex-col">
             {#each issues as issue (issue.id)}
@@ -196,9 +206,9 @@
       </section>
     </div>
 
-    <aside aria-label="Customer properties" class="flex flex-col gap-4">
+    <aside aria-label={m.auth_customers_properties()} class="flex flex-col gap-4">
       <div class="flex flex-col gap-1">
-        <PropertyRow label="Status">
+        <PropertyRow label={m.common_status()}>
           {#if canWrite.current}
             <DropdownMenu>
               <DropdownMenuTrigger>
@@ -221,14 +231,14 @@
             {@render statusTrigger({})}
           {/if}
         </PropertyRow>
-        <PropertyRow label="Owner">
+        <PropertyRow label={m.auth_customers_owner()}>
           {#if canWrite.current}
             <MemberPicker
               value={owner?.id ?? null}
               members={data.members}
               viewerId={data.viewer.id}
-              placeholder="Set owner…"
-              noneLabel="No owner"
+              placeholder={m.auth_customers_set_owner()}
+              noneLabel={m.auth_customers_no_owner()}
               onChange={(ownerId) => {
                 const member = data.members.find((m) => m.id === ownerId);
                 void save(
@@ -243,11 +253,11 @@
             {@render ownerTrigger({})}
           {/if}
         </PropertyRow>
-        {#each facts as [label, value] (label)}
+        {#each facts as { label, set, value } (label)}
           <PropertyRow {label}>
             {#if canWrite.current}
               <Button variant="ghost" size="sm" class={propertyButtonClass} onclick={() => (editing = true)}>
-                {#if value != null}{value}{:else}<span class="text-muted-foreground">Set {label.toLowerCase()}</span>{/if}
+                {#if value != null}{value}{:else}<span class="text-muted-foreground">{set}</span>{/if}
               </Button>
             {:else}
               <span class="text-sm">
@@ -256,7 +266,7 @@
             {/if}
           </PropertyRow>
         {/each}
-        <PropertyRow label="Domains">
+        <PropertyRow label={m.auth_customers_domains()}>
           {#if customer.domains.length > 0}
             <div class="flex flex-wrap gap-x-2 gap-y-0.5 py-1 text-sm">
               {#each customer.domains as domain (domain)}
@@ -265,7 +275,7 @@
             </div>
           {:else if canWrite.current}
             <Button variant="ghost" size="sm" class={propertyButtonClass} onclick={() => (editing = true)}>
-              <span class="text-muted-foreground">Add domains</span>
+              <span class="text-muted-foreground">{m.auth_customers_add_domains()}</span>
             </Button>
           {:else}
             <span class="text-muted-foreground">—</span>
@@ -273,17 +283,19 @@
         </PropertyRow>
       </div>
       <div class="flex flex-col gap-2 border-t border-border pt-4">
-        <span class="text-xs text-muted-foreground">Revenue impact</span>
+        <span class="text-xs text-muted-foreground">{m.auth_customers_revenue_impact()}</span>
         <p class="text-2xl font-medium tracking-tight tabular-nums">
           {#if customer.revenue != null}
-            {formatRevenue(customer.revenue)}<span class="ml-1 text-sm font-normal text-muted-foreground">ARR</span>
+            {formatRevenue(customer.revenue)}<span class="ml-1 text-sm font-normal text-muted-foreground">{m.auth_customers_arr()}</span>
           {:else}
             <span class="text-muted-foreground">—</span>
           {/if}
         </p>
         <p class="text-xs text-muted-foreground">
-          Behind {openIssues} open {openIssues === 1 ? 'issue' : 'issues'} · {requests.length}
-          {requests.length === 1 ? 'request' : 'requests'}
+          {m.auth_customers_behind({
+            issues: m.auth_customers_open_issues({ count: openIssues }),
+            requests: m.auth_customers_requests_count({ count: requests.length }),
+          })}
         </p>
       </div>
     </aside>
