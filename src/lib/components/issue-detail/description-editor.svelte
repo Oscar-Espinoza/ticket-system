@@ -10,6 +10,7 @@
   rich editor can't represent (tables, raw HTML → raw Markdown mode).
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { announceDescriptionMentions } from '@/lib/actions/comments';
   import { Markdown, MarkdownEditor } from '@/lib/components/editor';
   import { isPendingIssue, type IssueMutations } from '@/lib/components/issues/use-issue-mutations.svelte';
@@ -103,13 +104,13 @@
     {/key}
   {:else}
     <MarkdownEditor
-      aria-label="Description"
+      aria-label={m.common_description()}
       value={draft.current}
       onChange={(value: string) => (draft.current = value)}
       onSubmit={finish}
       onCancel={finish}
       onBlur={finish}
-      placeholder="Add a description… (type / for commands)"
+      placeholder={m.issues_description_placeholder_commands()}
       autoFocus
       projectId={issue.projectId}
       ticketId={isPendingIssue(issue) ? undefined : issue.id}
@@ -118,14 +119,14 @@
   {/if}
 {:else if !saved}
   {#if readOnly}
-    <p class="px-1 text-sm text-muted-foreground">No description.</p>
+    <p class="px-1 text-sm text-muted-foreground">{m.issues_description_none()}</p>
   {:else}
     <button
       type="button"
       onclick={() => setEditing(true)}
       class="min-h-16 rounded-md px-1 py-1 text-left text-sm text-muted-foreground transition-colors hover:bg-muted/40"
     >
-      Add a description…
+      {m.issues_description_placeholder()}
     </button>
   {/if}
 {:else if readOnly}
@@ -136,7 +137,7 @@
   <div
     role="button"
     tabindex={0}
-    aria-label="Edit description"
+    aria-label={m.issues_description_edit()}
     onclick={startEditing}
     onkeydown={(e) => {
       if (e.key === 'Enter' && e.target === e.currentTarget) {

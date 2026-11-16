@@ -1,5 +1,6 @@
 <!-- Subscribe / unsubscribe (bell) with the subscriber list. -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import BellIcon from '@lucide/svelte/icons/bell';
   import BellOffIcon from '@lucide/svelte/icons/bell-off';
   import { toast } from 'svelte-sonner';
@@ -62,7 +63,7 @@
       if (!result.ok) throw new Error(result.error);
     } catch {
       if (loaded?.issueId === issueId) loaded = { issueId, subscribers: previous };
-      toast.error(next ? 'Could not subscribe to this issue.' : 'Could not unsubscribe from this issue.');
+      toast.error(next ? m.issues_subscribe_failed() : m.issues_unsubscribe_failed());
     } finally {
       pending = false;
     }
@@ -83,7 +84,7 @@
           {...props}
           variant="ghost"
           size="icon-sm"
-          aria-label={subscribed ? 'Subscribed — manage subscription' : 'Not subscribed — manage subscription'}
+          aria-label={subscribed ? m.issues_subscribed_manage() : m.issues_not_subscribed_manage()}
           class={cn(subscribed && 'text-foreground')}
         >
           <BellIcon class={cn(subscribed && 'fill-current')} />
@@ -99,14 +100,14 @@
         class="w-full"
       >
         {#if subscribed}<BellOffIcon />{:else}<BellIcon />{/if}
-        {subscribed ? 'Unsubscribe' : 'Subscribe'}
+        {subscribed ? m.issues_unsubscribe() : m.issues_subscribe()}
       </Button>
       <p class="px-1 text-xs text-muted-foreground">
         {subscribers === null
-          ? 'Loading subscribers…'
+          ? m.issues_subscribers_loading()
           : subscribers.length === 0
-            ? 'No one is subscribed to this issue.'
-            : `${subscribers.length} ${subscribers.length === 1 ? 'subscriber' : 'subscribers'}`}
+            ? m.issues_subscribers_none()
+            : m.issues_subscribers_count({ count: subscribers.length })}
       </p>
       {#if ordered.length > 0}
         <ul class="flex max-h-56 flex-col gap-0.5 overflow-y-auto">
@@ -114,7 +115,7 @@
             <li class="flex items-center gap-2 rounded-md px-1 py-1 text-sm">
               <Avatar name={user.name} src={user.image} size={20} />
               <span class="truncate">{user.name}</span>
-              {#if user.id === data.viewer.id}<span class="ml-auto text-xs text-muted-foreground">You</span>{/if}
+              {#if user.id === data.viewer.id}<span class="ml-auto text-xs text-muted-foreground">{m.issues_you()}</span>{/if}
             </li>
           {/each}
         </ul>

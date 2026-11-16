@@ -5,6 +5,7 @@
   and then resync from the server.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import PlusIcon from '@lucide/svelte/icons/plus';
   import { toast } from 'svelte-sonner';
 
@@ -94,9 +95,9 @@
         body,
       });
       if (!result.ok) toast.error(actionErrorText(result.error));
-      else if (!customer.id) toast.success(`Created customer “${customer.name}”`);
+      else if (!customer.id) toast.success(m.issues_customers_created({ name: customer.name }));
     } catch {
-      toast.error('Something went wrong — the request was not saved.');
+      toast.error(m.issues_customers_save_failed());
     }
     resync();
   }
@@ -127,7 +128,7 @@
       });
       if (!result.ok) toast.error(actionErrorText(result.error));
     } catch {
-      toast.error('Something went wrong — the change was not saved.');
+      toast.error(m.issues_customers_change_failed());
     }
     resync();
   }
@@ -138,7 +139,7 @@
       const result = await removeCustomerRequest({ projectId: issue.projectId, id: request.id });
       if (!result.ok) toast.error(actionErrorText(result.error));
     } catch {
-      toast.error('Something went wrong — the request was not removed.');
+      toast.error(m.issues_customers_remove_failed());
     }
     resync();
   }
@@ -150,15 +151,14 @@
 {#snippet meta()}
   {#if summary.customers > 0}
     <span class="text-xs text-muted-foreground tabular-nums">
-      {summary.total > 0 ? `${formatRevenue(summary.total)} ARR across ` : ''}{summary.customers}
-      {summary.customers === 1 ? 'customer' : 'customers'}
+      {summary.total > 0 ? `${m.issues_customers_arr({ revenue: formatRevenue(summary.total) })} ` : ''}{m.issues_customers_count({ count: summary.customers })}
     </span>
   {/if}
 {/snippet}
 
 {#if list.length > 0 || canWrite}
-  <section aria-label="Customer requests" class="flex flex-col gap-1">
-    <SectionHeader title="Customer requests" meta={summary.customers > 0 ? meta : undefined}>
+  <section aria-label={m.issues_customer_requests()} class="flex flex-col gap-1">
+    <SectionHeader title={m.issues_customer_requests()} meta={summary.customers > 0 ? meta : undefined}>
       {#if canWrite}
         <PickerPopover bind:open={adding} align="end" class="w-80">
           {#snippet content(close)}
@@ -171,7 +171,7 @@
             />
           {/snippet}
           {#snippet children({ props })}
-            <Button {...props} variant="ghost" size="icon-xs" aria-label="Add customer request" title="Add customer request">
+            <Button {...props} variant="ghost" size="icon-xs" aria-label={m.issues_customer_add_request_label()} title={m.issues_customer_add_request_label()}>
               <PlusIcon />
             </Button>
           {/snippet}
@@ -193,7 +193,7 @@
     {#if canWrite && requests !== null && list.length === 0}
       <Button variant="ghost" size="sm" class="w-fit gap-2 font-normal text-muted-foreground" onclick={() => (adding = true)}>
         <PlusIcon />
-        Add customer request
+        {m.issues_customer_add_request_label()}
       </Button>
     {/if}
   </section>

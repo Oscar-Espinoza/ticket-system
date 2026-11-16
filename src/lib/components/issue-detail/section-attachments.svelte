@@ -4,6 +4,7 @@
   membership-checked GET /api/attachments/[id].
 -->
 <script module lang="ts">
+  import { m } from '@/lib/i18n';
   import { actionErrorText } from '@/lib/action-errors';
   import {
     MAX_ATTACHMENT_LABEL,
@@ -20,12 +21,12 @@
     body.set('file', file);
     const response = await fetch('/api/attachments', { method: 'POST', body });
     // The platform itself answers 413 (as HTML) above its own body limit.
-    if (response.status === 413) throw new Error(`${file.name} is too large (max ${MAX_ATTACHMENT_LABEL}).`);
+    if (response.status === 413) throw new Error(m.issues_attach_too_large({ name: file.name, max: MAX_ATTACHMENT_LABEL }));
     const result = (await response.json().catch(() => null)) as
       | { ok: true; attachment: AttachmentView }
       | { ok: false; error: string }
       | null;
-    if (!result) throw new Error(`Couldn't upload ${file.name}.`);
+    if (!result) throw new Error(m.issues_attach_upload_failed({ name: file.name }));
     if (!result.ok) throw new Error(actionErrorText(result.error));
     return { ...result.attachment, createdAt: new Date(result.attachment.createdAt) };
   }
@@ -92,8 +93,8 @@
   async function upload(files: File[]) {
     if (!canWrite || files.length === 0) return;
     const accepted = files.filter((file) => {
-      if (file.size === 0) toast.error(`${file.name} is empty.`);
-      else if (file.size > MAX_ATTACHMENT_BYTES) toast.error(`${file.name} is larger than ${MAX_ATTACHMENT_LABEL}.`);
+      if (file.size === 0) toast.error(m.issues_attach_empty({ name: file.name }));
+      else if (file.size > MAX_ATTACHMENT_BYTES) toast.error(m.issues_attach_larger_than({ name: file.name, max: MAX_ATTACHMENT_LABEL }));
       else return true;
       return false;
     });
@@ -123,7 +124,7 @@
     });
     results.forEach((result) => {
       if (result.status === 'rejected') {
-        toast.error(result.reason instanceof Error ? result.reason.message : 'Upload failed.');
+        toast.error(result.reason instanceof Error ? result.reason.message : m.issues_attach_upload_error());
       }
     });
     // The upload goes through /api, not an action wrapper.
@@ -138,7 +139,7 @@
       if (result.ok) return;
       toast.error(actionErrorText(result.error));
     } catch {
-      toast.error('Something went wrong — the attachment was not deleted.');
+      toast.error(m.issues_attach_delete_failed());
     }
     // Put it back where it was (newest first).
     rows = [...(rows ?? []), row].sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
@@ -150,7 +151,7 @@
       ticketId: issue.id,
       url,
       title,
-    }).catch(() => ({ ok: false as const, error: 'Something went wrong — the link was not added.' }));
+    }).catch(() => ({ ok: false as const, error: m.issues_attach_link_failed() }));
     if (!result.ok) {
       toast.error(actionErrorText(result.error));
       return false;
@@ -225,15 +226,15 @@
         </a>
       {/if}
       <span class="truncate text-xs text-muted-foreground">
-        {row.pending ? 'Uploading…' : meta.join(' · ')}
+        {row.pending ? m.issues_attach_uploading() : meta.join(' · ')}
       </span>
     </div>
     {#if canDelete}
       <Button
         variant="ghost"
         size="icon-xs"
-        aria-label={`Delete ${row.title}`}
-        title="Delete"
+        aria-label={m.issues_attach_delete_named({ title: row.title })}
+        title={m.common_delete()}
         onclick={onDelete}
         class="opacity-0 group-hover/att:opacity-100 focus-visible:opacity-100"
       >
@@ -245,7 +246,7 @@
 
 {#if list.length > 0 || canWrite}
   <section
-    aria-label="Attachments"
+    aria-label={m.issues_attachments()}
     {ondragenter}
     {ondragover}
     {ondragleave}
@@ -255,12 +256,12 @@
       dragging && 'bg-primary/5 outline-2 outline-primary/50 outline-dashed',
     )}
   >
-    <SectionHeader title="Attachments">
+    <SectionHeader title={m.issues_attachments()}>
       {#if canWrite}
         <Popover bind:open={linkOpen}>
           <PopoverTrigger>
             {#snippet child({ props })}
-              <Button {...props} variant="ghost" size="icon-xs" aria-label="Add link" title="Add link">
+              <Button {...props} variant="ghost" size="icon-xs" aria-label={m.issues_attach_add_link()} title={m.issues_attach_add_link()}>
                 <Link2Icon />
               </Button>
             {/snippet}
@@ -272,8 +273,8 @@
         <Button
           variant="ghost"
           size="icon-xs"
-          aria-label="Upload files"
-          title={`Upload files (max ${MAX_ATTACHMENT_LABEL} each)`}
+          aria-label={m.issues_attach_upload_files()}
+          title={m.issues_attach_upload_files_max({ max: MAX_ATTACHMENT_LABEL })}
           onclick={() => fileInput?.click()}
         >
           <PaperclipIcon />
@@ -310,13 +311,13 @@
         class="flex h-8 w-fit items-center gap-2 rounded-md px-2 text-sm text-muted-foreground hover:bg-muted/60 hover:text-foreground"
       >
         <PlusIcon class="size-3.5" />
-        Drop files here or click to upload
+        {m.issues_attach_drop_hint()}
       </button>
     {/if}
 
     {#if dragging}
       <div class="pointer-events-none absolute inset-0 flex items-center justify-center rounded-md bg-background/70 text-sm font-medium">
-        Drop to attach (max {MAX_ATTACHMENT_LABEL} each)
+        {m.issues_attach_drop_to_attach({ max: MAX_ATTACHMENT_LABEL })}
       </div>
     {/if}
   </section>

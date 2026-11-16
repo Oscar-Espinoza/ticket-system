@@ -1,5 +1,6 @@
 <!-- Two steps in one popover: relation type, then the other issue. -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import ChevronLeftIcon from '@lucide/svelte/icons/chevron-left';
 
   import IssueSearchOptions from '@/lib/components/issue-hierarchy/issue-search-options.svelte';
@@ -52,6 +53,6 @@
       <ChevronLeftIcon class="size-3.5" />
       {KINDS[current].add}
     </button>
-    <IssueSearchOptions issues={candidates} {exclude} placeholder="Search issues…" onSelect={(other) => onAdd(current, other)} />
+    <IssueSearchOptions issues={candidates} {exclude} placeholder={m.issues_search_issues_placeholder()} onSelect={(other) => onAdd(current, other)} />
   </div>
 {/if}

@@ -4,6 +4,7 @@
   slot components; this host's layout is frozen.
 -->
 <script module lang="ts">
+  import { m } from '@/lib/i18n';
   // Menu hints for the shortcuts IssueShortcuts registers.
   const COPY_LINK_KEY = { mod: true, shift: true, key: ',' };
   const COPY_ID_KEY = { mod: true, key: '.' };
@@ -141,7 +142,7 @@
       <DropdownMenu>
         <DropdownMenuTrigger>
           {#snippet child({ props })}
-            <Button {...props} variant="ghost" size="icon-sm" aria-label="Issue actions">
+            <Button {...props} variant="ghost" size="icon-sm" aria-label={m.issues_actions()}>
               <MoreHorizontalIcon />
             </Button>
           {/snippet}
@@ -149,12 +150,12 @@
         <DropdownMenuContent align="end" class="w-56">
           <DropdownMenuItem onSelect={() => copyToClipboard(issueUrl(data.project.id, issue.key), 'link')}>
             <Link2Icon />
-            Copy link
+            {m.issues_copy_link()}
             <DropdownMenuShortcut>{formatHotkey(COPY_LINK_KEY)}</DropdownMenuShortcut>
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={() => copyToClipboard(issue.key, issue.key)}>
             <HashIcon />
-            Copy ID
+            {m.issues_copy_id()}
             <DropdownMenuShortcut>{formatHotkey(COPY_ID_KEY)}</DropdownMenuShortcut>
           </DropdownMenuItem>
           <MenuMove {issue} {mutations} />
@@ -164,25 +165,25 @@
             {#if issue.archivedAt || issue.deletedAt}
               <DropdownMenuItem onSelect={() => mutations.restore(issue)}>
                 <ArchiveRestoreIcon />
-                Restore
+                {m.issues_restore()}
               </DropdownMenuItem>
             {:else}
               <DropdownMenuItem onSelect={() => mutations.archive(issue, onClose)}>
                 <ArchiveIcon />
-                Archive
+                {m.issues_archive()}
               </DropdownMenuItem>
             {/if}
             {#if !issue.deletedAt}
               <DropdownMenuItem variant="destructive" onSelect={() => mutations.remove(issue, onClose)}>
                 <Trash2Icon />
-                Move to trash
+                {m.issues_move_to_trash()}
               </DropdownMenuItem>
             {/if}
           {/if}
         </DropdownMenuContent>
       </DropdownMenu>
       {#if onClose}
-        <Button variant="ghost" size="icon-sm" aria-label="Close issue" onclick={onClose}>
+        <Button variant="ghost" size="icon-sm" aria-label={m.issues_close()} onclick={onClose}>
           <XIcon />
         </Button>
       {/if}
@@ -194,10 +195,10 @@
   {#if issue.archivedAt || issue.deletedAt}
     <div class="flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
       {#if issue.deletedAt}<Trash2Icon class="size-4" />{:else}<ArchiveIcon class="size-4" />{/if}
-      <span>{issue.deletedAt ? 'This issue is in the trash.' : 'This issue is archived.'}</span>
+      <span>{issue.deletedAt ? m.issues_in_trash() : m.issues_is_archived()}</span>
       {#if canWrite}
         <Button size="xs" variant="outline" class="ml-auto" onclick={() => mutations.restore(issue)}>
-          Restore
+          {m.issues_restore()}
         </Button>
       {/if}
     </div>
@@ -206,7 +207,7 @@
 
 {#snippet titleField()}
   <Textarea
-    aria-label="Title"
+    aria-label={m.issues_title()}
     bind:value={title.current}
     maxlength={200}
     rows={1}
@@ -243,7 +244,7 @@
 {#snippet priorityTrigger(props: Record<string, unknown>)}
   <Button {...props} variant="ghost" size="sm" class={propertyButton()} disabled={!canWrite}>
     <PriorityIcon priority={issue.priority} size={14} />
-    {#if issue.priority === 'none'}{@render muted('Set priority')}{:else}{PRIORITY_LABEL[issue.priority]}{/if}
+    {#if issue.priority === 'none'}{@render muted(m.issues_set_priority())}{:else}{PRIORITY_LABEL[issue.priority]}{/if}
   </Button>
 {/snippet}
 {#snippet priorityWrap(trigger: Snippet<[Record<string, unknown>]>)}
@@ -260,7 +261,7 @@
       <span class="truncate">{issue.assignee.name}</span>
     {:else}
       <UserRoundIcon class="text-muted-foreground" />
-      {@render muted('Unassigned')}
+      {@render muted(m.issues_unassigned())}
     {/if}
   </Button>
 {/snippet}
@@ -277,7 +278,7 @@
       <LabelChips labels={issue.labels} max={6} class="flex-wrap" />
     {:else}
       <TagIcon class="text-muted-foreground" />
-      {@render muted('Add label')}
+      {@render muted(m.issues_add_label())}
     {/if}
   </Button>
 {/snippet}
@@ -292,7 +293,7 @@
   <Button {...props} variant="ghost" size="sm" class={propertyButton()} disabled={!canWrite}>
     <TriangleIcon class="text-muted-foreground" />
     {#if issue.estimate === null}
-      {@render muted('Set estimate')}
+      {@render muted(m.issues_set_estimate())}
     {:else}
       {formatEstimate(data.project.estimateScale, issue.estimate)}
     {/if}
@@ -311,7 +312,7 @@
       <DueDateChip dueDate={issue.dueDate} stateType={issue.state.type} class="border-0 px-0" />
     {:else}
       <CalendarDaysIcon class="text-muted-foreground" />
-      {@render muted('Set due date')}
+      {@render muted(m.issues_set_due_date())}
     {/if}
   </Button>
 {/snippet}
@@ -323,31 +324,31 @@
 
 {#snippet properties()}
   <div class="flex flex-col gap-1">
-    <PropertyRow label="Status">
+    <PropertyRow label={m.common_status()}>
       {@render picker(statusTrigger, statusWrap)}
     </PropertyRow>
 
-    <PropertyRow label="Priority">
+    <PropertyRow label={m.common_priority()}>
       {@render picker(priorityTrigger, priorityWrap)}
     </PropertyRow>
 
-    <PropertyRow label="Assignee">
+    <PropertyRow label={m.common_assignee()}>
       {@render picker(assigneeTrigger, assigneeWrap)}
     </PropertyRow>
 
     <PropertyWaitingOn {issue} {mutations} />
 
-    <PropertyRow label="Labels">
+    <PropertyRow label={m.common_labels()}>
       {@render picker(labelsTrigger, labelsWrap)}
     </PropertyRow>
 
     {#if data.project.estimateScale !== 'none'}
-      <PropertyRow label="Estimate">
+      <PropertyRow label={m.issues_estimate()}>
         {@render picker(estimateTrigger, estimateWrap)}
       </PropertyRow>
     {/if}
 
-    <PropertyRow label="Due date">
+    <PropertyRow label={m.common_due_date()}>
       {@render picker(dueTrigger, dueWrap)}
     </PropertyRow>
 
@@ -360,7 +361,7 @@
     <PropertyEpic {issue} {mutations} />
 
     {#if issue.githubBranch}
-      <PropertyRow label="Branch">
+      <PropertyRow label={m.issues_branch()}>
         <span class="flex items-center gap-1.5 truncate font-mono text-xs">
           <GitBranchIcon class="size-3.5 shrink-0 text-muted-foreground" />
           {issue.githubBranch}
@@ -368,7 +369,7 @@
       </PropertyRow>
     {/if}
 
-    <PropertyRow label="Created by">
+    <PropertyRow label={m.issues_created_by()}>
       {#if issue.creator}
         <span class="flex items-center gap-2 text-xs">
           <Avatar name={issue.creator.name} src={issue.creator.image} size={20} />
@@ -378,12 +379,12 @@
         <span class="text-xs text-muted-foreground">—</span>
       {/if}
     </PropertyRow>
-    <PropertyRow label="Created">
+    <PropertyRow label={m.issues_created()}>
       <span class="text-xs">
         {DATE_TIME_MEDIUM_FORMAT.format(new Date(issue.createdAt))}
       </span>
     </PropertyRow>
-    <PropertyRow label="Updated">
+    <PropertyRow label={m.issues_updated()}>
       <span class="text-xs">
         {DATE_TIME_MEDIUM_FORMAT.format(new Date(issue.updatedAt))}
       </span>
@@ -411,7 +412,7 @@
         {@render titleField()}
         {@render sections()}
       </div>
-      <aside aria-label="Properties" class="lg:border-l lg:border-border lg:pl-6">
+      <aside aria-label={m.issues_properties()} class="lg:border-l lg:border-border lg:pl-6">
         {@render properties()}
       </aside>
     </div>

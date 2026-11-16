@@ -4,6 +4,7 @@
   and then resync from the server.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import PlusIcon from '@lucide/svelte/icons/plus';
   import { toast } from 'svelte-sonner';
 
@@ -65,9 +66,9 @@
       });
       if (!result.ok) toast.error(actionErrorText(result.error));
       else if (result.warning) toast.warning(result.warning);
-      else if (kind === 'duplicate_of') toast.success(`Marked ${issue.key} as a duplicate of ${other.key}`);
+      else if (kind === 'duplicate_of') toast.success(m.issues_relations_marked_duplicate({ key: issue.key, other: other.key }));
     } catch {
-      toast.error('Something went wrong — the relation was not saved.');
+      toast.error(m.issues_relations_save_failed());
     }
     resync();
   }
@@ -78,7 +79,7 @@
       const result = await removeIssueRelation({ projectId: issue.projectId, relationId: relation.id });
       if (!result.ok) toast.error(actionErrorText(result.error));
     } catch {
-      toast.error('Something went wrong — the relation was not removed.');
+      toast.error(m.issues_relations_remove_failed());
     }
     resync();
   }
@@ -90,8 +91,8 @@
 </script>
 
 {#if list.length > 0 || canWrite}
-  <section aria-label="Relations" class="flex flex-col gap-1">
-    <SectionHeader title="Relations">
+  <section aria-label={m.issues_relations()} class="flex flex-col gap-1">
+    <SectionHeader title={m.issues_relations()}>
       {#if canWrite}
         <PickerPopover bind:open={adding} align="end" class="w-80">
           {#snippet content(close)}
@@ -106,7 +107,7 @@
             />
           {/snippet}
           {#snippet children({ props })}
-            <Button {...props} variant="ghost" size="icon-xs" aria-label="Add relation" title="Add relation">
+            <Button {...props} variant="ghost" size="icon-xs" aria-label={m.issues_relations_add()} title={m.issues_relations_add()}>
               <PlusIcon />
             </Button>
           {/snippet}
@@ -126,7 +127,7 @@
           {#each group as relation (relation.id)}
             <IssueRefRow
               issue={fresh(relation.issue)}
-              removeLabel="Remove relation"
+              removeLabel={m.issues_relations_remove()}
               class={relation.id.startsWith('temp-') ? 'opacity-60' : undefined}
               onRemove={canWrite && !relation.id.startsWith('temp-') ? () => void remove(relation) : undefined}
             />
@@ -138,7 +139,7 @@
     {#if canWrite && relations !== null && list.length === 0}
       <Button variant="ghost" size="sm" class="w-fit gap-2 font-normal text-muted-foreground" onclick={() => (adding = true)}>
         <PlusIcon />
-        Add relation
+        {m.issues_relations_add()}
       </Button>
     {/if}
   </section>

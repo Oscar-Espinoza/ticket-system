@@ -4,6 +4,7 @@
   an existing issue, detach, and open a child.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import Link2Icon from '@lucide/svelte/icons/link-2';
   import PlusIcon from '@lucide/svelte/icons/plus';
 
@@ -67,28 +68,28 @@
     <span class="tabular-nums">
       {done}/{subIssues.length}
     </span>
-    <Progress value={percent} class="w-16" aria-label={`${percent}% done`} />
+    <Progress value={percent} class="w-16" aria-label={m.issues_subissues_percent_done({ percent })} />
   </span>
 {/snippet}
 
 {#if subIssues.length > 0 || canWrite}
-  <section aria-label="Sub-issues" class="flex flex-col gap-1">
-    <SectionHeader title="Sub-issues" meta={subIssues.length > 0 ? meta : undefined}>
+  <section aria-label={m.issues_subissues()} class="flex flex-col gap-1">
+    <SectionHeader title={m.issues_subissues()} meta={subIssues.length > 0 ? meta : undefined}>
       {#if canWrite}
         <IssueSearchPicker
           issues={mutations.issues}
           {exclude}
-          placeholder="Add existing issue as sub-issue…"
+          placeholder={m.issues_subissues_add_existing_placeholder()}
           align="end"
           onSelect={(child) => mutations.update(child, { parentId: issue.id })}
         >
           {#snippet children({ props })}
-            <Button {...props} variant="ghost" size="icon-xs" aria-label="Add existing issue" title="Add existing issue">
+            <Button {...props} variant="ghost" size="icon-xs" aria-label={m.issues_subissues_add_existing()} title={m.issues_subissues_add_existing()}>
               <Link2Icon />
             </Button>
           {/snippet}
         </IssueSearchPicker>
-        <Button variant="ghost" size="icon-xs" aria-label="Add sub-issue" title="Add sub-issue" onclick={() => (adding = true)}>
+        <Button variant="ghost" size="icon-xs" aria-label={m.issues_subissues_add()} title={m.issues_subissues_add()} onclick={() => (adding = true)}>
           <PlusIcon />
         </Button>
       {/if}
@@ -99,7 +100,7 @@
         {#each ordered as child (child.id)}
           <IssueRefRow
             issue={child}
-            removeLabel="Remove from parent"
+            removeLabel={m.issues_subissues_remove()}
             onRemove={canWrite ? () => mutations.update(child, { parentId: null }) : undefined}
           />
         {/each}
@@ -118,8 +119,8 @@
         <!-- svelte-ignore a11y_autofocus -->
         <Input
           autofocus
-          aria-label="Sub-issue title"
-          placeholder="Sub-issue title — Enter to create, Esc to close"
+          aria-label={m.issues_subissues_title()}
+          placeholder={m.issues_subissues_title_hint()}
           bind:value={title}
           maxlength={200}
           onblur={() => {
@@ -138,7 +139,7 @@
     {:else if canWrite && subIssues.length === 0}
       <Button variant="ghost" size="sm" class="w-fit gap-2 font-normal text-muted-foreground" onclick={() => (adding = true)}>
         <PlusIcon />
-        Add sub-issue
+        {m.issues_subissues_add()}
       </Button>
     {/if}
   </section>

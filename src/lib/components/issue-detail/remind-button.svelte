@@ -1,5 +1,6 @@
 <!-- The "Remind me" button + popover of HeaderRemind. -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import AlarmClockIcon from '@lucide/svelte/icons/alarm-clock';
   import XIcon from '@lucide/svelte/icons/x';
   import { toast } from 'svelte-sonner';
@@ -38,11 +39,11 @@
       const result = await setIssueReminder({ projectId, ticketId, remindAt: date.toISOString() }).catch(() => null);
       if (!result?.ok) {
         remindAt = previous;
-        toast.error(result?.error ?? 'Could not set the reminder');
+        toast.error(result?.error ?? m.issues_remind_set_failed());
         return;
       }
-      toast(`Reminder set for ${formatWhen(date)}`, {
-        description: 'It will show up in your inbox.',
+      toast(m.issues_remind_set_for({ when: formatWhen(date) }), {
+        description: m.issues_remind_inbox(),
       });
     } finally {
       pending = false;
@@ -58,14 +59,14 @@
       const result = await cancelIssueReminder({ projectId, ticketId }).catch(() => null);
       if (!result?.ok) {
         remindAt = previous;
-        toast.error(result?.error ?? 'Could not cancel the reminder');
+        toast.error(result?.error ?? m.issues_remind_cancel_failed());
       }
     } finally {
       pending = false;
     }
   }
 
-  const label = $derived(remindAt ? `Reminder set for ${formatWhen(remindAt)}` : 'Remind me');
+  const label = $derived(remindAt ? m.issues_remind_set_for({ when: formatWhen(remindAt) }) : m.issues_remind_me());
 </script>
 
 <PickerPopover bind:open align="end" class="w-auto min-w-64">
@@ -77,15 +78,15 @@
           <span class="min-w-0 flex-1 truncate">{formatWhen(remindAt)}</span>
           <Button variant="ghost" size="xs" onclick={() => void cancel()}>
             <XIcon />
-            Cancel
+            {m.common_cancel()}
           </Button>
         </div>
       {:else}
         <p class="border-b border-border px-3 py-2 text-xs font-medium text-muted-foreground">
-          Remind me about this issue
+          {m.issues_remind_about()}
         </p>
       {/if}
-      <WhenPicker presets={reminderPresets()} onPick={(date: Date) => void set(date)} withTime submitLabel="Set reminder" />
+      <WhenPicker presets={reminderPresets()} onPick={(date: Date) => void set(date)} withTime submitLabel={m.issues_remind_submit()} />
     </div>
   {/snippet}
   {#snippet children({ props })}

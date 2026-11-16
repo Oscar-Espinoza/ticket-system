@@ -3,6 +3,7 @@
   `onCreate` adds a "Create customer" item for new names.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import UserPlusIcon from '@lucide/svelte/icons/user-plus';
 
   import { formatRevenue, type CustomerOption } from '@/lib/customer-model';
@@ -48,7 +49,7 @@
       <CommandGroup forceMount>
         <CommandItem value="__create__" keywords={[name]} forceMount onSelect={() => onCreate(name)}>
           <UserPlusIcon />
-          <span class="truncate">Create customer “{name}”</span>
+          <span class="truncate">{m.issues_customer_create_option({ name })}</span>
         </CommandItem>
       </CommandGroup>
     {/if}

@@ -3,6 +3,7 @@
   Copy link / Copy ID items and before Archive / Move to trash.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import CopyIcon from '@lucide/svelte/icons/copy';
   import FileTextIcon from '@lucide/svelte/icons/file-text';
   import Link2Icon from '@lucide/svelte/icons/link-2';
@@ -45,13 +46,13 @@
       },
     });
     if (!result.ok) {
-      toast.error(actionErrorText(result.error, "You don't have permission to do that."));
+      toast.error(actionErrorText(result.error, m.issues_no_permission()));
       return;
     }
     if (cached) setCachedTemplates(projectId, [...cached, result.template]);
-    toast.success(`Saved template “${result.template.name}”`, {
+    toast.success(m.issues_template_saved({ name: result.template.name }), {
       action: {
-        label: 'Edit',
+        label: m.common_edit(),
         onClick: () => void goto(projectHref(projectId, 'settings/templates')),
       },
     });
@@ -60,15 +61,15 @@
 
 <DropdownMenuItem onSelect={() => void copyIssueMarkdown(issue)}>
   <Link2Icon />
-  Copy as markdown link
+  {m.issues_copy_markdown_link()}
 </DropdownMenuItem>
 {#if canWrite.current}
-  <DropdownMenuItem onSelect={() => mutations.create(duplicateInput(issue, new Set(data.members.map((m) => m.id))))}>
+  <DropdownMenuItem onSelect={() => mutations.create(duplicateInput(issue, new Set(data.members.map((member) => member.id))))}>
     <CopyIcon />
-    Duplicate issue
+    {m.issues_duplicate()}
   </DropdownMenuItem>
   <DropdownMenuItem onSelect={() => void saveAsTemplate()}>
     <FileTextIcon />
-    Save as template
+    {m.issues_save_as_template()}
   </DropdownMenuItem>
 {/if}
