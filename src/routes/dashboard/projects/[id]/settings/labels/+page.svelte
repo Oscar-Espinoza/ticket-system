@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import LabelsSettings from '@/lib/components/settings/labels/labels-settings.svelte';
   import type { PageProps } from './$types';
 
@@ -6,11 +7,11 @@
 </script>
 
 <svelte:head>
-  <title>Labels · {data.projectName}</title>
+  <title>{m.settings_page_labels_title({ name: data.projectName })}</title>
 </svelte:head>
 
-<h1 class="text-xl font-medium">Labels</h1>
+<h1 class="text-xl font-medium">{m.common_labels()}</h1>
 <p class="mt-1 mb-8 text-sm text-muted-foreground">
-  Labels categorize issues in this project.{!data.canEdit ? ' Guests can’t change labels.' : ''}
+  {m.settings_page_labels_desc()}{!data.canEdit ? ` ${m.settings_page_labels_guests()}` : ''}
 </p>
 <LabelsSettings projectId={data.projectId} counts={data.counts} canEdit={data.canEdit} />

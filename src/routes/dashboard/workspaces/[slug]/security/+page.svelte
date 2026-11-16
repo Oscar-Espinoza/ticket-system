@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import ChevronLeftIcon from '@lucide/svelte/icons/chevron-left';
   import ScrollTextIcon from '@lucide/svelte/icons/scroll-text';
   import ShieldCheckIcon from '@lucide/svelte/icons/shield-check';
@@ -18,7 +19,7 @@
 </script>
 
 <svelte:head>
-  <title>Security · {workspace.name} · Ticket System</title>
+  <title>{m.settings_page_ws_security_title({ name: workspace.name })}</title>
 </svelte:head>
 
 {#snippet header()}
@@ -27,20 +28,20 @@
       variant="ghost"
       size="icon-sm"
       href={`/dashboard/workspaces/${workspace.slug}`}
-      aria-label="Back to workspace"
+      aria-label={m.settings_page_back_to_workspace()}
     >
       <ChevronLeftIcon />
     </Button>
     <div class="min-w-0 flex-1">
-      <h1 class="text-xl font-medium">Security</h1>
+      <h1 class="text-xl font-medium">{m.settings_page_security()}</h1>
       <p class="mt-0.5 text-sm text-muted-foreground">
-        Single sign-on, user provisioning and AI assistant access for {workspace.name}.
+        {m.settings_page_ws_security_desc({ name: workspace.name })}
       </p>
     </div>
     {#if workspaceRoleAllows(workspace.role, 'admin')}
       <Button variant="outline" size="sm" href={`/dashboard/workspaces/${workspace.slug}/audit`}>
         <ScrollTextIcon />
-        Audit log
+        {m.settings_page_audit_log()}
       </Button>
     {/if}
   </header>
@@ -50,8 +51,8 @@
   <div class="mx-auto flex max-w-3xl flex-col gap-10">
     {@render header()}
     <EmptyState
-      title="Admins only"
-      description="Workspace owners and admins manage single sign-on, provisioning and AI assistant access."
+      title={m.settings_page_admins_only()}
+      description={m.settings_page_ws_security_admins_hint()}
     >
       {#snippet icon()}<ShieldCheckIcon />{/snippet}
     </EmptyState>
@@ -65,10 +66,9 @@
 
     <section class="flex flex-col gap-3">
       <div>
-        <h2 class="text-base font-medium">Single sign-on</h2>
+        <h2 class="text-base font-medium">{m.settings_page_sso()}</h2>
         <p class="mt-0.5 text-sm text-muted-foreground">
-          Let people sign in with your identity provider (SAML 2.0 or OpenID Connect). New people
-          from your domain join the workspace as members on first sign-in.
+          {m.settings_page_sso_desc()}
         </p>
       </div>
       <WorkspaceSsoSettings
@@ -88,9 +88,9 @@
 
     <section class="flex flex-col gap-3">
       <div>
-        <h2 class="text-base font-medium">SCIM provisioning</h2>
+        <h2 class="text-base font-medium">{m.settings_page_scim()}</h2>
         <p class="mt-0.5 text-sm text-muted-foreground">
-          Keep workspace membership in sync with your identity provider.
+          {m.settings_page_scim_desc()}
         </p>
       </div>
       <ScimSettings
@@ -104,10 +104,9 @@
 
     <section class="flex flex-col gap-3">
       <div>
-        <h2 class="text-base font-medium">AI assistants</h2>
+        <h2 class="text-base font-medium">{m.settings_page_ai()}</h2>
         <p class="mt-0.5 text-sm text-muted-foreground">
-          Whether members may use Claude, ChatGPT and other AI assistants with this workspace’s
-          issues (through the MCP connector, see Settings → OAuth apps).
+          {m.settings_page_ai_desc()}
         </p>
       </div>
       <AiConnectorsSettings

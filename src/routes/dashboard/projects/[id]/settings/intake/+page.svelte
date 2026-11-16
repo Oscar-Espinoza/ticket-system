@@ -1,5 +1,6 @@
 <!-- Intake form settings + received customer requests (B11). -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import InboxIcon from '@lucide/svelte/icons/inbox';
 
   import IntakeSettings from '@/lib/components/integrations/intake-settings.svelte';
@@ -11,12 +12,12 @@
 </script>
 
 <svelte:head>
-  <title>Intake form</title>
+  <title>{m.settings_page_intake()}</title>
 </svelte:head>
 
-<h1 class="text-xl font-medium">Intake form</h1>
+<h1 class="text-xl font-medium">{m.settings_page_intake()}</h1>
 <p class="mt-1 mb-8 text-sm text-muted-foreground">
-  A public form that turns customer requests into issues.
+  {m.settings_page_intake_desc()}
 </p>
 
 <IntakeSettings
@@ -28,17 +29,17 @@
 
 <Separator class="my-10" />
 
-<h2 class="text-base font-medium">Requests</h2>
+<h2 class="text-base font-medium">{m.settings_page_requests()}</h2>
 <p class="mt-1 mb-4 text-sm text-muted-foreground">
-  The latest {data.requestsShown} submissions and the issues they created.
+  {m.settings_page_requests_desc({ count: data.requestsShown })}
 </p>
 {#if data.requests.length === 0}
   <EmptyState
     class="rounded-lg border border-dashed border-border py-10"
-    title="No requests yet"
+    title={m.settings_page_no_requests()}
     description={data.hasToken
-      ? 'Share the public link — submissions show up here.'
-      : 'Turn on the form to start collecting requests.'}
+      ? m.settings_page_no_requests_shared()
+      : m.settings_page_no_requests_off()}
   >
     {#snippet icon()}<InboxIcon />{/snippet}
   </EmptyState>
@@ -63,12 +64,12 @@
               </span>
               <span class="truncate font-medium">{request.linked.title}</span>
               {#if request.linked.inTrash}
-                <span class="shrink-0 text-xs text-muted-foreground">(in trash)</span>
+                <span class="shrink-0 text-xs text-muted-foreground">{m.settings_page_in_trash()}</span>
               {/if}
             </a>
           {:else}
             <span class="text-muted-foreground">
-              {request.hadTicket ? 'Issue moved to a team you’re not in' : 'Issue deleted'}
+              {request.hadTicket ? m.settings_page_issue_moved() : m.settings_page_issue_deleted()}
             </span>
           {/if}
           <time
@@ -89,7 +90,7 @@
             {' · '}
           {/if}
           {request.name ? `${request.name} · ` : ''}
-          {request.email ?? 'No email'}
+          {request.email ?? m.settings_page_no_email()}
         </p>
         <p class="line-clamp-2 text-sm text-muted-foreground">{request.excerpt}</p>
       </li>

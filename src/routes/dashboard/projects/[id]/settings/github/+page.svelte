@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import GithubSettings from '@/lib/components/github/github-settings.svelte';
   import type { PageProps } from './$types';
 
@@ -6,13 +7,12 @@
 </script>
 
 <svelte:head>
-  <title>GitHub</title>
+  <title>GitHub</title> <!-- i18n-ignore -->
 </svelte:head>
 
-<h1 class="text-xl font-medium">GitHub</h1>
+<h1 class="text-xl font-medium">GitHub</h1> <!-- i18n-ignore -->
 <p class="mt-1 mb-8 text-sm text-muted-foreground">
-  Link a repository to create branches from issues and move issues as pull requests are opened and
-  merged.
+  {m.settings_page_github_desc()}
 </p>
 <GithubSettings
   projectId={data.projectId}

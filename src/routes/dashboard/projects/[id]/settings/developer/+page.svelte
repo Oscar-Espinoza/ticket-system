@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import DeveloperSettings from '@/lib/components/developer/developer-settings.svelte';
   import type { PageProps } from './$types';
 
@@ -6,13 +7,12 @@
 </script>
 
 <svelte:head>
-  <title>GitLab, Bitbucket &amp; Sentry</title>
+  <title>GitLab, Bitbucket &amp; Sentry</title> <!-- i18n-ignore -->
 </svelte:head>
 
-<h1 class="text-xl font-medium">GitLab, Bitbucket &amp; Sentry</h1>
+<h1 class="text-xl font-medium">GitLab, Bitbucket &amp; Sentry</h1> <!-- i18n-ignore -->
 <p class="mt-1 mb-8 text-sm text-muted-foreground">
-  Connect other code hosts and error tracking. Pull and merge requests link to issues the same way
-  GitHub&apos;s do — by the issue ID in the branch name or title, or magic words like “Fixes”.
+  {m.settings_page_developer_desc()}
 </p>
 <DeveloperSettings
   projectId={data.projectId}

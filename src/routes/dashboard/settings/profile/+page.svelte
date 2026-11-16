@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import CircleCheckIcon from '@lucide/svelte/icons/circle-check';
   import ResendVerificationButton from '@/lib/components/auth/resend-verification-button.svelte';
   import PasswordForm from '@/lib/components/settings/password-form.svelte';
@@ -11,11 +12,11 @@
 </script>
 
 <svelte:head>
-  <title>Profile · Ticket System</title>
+  <title>{m.settings_page_profile_title()}</title>
 </svelte:head>
 
-<h1 class="text-xl font-medium">Profile</h1>
-<p class="mt-1 mb-8 text-sm text-muted-foreground">How you appear to teammates across every project.</p>
+<h1 class="text-xl font-medium">{m.settings_page_profile()}</h1>
+<p class="mt-1 mb-8 text-sm text-muted-foreground">{m.settings_page_profile_desc()}</p>
 
 <ProfileForm
   email={data.profile.email}
@@ -33,29 +34,28 @@
 
 <Separator class="my-10" />
 
-<h2 class="text-base font-medium">Email verification</h2>
+<h2 class="text-base font-medium">{m.settings_page_email_verification()}</h2>
 {#if data.emailVerified}
   <p class="mt-2 flex items-center gap-1.5 text-sm text-muted-foreground" data-email-verified>
     <CircleCheckIcon class="size-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
-    {data.profile.email} is verified.
+    {m.settings_page_email_verified({ email: data.profile.email })}
   </p>
 {:else if data.verificationAvailable}
   <p class="mt-2 mb-3 text-sm text-muted-foreground">
-    {data.profile.email} isn’t verified yet. Verify it to sign in with Google or GitHub using this address.
+    {m.settings_page_email_unverified({ email: data.profile.email })}
   </p>
   <ResendVerificationButton email={data.profile.email} />
 {:else}
   <p class="mt-2 text-sm text-muted-foreground">
-    {data.profile.email} isn’t verified, and this server doesn’t send email. To sign in with Google or GitHub using
-    this address, ask your admin to verify it.
+    {m.settings_page_email_unverified_no_mail({ email: data.profile.email })}
   </p>
 {/if}
 
 <Separator class="my-10" />
 
-<h2 class="text-base font-medium">Password</h2>
+<h2 class="text-base font-medium">{m.settings_sec_password()}</h2>
 {#if data.hasPassword}
   <PasswordForm />
 {:else}
-  <p class="mt-2 text-sm text-muted-foreground">You sign in with GitHub, Google or single sign-on, so there is no password to change.</p>
+  <p class="mt-2 text-sm text-muted-foreground">{m.settings_page_no_password()}</p>
 {/if}

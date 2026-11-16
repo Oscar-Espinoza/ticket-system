@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import NotificationPrefsForm from '@/lib/components/inbox/notification-prefs-form.svelte';
   import PushSettings from '@/lib/components/pwa/push-settings.svelte';
   import type { PageProps } from './$types';
@@ -7,12 +8,12 @@
 </script>
 
 <svelte:head>
-  <title>Notifications · Ticket System</title>
+  <title>{m.settings_page_notifications_title()}</title>
 </svelte:head>
 
-<h1 class="text-xl font-medium">Notifications</h1>
+<h1 class="text-xl font-medium">{m.settings_page_notifications()}</h1>
 <p class="mt-1 mb-8 text-sm text-muted-foreground">
-  Choose what lands in your inbox and how else it reaches you.
+  {m.settings_page_notifications_desc()}
 </p>
 <NotificationPrefsForm
   email={data.email}
