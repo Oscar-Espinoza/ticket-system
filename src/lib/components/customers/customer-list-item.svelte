@@ -83,7 +83,9 @@
         <span
           role="cell"
           class="hidden w-6 md:block"
-          title={customer.owner ? `Owner: ${customer.owner.name}` : 'No owner'}
+          title={customer.owner
+            ? m.auth_customers_owner_aria({ name: customer.owner.name })
+            : m.auth_customers_no_owner()}
         >
           {#if customer.owner}
             <Avatar name={customer.owner.name} src={customer.owner.image} size={20} />

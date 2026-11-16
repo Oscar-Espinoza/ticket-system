@@ -8,6 +8,7 @@
   email a minute per account, so the copy promises no more than that.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
   import MailIcon from '@lucide/svelte/icons/mail';
 
@@ -16,7 +17,7 @@
 
   let {
     email,
-    label = 'Send verification email',
+    label = m.auth_resend_label(),
     variant = 'outline',
     size = 'sm',
     class: className = '',
@@ -40,18 +41,18 @@
     if (!error) {
       status = {
         ok: true,
-        text: `A link is on its way to ${email}. Check your inbox and spam folder; you can ask for a new link once a minute. Open it while signed in to this account.`,
+        text: m.auth_resend_sent({ email }),
       };
     } else if (error.code === 'EMAIL_ALREADY_VERIFIED') {
-      status = { ok: true, text: 'This address is already verified. Reload the page.' };
+      status = { ok: true, text: m.auth_resend_already() };
     } else if (error.status === 401) {
-      status = { ok: false, text: 'You were signed out. Sign in again to send a link.' };
+      status = { ok: false, text: m.auth_resend_signed_out() };
     } else if (error.status === 429) {
-      status = { ok: false, text: 'Too many requests. Wait a minute and try again.' };
+      status = { ok: false, text: m.auth_too_many_requests() };
     } else if (error.code === 'VERIFICATION_EMAIL_NOT_ENABLED') {
-      status = { ok: false, text: 'This server can’t send email. Ask your admin to verify your address.' };
+      status = { ok: false, text: m.auth_resend_not_enabled() };
     } else {
-      status = { ok: false, text: 'Couldn’t send the email. Try again.' };
+      status = { ok: false, text: m.auth_email_send_failed() };
     }
   }
 </script>
@@ -59,7 +60,7 @@
 <div class="flex flex-col gap-2 {className}">
   <Button type="button" {variant} {size} class="self-start" disabled={sending} onclick={send}>
     {#if sending}<Loader2Icon class="animate-spin" />{:else}<MailIcon />{/if}
-    {sending ? 'Sending…' : label}
+    {sending ? m.auth_forgot_sending() : label}
   </Button>
   {#if status}
     <p role="status" class="text-sm {status.ok ? 'text-muted-foreground' : 'text-destructive'}">{status.text}</p>

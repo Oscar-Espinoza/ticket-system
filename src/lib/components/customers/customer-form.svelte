@@ -80,11 +80,11 @@
     const revenueValue = parseAmount(revenue);
     const sizeValue = parseAmount(size);
     if (Number.isNaN(revenueValue)) {
-      error = { message: 'Enter revenue as a number, e.g. 120000 or 120k.', field: 'revenue' };
+      error = { message: m.auth_customers_revenue_format(), field: 'revenue' };
       return;
     }
     if (Number.isNaN(sizeValue)) {
-      error = { message: 'Enter size as a number of employees.', field: 'size' };
+      error = { message: m.auth_customers_size_format(), field: 'size' };
       return;
     }
     const input = {

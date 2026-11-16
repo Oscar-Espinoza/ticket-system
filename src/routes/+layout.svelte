@@ -4,6 +4,7 @@
   src/app.html; Geist / Geist Mono come from src/app.css (@fontsource).
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import '../app.css';
 
   import type { Snippet } from 'svelte';
@@ -29,12 +30,12 @@
     if (data.locale !== document.documentElement.lang) location.reload();
   });
 
-  const description = 'A Linear-style ticket tracker whose status stays in sync with GitHub work.';
+  const description = $derived(m.auth_site_description());
 </script>
 
 <svelte:head>
   <!-- Default title; pages set "<page> · Ticket System". -->
-  <title>Ticket System</title>
+  <title>Ticket System</title> <!-- i18n-ignore -->
   <meta name="description" content={description} />
   <meta property="og:title" content="Ticket System" />
   <meta property="og:description" content={description} />

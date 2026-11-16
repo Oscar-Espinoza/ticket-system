@@ -31,6 +31,7 @@
   cases we must not also navigate.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { untrack } from 'svelte';
   import { goto } from '$app/navigation';
   // lucide 1.17 dropped the `Github` brand icon; GitBranch stands in.
@@ -99,7 +100,7 @@
       errorCallbackURL: authHref('/login', redirectTo),
     });
     if (error) {
-      formError = 'GitHub sign-in failed. Try again or use email and password.';
+      formError = m.auth_login_github_failed();
     }
   }
 
@@ -116,7 +117,7 @@
     emailError = null;
     formError = null;
     if (!email.includes('@')) {
-      emailError = 'Enter your work email.';
+      emailError = m.auth_login_work_email_required();
       return;
     }
     loading = true;
@@ -130,8 +131,8 @@
       loading = false;
       formError =
         error.status === 404
-          ? 'Single sign-on isn’t set up for that email domain. Sign in with your password or GitHub.'
-          : 'Couldn’t start single sign-on. Try again or contact your workspace admin.';
+          ? m.auth_login_sso_not_set_up()
+          : m.auth_login_sso_failed();
     }
   }
 
@@ -142,11 +143,11 @@
     formError = null;
 
     if (!email) {
-      emailError = 'Email is required.';
+      emailError = m.auth_login_email_required();
       return;
     }
     if (!password) {
-      passwordError = 'Password is required.';
+      passwordError = m.auth_login_password_required();
       return;
     }
 
@@ -161,19 +162,18 @@
       loading = false;
       if (error.code === SSO_REQUIRED) {
         mode = 'sso';
-        formError = 'Your workspace requires single sign-on. Continue with SSO below.';
+        formError = m.auth_login_sso_required();
       } else if (error.code === EMAIL_NOT_VERIFIED) {
         // REQUIRE_EMAIL_VERIFICATION is on and the password was right: the
         // server has emailed a fresh link (at most one a minute).
-        formError =
-          'Verify your email address before signing in. We emailed you a link: open it and sign in on the page it opens.';
+        formError = m.auth_login_verify_first();
       } else if (error.status === 401) {
         // Better Auth returns 401 for invalid credentials.
-        formError = 'Invalid email or password.';
+        formError = m.auth_login_invalid();
       } else if (error.status === 429) {
-        formError = 'Too many attempts. Wait a moment and try again.';
+        formError = m.auth_login_too_many();
       } else {
-        formError = 'Something went wrong. Please try again.';
+        formError = m.auth_login_generic();
       }
       return;
     }
@@ -201,12 +201,12 @@
 
 {#snippet emailField()}
   <div class="flex flex-col gap-2">
-    <Label for="email">{mode === 'sso' ? 'Work email' : 'Email'}</Label>
+    <Label for="email">{mode === 'sso' ? m.auth_work_email() : m.auth_email()}</Label>
     <Input
       id="email"
       type="email"
       autocomplete="email"
-      placeholder="you@example.com"
+      placeholder={m.auth_email_placeholder()}
       bind:value={email}
       autofocus={mode === 'sso'}
       aria-invalid={emailError ? true : undefined}
@@ -223,9 +223,9 @@
 
 <Card class="w-full max-w-sm">
   <CardHeader>
-    <CardTitle>Sign in</CardTitle>
+    <CardTitle>{m.auth_login_title()}</CardTitle>
     <CardDescription>
-      {mode === 'sso' ? 'Use your company’s identity provider' : 'Welcome back'}
+      {mode === 'sso' ? m.auth_login_sso_description() : m.auth_login_welcome()}
     </CardDescription>
   </CardHeader>
   <CardContent class="flex flex-col gap-4">
@@ -235,7 +235,7 @@
         {#if formError}<p role="alert" class="text-destructive text-sm">{formError}</p>{/if}
         <Button type="submit" class="w-full" disabled={loading}>
           {#if loading}<Loader2Icon class="animate-spin" />{:else}<KeyRoundIcon />{/if}
-          {loading ? 'Redirecting…' : 'Continue with SSO'}
+          {loading ? m.auth_login_redirecting() : m.auth_continue_sso()}
         </Button>
         <Button
           type="button"
@@ -245,7 +245,7 @@
           onclick={() => switchMode('password')}
         >
           <ArrowLeftIcon />
-          Other sign-in options
+          {m.auth_login_other_options()}
         </Button>
       </form>
     {:else}
@@ -253,19 +253,19 @@
         <div role="alert" data-link-help class="flex flex-col gap-2 rounded-md border px-3 py-3 text-sm">
           <p class="text-destructive">{linkHelp}</p>
           <ol class="flex list-decimal flex-col gap-1.5 pl-5 text-muted-foreground">
-            <li>Sign in below with your email and password.</li>
-            <li>Verify your email from the banner at the top of the dashboard (it emails you a link; open it while signed in).</li>
-            <li>Sign out and continue with Google or GitHub again: it opens the same account.</li>
+            <li>{m.auth_login_help_1()}</li>
+            <li>{m.auth_login_help_2()}</li>
+            <li>{m.auth_login_help_3()}</li>
           </ol>
           {#if passwordResetAvailable}
             <p class="text-xs text-muted-foreground">
-              Never set a password here? Someone may have signed up with your address.
-              <a href="/forgot-password" class="underline underline-offset-4">Reset the password</a> to take the account
-              back: it proves the address is yours, signs everyone else out and removes what they set up.
+              {m.auth_login_help_reset_intro()}
+              <a href="/forgot-password" class="underline underline-offset-4">{m.auth_login_help_reset_link()}</a>
+              {m.auth_login_help_reset_rest()}
             </p>
           {/if}
           <p class="text-xs text-muted-foreground">
-            Using single sign-on? Ask your admin to add an email_verified attribute in the identity provider.
+            {m.auth_login_help_sso()}
           </p>
         </div>
       {/if}
@@ -273,7 +273,7 @@
       {#if githubEnabled}
         <Button type="button" variant="default" class="w-full" onclick={handleGitHubSignIn}>
           <GitBranchIcon />
-          Continue with GitHub
+          {m.auth_continue_github()}
         </Button>
       {/if}
       {#if googleEnabled}
@@ -286,12 +286,12 @@
         onclick={() => switchMode('sso')}
       >
         <KeyRoundIcon />
-        Continue with SSO
+        {m.auth_continue_sso()}
       </Button>
 
       <div class="flex items-center gap-2">
         <Separator class="flex-1" />
-        <span class="text-xs text-muted-foreground">or</span>
+        <span class="text-xs text-muted-foreground">{m.auth_or()}</span>
         <Separator class="flex-1" />
       </div>
 
@@ -300,10 +300,10 @@
 
         <div class="flex flex-col gap-2">
           <div class="flex items-center justify-between gap-2">
-            <Label for="password">Password</Label>
+            <Label for="password">{m.auth_password()}</Label>
             {#if passwordResetAvailable}
               <a href="/forgot-password" class="text-sm text-muted-foreground underline-offset-4 hover:underline">
-                Forgot password?
+                {m.auth_forgot_password()}
               </a>
             {/if}
           </div>
@@ -327,14 +327,14 @@
 
         <Button type="submit" class="w-full" disabled={loading}>
           {#if loading}<Loader2Icon class="animate-spin" />{/if}
-          {loading ? 'Signing in…' : 'Sign in'}
+          {loading ? m.auth_signing_in() : m.auth_sign_in()}
         </Button>
       </form>
     {/if}
 
     <p class="text-center text-sm text-muted-foreground">
-      Don&apos;t have an account?
-      <a href={authHref('/signup', redirectTo)} class="underline underline-offset-4">Sign up</a>
+      {m.auth_login_no_account()}
+      <a href={authHref('/signup', redirectTo)} class="underline underline-offset-4">{m.auth_sign_up()}</a>
     </p>
   </CardContent>
 </Card>

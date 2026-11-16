@@ -70,7 +70,7 @@
         onclick={start}
       >
         <PencilIcon />
-        {notes ? 'Edit' : 'Write notes'}
+        {notes ? m.common_edit() : m.auth_customers_write_notes()}
       </Button>
     {/if}
   </section>

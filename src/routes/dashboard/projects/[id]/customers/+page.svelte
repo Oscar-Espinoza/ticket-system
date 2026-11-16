@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import CustomersList from '@/lib/components/customers/customers-list.svelte';
   import type { PageProps } from './$types';
 
@@ -6,7 +7,7 @@
 </script>
 
 <svelte:head>
-  <title>Customers</title>
+  <title>{m.auth_customers_page_title()}</title>
 </svelte:head>
 
 <CustomersList customers={data.customers} tiers={data.tiers} />

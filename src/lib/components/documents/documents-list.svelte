@@ -22,7 +22,7 @@
 </script>
 
 <script lang="ts">
-  import { formatDate, m } from '@/lib/i18n';
+  import { formatDate } from '@/lib/i18n';
 
   const FULL_DATE = {
     year: 'numeric',
@@ -156,7 +156,7 @@
             {/if}
             <span
               class="hidden w-6 shrink-0 md:block"
-              title={doc.updatedBy ? `Last edited by ${doc.updatedBy.name}` : undefined}
+              title={doc.updatedBy ? m.auth_docs_last_edited_by({ name: doc.updatedBy.name }) : undefined}
             >
               {#if doc.updatedBy}
                 <Avatar name={doc.updatedBy.name} src={doc.updatedBy.image} size={20} />
@@ -177,7 +177,7 @@
                   {...props}
                   variant="ghost"
                   size="icon-sm"
-                  aria-label={`Actions for ${doc.title}`}
+                  aria-label={m.auth_docs_actions_for({ title: doc.title })}
                   class="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 data-[state=open]:opacity-100"
                 >
                   <MoreHorizontal />

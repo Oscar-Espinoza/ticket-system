@@ -28,7 +28,7 @@
           {...props}
           type="button"
           {disabled}
-          aria-label={icon ? 'Change icon' : 'Add icon'}
+          aria-label={icon ? m.auth_docs_change_icon() : m.auth_docs_add_icon()}
           class={cn(
             'flex w-fit items-center gap-1.5 rounded-md text-muted-foreground outline-none transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none',
             icon ? 'size-12 justify-center text-4xl leading-none' : 'h-6 px-1.5 text-xs',

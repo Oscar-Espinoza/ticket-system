@@ -97,7 +97,6 @@
 </script>
 
 <script lang="ts">
-  import { m } from '@/lib/i18n';
   import BellOffIcon from '@lucide/svelte/icons/bell-off';
   import BellRingIcon from '@lucide/svelte/icons/bell-ring';
   import LaptopIcon from '@lucide/svelte/icons/laptop';
@@ -235,11 +234,11 @@
     <p class="font-medium">{m.auth_push_not_configured()}</p>
     <p class="mt-1 text-muted-foreground">
       {m.auth_push_cfg_generate()}
-      <code class="rounded bg-muted px-1 py-0.5 font-mono text-xs">npx web-push generate-vapid-keys</code>
-      {m.auth_push_cfg_set()} <code class="font-mono text-xs">PUBLIC_VAPID_PUBLIC_KEY</code>,
-      <code class="font-mono text-xs">VAPID_PRIVATE_KEY</code> {m.auth_push_cfg_and()}
-      <code class="font-mono text-xs">VAPID_SUBJECT</code> {m.auth_push_cfg_eg()}
-      <code class="font-mono text-xs">mailto:you@example.com</code>{m.auth_push_cfg_redeploy()}
+      <code class="rounded bg-muted px-1 py-0.5 font-mono text-xs">npx web-push generate-vapid-keys</code> <!-- i18n-ignore -->
+      {m.auth_push_cfg_set()} <code class="font-mono text-xs">PUBLIC_VAPID_PUBLIC_KEY</code>, <!-- i18n-ignore -->
+      <code class="font-mono text-xs">VAPID_PRIVATE_KEY</code> {m.auth_push_cfg_and()} <!-- i18n-ignore -->
+      <code class="font-mono text-xs">VAPID_SUBJECT</code> {m.auth_push_cfg_eg()} <!-- i18n-ignore -->
+      <code class="font-mono text-xs">mailto:you@example.com</code>{m.auth_push_cfg_redeploy()} <!-- i18n-ignore -->
     </p>
   </div>
 {:else}
