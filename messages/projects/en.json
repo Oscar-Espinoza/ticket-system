@@ -885,5 +885,52 @@
   "projects_recurring_empty_title": "No recurring issues",
   "projects_recurring_empty_desc": "Create issues on a schedule — weekly reviews, monthly reports, daily checks.",
   "projects_recurring_delete_title": "Delete “{title}”?",
-  "projects_recurring_delete_desc": "No more issues are created from it. Issues it already created stay."
+  "projects_recurring_delete_desc": "No more issues are created from it. Issues it already created stay.",
+  "projects_sla_left": "{duration} left",
+  "projects_sla_overdue": "Overdue by {duration}",
+  "projects_sla_met": "Met",
+  "projects_sla_missed": "Missed",
+  "projects_sla_breached": "Breached",
+  "projects_sla_title_breached": "SLA breached {duration} ago",
+  "projects_sla_title": "SLA: {text}",
+  "projects_sla_label": "SLA: ",
+  "projects_sla_unit_hours": "hours",
+  "projects_sla_unit_days": "days",
+  "projects_sla_error_number": "{priority}: enter a whole number of {unit} (up to 365 days).",
+  "projects_sla_admins_only": "Only admins can change SLAs.",
+  "projects_sla_saved": "SLAs saved",
+  "projects_sla_updated": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Updated {count} open issue",
+        "countPlural=other": "Updated {count} open issues"
+      }
+    }
+  ],
+  "projects_sla_owners_admins_only": "Only project owners and admins can change SLAs.",
+  "projects_sla_targets_by_priority": "Targets by priority",
+  "projects_sla_no_sla": "No SLA",
+  "projects_sla_unit_aria": "{priority} SLA unit",
+  "projects_sla_explain": "The clock starts when an issue is created and restarts when its priority changes. Completing or canceling the issue stops it. Leave a priority empty for no SLA.",
+  "projects_sla_apply_heading": "Apply to open issues",
+  "projects_sla_apply_desc": "New targets only affect new issues and priority changes. Recompute the deadline of every open issue from its creation time — issues already past it are marked breached without notifying anyone.",
+  "projects_sla_save_first": "Save your changes first",
+  "projects_sla_apply_button": "Apply…",
+  "projects_sla_apply_title": "Apply SLAs to open issues?",
+  "projects_sla_apply_confirm_targets": "Every open issue gets a deadline from its priority and creation time. Issues whose priority has no target lose their SLA.",
+  "projects_sla_apply_confirm_none": "No targets are set, so every open issue loses its SLA.",
+  "projects_sla_apply": "Apply",
+  "projects_tis_in_since": "In {state} since {date}",
+  "projects_tis_in_for": "In {state} for {duration}, since {date}. Hover for time in each status.",
+  "projects_tis_since": " · since {date}",
+  "projects_tis_title": "Time in status",
+  "projects_tis_load_failed": "Couldn’t load the history.",
+  "projects_tis_now": " · now"
 }

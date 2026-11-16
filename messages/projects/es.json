@@ -885,5 +885,52 @@
   "projects_recurring_empty_title": "No hay tickets recurrentes",
   "projects_recurring_empty_desc": "Crea tickets de forma programada: revisiones semanales, informes mensuales, comprobaciones diarias.",
   "projects_recurring_delete_title": "¿Eliminar «{title}»?",
-  "projects_recurring_delete_desc": "No se crearán más tickets a partir de él. Los tickets que ya creó se quedan."
+  "projects_recurring_delete_desc": "No se crearán más tickets a partir de él. Los tickets que ya creó se quedan.",
+  "projects_sla_left": "Quedan {duration}",
+  "projects_sla_overdue": "Retraso de {duration}",
+  "projects_sla_met": "Cumplido",
+  "projects_sla_missed": "Incumplido",
+  "projects_sla_breached": "Incumplido",
+  "projects_sla_title_breached": "SLA incumplido hace {duration}",
+  "projects_sla_title": "SLA: {text}",
+  "projects_sla_label": "SLA: ",
+  "projects_sla_unit_hours": "horas",
+  "projects_sla_unit_days": "días",
+  "projects_sla_error_number": "{priority}: introduce un número entero de {unit} (hasta 365 días).",
+  "projects_sla_admins_only": "Solo los administradores pueden cambiar los SLA.",
+  "projects_sla_saved": "SLA guardados",
+  "projects_sla_updated": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} ticket abierto actualizado",
+        "countPlural=other": "{count} tickets abiertos actualizados"
+      }
+    }
+  ],
+  "projects_sla_owners_admins_only": "Solo los propietarios y administradores del proyecto pueden cambiar los SLA.",
+  "projects_sla_targets_by_priority": "Objetivos por prioridad",
+  "projects_sla_no_sla": "Sin SLA",
+  "projects_sla_unit_aria": "Unidad del SLA de prioridad {priority}",
+  "projects_sla_explain": "El reloj empieza cuando se crea un ticket y se reinicia cuando cambia su prioridad. Completar o cancelar el ticket lo detiene. Deja una prioridad vacía para no aplicar SLA.",
+  "projects_sla_apply_heading": "Aplicar a los tickets abiertos",
+  "projects_sla_apply_desc": "Los objetivos nuevos solo afectan a los tickets nuevos y a los cambios de prioridad. Recalcula el plazo de cada ticket abierto desde su creación: los que ya lo superaron se marcan como incumplidos sin avisar a nadie.",
+  "projects_sla_save_first": "Guarda tus cambios primero",
+  "projects_sla_apply_button": "Aplicar…",
+  "projects_sla_apply_title": "¿Aplicar los SLA a los tickets abiertos?",
+  "projects_sla_apply_confirm_targets": "Cada ticket abierto recibe un plazo según su prioridad y su fecha de creación. Los tickets cuya prioridad no tiene objetivo pierden su SLA.",
+  "projects_sla_apply_confirm_none": "No hay objetivos definidos, así que todos los tickets abiertos pierden su SLA.",
+  "projects_sla_apply": "Aplicar",
+  "projects_tis_in_since": "En {state} desde el {date}",
+  "projects_tis_in_for": "En {state} durante {duration}, desde el {date}. Pasa el cursor para ver el tiempo en cada estado.",
+  "projects_tis_since": " · desde el {date}",
+  "projects_tis_title": "Tiempo en cada estado",
+  "projects_tis_load_failed": "No se pudo cargar el historial.",
+  "projects_tis_now": " · ahora"
 }

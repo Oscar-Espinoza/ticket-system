@@ -8,6 +8,8 @@
     import SlaChip, { SLA_TONE, slaText } from '@/lib/components/sla/sla-chip.svelte';
 -->
 <script module lang="ts">
+  import { m } from '@/lib/i18n';
+
   import { formatDuration, type SlaKind, type SlaStatus } from '@/lib/sla';
 
   export const SLA_TONE: Record<SlaKind, string> = {
@@ -23,13 +25,13 @@
     switch (status.kind) {
       case 'ok':
       case 'risk':
-        return `${formatDuration(status.remaining)} left`;
+        return m.projects_sla_left({ duration: formatDuration(status.remaining) });
       case 'breached':
-        return `Overdue by ${formatDuration(status.remaining)}`;
+        return m.projects_sla_overdue({ duration: formatDuration(status.remaining) });
       case 'met':
-        return 'Met';
+        return m.projects_sla_met();
       case 'missed':
-        return 'Missed';
+        return m.projects_sla_missed();
     }
   }
 </script>
@@ -55,13 +57,19 @@
   });
   const breached = $derived(status?.kind === 'breached');
   const text = $derived(
-    status ? (breached ? 'Breached' : `${formatDuration(status.remaining, true)} left`) : '',
+    status
+      ? breached
+        ? m.projects_sla_breached()
+        : m.projects_sla_left({ duration: formatDuration(status.remaining, true) })
+      : '',
   );
 </script>
 
 {#if status}
   <span
-    title={breached ? `SLA breached ${formatDuration(status.remaining)} ago` : `SLA: ${text}`}
+    title={breached
+      ? m.projects_sla_title_breached({ duration: formatDuration(status.remaining) })
+      : m.projects_sla_title({ text })}
     class={cn(
       'inline-flex h-5 shrink-0 items-center gap-1 rounded border border-border px-1.5 text-xs tabular-nums',
       SLA_TONE[status.kind],
@@ -71,7 +79,7 @@
     )}
   >
     <TimerIcon class="size-3" aria-hidden="true" />
-    <span class="sr-only">SLA: </span>
+    <span class="sr-only">{m.projects_sla_label()}</span>
     {text}
   </span>
 {/if}

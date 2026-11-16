@@ -3,6 +3,7 @@
   to re-apply the saved policy to issues that are already open.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import LoaderCircleIcon from '@lucide/svelte/icons/loader-circle';
   import { untrack } from 'svelte';
   import { toast } from 'svelte-sonner';
@@ -34,8 +35,8 @@
   let { projectId, initial, canEdit }: { projectId: string; initial: SlaPolicy; canEdit: boolean } = $props();
 
   const UNIT_ITEMS = [
-    { value: 'hours', label: 'hours' },
-    { value: 'days', label: 'days' },
+    { value: 'hours', label: m.projects_sla_unit_hours() },
+    { value: 'days', label: m.projects_sla_unit_days() },
   ];
 
   function toRows(policy: SlaPolicy): Rows {
@@ -62,7 +63,10 @@
       const hours = unit === 'days' ? value * 24 : value;
       if (!Number.isInteger(value) || hours < 1 || hours > SLA_MAX_HOURS) {
         return {
-          error: `${PRIORITY_LABEL[priority]}: enter a whole number of ${unit} (up to 365 days).`,
+          error: m.projects_sla_error_number({
+            priority: PRIORITY_LABEL[priority],
+            unit: unit === 'days' ? m.projects_sla_unit_days() : m.projects_sla_unit_hours(),
+          }),
         };
       }
       policy[priority] = hours;
@@ -98,11 +102,11 @@
     try {
       const result = await updateSlaPolicy({ projectId, policy: current.policy });
       if (!result.ok) {
-        toast.error(actionErrorText(result.error, 'Only admins can change SLAs.'));
+        toast.error(actionErrorText(result.error, m.projects_sla_admins_only()));
         return;
       }
       saved = result.policy;
-      toast.success('SLAs saved');
+      toast.success(m.projects_sla_saved());
     } finally {
       pending = false;
     }
@@ -113,10 +117,10 @@
     try {
       const result = await applySlaPolicyToOpenIssues({ projectId });
       if (!result.ok) {
-        toast.error(actionErrorText(result.error, 'Only admins can change SLAs.'));
+        toast.error(actionErrorText(result.error, m.projects_sla_admins_only()));
         return;
       }
-      toast.success(`Updated ${result.updated} open ${result.updated === 1 ? 'issue' : 'issues'}`);
+      toast.success(m.projects_sla_updated({ count: result.updated }));
     } finally {
       pending = false;
     }
@@ -126,13 +130,13 @@
 <div class="flex flex-col gap-6">
   {#if !canEdit}
     <p class="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
-      Only project owners and admins can change SLAs.
+      {m.projects_sla_owners_admins_only()}
     </p>
   {/if}
 
   <form onsubmit={save} class="flex flex-col gap-5">
     <fieldset {disabled} class="flex flex-col gap-1">
-      <legend class="mb-2 text-sm font-medium">Targets by priority</legend>
+      <legend class="mb-2 text-sm font-medium">{m.projects_sla_targets_by_priority()}</legend>
       <ul class="flex flex-col divide-y divide-border rounded-lg border border-border">
         {#each SLA_PRIORITIES as priority (priority)}
           {@const id = `sla-${priority}`}
@@ -147,7 +151,7 @@
               inputmode="numeric"
               min={1}
               step={1}
-              placeholder="No SLA"
+              placeholder={m.projects_sla_no_sla()}
               value={rows[priority].amount}
               oninput={(e) => set(priority, { amount: e.currentTarget.value })}
               class="h-8 w-24 tabular-nums"
@@ -158,27 +162,26 @@
               {disabled}
               items={UNIT_ITEMS}
             >
-              <SelectTrigger class="w-24" aria-label={`${PRIORITY_LABEL[priority]} SLA unit`}>
+              <SelectTrigger class="w-24" aria-label={m.projects_sla_unit_aria({ priority: PRIORITY_LABEL[priority] })}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="hours">hours</SelectItem>
-                <SelectItem value="days">days</SelectItem>
+                <SelectItem value="hours">{m.projects_sla_unit_hours()}</SelectItem>
+                <SelectItem value="days">{m.projects_sla_unit_days()}</SelectItem>
               </SelectContent>
             </Select>
           </li>
         {/each}
       </ul>
       <p class="mt-1 text-xs text-muted-foreground">
-        The clock starts when an issue is created and restarts when its priority changes.
-        Completing or canceling the issue stops it. Leave a priority empty for no SLA.
+        {m.projects_sla_explain()}
       </p>
     </fieldset>
     {#if canEdit}
       <div>
         <Button type="submit" disabled={pending || !dirty}>
           {#if pending}<LoaderCircleIcon class="animate-spin" />{/if}
-          Save changes
+          {m.common_save_changes()}
         </Button>
       </div>
     {/if}
@@ -188,21 +191,19 @@
     <Separator />
     <section class="flex items-start justify-between gap-6">
       <div class="flex flex-col gap-0.5">
-        <h2 class="text-sm font-medium">Apply to open issues</h2>
+        <h2 class="text-sm font-medium">{m.projects_sla_apply_heading()}</h2>
         <p class="text-xs text-muted-foreground">
-          New targets only affect new issues and priority changes. Recompute the deadline of
-          every open issue from its creation time — issues already past it are marked
-          breached without notifying anyone.
+          {m.projects_sla_apply_desc()}
         </p>
       </div>
       <Button
         variant="outline"
         size="sm"
         disabled={pending || dirty}
-        title={dirty ? 'Save your changes first' : undefined}
+        title={dirty ? m.projects_sla_save_first() : undefined}
         onclick={() => (confirming = true)}
       >
-        Apply…
+        {m.projects_sla_apply_button()}
       </Button>
     </section>
   {/if}
@@ -210,22 +211,20 @@
   <AlertDialog open={confirming} onOpenChange={(open: boolean) => (confirming = open)}>
     <AlertDialogContent size="sm">
       <AlertDialogHeader>
-        <AlertDialogTitle>Apply SLAs to open issues?</AlertDialogTitle>
+        <AlertDialogTitle>{m.projects_sla_apply_title()}</AlertDialogTitle>
         <AlertDialogDescription>
-          {hasTargets
-            ? 'Every open issue gets a deadline from its priority and creation time. Issues whose priority has no target lose their SLA.'
-            : 'No targets are set, so every open issue loses its SLA.'}
+          {hasTargets ? m.projects_sla_apply_confirm_targets() : m.projects_sla_apply_confirm_none()}
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>
-        <AlertDialogCancel>Cancel</AlertDialogCancel>
+        <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
         <AlertDialogAction
           onclick={() => {
             confirming = false;
             void apply();
           }}
         >
-          Apply
+          {m.projects_sla_apply()}
         </AlertDialogAction>
       </AlertDialogFooter>
     </AlertDialogContent>

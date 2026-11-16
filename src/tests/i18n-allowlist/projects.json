@@ -1,8 +1,5 @@
 {
   "files": {
-    "src/lib/components/sla/sla-chip.svelte": "pending translation (area projects, 1 strings)",
-    "src/lib/components/sla/sla-settings-form.svelte": "pending translation (area projects, 4 strings)",
-    "src/lib/components/sla/time-in-status.svelte": "pending translation (area projects, 1 strings)",
     "src/lib/components/workspaces/accept-workspace-invite.svelte": "pending translation (area projects, 1 strings)",
     "src/lib/components/workspaces/create-workspace-dialog.svelte": "pending translation (area projects, 4 strings)",
     "src/lib/components/workspaces/create-workspace-trigger.svelte": "pending translation (area projects, 2 strings)",
