@@ -3,6 +3,7 @@
 </script>
 
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { StateIcon } from '@/lib/components/ui-icons';
   import {
     Select,
@@ -34,9 +35,11 @@
   const items = $derived([
     {
       value: DEFAULT_VALUE,
-      label: fallback ? `${fallback.name} (default)` : 'Default (no matching state)',
+      label: fallback
+        ? m.settings_github_default_state({ name: fallback.name })
+        : m.settings_github_default_no_match(),
     },
-    { value: AUTOMATION_OFF, label: 'No action' },
+    { value: AUTOMATION_OFF, label: m.settings_github_no_action() },
     ...states.map((state) => ({ value: state.id, label: state.name })),
   ]);
   const selectedState = $derived(states.find((state) => state.id === value));
@@ -45,9 +48,9 @@
 {#snippet defaultItem()}
   {#if fallback}
     <StateIcon state={fallback} size={14} />
-    {fallback.name} <span class="text-muted-foreground">(default)</span>
+    {fallback.name} <span class="text-muted-foreground">{m.settings_github_default_suffix()}</span>
   {:else}
-    Default (no matching state)
+    {m.settings_github_default_no_match()}
   {/if}
 {/snippet}
 
@@ -57,7 +60,7 @@
       {#if value === DEFAULT_VALUE}
         {@render defaultItem()}
       {:else if value === AUTOMATION_OFF}
-        No action
+        {m.settings_github_no_action()}
       {:else if selectedState}
         <StateIcon state={selectedState} size={14} />
         {selectedState.name}
@@ -68,7 +71,7 @@
     <SelectItem value={DEFAULT_VALUE}>
       {@render defaultItem()}
     </SelectItem>
-    <SelectItem value={AUTOMATION_OFF}>No action</SelectItem>
+    <SelectItem value={AUTOMATION_OFF}>{m.settings_github_no_action()}</SelectItem>
     <SelectSeparator />
     {#each states as state (state.id)}
       <SelectItem value={state.id}>

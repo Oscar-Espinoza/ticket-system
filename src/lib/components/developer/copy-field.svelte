@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import CheckIcon from '@lucide/svelte/icons/check';
   import CopyIcon from '@lucide/svelte/icons/copy';
   import { toast } from 'svelte-sonner';
@@ -15,7 +16,7 @@
         copied = true;
         setTimeout(() => (copied = false), 1500);
       },
-      () => toast.error("Couldn't copy to the clipboard"),
+      () => toast.error(m.settings_dev_copy_failed()),
     );
 </script>
 
@@ -32,7 +33,7 @@
     variant="outline"
     size="icon"
     onclick={copy}
-    aria-label="Copy {label.toLowerCase()}"
+    aria-label={m.settings_dev_copy_label({ label: label.toLowerCase() })}
   >
     {#if copied}<CheckIcon class="text-emerald-500" />{:else}<CopyIcon />{/if}
   </Button>

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
   import UnplugIcon from '@lucide/svelte/icons/unplug';
 
@@ -35,18 +36,18 @@
     {#snippet child({ props })}
       <Button {...props} variant="ghost" size="sm" {disabled}>
         {#if pending}<Loader2Icon class="animate-spin" />{:else}<UnplugIcon />{/if}
-        Disconnect
+        {m.settings_dev_disconnect()}
       </Button>
     {/snippet}
   </AlertDialogTrigger>
   <AlertDialogContent>
     <AlertDialogHeader>
-      <AlertDialogTitle>Disconnect {name}?</AlertDialogTitle>
+      <AlertDialogTitle>{m.settings_dev_disconnect_title({ name })}</AlertDialogTitle>
       <AlertDialogDescription>{description}</AlertDialogDescription>
     </AlertDialogHeader>
     <AlertDialogFooter>
-      <AlertDialogCancel>Cancel</AlertDialogCancel>
-      <AlertDialogAction variant="destructive" onclick={onConfirm}>Disconnect</AlertDialogAction>
+      <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
+      <AlertDialogAction variant="destructive" onclick={onConfirm}>{m.settings_dev_disconnect()}</AlertDialogAction>
     </AlertDialogFooter>
   </AlertDialogContent>
 </AlertDialog>

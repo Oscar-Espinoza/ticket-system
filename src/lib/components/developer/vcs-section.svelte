@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import ExternalLinkIcon from '@lucide/svelte/icons/external-link';
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
   import WebhookIcon from '@lucide/svelte/icons/webhook';
@@ -37,7 +38,7 @@
   function toastConnect(result: VcsConnectResult, success: string) {
     if (!result.ok) toast.error(result.error);
     else if (result.webhook === 'registered') toast.success(success);
-    else toast.warning(result.warning ?? 'Webhook not registered.');
+    else toast.warning(result.warning ?? m.settings_dev_webhook_not_registered());
   }
 
   async function run(kind: 'webhook' | 'disconnect', fn: () => Promise<void>) {
@@ -53,7 +54,7 @@
 
   const reRegister = () =>
     run('webhook', async () => {
-      toastConnect(await registerIntegrationWebhook({ projectId, provider }), 'Webhook registered');
+      toastConnect(await registerIntegrationWebhook({ projectId, provider }), m.settings_dev_webhook_registered_toast());
     });
 
   const disconnect = () =>
@@ -61,7 +62,7 @@
       const result = await disconnectIntegration({ projectId, provider });
       if (!result.ok) toast.error(result.error);
       else if (result.warning) toast.warning(result.warning);
-      else toast.success(`${copy.name} disconnected`);
+      else toast.success(m.settings_dev_disconnected_toast({ name: copy.name }));
     });
 </script>
 
@@ -70,11 +71,10 @@
 {/snippet}
 
 {#snippet headingDescription()}
-  {copy.description} Issues move with the{' '}
-  <a href={projectHref(projectId, 'settings/github')} class="underline underline-offset-2">
-    pull request automation
-  </a>{' '}
-  states from the GitHub settings.
+  {@const parts = m.settings_dev_vcs_automation_desc({ description: copy.description, link: '\u0000' }).split('\u0000')}
+  {parts[0]}<a href={projectHref(projectId, 'settings/github')} class="underline underline-offset-2">
+    {m.settings_dev_vcs_automation_link()}
+  </a>{parts[1]}
 {/snippet}
 
 <section class="flex flex-col gap-4" aria-label={copy.name}>
@@ -99,7 +99,7 @@
         {/if}
         {#if integration.connectedByName}
           <span class="ml-auto shrink-0 text-xs text-muted-foreground">
-            Connected by {integration.connectedByName}
+            {m.settings_dev_connected_by({ name: integration.connectedByName })}
           </span>
         {/if}
       </div>
@@ -108,12 +108,14 @@
         {#if integration.webhookRegistered}
           <span class="flex items-center gap-1.5">
             <span class="size-1.5 rounded-full bg-emerald-500" aria-hidden="true"></span>
-            Webhook active
+            {m.settings_dev_webhook_active()}
           </span>
         {:else}
           <span class="flex items-center gap-1.5 text-muted-foreground">
             <span class="size-1.5 rounded-full bg-amber-500" aria-hidden="true"></span>
-            Webhook not registered — {copy.pr} won&apos;t update issues.
+            {provider === 'gitlab'
+              ? m.settings_dev_webhook_not_registered_gitlab()
+              : m.settings_dev_webhook_not_registered_bitbucket()}
           </span>
         {/if}
       </div>
@@ -121,11 +123,15 @@
         <div class="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onclick={reRegister} disabled={pending}>
             {#if pending && action === 'webhook'}<Loader2Icon class="animate-spin" />{/if}
-            {integration.webhookRegistered ? 'Re-register webhook' : 'Register webhook'}
+            {integration.webhookRegistered
+              ? m.settings_dev_reregister_webhook()
+              : m.settings_dev_register_webhook()}
           </Button>
           <DisconnectButton
             name={integration.repo}
-            description={`The webhook is removed from ${copy.name} and ${copy.pr} stop updating issues. Existing links on issues are kept.`}
+            description={provider === 'gitlab'
+              ? m.settings_dev_vcs_disconnect_desc_gitlab()
+              : m.settings_dev_vcs_disconnect_desc_bitbucket()}
             disabled={pending}
             pending={pending && action === 'disconnect'}
             onConfirm={disconnect}
@@ -136,6 +142,6 @@
   {:else if canEdit}
     <VcsConnectForm {provider} {projectId} />
   {:else}
-    <p class="text-sm text-muted-foreground">Not connected.</p>
+    <p class="text-sm text-muted-foreground">{m.settings_dev_not_connected()}</p>
   {/if}
 </section>

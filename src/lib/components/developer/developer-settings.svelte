@@ -5,6 +5,7 @@
   re-check the role server-side.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import Callout from '@/lib/components/settings/callout.svelte';
   import { Separator } from '@/lib/components/ui/separator';
   import SentrySection from './sentry-section.svelte';
@@ -19,17 +20,13 @@
     <p
       class="mb-6 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground"
     >
-      Only project owners and admins can change these connections.
+      {m.settings_dev_owners_only()}
     </p>
   {/if}
   {#if props.webhookUnreachable}
     <div class="mb-6">
       <Callout tone="warning">
-        Webhooks can&apos;t reach <span class="font-mono text-xs">{props.webhookBase}</span>.
-        Connections still save, but automation needs a public URL — set
-        <span class="font-mono text-xs">PUBLIC_APP_URL</span> (or
-        <span class="font-mono text-xs">GITHUB_WEBHOOK_BASE_URL</span> for a tunnel) and register the
-        webhooks again.
+        {m.settings_dev_webhook_unreachable({ url: props.webhookBase })}
       </Callout>
     </div>
   {/if}

@@ -4,6 +4,7 @@
   re-check the role server-side.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { Separator } from '@/lib/components/ui/separator';
   import GithubAccountSection from './github-account-section.svelte';
   import GithubAutomationSection from './github-automation-section.svelte';
@@ -20,7 +21,7 @@
     <p
       class="mb-6 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground"
     >
-      Only project owners and admins can change the GitHub connection.
+      {m.settings_github_owners_only()}
     </p>
   {/if}
   <GithubAccountSection
