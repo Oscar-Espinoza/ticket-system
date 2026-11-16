@@ -4,6 +4,7 @@
   workspace's teams; people's own projects outside the workspace are unaffected.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { untrack } from 'svelte';
   import { toast } from 'svelte-sonner';
 
@@ -22,7 +23,7 @@
     try {
       const result = await setAiConnectorsAllowed({ workspaceId, allowed: next });
       if (result.ok) {
-        toast.success(next ? 'AI assistant connectors allowed' : 'AI assistant connectors blocked');
+        toast.success(next ? m.settings_sec_ai_allowed_toast() : m.settings_sec_ai_blocked_toast());
       } else {
         allowed = !next;
         toast.error(result.error);
@@ -36,15 +37,13 @@
 <div class="flex items-start justify-between gap-6 rounded-lg border border-border px-4 py-3">
   <div>
     <Label for="ai-connectors" class="text-sm font-medium">
-      AI assistant connectors: {allowed ? 'allowed' : 'blocked'}
+      {allowed ? m.settings_sec_ai_allowed_label() : m.settings_sec_ai_blocked_label()}
     </Label>
     <p class="mt-0.5 text-sm text-muted-foreground">
       {#if allowed}
-        Members can connect Claude, ChatGPT or other AI assistants (MCP) and let them read and update
-        this workspace’s issues on their behalf.
+        {m.settings_sec_ai_allowed_desc()}
       {:else}
-        AI assistants connected by members can’t see or change anything in this workspace. Members’
-        projects outside it are not affected.
+        {m.settings_sec_ai_blocked_desc()}
       {/if}
     </p>
   </div>
