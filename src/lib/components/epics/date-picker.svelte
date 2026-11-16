@@ -1,5 +1,6 @@
 <!-- A calendar in a popover, with "Clear" when a date is set. -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import XIcon from '@lucide/svelte/icons/x';
 
   import { PickerPopover, type PickerPopoverProps } from '@/lib/components/issue-pickers';
@@ -9,7 +10,7 @@
   let {
     value,
     onChange,
-    clearLabel = 'Clear date',
+    clearLabel = m.shared_clear_date(),
     open = $bindable(),
     ...popover
   }: PickerPopoverProps & {

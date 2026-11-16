@@ -13,6 +13,7 @@
 </script>
 
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import CalendarDaysIcon from '@lucide/svelte/icons/calendar-days';
   import XIcon from '@lucide/svelte/icons/x';
 
@@ -20,7 +21,7 @@
   import { Command, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from '@/lib/components/ui/command';
   import { formatDueDate, fromDateString } from '@/lib/dates';
 
-  let { value, onSelect, placeholder = 'Set due date…', removeLabel = 'Remove due date' }: DueDateOptionsProps =
+  let { value, onSelect, placeholder = m.shared_set_due_date(), removeLabel = m.shared_remove_due_date() }: DueDateOptionsProps =
     $props();
 
   const selected = $derived(value ? fromDateString(value) : undefined);

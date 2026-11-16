@@ -348,7 +348,7 @@ function imageUpload(runtime: RuntimeRef) {
               const files = imageFiles(event.clipboardData?.files);
               if (files.length === 0) return false;
               if (!runtime.current.upload) {
-                runtime.current.notify("Images can't be added here.");
+                runtime.current.notify(m.shared_editor_no_images());
                 return true;
               }
               startUploads(editor, runtime.current, files, view.state.selection.from);
@@ -360,7 +360,7 @@ function imageUpload(runtime: RuntimeRef) {
               if (files.length === 0) return false;
               event.preventDefault();
               if (!runtime.current.upload) {
-                runtime.current.notify("Images can't be added here.");
+                runtime.current.notify(m.shared_editor_no_images());
                 return true;
               }
               const at = view.posAtCoords({ left: event.clientX, top: event.clientY });

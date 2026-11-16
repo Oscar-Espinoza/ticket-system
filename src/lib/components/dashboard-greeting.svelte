@@ -5,10 +5,12 @@
   computes the local hour.
 -->
 <script module lang="ts">
+  import { m } from '@/lib/i18n';
+
   function timeOfDay(hour: number): string {
-    if (hour < 12) return 'morning';
-    if (hour < 18) return 'afternoon';
-    return 'evening';
+    if (hour < 12) return m.shared_greeting_morning();
+    if (hour < 18) return m.shared_greeting_afternoon();
+    return m.shared_greeting_evening();
   }
 </script>
 
@@ -26,9 +28,9 @@
   });
 
   const firstName = $derived(name?.trim().split(/\s+/)[0]);
-  const greeting = $derived(period ? `Good ${period}` : 'Welcome back');
+  const greeting = $derived(period ?? m.shared_greeting_welcome());
 </script>
 
 <h2 class="text-xl font-medium">
-  {firstName ? `${greeting}, ${firstName}` : greeting}
+  {firstName ? m.shared_greeting_named({ greeting, name: firstName }) : greeting}
 </h2>

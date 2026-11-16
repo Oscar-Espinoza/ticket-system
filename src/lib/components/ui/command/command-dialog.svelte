@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import type { ComponentProps, Snippet } from "svelte"
   import { cn } from "@/lib/utils"
   import {
@@ -11,7 +12,7 @@
 
   let {
     open = $bindable(),
-    title = "Command Palette",
+    title = m.shared_command_palette(),
     description = "Search for a command to run...",
     children,
     class: className,

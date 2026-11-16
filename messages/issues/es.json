@@ -95,7 +95,7 @@
   "issues_parent_remove": "Quitar ticket padre",
   "issues_parent_set": "Definir ticket padre",
   "issues_parent_change": "Cambiar ticket padre",
-  "issues_parent": "Padre",
+  "issues_parent": "Ticket principal",
   "issues_parent_open": "Abrir {key}",
   "issues_parent_archived": "Ticket archivado",
   "issues_sla": "SLA",

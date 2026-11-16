@@ -50,6 +50,8 @@ function svelteFiles(dir: string, out: string[] = []): string[] {
   return out;
 }
 
+const blank = (s: string) => s.replace(/[^\n]/g, ' ');
+
 /** Replaces `{ ... }` expressions (nested braces, strings) with spaces, keeping line breaks. */
 function blankExpressions(source: string): string {
   let out = '';
@@ -71,6 +73,19 @@ function blankExpressions(source: string): string {
         continue;
       }
       if (c === quote) quote = null;
+    } else if (c === '/' && source[i + 1] === '/') {
+      // A line comment inside an expression: its apostrophes aren't quotes.
+      const end = source.indexOf('\n', i);
+      const stop = end === -1 ? source.length : end;
+      out += ' '.repeat(stop - i);
+      i = stop - 1;
+      continue;
+    } else if (c === '/' && source[i + 1] === '*') {
+      const end = source.indexOf('*/', i + 2);
+      const stop = end === -1 ? source.length : end + 2;
+      out += blank(source.slice(i, stop));
+      i = stop - 1;
+      continue;
     } else if (c === '"' || c === "'" || c === '`') quote = c;
     else if (c === '{') depth++;
     else if (c === '}') depth--;
@@ -79,7 +94,6 @@ function blankExpressions(source: string): string {
   return out;
 }
 
-const blank = (s: string) => s.replace(/[^\n]/g, ' ');
 
 const WORD = /[A-Za-z]{2,}/;
 const TEXT_ATTRS = /\s(?:placeholder|aria-label|aria-description|title|alt|label)=(?:"([^"]*)"|'([^']*)')/g;
