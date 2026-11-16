@@ -84,7 +84,7 @@
         key: 'v',
         shift: true,
         scope: 'Issues',
-        description: 'Display options',
+        description: m.common_hotkey_display_options(),
         handler: () => {
           open = !open;
         },

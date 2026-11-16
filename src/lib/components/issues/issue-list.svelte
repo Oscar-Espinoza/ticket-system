@@ -4,6 +4,7 @@
   GroupIcon is group-icon.svelte next to this file.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { DragDropManager } from '@dnd-kit/dom';
   import { DragDropProvider, DragOverlay, PointerSensor } from '@dnd-kit/svelte';
   import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
@@ -144,12 +145,12 @@
 
   $effect(() =>
     registerHotkeys([
-      { key: 'j', scope: 'Issues', description: 'Next issue', handler: () => move(1) },
-      { key: 'k', scope: 'Issues', description: 'Previous issue', handler: () => move(-1) },
+      { key: 'j', scope: 'Issues', description: m.editor_hotkey_next_issue(), handler: () => move(1) },
+      { key: 'k', scope: 'Issues', description: m.editor_hotkey_prev_issue(), handler: () => move(-1) },
       {
         key: 's',
         scope: 'Issues',
-        description: 'Change status of focused issue',
+        description: m.common_hotkey_change_status(),
         handler: () => openStatusMenu(),
       },
     ]),
@@ -163,7 +164,7 @@
       {
         key: 'Enter',
         scope: 'Issues',
-        description: 'Open focused issue',
+        description: m.common_hotkey_open_focused(),
         when: (event) => event.target instanceof HTMLElement && event.target.hasAttribute(ISSUE_ROW_ATTR),
         handler: () => openFocused(),
       },

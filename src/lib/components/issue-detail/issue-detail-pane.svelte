@@ -8,6 +8,7 @@
 </script>
 
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import type { IssueMutations } from '@/lib/components/issues/use-issue-mutations.svelte';
   import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/lib/components/ui/sheet';
   import { registerHotkeys } from '@/lib/svelte/hotkeys.svelte';
@@ -32,7 +33,7 @@
   $effect(() => {
     if (!desktop.current) return;
     return registerHotkeys([
-      { key: 'Escape', scope: 'Issue', description: 'Close issue', handler: () => onClose() },
+      { key: 'Escape', scope: 'Issue', description: m.issues_close(), handler: () => onClose() },
     ]);
   });
 </script>

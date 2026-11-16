@@ -1,6 +1,9 @@
 // The one issue shape the list, board, detail and every other issue surface consume.
 // Client-safe: no server imports here.
 
+import { m } from '@/lib/i18n';
+import { lazyLabels } from '@/lib/lazy-labels';
+
 // ---------------------------------------------------------------------------
 // Workflow states
 // ---------------------------------------------------------------------------
@@ -23,14 +26,14 @@ export const STATE_TYPE_ORDER: StateType[] = [
   'canceled',
 ];
 
-export const STATE_TYPE_LABEL: Record<StateType, string> = {
-  triage: 'Triage',
-  backlog: 'Backlog',
-  unstarted: 'Unstarted',
-  started: 'Started',
-  completed: 'Completed',
-  canceled: 'Canceled',
-};
+export const STATE_TYPE_LABEL: Record<StateType, string> = lazyLabels({
+  triage: m.common_state_type_triage,
+  backlog: m.common_state_type_backlog,
+  unstarted: m.common_state_type_unstarted,
+  started: m.common_state_type_started,
+  completed: m.common_state_type_completed,
+  canceled: m.common_state_type_canceled,
+});
 
 export function isStateType(value: unknown): value is StateType {
   return typeof value === 'string' && Object.hasOwn(STATE_TYPE_LABEL, value);
@@ -57,13 +60,13 @@ export type Priority = 'none' | 'urgent' | 'high' | 'medium' | 'low';
 /** Display / sort order: most urgent first, "No priority" last. */
 export const PRIORITY_ORDER: Priority[] = ['urgent', 'high', 'medium', 'low', 'none'];
 
-export const PRIORITY_LABEL: Record<Priority, string> = {
-  none: 'No priority',
-  urgent: 'Urgent',
-  high: 'High',
-  medium: 'Medium',
-  low: 'Low',
-};
+export const PRIORITY_LABEL: Record<Priority, string> = lazyLabels({
+  none: m.common_priority_none,
+  urgent: m.common_priority_urgent,
+  high: m.common_priority_high,
+  medium: m.common_priority_medium,
+  low: m.common_priority_low,
+});
 
 export function isPriority(value: unknown): value is Priority {
   return typeof value === 'string' && Object.hasOwn(PRIORITY_LABEL, value);

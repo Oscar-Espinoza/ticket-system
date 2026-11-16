@@ -115,8 +115,8 @@
 
   $effect(() =>
     registerHotkeys([
-      { key: 'j', scope: 'Issues', description: 'Next issue', handler: () => step(cursorId, 1) },
-      { key: 'k', scope: 'Issues', description: 'Previous issue', handler: () => step(cursorId, -1) },
+      { key: 'j', scope: 'Issues', description: m.editor_hotkey_next_issue(), handler: () => step(cursorId, 1) },
+      { key: 'k', scope: 'Issues', description: m.editor_hotkey_prev_issue(), handler: () => step(cursorId, -1) },
     ]),
   );
 

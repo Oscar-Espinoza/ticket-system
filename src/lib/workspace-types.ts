@@ -2,6 +2,8 @@
 // page hands to its components. The role rules here are the ones the server
 // enforces.
 
+import { m } from '@/lib/i18n';
+import { lazyLabels } from '@/lib/lazy-labels';
 import type { ProjectRole } from '@/lib/roles';
 
 export type WorkspaceRole = 'owner' | 'admin' | 'member';
@@ -32,11 +34,11 @@ export function canRemoveMember(viewer: WorkspaceRole, target: WorkspaceRole, is
   return !isSelf && canManageRole(viewer, target);
 }
 
-export const WORKSPACE_ROLE_LABEL: Record<WorkspaceRole, string> = {
-  owner: 'Owner',
-  admin: 'Admin',
-  member: 'Member',
-};
+export const WORKSPACE_ROLE_LABEL: Record<WorkspaceRole, string> = lazyLabels({
+  owner: m.common_role_owner,
+  admin: m.common_role_admin,
+  member: m.common_role_member,
+});
 
 export interface WorkspaceProjectRow {
   id: string;

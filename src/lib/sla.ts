@@ -6,6 +6,7 @@
 // sets `ticket.slaDueAt` from it on create and on priority change (the clock
 // restarts). Completed / canceled issues stop the clock.
 
+import { m } from '@/lib/i18n';
 import { PRIORITY_LABEL, type Priority, type StateType } from '@/lib/issue-model';
 import { HOUR_MS } from '@/lib/time';
 import { isClosed } from '@/lib/workflow';
@@ -92,10 +93,10 @@ export function formatDuration(value: number, short = false): string {
   const hours = Math.floor((minutes % 1440) / 60);
   const mins = minutes % 60;
   const parts: string[] = [];
-  if (days) parts.push(`${days}d`);
-  if (hours) parts.push(`${hours}h`);
-  if (mins && !days) parts.push(`${mins}m`);
-  if (parts.length === 0) return '<1m';
+  if (days) parts.push(m.common_duration_days({ count: days }));
+  if (hours) parts.push(m.common_duration_hours({ count: hours }));
+  if (mins && !days) parts.push(m.common_duration_minutes({ count: mins }));
+  if (parts.length === 0) return m.common_duration_under_minute();
   return short ? parts[0] : parts.slice(0, 2).join(' ');
 }
 

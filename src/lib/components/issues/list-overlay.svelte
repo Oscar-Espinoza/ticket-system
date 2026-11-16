@@ -5,6 +5,7 @@
   Space pick-up (dnd-kit, on board cards) is untouched.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { issueRowIdAt } from '@/lib/components/issues/issue-dom';
   import IssuePeek from '@/lib/components/navigation/issue-peek.svelte';
   import { registerHotkeys } from '@/lib/svelte/hotkeys.svelte';
@@ -31,7 +32,7 @@
       {
         key: ' ',
         scope: 'Issues',
-        description: 'Peek at the focused issue',
+        description: m.common_hotkey_peek(),
         when: (event) => focusedRowId(event) !== null,
         handler: (event) => peek(event),
       },

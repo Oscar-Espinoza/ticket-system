@@ -5,10 +5,12 @@
 // `endsAt` 00:00Z of the day AFTER the last one (exclusive), so consecutive
 // cycles share an edge and every viewer sees the same calendar days.
 
+import { dateFormat } from '@/lib/i18n';
 import { DAY_MS } from '@/lib/time';
 
 export { DAY_MS };
 
+/** English names; only the index (0 = Sunday) and the count are used. Labels come from dateFormat. */
 export const WEEKDAYS = [
   'Sunday',
   'Monday',
@@ -105,30 +107,16 @@ export function cycleLengthDays(cycle: Pick<CycleLike, 'startsAt' | 'endsAt'>): 
   );
 }
 
-const dayFormat = new Intl.DateTimeFormat('en', {
-  month: 'short',
-  day: 'numeric',
-  timeZone: 'UTC',
-});
-const dayYearFormat = new Intl.DateTimeFormat('en', {
-  month: 'short',
-  day: 'numeric',
-  year: 'numeric',
-  timeZone: 'UTC',
-});
-const weekdayFormat = new Intl.DateTimeFormat('en', {
-  weekday: 'short',
-  month: 'short',
-  day: 'numeric',
-  timeZone: 'UTC',
-});
-
 export function formatCycleDay(date: Date | number, withYear = false): string {
-  return (withYear ? dayYearFormat : dayFormat).format(new Date(date));
+  return dateFormat(
+    withYear
+      ? { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }
+      : { month: 'short', day: 'numeric', timeZone: 'UTC' },
+  ).format(new Date(date));
 }
 
 export function formatWeekday(date: Date | number): string {
-  return weekdayFormat.format(new Date(date));
+  return dateFormat({ weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' }).format(new Date(date));
 }
 
 /** "Jan 5 – Jan 18" (inclusive last day); the year only outside the current one. */

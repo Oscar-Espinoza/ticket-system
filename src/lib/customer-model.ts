@@ -1,38 +1,40 @@
 // Customer domain model (client-safe): statuses, request importance / source,
 // row shapes shared by the server reads and the UI, and formatting helpers.
 
+import { formatNumber, m } from '@/lib/i18n';
+import { lazyLabels } from '@/lib/lazy-labels';
 import type { IssueUser, StateType } from '@/lib/issue-model';
 
 export const CUSTOMER_STATUSES = ['active', 'lead', 'churned'] as const;
 export type CustomerStatus = (typeof CUSTOMER_STATUSES)[number];
-export const CUSTOMER_STATUS_LABEL: Record<CustomerStatus, string> = {
-  active: 'Active',
-  lead: 'Lead',
-  churned: 'Churned',
-};
+export const CUSTOMER_STATUS_LABEL: Record<CustomerStatus, string> = lazyLabels({
+  active: m.common_customer_status_active,
+  lead: m.common_customer_status_lead,
+  churned: m.common_customer_status_churned,
+});
 export const isCustomerStatus = (value: unknown): value is CustomerStatus =>
   CUSTOMER_STATUSES.includes(value as CustomerStatus);
 
 /** Highest first — the order pickers list them in. */
 export const IMPORTANCES = ['critical', 'high', 'medium', 'low'] as const;
 export type Importance = (typeof IMPORTANCES)[number];
-export const IMPORTANCE_LABEL: Record<Importance, string> = {
-  critical: 'Critical',
-  high: 'High',
-  medium: 'Medium',
-  low: 'Low',
-};
+export const IMPORTANCE_LABEL: Record<Importance, string> = lazyLabels({
+  critical: m.common_importance_critical,
+  high: m.common_importance_high,
+  medium: m.common_importance_medium,
+  low: m.common_importance_low,
+});
 export const isImportance = (value: unknown): value is Importance =>
   IMPORTANCES.includes(value as Importance);
 
 export const REQUEST_SOURCES = ['intake', 'slack', 'manual', 'api'] as const;
 export type RequestSource = (typeof REQUEST_SOURCES)[number];
-export const REQUEST_SOURCE_LABEL: Record<RequestSource, string> = {
-  intake: 'Intake form',
-  slack: 'Slack',
-  manual: 'Added manually',
-  api: 'API',
-};
+export const REQUEST_SOURCE_LABEL: Record<RequestSource, string> = lazyLabels({
+  intake: m.common_request_source_intake,
+  slack: () => 'Slack', // i18n-ignore
+  manual: m.common_request_source_manual,
+  api: () => 'API', // i18n-ignore
+});
 export const toRequestSource = (value: string): RequestSource =>
   REQUEST_SOURCES.includes(value as RequestSource) ? (value as RequestSource) : 'manual';
 
@@ -115,27 +117,26 @@ export const customersPath = (projectId: string) => `/dashboard/projects/${proje
 export const customerPath = (projectId: string, customerId: string) =>
   `${customersPath(projectId)}/${customerId}`;
 
-const compact = new Intl.NumberFormat('en', {
+const COMPACT_USD: Intl.NumberFormatOptions = {
   style: 'currency',
   currency: 'USD',
   notation: 'compact',
   maximumFractionDigits: 1,
-});
-const whole = new Intl.NumberFormat('en', {
+};
+const WHOLE_USD: Intl.NumberFormatOptions = {
   style: 'currency',
   currency: 'USD',
   maximumFractionDigits: 0,
-});
+};
 
-/** "$120K" (or the full amount with `full`). */
+/** "$120K" (or the full amount with `full`), in the interface language. */
 export function formatRevenue(value: number | null | undefined, full = false): string {
   if (value == null) return '';
-  return (full ? whole : compact).format(value);
+  return formatNumber(value, full ? WHOLE_USD : COMPACT_USD);
 }
 
-const count = new Intl.NumberFormat('en');
 export const formatSize = (value: number | null | undefined) =>
-  value == null ? '' : count.format(value);
+  value == null ? '' : formatNumber(value);
 
 /** Revenue behind a set of requests — each customer counted once. */
 export function revenueSummary(requests: Pick<IssueCustomerRequest, 'customer'>[]) {

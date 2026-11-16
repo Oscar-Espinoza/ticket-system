@@ -13,6 +13,7 @@
 
 import { createSubscriber } from 'svelte/reactivity';
 
+import { m } from '@/lib/i18n';
 import { registerHotkeys } from '@/lib/svelte/hotkeys.svelte';
 import type { IssuePatch } from '@/lib/issue-model';
 
@@ -50,7 +51,7 @@ export function registerNewIssueHost(host: Host): () => void {
       {
         key: 'c',
         scope: 'Issues',
-        description: 'Create issue',
+        description: m.editor_hotkey_create_issue(),
         when: (event) => !event.shiftKey,
         handler: () => requestNewIssue(),
       },

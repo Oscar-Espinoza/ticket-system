@@ -2,6 +2,8 @@
 // (`?state=…&assignee=…`) and saved views, plus the pure matcher every issue
 // view runs on the client. Client-safe.
 
+import { m } from '@/lib/i18n';
+import { lazyLabels } from '@/lib/lazy-labels';
 import { addDays, fromDateString, isDateString, toDateString, weekRange } from '@/lib/dates';
 import {
   PRIORITY_ORDER,
@@ -25,34 +27,34 @@ export type RelativeRange = '1d' | '7d' | '30d' | '90d';
 export type HierarchyFilter = 'hasSubIssues' | 'isSubIssue';
 
 export const DUE_FILTERS: DueFilter[] = ['overdue', 'today', 'thisWeek', 'nextWeek', 'none'];
-export const DUE_FILTER_LABEL: Record<DueFilter, string> = {
-  overdue: 'Overdue',
-  today: 'Due today',
-  thisWeek: 'Due this week',
-  nextWeek: 'Due next week',
-  none: 'No due date',
-};
+export const DUE_FILTER_LABEL: Record<DueFilter, string> = lazyLabels({
+  overdue: m.common_due_overdue,
+  today: m.common_due_today,
+  thisWeek: m.common_due_this_week,
+  nextWeek: m.common_due_next_week,
+  none: m.common_due_none,
+});
 /** The follow-up date filters reuse the due-date vocabulary. */
-export const FOLLOW_UP_FILTER_LABEL: Record<DueFilter, string> = {
-  overdue: 'Follow-up overdue',
-  today: 'Follow up today',
-  thisWeek: 'Follow up this week',
-  nextWeek: 'Follow up next week',
-  none: 'No follow-up date',
-};
+export const FOLLOW_UP_FILTER_LABEL: Record<DueFilter, string> = lazyLabels({
+  overdue: m.common_followup_overdue,
+  today: m.common_followup_today,
+  thisWeek: m.common_followup_this_week,
+  nextWeek: m.common_followup_next_week,
+  none: m.common_followup_none,
+});
 export const RELATIVE_RANGES: RelativeRange[] = ['1d', '7d', '30d', '90d'];
-export const RELATIVE_RANGE_LABEL: Record<RelativeRange, string> = {
-  '1d': 'Last 24 hours',
-  '7d': 'Last 7 days',
-  '30d': 'Last 30 days',
-  '90d': 'Last 90 days',
-};
+export const RELATIVE_RANGE_LABEL: Record<RelativeRange, string> = lazyLabels({
+  '1d': m.common_range_1d,
+  '7d': m.common_range_7d,
+  '30d': m.common_range_30d,
+  '90d': m.common_range_90d,
+});
 const RANGE_DAYS: Record<RelativeRange, number> = { '1d': 1, '7d': 7, '30d': 30, '90d': 90 };
 export const HIERARCHY_FILTERS: HierarchyFilter[] = ['hasSubIssues', 'isSubIssue'];
-export const HIERARCHY_FILTER_LABEL: Record<HierarchyFilter, string> = {
-  hasSubIssues: 'Has sub-issues',
-  isSubIssue: 'Is a sub-issue',
-};
+export const HIERARCHY_FILTER_LABEL: Record<HierarchyFilter, string> = lazyLabels({
+  hasSubIssues: m.common_hierarchy_has_sub_issues,
+  isSubIssue: m.common_hierarchy_is_sub_issue,
+});
 
 /**
  * Within a property the values are any-of; properties combine with AND.
@@ -989,24 +991,26 @@ export function resolveSearchTerms(
 
 /** Reference for the syntax help popover (search page, quick filter). */
 export const SEARCH_SYNTAX_HELP: { key: string; description: string; examples: string[] }[] = [
-  { key: 'is', description: 'Open, closed or archived', examples: ['is:open', 'is:closed', 'is:archived'] },
-  { key: 'status', description: 'Workflow state name', examples: ['status:"In Progress"'] },
-  { key: 'type', description: 'State category', examples: ['type:started', 'type:todo'] },
-  { key: 'assignee', description: 'me, none or a name', examples: ['assignee:me', 'assignee:none'] },
-  { key: 'creator', description: 'Who created it', examples: ['creator:me'] },
-  { key: 'waiting', description: 'Who it is waiting on: me, none or a name', examples: ['waiting:me', 'waiting:none'] },
+  { key: 'is', get description() { return m.common_search_help_is(); }, examples: ['is:open', 'is:closed', 'is:archived'] },
+  { key: 'status', get description() { return m.common_search_help_status(); }, examples: ['status:"In Progress"'] },
+  { key: 'type', get description() { return m.common_search_help_type(); }, examples: ['type:started', 'type:todo'] },
+  { key: 'assignee', get description() { return m.common_search_help_assignee(); }, examples: ['assignee:me', 'assignee:none'] },
+  { key: 'creator', get description() { return m.common_search_help_creator(); }, examples: ['creator:me'] },
+  { key: 'waiting', get description() { return m.common_search_help_waiting(); }, examples: ['waiting:me', 'waiting:none'] },
   { key: 'priority', description: 'urgent, high, medium, low, none', examples: ['priority:urgent,high'] },
-  { key: 'label', description: 'Repeat to require several; - excludes', examples: ['label:bug', '-label:wontfix'] },
-  { key: 'project', description: 'Project key', examples: ['project:ENG'] },
-  { key: 'cycle', description: 'current, next, previous, none or a number', examples: ['cycle:current'] },
-  { key: 'epic', description: 'Epic name or none', examples: ['epic:"Mobile app"'] },
+  { key: 'label', get description() { return m.common_search_help_label(); }, examples: ['label:bug', '-label:wontfix'] },
+  { key: 'project', get description() { return m.common_search_help_project(); }, examples: ['project:ENG'] },
+  { key: 'cycle', get description() { return m.common_search_help_cycle(); }, examples: ['cycle:current'] },
+  { key: 'epic', get description() { return m.common_search_help_epic(); }, examples: ['epic:"Mobile app"'] },
   { key: 'due', description: 'overdue, today, week, next-week, none', examples: ['due:overdue', 'due:week'] },
   {
     key: 'followup',
-    description: 'Like due, or a date: 2026-12-01, <=2026-12-01, >2026-11-30',
+    get description() {
+      return m.common_search_help_followup();
+    },
     examples: ['followup:overdue', 'followup:today', 'followup:<=2026-12-01'],
   },
-  { key: 'created', description: '> older than, < within; h d w m, or a date', examples: ['created:<7d', 'created:>30d'] },
-  { key: 'updated', description: 'Same as created', examples: ['updated:<1d'] },
+  { key: 'created', get description() { return m.common_search_help_created(); }, examples: ['created:<7d', 'created:>30d'] },
+  { key: 'updated', get description() { return m.common_search_help_updated(); }, examples: ['updated:<1d'] },
   { key: 'sla', description: 'breached, risk, none', examples: ['sla:breached'] },
 ];

@@ -1,16 +1,18 @@
 // Initiative shapes and constants (client-safe; shared by reads, actions and UI).
 
+import { m } from '@/lib/i18n';
+import { lazyLabels } from '@/lib/lazy-labels';
 import type { IssueUser } from '@/lib/issue-model';
 import type { EpicRow, MilestoneRow, Progress } from '@/lib/epic-model';
 
 export const INITIATIVE_STATUSES = ['planned', 'active', 'completed'] as const;
 export type InitiativeStatus = (typeof INITIATIVE_STATUSES)[number];
 
-export const INITIATIVE_STATUS_LABEL: Record<InitiativeStatus, string> = {
-  planned: 'Planned',
-  active: 'Active',
-  completed: 'Completed',
-};
+export const INITIATIVE_STATUS_LABEL: Record<InitiativeStatus, string> = lazyLabels({
+  planned: m.common_epic_status_planned,
+  active: m.common_initiative_status_active,
+  completed: m.common_epic_status_completed,
+});
 
 export function isInitiativeStatus(value: unknown): value is InitiativeStatus {
   return typeof value === 'string' && (INITIATIVE_STATUSES as readonly string[]).includes(value);
