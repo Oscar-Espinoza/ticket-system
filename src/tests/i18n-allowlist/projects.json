@@ -1,11 +1,5 @@
 {
   "files": {
-    "src/lib/components/workspaces/accept-workspace-invite.svelte": "pending translation (area projects, 1 strings)",
-    "src/lib/components/workspaces/create-workspace-dialog.svelte": "pending translation (area projects, 4 strings)",
-    "src/lib/components/workspaces/create-workspace-trigger.svelte": "pending translation (area projects, 2 strings)",
-    "src/lib/components/workspaces/workspace-actions.svelte": "pending translation (area projects, 3 strings)",
-    "src/lib/components/workspaces/workspace-add-project-dialog.svelte": "pending translation (area projects, 4 strings)",
-    "src/lib/components/workspaces/workspace-create-project-dialog.svelte": "pending translation (area projects, 4 strings)",
     "src/lib/components/workspaces/workspace-invitation-row.svelte": "pending translation (area projects, 3 strings)",
     "src/lib/components/workspaces/workspace-invite-dialog.svelte": "pending translation (area projects, 4 strings)",
     "src/lib/components/workspaces/workspace-member-row.svelte": "pending translation (area projects, 5 strings)",

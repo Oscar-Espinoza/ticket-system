@@ -4,6 +4,7 @@
   "Create workspace" palette command.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import PlusIcon from '@lucide/svelte/icons/plus';
 
   import { sidebarRowClass } from '@/lib/components/app-shell/sidebar-nav';
@@ -19,8 +20,8 @@
     registerPaletteCommands([
       {
         id: 'workspace.create',
-        label: 'Create workspace',
-        section: 'Workspaces',
+        label: m.projects_ws_create(),
+        section: m.projects_ws_palette_section(),
         keywords: ['new', 'workspace', 'team', 'organization'],
         run: () => (open = true),
       },
@@ -32,7 +33,7 @@
   <button
     type="button"
     onclick={() => (open = true)}
-    aria-label="Create workspace"
+    aria-label={m.projects_ws_create()}
     class="flex size-5 items-center justify-center rounded text-muted-foreground outline-none hover:bg-sidebar-accent hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
   >
     <PlusIcon class="size-3.5" />
@@ -44,7 +45,7 @@
     class={cn(sidebarRowClass, 'text-muted-foreground hover:bg-sidebar-accent/60')}
   >
     <PlusIcon />
-    <span class="truncate">Create a workspace</span>
+    <span class="truncate">{m.projects_ws_create_a()}</span>
   </button>
 {/if}
 <CreateWorkspaceDialog bind:open />

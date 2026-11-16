@@ -1,5 +1,6 @@
 <!-- Create a project inside the workspace. -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { goto } from '$app/navigation';
   import LoaderCircleIcon from '@lucide/svelte/icons/loader-circle';
   import { toast } from 'svelte-sonner';
@@ -59,7 +60,7 @@
         errors = { [field]: result.error };
         return;
       }
-      toast.success('Project created');
+      toast.success(m.projects_create_project_created());
       close();
       if (result.projectId) void goto(`/dashboard/projects/${result.projectId}`);
     } finally {
@@ -76,11 +77,11 @@
   <DialogContent class="sm:max-w-md">
     <form onsubmit={submit} class="flex flex-col gap-4">
       <DialogHeader>
-        <DialogTitle>New project in workspace</DialogTitle>
-        <DialogDescription>You’ll be the project’s owner.</DialogDescription>
+        <DialogTitle>{m.projects_ws_new_project()}</DialogTitle>
+        <DialogDescription>{m.projects_ws_new_project_desc()}</DialogDescription>
       </DialogHeader>
       <div class="flex flex-col gap-1.5">
-        <Label for="ws-project-name">Project name</Label>
+        <Label for="ws-project-name">{m.projects_create_project_name()}</Label>
         <Input
           id="ws-project-name"
           autofocus
@@ -89,13 +90,13 @@
             errors = {};
           }}
           maxlength={100}
-          placeholder="Mobile app"
+          placeholder={m.projects_ws_project_name_placeholder()}
           aria-invalid={errors.name ? true : undefined}
         />
         {#if errors.name}<p class="text-sm text-destructive">{errors.name}</p>{/if}
       </div>
       <div class="flex flex-col gap-1.5">
-        <Label for="ws-project-key">Ticket key</Label>
+        <Label for="ws-project-key">{m.projects_create_project_key()}</Label>
         <Input
           id="ws-project-key"
           value={ticketKey}
@@ -106,18 +107,18 @@
             // state didn't change (a rejected keystroke leaves ticketKey as is).
             event.currentTarget.value = ticketKey;
           }}
-          placeholder="MOB"
+          placeholder={'MOB'}
           aria-invalid={errors.ticketKey ? true : undefined}
           aria-describedby="ws-project-key-hint"
           class="font-mono"
         />
         <p id="ws-project-key-hint" class="text-sm text-muted-foreground">
-          2–6 uppercase letters, unique across all projects.
+          {m.projects_create_project_key_hint()}
         </p>
         {#if errors.ticketKey}<p class="text-sm text-destructive">{errors.ticketKey}</p>{/if}
       </div>
       <div class="flex flex-col gap-1.5">
-        <Label for="ws-project-template">Template</Label>
+        <Label for="ws-project-template">{m.projects_template()}</Label>
         <TemplateSelect
           id="ws-project-template"
           templates={templates.current}
@@ -127,10 +128,10 @@
       </div>
       {#if errors.server}<p class="text-sm text-destructive">{errors.server}</p>{/if}
       <DialogFooter>
-        <Button type="button" variant="outline" onclick={close}>Cancel</Button>
+        <Button type="button" variant="outline" onclick={close}>{m.common_cancel()}</Button>
         <Button type="submit" disabled={isPending || !name.trim() || ticketKey.length < 2}>
           {#if isPending}<LoaderCircleIcon class="animate-spin" />{/if}
-          Create project
+          {m.projects_create_project_title()}
         </Button>
       </DialogFooter>
     </form>
