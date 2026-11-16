@@ -8,6 +8,7 @@
   Project templates an optional Template select, loaded when the dialog opens.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
   import PlusIcon from '@lucide/svelte/icons/plus';
   import { toast } from 'svelte-sonner';
@@ -81,7 +82,7 @@
         setOpen(false);
         ticketKey = '';
         templateId = '';
-        toast.success('Project created');
+        toast.success(m.projects_create_project_created());
       }
       formState = result;
       // Reset the form after the action: the uncontrolled name
@@ -98,30 +99,30 @@
 {#if !hideTrigger}
   <Button onclick={() => setOpen(true)}>
     <PlusIcon class="mr-2 h-4 w-4" />
-    New project
+    {m.projects_create_project_new()}
   </Button>
 {/if}
 
 <Dialog {open} onOpenChange={setOpen}>
   <DialogContent class="sm:max-w-md">
     <DialogHeader>
-      <DialogTitle>Create project</DialogTitle>
+      <DialogTitle>{m.projects_create_project_title()}</DialogTitle>
       <!-- DialogDescription is sr-only: provides context for screen readers
            without rendering visible text per 02-UI-SPEC §Create-Project Dialog -->
       <DialogDescription class="sr-only">
-        Enter a project name and ticket key to create a new project.
+        {m.projects_create_project_desc()}
       </DialogDescription>
     </DialogHeader>
 
     <form {onsubmit} class="flex flex-col gap-4">
       <!-- Project name field -->
       <div class="flex flex-col gap-1.5">
-        <Label for={nameId}>Project name</Label>
+        <Label for={nameId}>{m.projects_create_project_name()}</Label>
         <Input
           bind:ref={nameInput}
           id={nameId}
           name="name"
-          placeholder="My project"
+          placeholder={m.projects_create_project_name_placeholder()}
           aria-invalid={formState.errors?.name ? true : undefined}
           aria-describedby={formState.errors?.name ? nameErrorId : undefined}
         />
@@ -134,11 +135,11 @@
 
       <!-- Ticket key field — controlled input with per-keystroke transform -->
       <div class="flex flex-col gap-1.5">
-        <Label for={keyId}>Ticket key</Label>
+        <Label for={keyId}>{m.projects_create_project_key()}</Label>
         <Input
           id={keyId}
           name="ticketKey"
-          placeholder="APP"
+          placeholder={'APP'}
           value={ticketKey}
           oninput={(event: Event & { currentTarget: HTMLInputElement }) => {
             // Auto-uppercase, strip non-A-Z, cap at 6 chars.
@@ -156,7 +157,7 @@
           aria-describedby={formState.errors?.ticketKey ? `${keyErrorId} ${keyHintId}` : keyHintId}
         />
         <!-- Always-visible helper text (02-UI-SPEC §Copywriting Contract) -->
-        <p id={keyHintId} class="text-muted-foreground text-sm">2–6 uppercase letters, unique across all projects.</p>
+        <p id={keyHintId} class="text-muted-foreground text-sm">{m.projects_create_project_key_hint()}</p>
         {#if formState.errors?.ticketKey}
           <p id={keyErrorId} class="text-destructive text-sm">
             {formState.errors.ticketKey}
@@ -165,7 +166,7 @@
       </div>
 
       <div class="flex flex-col gap-1.5">
-        <Label for={templateFieldId}>Template</Label>
+        <Label for={templateFieldId}>{m.projects_template()}</Label>
         <input type="hidden" name="templateId" value={templateId} />
         <TemplateSelect
           id={templateFieldId}
@@ -184,13 +185,13 @@
       {/if}
 
       <DialogFooter>
-        <Button type="button" variant="outline" onclick={() => setOpen(false)}>Discard</Button>
+        <Button type="button" variant="outline" onclick={() => setOpen(false)}>{m.projects_discard()}</Button>
         <Button type="submit" disabled={isPending}>
           {#if isPending}
             <Loader2Icon class="mr-2 h-4 w-4 animate-spin" />
-            Creating&hellip;
+            {m.projects_creating()}
           {:else}
-            Create project
+            {m.projects_create_project_title()}
           {/if}
         </Button>
       </DialogFooter>

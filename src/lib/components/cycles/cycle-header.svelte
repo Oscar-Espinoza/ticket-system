@@ -1,5 +1,6 @@
 <!-- Cycle page header: name, dates, status, favorite, edit / complete. -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import CircleCheck from '@lucide/svelte/icons/circle-check';
   import ChevronLeft from '@lucide/svelte/icons/chevron-left';
   import Pencil from '@lucide/svelte/icons/pencil';
@@ -42,10 +43,10 @@
   let completing = $state(false);
 
   const timing = $derived.by(() => {
-    if (cycle.completedAt) return `Completed ${formatCycleDay(cycle.completedAt)}`;
-    if (status === 'past') return 'Ended — completes automatically';
-    if (status === 'upcoming') return `Starts in ${daysUntil(cycle)} days`;
-    return daysLeft(cycle) === 0 ? 'Last day' : `${daysLeft(cycle)} days left`;
+    if (cycle.completedAt) return m.projects_cycle_completed_on({ date: formatCycleDay(cycle.completedAt) });
+    if (status === 'past') return m.projects_cycle_ended();
+    if (status === 'upcoming') return m.projects_cycle_starts_in({ count: daysUntil(cycle) });
+    return daysLeft(cycle) === 0 ? m.projects_cycle_last_day() : m.projects_cycle_days_left({ count: daysLeft(cycle) });
   });
 </script>
 
@@ -55,7 +56,7 @@
     class="flex w-fit items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
   >
     <ChevronLeft class="size-3.5" />
-    Cycles
+    {m.projects_cycles()}
   </a>
   <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
     <CycleGlyph {status} {progress} />
@@ -67,13 +68,13 @@
       {#if canWrite}
         <Button size="sm" variant="ghost" onclick={() => (editing = true)}>
           <Pencil />
-          Edit
+          {m.common_edit()}
         </Button>
       {/if}
       {#if canWrite && !cycle.completedAt && status !== 'upcoming'}
         <Button size="sm" variant="outline" onclick={() => (completing = true)}>
           <CircleCheck />
-          Complete cycle
+          {m.projects_complete_cycle()}
         </Button>
       {/if}
     </div>

@@ -1,3 +1,300 @@
 {
-  "$schema": "https://inlang.com/schema/inlang-message-format"
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "projects_create_project_created": "Project created",
+  "projects_create_project_new": "New project",
+  "projects_create_project_title": "Create project",
+  "projects_create_project_desc": "Enter a project name and ticket key to create a new project.",
+  "projects_create_project_name": "Project name",
+  "projects_create_project_name_placeholder": "My project",
+  "projects_create_project_key": "Ticket key",
+  "projects_create_project_key_hint": "2–6 uppercase letters, unique across all projects.",
+  "projects_template": "Template",
+  "projects_discard": "Discard",
+  "projects_creating": "Creating…",
+  "projects_automations_off": "Off",
+  "projects_automations_after_months": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "After {count} month",
+        "countPlural=other": "After {count} months"
+      }
+    }
+  ],
+  "projects_automations_admins_only": "Only admins can change these settings.",
+  "projects_automations_saved": "Automations saved",
+  "projects_settings_owners_admins_only": "Only project owners and admins can change these settings.",
+  "projects_auto_archive_label": "Auto-archive closed issues",
+  "projects_auto_archive_hint": "Completed and canceled issues are archived once they have been closed this long. Archived issues stay searchable and can be restored.",
+  "projects_auto_close_label": "Auto-close stale issues",
+  "projects_auto_close_hint": "Triage, backlog and unstarted issues that haven't been updated for this long move to Canceled, with a note in their activity.",
+  "projects_trash_purge": "Issues in the trash are permanently deleted after 30 days.",
+  "projects_last_run": "Last run {time}.",
+  "projects_burndown": "Burndown",
+  "projects_burndown_in_issues": "Burndown in issues",
+  "projects_burndown_in_points": "Burndown in points",
+  "projects_burndown_starts_on": "The burndown starts on {date}.",
+  "projects_burndown_start": "Start · {weekday}",
+  "projects_burndown_now": "Now",
+  "projects_burndown_end_of": "End of {weekday}",
+  "projects_burndown_scope": "Scope",
+  "projects_burndown_ideal": "Ideal",
+  "projects_burndown_remaining": "Remaining",
+  "projects_burndown_no_estimated": "No estimated issues in this cycle yet.",
+  "projects_burndown_no_issues": "No issues in this cycle yet.",
+  "projects_capacity": "Capacity",
+  "projects_capacity_over": "Over capacity by {amount}",
+  "projects_capacity_scope_vs": "Scope compared with capacity",
+  "projects_capacity_valuetext": "{scope} of {limit} {unit}",
+  "projects_capacity_average_one": "Average {unit} completed in the last cycle.",
+  "projects_capacity_average_many": "Average {unit} completed in the last {count} cycles.",
+  "projects_capacity_average_few_one": "Average {unit} completed in the last cycle (fewer than 3 past cycles).",
+  "projects_capacity_average_few_many": "Average {unit} completed in the last {count} cycles (fewer than 3 past cycles).",
+  "projects_unit_issues_name": "issues",
+  "projects_unit_points_name": "points",
+  "projects_unit_issues": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "issue",
+        "countPlural=other": "issues"
+      }
+    }
+  ],
+  "projects_unit_points": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "point",
+        "countPlural=other": "points"
+      }
+    }
+  ],
+  "projects_no_permission": "You don't have permission to do that.",
+  "projects_complete_cycle_title": "Complete {name}?",
+  "projects_complete_cycle_all_done": "Every issue in this cycle is done.",
+  "projects_complete_cycle_unfinished": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} issue is not finished yet.",
+        "countPlural=other": "{count} issues are not finished yet."
+      }
+    }
+  ],
+  "projects_complete_cycle_move_to": "Move them to {name}",
+  "projects_complete_cycle_next": "the next cycle",
+  "projects_complete_cycle_no_upcoming": "No upcoming cycle to move to.",
+  "projects_complete_cycle_leave": "Leave them in this cycle",
+  "projects_complete_cycle": "Complete cycle",
+  "projects_complete_cycle_done": "{name} completed",
+  "projects_cycle_unassigned": "Unassigned",
+  "projects_cycle_points_short": "pts",
+  "projects_cycle_no_issues": "No issues in this cycle.",
+  "projects_cycle_no_labeled": "No labeled issues in this cycle.",
+  "projects_cycle_assignees": "Assignees",
+  "projects_cycle_updated": "Cycle updated",
+  "projects_cycle_created": "Cycle created",
+  "projects_cycle_edit_title": "Edit {name}",
+  "projects_cycle_new": "New cycle",
+  "projects_cycle_form_edit_desc": "Rename the cycle or move its dates.",
+  "projects_cycle_form_new_desc": "A time-boxed iteration. Cycles can’t overlap.",
+  "projects_cycle_name_hint": "Optional — defaults to “Cycle N”.",
+  "projects_cycle_name_placeholder": "e.g. Launch prep",
+  "projects_cycle_number": "Cycle {number}",
+  "projects_cycle_start_date": "Start date",
+  "projects_cycle_end_date": "End date",
+  "projects_cycle_description_placeholder": "What is this cycle about?",
+  "projects_cycle_create": "Create cycle",
+  "projects_cycle_completed_on": "Completed {date}",
+  "projects_cycle_ended": "Ended — completes automatically",
+  "projects_cycle_starts_in": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Starts in {count} day",
+        "countPlural=other": "Starts in {count} days"
+      }
+    }
+  ],
+  "projects_cycle_last_day": "Last day",
+  "projects_cycle_days_left": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} day left",
+        "countPlural=other": "{count} days left"
+      }
+    }
+  ],
+  "projects_cycles": "Cycles",
+  "projects_cycle_move_to": "Move to cycle…",
+  "projects_cycle_none_found": "No cycle found.",
+  "projects_cycle_none": "No cycle",
+  "projects_cycle_current": "Current",
+  "projects_cycle_upcoming": "Upcoming",
+  "projects_cycle_past": "Past",
+  "projects_cycle_progress": "Cycle progress",
+  "projects_cycle_progress_valuetext": "{done}% completed, {started}% in progress",
+  "projects_cycle_scope_issues": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} issue",
+        "countPlural=other": "{count} issues"
+      }
+    }
+  ],
+  "projects_cycle_in_days": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "in {count} day",
+        "countPlural=other": "in {count} days"
+      }
+    }
+  ],
+  "projects_cycle_completed_of": "{completed}/{scope} done",
+  "projects_cycles_intro": "Time-boxed iterations. Unfinished issues roll over when a cycle ends.",
+  "projects_cycle_running_cooldown": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Cooldown — {name} starts in {count} day.",
+        "countPlural=other": "Cooldown — {name} starts in {count} days."
+      }
+    }
+  ],
+  "projects_cycle_running_none": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "No cycle is running — {name} starts in {count} day.",
+        "countPlural=other": "No cycle is running — {name} starts in {count} days."
+      }
+    }
+  ],
+  "projects_cycle_running_nothing": "No cycle is running right now.",
+  "projects_cycle_new_palette": "New cycle",
+  "projects_cycle_sprint_keywords": "sprint",
+  "projects_cycle_enable_in_settings": "Enable in settings",
+  "projects_cycle_ask_admin": "{description} Ask a project admin to turn it on.",
+  "projects_planning_saved": "Settings saved",
+  "projects_planning_weeks": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} week",
+        "countPlural=other": "{count} weeks"
+      }
+    }
+  ],
+  "projects_planning_no_cooldown": "No cooldown",
+  "projects_planning_cycles_heading": "Cycles",
+  "projects_planning_enable_cycles": "Enable cycles",
+  "projects_planning_enable_cycles_desc": "Plan work in repeating, time-boxed iterations.",
+  "projects_planning_duration": "Duration",
+  "projects_planning_starts_on": "Starts on",
+  "projects_planning_cooldown": "Cooldown",
+  "projects_planning_cooldown_hint": "Free weeks between cycles for planning and unplanned work.",
+  "projects_planning_cadence_changed": "Upcoming cycles that haven’t started are rescheduled. The current cycle keeps its start and may end a few days later to line up with the new start day.",
+  "projects_planning_auto_create": "Auto-create cycles",
+  "projects_planning_auto_create_desc": "Keep the current cycle and the next {count} scheduled automatically.",
+  "projects_planning_rollover": "Roll over unfinished issues",
+  "projects_planning_rollover_on": "When a cycle ends it is completed automatically and its unfinished issues move to the next cycle.",
+  "projects_planning_rollover_off": "When a cycle ends it is completed automatically; unfinished issues stay in it.",
+  "projects_planning_triage_heading": "Triage",
+  "projects_planning_enable_triage": "Enable triage",
+  "projects_planning_enable_triage_desc": "Issues from the intake form, the API and people outside the project land in Triage for review before they reach the backlog.",
+  "projects_cycle_chart_unit": "Chart unit",
+  "projects_chart_unit_issues": "Issues",
+  "projects_chart_unit_points": "Points",
+  "projects_velocity": "Velocity",
+  "projects_velocity_empty": "Velocity appears once a cycle has finished.",
+  "projects_velocity_summary": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{unit} per cycle · average of the last {count}",
+        "countPlural=other": "{unit} per cycle · average of the last {count}"
+      }
+    }
+  ],
+  "projects_velocity_title": "Completed {unit} per cycle",
+  "projects_velocity_series": "Completed {unit}",
+  "projects_velocity_detail_cycle": "Cycle",
+  "projects_velocity_detail_scope": "Scope",
+  "projects_velocity_average": "Average (last {count})"
 }

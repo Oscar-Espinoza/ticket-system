@@ -1,3 +1,300 @@
 {
-  "$schema": "https://inlang.com/schema/inlang-message-format"
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "projects_create_project_created": "Proyecto creado",
+  "projects_create_project_new": "Proyecto nuevo",
+  "projects_create_project_title": "Crear proyecto",
+  "projects_create_project_desc": "Escribe un nombre y una clave de ticket para crear un proyecto nuevo.",
+  "projects_create_project_name": "Nombre del proyecto",
+  "projects_create_project_name_placeholder": "Mi proyecto",
+  "projects_create_project_key": "Clave de ticket",
+  "projects_create_project_key_hint": "De 2 a 6 letras mayúsculas, única entre todos los proyectos.",
+  "projects_template": "Plantilla",
+  "projects_discard": "Descartar",
+  "projects_creating": "Creando…",
+  "projects_automations_off": "Desactivado",
+  "projects_automations_after_months": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Después de {count} mes",
+        "countPlural=other": "Después de {count} meses"
+      }
+    }
+  ],
+  "projects_automations_admins_only": "Solo los administradores pueden cambiar esta configuración.",
+  "projects_automations_saved": "Automatizaciones guardadas",
+  "projects_settings_owners_admins_only": "Solo los propietarios y administradores del proyecto pueden cambiar esta configuración.",
+  "projects_auto_archive_label": "Archivar automáticamente los tickets cerrados",
+  "projects_auto_archive_hint": "Los tickets completados y cancelados se archivan cuando llevan cerrados este tiempo. Los tickets archivados siguen apareciendo en las búsquedas y se pueden restaurar.",
+  "projects_auto_close_label": "Cerrar automáticamente los tickets inactivos",
+  "projects_auto_close_hint": "Los tickets en clasificación, en pendientes o sin empezar que no se han actualizado en este tiempo pasan a Cancelado, con una nota en su actividad.",
+  "projects_trash_purge": "Los tickets de la papelera se eliminan definitivamente a los 30 días.",
+  "projects_last_run": "Última ejecución {time}.",
+  "projects_burndown": "Burndown",
+  "projects_burndown_in_issues": "Burndown en tickets",
+  "projects_burndown_in_points": "Burndown en puntos",
+  "projects_burndown_starts_on": "El burndown empieza el {date}.",
+  "projects_burndown_start": "Inicio · {weekday}",
+  "projects_burndown_now": "Ahora",
+  "projects_burndown_end_of": "Fin del {weekday}",
+  "projects_burndown_scope": "Alcance",
+  "projects_burndown_ideal": "Ideal",
+  "projects_burndown_remaining": "Restante",
+  "projects_burndown_no_estimated": "Aún no hay tickets estimados en este ciclo.",
+  "projects_burndown_no_issues": "Aún no hay tickets en este ciclo.",
+  "projects_capacity": "Capacidad",
+  "projects_capacity_over": "Por encima de la capacidad en {amount}",
+  "projects_capacity_scope_vs": "Alcance comparado con la capacidad",
+  "projects_capacity_valuetext": "{scope} de {limit} {unit}",
+  "projects_capacity_average_one": "Promedio de {unit} completados en el último ciclo.",
+  "projects_capacity_average_many": "Promedio de {unit} completados en los últimos {count} ciclos.",
+  "projects_capacity_average_few_one": "Promedio de {unit} completados en el último ciclo (menos de 3 ciclos anteriores).",
+  "projects_capacity_average_few_many": "Promedio de {unit} completados en los últimos {count} ciclos (menos de 3 ciclos anteriores).",
+  "projects_unit_issues_name": "tickets",
+  "projects_unit_points_name": "puntos",
+  "projects_unit_issues": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "ticket",
+        "countPlural=other": "tickets"
+      }
+    }
+  ],
+  "projects_unit_points": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "punto",
+        "countPlural=other": "puntos"
+      }
+    }
+  ],
+  "projects_no_permission": "No tienes permiso para hacer eso.",
+  "projects_complete_cycle_title": "¿Completar {name}?",
+  "projects_complete_cycle_all_done": "Todos los tickets de este ciclo están terminados.",
+  "projects_complete_cycle_unfinished": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Aún no se ha terminado {count} ticket.",
+        "countPlural=other": "Aún no se han terminado {count} tickets."
+      }
+    }
+  ],
+  "projects_complete_cycle_move_to": "Moverlos a {name}",
+  "projects_complete_cycle_next": "el siguiente ciclo",
+  "projects_complete_cycle_no_upcoming": "No hay un próximo ciclo al que moverlos.",
+  "projects_complete_cycle_leave": "Dejarlos en este ciclo",
+  "projects_complete_cycle": "Completar ciclo",
+  "projects_complete_cycle_done": "{name} completado",
+  "projects_cycle_unassigned": "Sin asignar",
+  "projects_cycle_points_short": "pts",
+  "projects_cycle_no_issues": "No hay tickets en este ciclo.",
+  "projects_cycle_no_labeled": "No hay tickets con etiquetas en este ciclo.",
+  "projects_cycle_assignees": "Responsables",
+  "projects_cycle_updated": "Ciclo actualizado",
+  "projects_cycle_created": "Ciclo creado",
+  "projects_cycle_edit_title": "Editar {name}",
+  "projects_cycle_new": "Ciclo nuevo",
+  "projects_cycle_form_edit_desc": "Cambia el nombre del ciclo o mueve sus fechas.",
+  "projects_cycle_form_new_desc": "Una iteración con tiempo definido. Los ciclos no pueden solaparse.",
+  "projects_cycle_name_hint": "Opcional — por defecto es «Ciclo N».",
+  "projects_cycle_name_placeholder": "p. ej., Preparar el lanzamiento",
+  "projects_cycle_number": "Ciclo {number}",
+  "projects_cycle_start_date": "Fecha de inicio",
+  "projects_cycle_end_date": "Fecha de fin",
+  "projects_cycle_description_placeholder": "¿De qué trata este ciclo?",
+  "projects_cycle_create": "Crear ciclo",
+  "projects_cycle_completed_on": "Completado el {date}",
+  "projects_cycle_ended": "Terminó — se completa automáticamente",
+  "projects_cycle_starts_in": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Empieza en {count} día",
+        "countPlural=other": "Empieza en {count} días"
+      }
+    }
+  ],
+  "projects_cycle_last_day": "Último día",
+  "projects_cycle_days_left": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Queda {count} día",
+        "countPlural=other": "Quedan {count} días"
+      }
+    }
+  ],
+  "projects_cycles": "Ciclos",
+  "projects_cycle_move_to": "Mover al ciclo…",
+  "projects_cycle_none_found": "No se encontró ningún ciclo.",
+  "projects_cycle_none": "Sin ciclo",
+  "projects_cycle_current": "Actual",
+  "projects_cycle_upcoming": "Próximos",
+  "projects_cycle_past": "Anteriores",
+  "projects_cycle_progress": "Progreso del ciclo",
+  "projects_cycle_progress_valuetext": "{done}% completado, {started}% en curso",
+  "projects_cycle_scope_issues": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} ticket",
+        "countPlural=other": "{count} tickets"
+      }
+    }
+  ],
+  "projects_cycle_in_days": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "en {count} día",
+        "countPlural=other": "en {count} días"
+      }
+    }
+  ],
+  "projects_cycle_completed_of": "{completed}/{scope} hechos",
+  "projects_cycles_intro": "Iteraciones con tiempo definido. Los tickets sin terminar pasan al siguiente ciclo cuando termina un ciclo.",
+  "projects_cycle_running_cooldown": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Cooldown — {name} empieza en {count} día.",
+        "countPlural=other": "Cooldown — {name} empieza en {count} días."
+      }
+    }
+  ],
+  "projects_cycle_running_none": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "No hay ningún ciclo en marcha — {name} empieza en {count} día.",
+        "countPlural=other": "No hay ningún ciclo en marcha — {name} empieza en {count} días."
+      }
+    }
+  ],
+  "projects_cycle_running_nothing": "Ahora mismo no hay ningún ciclo en marcha.",
+  "projects_cycle_new_palette": "Ciclo nuevo",
+  "projects_cycle_sprint_keywords": "sprint",
+  "projects_cycle_enable_in_settings": "Activar en la configuración",
+  "projects_cycle_ask_admin": "{description} Pide a un administrador del proyecto que lo active.",
+  "projects_planning_saved": "Configuración guardada",
+  "projects_planning_weeks": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} semana",
+        "countPlural=other": "{count} semanas"
+      }
+    }
+  ],
+  "projects_planning_no_cooldown": "Sin cooldown",
+  "projects_planning_cycles_heading": "Ciclos",
+  "projects_planning_enable_cycles": "Activar ciclos",
+  "projects_planning_enable_cycles_desc": "Planifica el trabajo en iteraciones repetidas con tiempo definido.",
+  "projects_planning_duration": "Duración",
+  "projects_planning_starts_on": "Empieza el",
+  "projects_planning_cooldown": "Cooldown",
+  "projects_planning_cooldown_hint": "Semanas libres entre ciclos para planificar y para trabajo imprevisto.",
+  "projects_planning_cadence_changed": "Los próximos ciclos que aún no han empezado se reprograman. El ciclo actual mantiene su inicio y puede terminar unos días después para alinearse con el nuevo día de inicio.",
+  "projects_planning_auto_create": "Crear ciclos automáticamente",
+  "projects_planning_auto_create_desc": "Mantén programados automáticamente el ciclo actual y los {count} siguientes.",
+  "projects_planning_rollover": "Pasar los tickets sin terminar",
+  "projects_planning_rollover_on": "Cuando termina un ciclo, se completa automáticamente y sus tickets sin terminar pasan al siguiente ciclo.",
+  "projects_planning_rollover_off": "Cuando termina un ciclo, se completa automáticamente; los tickets sin terminar se quedan en él.",
+  "projects_planning_triage_heading": "Clasificación",
+  "projects_planning_enable_triage": "Activar la clasificación",
+  "projects_planning_enable_triage_desc": "Los tickets del formulario de entrada, de la API y de personas ajenas al proyecto llegan a Clasificación para revisarse antes de pasar a pendientes.",
+  "projects_cycle_chart_unit": "Unidad del gráfico",
+  "projects_chart_unit_issues": "Tickets",
+  "projects_chart_unit_points": "Puntos",
+  "projects_velocity": "Velocidad",
+  "projects_velocity_empty": "La velocidad aparece cuando termina un ciclo.",
+  "projects_velocity_summary": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{unit} por ciclo · promedio del último ciclo",
+        "countPlural=other": "{unit} por ciclo · promedio de los últimos {count}"
+      }
+    }
+  ],
+  "projects_velocity_title": "{unit} completados por ciclo",
+  "projects_velocity_series": "{unit} completados",
+  "projects_velocity_detail_cycle": "Ciclo",
+  "projects_velocity_detail_scope": "Alcance",
+  "projects_velocity_average": "Promedio (últimos {count})"
 }

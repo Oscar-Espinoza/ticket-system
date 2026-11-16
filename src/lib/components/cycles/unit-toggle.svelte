@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { ToggleGroup, ToggleGroupItem } from '@/lib/components/ui/toggle-group';
   import type { ChartUnit } from '@/lib/cycle-utils';
 
@@ -17,8 +18,8 @@
   size="sm"
   spacing={0}
   bind:value={() => value, (next) => next && onChange(next as ChartUnit)}
-  aria-label="Chart unit"
+  aria-label={m.projects_cycle_chart_unit()}
 >
-  <ToggleGroupItem value="issues" class="h-6 px-2 text-xs">Issues</ToggleGroupItem>
-  <ToggleGroupItem value="points" class="h-6 px-2 text-xs">Points</ToggleGroupItem>
+  <ToggleGroupItem value="issues" class="h-6 px-2 text-xs">{m.projects_chart_unit_issues()}</ToggleGroupItem>
+  <ToggleGroupItem value="points" class="h-6 px-2 text-xs">{m.projects_chart_unit_points()}</ToggleGroupItem>
 </ToggleGroup>
