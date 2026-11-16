@@ -9,6 +9,7 @@
 
 <script lang="ts">
   import { Avatar, PriorityIcon, StatusIcon } from '@/lib/components/ui-icons';
+  import { m } from '@/lib/i18n';
   import { PRIORITY_LABEL } from '@/lib/issue-model';
   import type { BreakdownRow } from '@/lib/insights-model';
 
@@ -17,7 +18,7 @@
   let {
     rows,
     kind,
-    empty = 'No open issues.',
+    empty = m.editor_ins_no_open(),
   }: {
     rows: BreakdownRow[];
     kind: BarListKind;
@@ -71,7 +72,7 @@
         onclick={() => (expanded = !expanded)}
         class="mt-2 self-start text-xs text-muted-foreground hover:text-foreground"
       >
-        {expanded ? 'Show less' : `Show ${rows.length - VISIBLE} more`}
+        {expanded ? m.editor_ins_show_less() : m.editor_ins_show_more({ count: rows.length - VISIBLE })}
       </button>
     {/if}
   </div>

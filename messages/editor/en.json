@@ -619,5 +619,75 @@
   "editor_prefs_push": "Push",
   "editor_prefs_push_body": "System notifications on this computer or phone, even when the app isn’t open.",
   "editor_prefs_notify_when": "Notify me when",
-  "editor_prefs_notify_when_body": "Turning a type off stops its inbox item, email and push. Reminders you set are always delivered."
+  "editor_prefs_notify_when_body": "Turning a type off stops its inbox item, email and push. Reminders you set are always delivered.",
+  "editor_ins_date_range": "Date range",
+  "editor_ins_last_weeks": "Last {count} weeks",
+  "editor_ins_all_labels": "All labels",
+  "editor_ins_since": "Since {week} · UTC weeks",
+  "editor_ins_nothing": "Nothing to chart yet",
+  "editor_ins_nothing_label": "No issues with this label in the selected range.",
+  "editor_ins_nothing_body": "Create and complete a few issues and their flow shows up here.",
+  "editor_ins_open_issues": "Open issues",
+  "editor_ins_created": "Created",
+  "editor_ins_completed": "Completed",
+  "editor_ins_last_n_weeks": "last {count} weeks",
+  "editor_ins_per_week": "{avg} per week",
+  "editor_ins_median_cycle": "Median cycle time",
+  "editor_ins_started_done": "started → done",
+  "editor_ins_median_lead": "Median lead time",
+  "editor_ins_created_done": "created → done",
+  "editor_ins_created_vs_completed": "Created vs completed",
+  "editor_ins_created_vs_completed_body": "Issues per week — is the backlog growing?",
+  "editor_ins_throughput": "Throughput",
+  "editor_ins_completed_per_week": "Issues completed per week",
+  "editor_ins_unit_completed": "completed",
+  "editor_ins_unit_issues": "issues",
+  "editor_ins_week_of": "Week of {week}",
+  "editor_ins_by_status": "Open by status",
+  "editor_ins_by_priority": "Open by priority",
+  "editor_ins_by_assignee": "Open by assignee",
+  "editor_ins_by_label": "Open by label",
+  "editor_ins_no_labelled": "No labelled open issues.",
+  "editor_ins_cycle_time": "Cycle time",
+  "editor_ins_cycle_body": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Started → done · {count} issue completed in range",
+        "countPlural=other": "Started → done · {count} issues completed in range"
+      }
+    }
+  ],
+  "editor_ins_cycle_dist": "Cycle time distribution",
+  "editor_ins_lead_time": "Lead time",
+  "editor_ins_lead_body": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Created → done · {count} issue completed in range",
+        "countPlural=other": "Created → done · {count} issues completed in range"
+      }
+    }
+  ],
+  "editor_ins_lead_dist": "Lead time distribution",
+  "editor_ins_use_arrows": "{caption}. Use arrow keys to read each column.",
+  "editor_ins_avg": "avg {value}",
+  "editor_ins_trend_aria": "Issues created and completed per week over the last {count} weeks. Use arrow keys to read each week.",
+  "editor_ins_trend_caption": "Issues created and completed per week",
+  "editor_ins_show_less": "Show less",
+  "editor_ins_show_more": "Show {count} more",
+  "editor_ins_no_open": "No open issues.",
+  "editor_ins_hours": "{n}h"
 }

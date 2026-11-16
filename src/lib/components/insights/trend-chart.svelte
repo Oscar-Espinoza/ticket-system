@@ -8,13 +8,14 @@
 
   // Validated pair (CVD ΔE ≥ 27 light + dark): amber for created, brand for completed.
   const SERIES = [
-    { key: 'created', label: 'Created', className: 'text-[#c98500] dark:text-[#b77800]' },
-    { key: 'completed', label: 'Completed', className: 'text-status-done' },
+    { key: 'created', get label() { return m.editor_ins_created(); }, className: 'text-[#c98500] dark:text-[#b77800]' },
+    { key: 'completed', get label() { return m.editor_ins_completed(); }, className: 'text-status-done' },
   ] as const;
 </script>
 
 <script lang="ts">
   import type { WeekPoint } from '@/lib/insights-model';
+  import { m } from '@/lib/i18n';
   import { formatWeek, niceMax, useIndexHover } from './chart-kit.svelte.ts';
   import ChartTooltip from './chart-tooltip.svelte';
   import SeriesKey from './series-key.svelte';
@@ -65,7 +66,7 @@
         {width}
         height={HEIGHT}
         role="img"
-        aria-label={`Issues created and completed per week over the last ${n} weeks. Use arrow keys to read each week.`}
+        aria-label={m.editor_ins_trend_aria({ count: n })}
         class="block overflow-visible rounded outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
         {...hover.handlers}
       >
@@ -124,7 +125,7 @@
     {/if}
     {#if index !== null && weeks[index]}
       <ChartTooltip x={x(index)} {width}>
-        <div class="mb-1 text-muted-foreground">Week of {formatWeek(weeks[index].week)}</div>
+        <div class="mb-1 text-muted-foreground">{m.editor_ins_week_of({ week: formatWeek(weeks[index].week) })}</div>
         {#each SERIES as s (s.key)}
           <div class="flex items-center gap-2">
             <SeriesKey class={s.className} />
@@ -136,8 +137,8 @@
     {/if}
   </div>
   <SrTable
-    caption="Issues created and completed per week"
-    columns={['Week of', 'Created', 'Completed']}
+    caption={m.editor_ins_trend_caption()}
+    columns={[m.editor_ins_week_of({ week: '' }).trim(), m.editor_ins_created(), m.editor_ins_completed()]}
     rows={weeks.map((w) => [formatWeek(w.week), w.created, w.completed])}
   />
 </div>

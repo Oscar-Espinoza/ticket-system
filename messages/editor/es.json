@@ -619,5 +619,75 @@
   "editor_prefs_push": "Notificaciones push",
   "editor_prefs_push_body": "Notificaciones del sistema en este dispositivo, incluso con la aplicación cerrada.",
   "editor_prefs_notify_when": "Avisarme cuando",
-  "editor_prefs_notify_when_body": "Si desactivas un tipo, dejará de llegar a tu bandeja de entrada, por correo y por push. Los recordatorios que programes siempre se entregan."
+  "editor_prefs_notify_when_body": "Si desactivas un tipo, dejará de llegar a tu bandeja de entrada, por correo y por push. Los recordatorios que programes siempre se entregan.",
+  "editor_ins_date_range": "Intervalo de fechas",
+  "editor_ins_last_weeks": "Últimas {count} semanas",
+  "editor_ins_all_labels": "Todas las etiquetas",
+  "editor_ins_since": "Desde {week} · semanas UTC",
+  "editor_ins_nothing": "Aún no hay nada que graficar",
+  "editor_ins_nothing_label": "No hay tickets con esta etiqueta en el intervalo elegido.",
+  "editor_ins_nothing_body": "Crea y completa algunos tickets y su flujo aparecerá aquí.",
+  "editor_ins_open_issues": "Tickets abiertos",
+  "editor_ins_created": "Creados",
+  "editor_ins_completed": "Completados",
+  "editor_ins_last_n_weeks": "últimas {count} semanas",
+  "editor_ins_per_week": "{avg} por semana",
+  "editor_ins_median_cycle": "Mediana del tiempo de ciclo",
+  "editor_ins_started_done": "inicio → hecho",
+  "editor_ins_median_lead": "Mediana del tiempo de entrega",
+  "editor_ins_created_done": "creación → hecho",
+  "editor_ins_created_vs_completed": "Creados frente a completados",
+  "editor_ins_created_vs_completed_body": "Tickets por semana: ¿está creciendo la lista de pendientes?",
+  "editor_ins_throughput": "Rendimiento",
+  "editor_ins_completed_per_week": "Tickets completados por semana",
+  "editor_ins_unit_completed": "completados",
+  "editor_ins_unit_issues": "tickets",
+  "editor_ins_week_of": "Semana del {week}",
+  "editor_ins_by_status": "Abiertos por estado",
+  "editor_ins_by_priority": "Abiertos por prioridad",
+  "editor_ins_by_assignee": "Abiertos por responsable",
+  "editor_ins_by_label": "Abiertos por etiqueta",
+  "editor_ins_no_labelled": "No hay tickets abiertos con etiquetas.",
+  "editor_ins_cycle_time": "Tiempo de ciclo",
+  "editor_ins_cycle_body": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Inicio → hecho · {count} ticket completado en el intervalo",
+        "countPlural=other": "Inicio → hecho · {count} tickets completados en el intervalo"
+      }
+    }
+  ],
+  "editor_ins_cycle_dist": "Distribución del tiempo de ciclo",
+  "editor_ins_lead_time": "Tiempo de entrega",
+  "editor_ins_lead_body": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Creación → hecho · {count} ticket completado en el intervalo",
+        "countPlural=other": "Creación → hecho · {count} tickets completados en el intervalo"
+      }
+    }
+  ],
+  "editor_ins_lead_dist": "Distribución del tiempo de entrega",
+  "editor_ins_use_arrows": "{caption}. Usa las flechas para leer cada columna.",
+  "editor_ins_avg": "prom. {value}",
+  "editor_ins_trend_aria": "Tickets creados y completados por semana en las últimas {count} semanas. Usa las flechas para leer cada semana.",
+  "editor_ins_trend_caption": "Tickets creados y completados por semana",
+  "editor_ins_show_less": "Mostrar menos",
+  "editor_ins_show_more": "Mostrar {count} más",
+  "editor_ins_no_open": "No hay tickets abiertos.",
+  "editor_ins_hours": "{n} h"
 }
