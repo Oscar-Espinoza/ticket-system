@@ -640,7 +640,26 @@
   "projects_list_title": "Projects",
   "projects_list_empty_title": "No projects yet",
   "projects_list_empty_desc": "Create your first project to get started.",
-  "projects_list_counts": "{open} open · {resolved} resolved",
+  "projects_list_counts": [
+    {
+      "declarations": [
+        "input open",
+        "input resolved",
+        "local openPlural = open: plural",
+        "local resolvedPlural = resolved: plural"
+      ],
+      "selectors": [
+        "openPlural",
+        "resolvedPlural"
+      ],
+      "match": {
+        "openPlural=one, resolvedPlural=one": "{open} open · {resolved} resolved",
+        "openPlural=one, resolvedPlural=other": "{open} open · {resolved} resolved",
+        "openPlural=other, resolvedPlural=one": "{open} open · {resolved} resolved",
+        "openPlural=other, resolvedPlural=other": "{open} open · {resolved} resolved"
+      }
+    }
+  ],
   "projects_template_deleted": "Deleted “{name}”",
   "projects_template_delete_title": "Delete “{name}”?",
   "projects_template_delete_desc": "Projects already created from it don’t change. This can’t be undone.",
