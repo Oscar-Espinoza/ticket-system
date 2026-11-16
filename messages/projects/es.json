@@ -732,5 +732,158 @@
   "projects_tab_trash": "Papelera",
   "projects_tab_members": "Miembros",
   "projects_tab_settings": "Configuración",
-  "projects_tabs_more": "Más páginas del proyecto"
+  "projects_tabs_more": "Más páginas del proyecto",
+  "projects_freq_daily": "Diaria",
+  "projects_freq_weekly": "Semanal",
+  "projects_freq_monthly": "Mensual",
+  "projects_recurring_err_invalid": "Programación no válida.",
+  "projects_recurring_err_freq": "Elige con qué frecuencia se repite.",
+  "projects_recurring_err_interval": "Repite cada 1 a {max}.",
+  "projects_recurring_err_start": "Elige una fecha de inicio.",
+  "projects_recurring_err_weekday": "Elige al menos un día de la semana.",
+  "projects_recurring_err_day": "Elige un día del mes.",
+  "projects_recurring_daily": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Todos los días",
+        "countPlural=other": "Cada {count} días"
+      }
+    }
+  ],
+  "projects_recurring_every_weekday": "Todos los días laborables",
+  "projects_recurring_weekly": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Cada semana: {days}",
+        "countPlural=other": "Cada {count} semanas: {days}"
+      }
+    }
+  ],
+  "projects_recurring_monthly": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Cada mes, el día {day}",
+        "countPlural=other": "Cada {count} meses, el día {day}"
+      }
+    }
+  ],
+  "projects_recurring_unit_daily": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "día",
+        "countPlural=other": "días"
+      }
+    }
+  ],
+  "projects_recurring_unit_weekly": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "semana",
+        "countPlural=other": "semanas"
+      }
+    }
+  ],
+  "projects_recurring_unit_monthly": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "mes",
+        "countPlural=other": "meses"
+      }
+    }
+  ],
+  "projects_recurring_every": "cada",
+  "projects_recurring_every_aria": "Número de {unit} entre repeticiones",
+  "projects_recurring_updated": "Ticket recurrente actualizado",
+  "projects_recurring_created": "Ticket recurrente creado",
+  "projects_recurring_edit": "Editar ticket recurrente",
+  "projects_recurring_new": "Ticket recurrente nuevo",
+  "projects_recurring_editor_desc": "En cada ejecución se crea un ticket con estos valores.",
+  "projects_recurring_title": "Título",
+  "projects_recurring_title_placeholder": "Actualización semanal de dependencias",
+  "projects_recurring_description_placeholder": "Lista de tareas, enlaces, contexto…",
+  "projects_recurring_repeat": "Repetir",
+  "projects_recurring_frequency": "Frecuencia",
+  "projects_recurring_weekdays": "Días de la semana",
+  "projects_recurring_on_day": "el día",
+  "projects_recurring_day_of_month": "Día del mes",
+  "projects_recurring_short_months": "Los meses más cortos usan su último día.",
+  "projects_recurring_starting": "Desde",
+  "projects_recurring_next": "Próximas: {runs}",
+  "projects_recurring_next_none": "ninguna",
+  "projects_recurring_due": "Vencimiento",
+  "projects_recurring_due_hint": "Días después de cada ejecución; déjalo vacío para no poner fecha de vencimiento.",
+  "projects_recurring_due_after": "días después de crearse",
+  "projects_recurring_create": "Crear",
+  "projects_recurring_broken": "Programación ilegible: edítala para arreglarla",
+  "projects_recurring_due_in": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": " · vence en {count} día",
+        "countPlural=other": " · vence en {count} días"
+      }
+    }
+  ],
+  "projects_recurring_next_run": "Próxima: {day}",
+  "projects_recurring_paused": "En pausa",
+  "projects_recurring_actions": "Acciones de {name}",
+  "projects_recurring_create_now": "Crear ticket ahora",
+  "projects_recurring_pause": "Pausar",
+  "projects_recurring_resume": "Reanudar",
+  "projects_recurring_created_key": "{key} creado",
+  "projects_recurring_resumed": "Reanudado",
+  "projects_recurring_deleted": "Ticket recurrente eliminado",
+  "projects_recurring_cron": "Las ejecuciones programadas necesitan el cron diario: define {secret} en el despliegue (Vercel Cron llama a {path}). Mientras tanto, los tickets pendientes se crean cada vez que alguien abre esta página.",
+  "projects_recurring_empty_title": "No hay tickets recurrentes",
+  "projects_recurring_empty_desc": "Crea tickets de forma programada: revisiones semanales, informes mensuales, comprobaciones diarias.",
+  "projects_recurring_delete_title": "¿Eliminar «{title}»?",
+  "projects_recurring_delete_desc": "No se crearán más tickets a partir de él. Los tickets que ya creó se quedan."
 }

@@ -1,5 +1,6 @@
 <!-- One schedule in Settings → Recurring issues. -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import CirclePause from '@lucide/svelte/icons/circle-pause';
   import CirclePlay from '@lucide/svelte/icons/circle-play';
   import Ellipsis from '@lucide/svelte/icons/ellipsis';
@@ -61,9 +62,9 @@
       <span class="truncate font-medium">{item.title}</span>
     {/if}
     <span class="truncate text-xs text-muted-foreground">
-      {item.broken ? 'Schedule unreadable — edit it to fix' : describeSchedule(item.schedule)}{item.data
+      {item.broken ? m.projects_recurring_broken() : describeSchedule(item.schedule)}{item.data
         .dueInDays != null
-        ? ` · due in ${item.data.dueInDays} ${item.data.dueInDays === 1 ? 'day' : 'days'}`
+        ? m.projects_recurring_due_in({ count: item.data.dueInDays })
         : ''}
     </span>
   </div>
@@ -87,14 +88,14 @@
   </div>
 
   <span class="w-28 shrink-0 text-right text-xs text-muted-foreground tabular-nums">
-    {item.enabled ? `Next ${formatRunDay(item.nextRunAt)}` : 'Paused'}
+    {item.enabled ? m.projects_recurring_next_run({ day: formatRunDay(item.nextRunAt) }) : m.projects_recurring_paused()}
   </span>
 
   {#if canEdit}
     <DropdownMenu>
       <DropdownMenuTrigger>
         {#snippet child({ props: triggerProps })}
-          <Button {...triggerProps} variant="ghost" size="icon-sm" aria-label="Actions for {item.title}">
+          <Button {...triggerProps} variant="ghost" size="icon-sm" aria-label={m.projects_recurring_actions({ name: item.title })}>
             <Ellipsis />
           </Button>
         {/snippet}
@@ -102,20 +103,20 @@
       <DropdownMenuContent align="end" class="w-48">
         <DropdownMenuItem onSelect={onEdit}>
           <Pencil />
-          Edit
+          {m.common_edit()}
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={onRun}>
           <Play />
-          Create issue now
+          {m.projects_recurring_create_now()}
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={onToggle}>
           {#if item.enabled}<CirclePause />{:else}<CirclePlay />{/if}
-          {item.enabled ? 'Pause' : 'Resume'}
+          {item.enabled ? m.projects_recurring_pause() : m.projects_recurring_resume()}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem variant="destructive" onSelect={onDelete}>
           <Trash2 />
-          Delete
+          {m.common_delete()}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

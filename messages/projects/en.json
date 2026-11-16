@@ -732,5 +732,158 @@
   "projects_tab_trash": "Trash",
   "projects_tab_members": "Members",
   "projects_tab_settings": "Settings",
-  "projects_tabs_more": "More project pages"
+  "projects_tabs_more": "More project pages",
+  "projects_freq_daily": "Daily",
+  "projects_freq_weekly": "Weekly",
+  "projects_freq_monthly": "Monthly",
+  "projects_recurring_err_invalid": "Invalid schedule.",
+  "projects_recurring_err_freq": "Choose how often it repeats.",
+  "projects_recurring_err_interval": "Repeat every 1 to {max}.",
+  "projects_recurring_err_start": "Choose a start date.",
+  "projects_recurring_err_weekday": "Pick at least one weekday.",
+  "projects_recurring_err_day": "Pick a day of the month.",
+  "projects_recurring_daily": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Every day",
+        "countPlural=other": "Every {count} days"
+      }
+    }
+  ],
+  "projects_recurring_every_weekday": "Every weekday",
+  "projects_recurring_weekly": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Weekly on {days}",
+        "countPlural=other": "Every {count} weeks on {days}"
+      }
+    }
+  ],
+  "projects_recurring_monthly": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Monthly on the {day}",
+        "countPlural=other": "Every {count} months on the {day}"
+      }
+    }
+  ],
+  "projects_recurring_unit_daily": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "day",
+        "countPlural=other": "days"
+      }
+    }
+  ],
+  "projects_recurring_unit_weekly": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "week",
+        "countPlural=other": "weeks"
+      }
+    }
+  ],
+  "projects_recurring_unit_monthly": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "month",
+        "countPlural=other": "months"
+      }
+    }
+  ],
+  "projects_recurring_every": "every",
+  "projects_recurring_every_aria": "Every how many {unit}",
+  "projects_recurring_updated": "Recurring issue updated",
+  "projects_recurring_created": "Recurring issue created",
+  "projects_recurring_edit": "Edit recurring issue",
+  "projects_recurring_new": "New recurring issue",
+  "projects_recurring_editor_desc": "An issue with these values is created on every run.",
+  "projects_recurring_title": "Title",
+  "projects_recurring_title_placeholder": "Weekly dependency updates",
+  "projects_recurring_description_placeholder": "Checklist, links, context…",
+  "projects_recurring_repeat": "Repeat",
+  "projects_recurring_frequency": "Frequency",
+  "projects_recurring_weekdays": "Weekdays",
+  "projects_recurring_on_day": "on day",
+  "projects_recurring_day_of_month": "Day of the month",
+  "projects_recurring_short_months": "Shorter months use their last day.",
+  "projects_recurring_starting": "Starting",
+  "projects_recurring_next": "Next: {runs}",
+  "projects_recurring_next_none": "none",
+  "projects_recurring_due": "Due",
+  "projects_recurring_due_hint": "Days after each run; leave empty for no due date.",
+  "projects_recurring_due_after": "days after it’s created",
+  "projects_recurring_create": "Create",
+  "projects_recurring_broken": "Schedule unreadable — edit it to fix",
+  "projects_recurring_due_in": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": " · due in {count} day",
+        "countPlural=other": " · due in {count} days"
+      }
+    }
+  ],
+  "projects_recurring_next_run": "Next {day}",
+  "projects_recurring_paused": "Paused",
+  "projects_recurring_actions": "Actions for {name}",
+  "projects_recurring_create_now": "Create issue now",
+  "projects_recurring_pause": "Pause",
+  "projects_recurring_resume": "Resume",
+  "projects_recurring_created_key": "Created {key}",
+  "projects_recurring_resumed": "Resumed",
+  "projects_recurring_deleted": "Recurring issue deleted",
+  "projects_recurring_cron": "Scheduled runs need the daily cron: set {secret} in the deployment (Vercel Cron calls {path}). Until then, due issues are created whenever someone opens this page.",
+  "projects_recurring_empty_title": "No recurring issues",
+  "projects_recurring_empty_desc": "Create issues on a schedule — weekly reviews, monthly reports, daily checks.",
+  "projects_recurring_delete_title": "Delete “{title}”?",
+  "projects_recurring_delete_desc": "No more issues are created from it. Issues it already created stay."
 }

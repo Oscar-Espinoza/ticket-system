@@ -1,8 +1,5 @@
 {
   "files": {
-    "src/lib/components/recurring/recurring-editor.svelte": "pending translation (area projects, 9 strings)",
-    "src/lib/components/recurring/recurring-row.svelte": "pending translation (area projects, 2 strings)",
-    "src/lib/components/recurring/recurring-settings.svelte": "pending translation (area projects, 3 strings)",
     "src/lib/components/sla/sla-chip.svelte": "pending translation (area projects, 1 strings)",
     "src/lib/components/sla/sla-settings-form.svelte": "pending translation (area projects, 4 strings)",
     "src/lib/components/sla/time-in-status.svelte": "pending translation (area projects, 1 strings)",
