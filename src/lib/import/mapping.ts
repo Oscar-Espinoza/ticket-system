@@ -3,6 +3,7 @@
 // rows into ImportRecords. Client-safe — runs in the import wizard.
 
 import { isDateString, toDateString } from '@/lib/dates';
+import { m } from '@/lib/i18n';
 import type { Priority } from '@/lib/issue-model';
 import { unguardCell } from './csv';
 import type { ImportRecord, ImportSourceKind } from './records';
@@ -23,22 +24,25 @@ export type ImportField =
   | 'url'
   | 'createdAt';
 
-export const IMPORT_FIELDS: { value: ImportField; label: string }[] = [
-  { value: 'ignore', label: "Don't import" },
-  { value: 'title', label: 'Title' },
-  { value: 'description', label: 'Description' },
-  { value: 'state', label: 'Status' },
-  { value: 'priority', label: 'Priority' },
-  { value: 'assignee', label: 'Assignee (email)' },
-  { value: 'labels', label: 'Labels' },
-  { value: 'estimate', label: 'Estimate' },
-  { value: 'dueDate', label: 'Due date' },
-  { value: 'waitingOn', label: 'Waiting on (email)' },
-  { value: 'followUp', label: 'Follow-up date' },
-  { value: 'id', label: 'Source ID (skip duplicates)' },
-  { value: 'url', label: 'Source link' },
-  { value: 'createdAt', label: 'Created date' },
-];
+/** The mappable fields with their labels, in the current language. */
+export function importFields(): { value: ImportField; label: string }[] {
+  return [
+    { value: 'ignore', label: m.auth_import_field_ignore() },
+    { value: 'title', label: m.auth_import_field_title() },
+    { value: 'description', label: m.auth_import_field_description() },
+    { value: 'state', label: m.auth_import_field_state() },
+    { value: 'priority', label: m.auth_import_field_priority() },
+    { value: 'assignee', label: m.auth_import_field_assignee() },
+    { value: 'labels', label: m.auth_import_field_labels() },
+    { value: 'estimate', label: m.auth_import_field_estimate() },
+    { value: 'dueDate', label: m.auth_import_field_due_date() },
+    { value: 'waitingOn', label: m.auth_import_field_waiting_on() },
+    { value: 'followUp', label: m.auth_import_field_follow_up() },
+    { value: 'id', label: m.auth_import_field_id() },
+    { value: 'url', label: m.auth_import_field_url() },
+    { value: 'createdAt', label: m.auth_import_field_created_at() },
+  ];
+}
 
 /** Several columns may feed labels (Jira repeats the Labels header per label). */
 const MULTI: ReadonlySet<ImportField> = new Set(['labels']);

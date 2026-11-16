@@ -7,7 +7,7 @@ import { and, eq } from 'drizzle-orm';
 import { documents, epics } from '@/db/schema';
 import {
   CONTENT_MAX,
-  DOCUMENT_TEMPLATES,
+  documentTemplates,
   ICON_MAX,
   TITLE_MAX,
   isTemplateId,
@@ -23,13 +23,14 @@ import {
   refreshesData,
   type ActionResult,
 } from '@/lib/server/action-kit';
+import { m } from '@/lib/i18n';
 import { isEntityId } from '@/lib/ids';
 import { sessionUserId } from '@/lib/session';
 import { clippedText } from '@/lib/text';
 
 export type DocumentActionResult = ActionResult<{ id: string }>;
 
-const DOCUMENT_NOT_FOUND = fail('Document not found.');
+const documentNotFound = () => fail(m.auth_docs_not_found());
 
 async function epicInProject(epicId: unknown, projectId: string): Promise<string | null | false> {
   if (epicId === null) return null;
@@ -44,18 +45,18 @@ async function epicInProject(epicId: unknown, projectId: string): Promise<string
 
 /** Loads the document's project and checks the caller may write to it. */
 async function authorizeDocument(documentId: unknown) {
-  if (!isEntityId(documentId)) return DOCUMENT_NOT_FOUND;
+  if (!isEntityId(documentId)) return documentNotFound();
   const userId = await sessionUserId();
   if (!userId) return NOT_AUTHENTICATED;
   const access = await getDocumentAccess(documentId, userId);
   // Same answer for "missing" and "not yours" (no id probing).
-  if (!access || !roleAllows(access.role, 'write')) return DOCUMENT_NOT_FOUND;
+  if (!access || !roleAllows(access.role, 'write')) return documentNotFound();
   const doc = { id: documentId, projectId: access.projectId, archivedAt: access.archivedAt };
   return { ok: true as const, doc, userId, role: access.role };
 }
 
 function cleanTitle(value: unknown): string {
-  return typeof value === 'string' ? value.replace(/\s+/g, ' ').trim().slice(0, TITLE_MAX) || 'Untitled' : 'Untitled';
+  return typeof value === 'string' ? value.replace(/\s+/g, ' ').trim().slice(0, TITLE_MAX) || m.auth_docs_untitled() : m.auth_docs_untitled();
 }
 
 export async function createDocument(input: {
@@ -68,9 +69,9 @@ export async function createDocument(input: {
   if (!authz.ok) return authz;
   const projectId = input.projectId;
 
-  const template = DOCUMENT_TEMPLATES.find((t) => t.id === (isTemplateId(input.template) ? input.template : 'blank'))!;
+  const template = documentTemplates().find((t) => t.id === (isTemplateId(input.template) ? input.template : 'blank'))!;
   const epicId = input.epicId === undefined ? null : await epicInProject(input.epicId, projectId);
-  if (epicId === false) return fail('That epic isn’t in this project.');
+  if (epicId === false) return fail(m.auth_docs_epic_not_in_project());
 
   const now = new Date();
   const id = crypto.randomUUID();
@@ -100,14 +101,14 @@ export async function updateDocument(input: {
   const auth = await authorizeDocument(input?.id);
   if (!auth.ok) return auth;
   const { doc, userId } = auth;
-  if (doc.archivedAt) return fail('Unarchive the document to edit it.');
+  if (doc.archivedAt) return fail(m.auth_docs_unarchive_to_edit());
 
   const patch: Partial<typeof documents.$inferInsert> = {};
   if (input.title !== undefined) patch.title = cleanTitle(input.title);
   if (input.icon !== undefined) patch.icon = clippedText(input.icon, ICON_MAX);
   if (input.epicId !== undefined) {
     const epicId = await epicInProject(input.epicId, doc.projectId);
-    if (epicId === false) return fail('That epic isn’t in this project.');
+    if (epicId === false) return fail(m.auth_docs_epic_not_in_project());
     patch.epicId = epicId;
   }
   if (Object.keys(patch).length === 0) return { ok: true, id: doc.id };
@@ -126,11 +127,11 @@ export async function updateDocument(input: {
  * No revalidation: the open editor is the live view, lists are dynamic.
  */
 export async function saveDocumentContent(input: { id: string; content: string }): Promise<DocumentActionResult> {
-  if (typeof input?.content !== 'string') return fail('Invalid content.');
-  if (input.content.length > CONTENT_MAX) return fail('This document is too long to save.');
+  if (typeof input?.content !== 'string') return fail(m.auth_docs_invalid_content());
+  if (input.content.length > CONTENT_MAX) return fail(m.auth_docs_too_long());
   const auth = await authorizeDocument(input.id);
   if (!auth.ok) return auth;
-  if (auth.doc.archivedAt) return fail('Unarchive the document to edit it.');
+  if (auth.doc.archivedAt) return fail(m.auth_docs_unarchive_to_edit());
 
   await db
     .update(documents)
