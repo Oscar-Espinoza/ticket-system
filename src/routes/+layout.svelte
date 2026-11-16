@@ -7,12 +7,14 @@
   import { m } from '@/lib/i18n';
   import '../app.css';
 
-  import type { Snippet } from 'svelte';
+  import { untrack, type Snippet } from 'svelte';
 
   import { Toaster } from '@/lib/components/ui/sonner';
   import { TooltipProvider } from '@/lib/components/ui/tooltip';
   import { markAppHydrated } from '@/lib/svelte/hydration';
   import ThemeProvider from '@/lib/svelte/theme-provider.svelte';
+  import { switchLocale } from '@/lib/svelte/locale-switch';
+  import { toAppLocale } from '@/lib/i18n-locales';
   // Lane L1 (PWA)
   import OfflineBanner from '@/lib/components/pwa/offline-banner.svelte';
   import RegisterServiceWorker from '@/lib/components/pwa/register-sw.svelte';
@@ -22,15 +24,43 @@
   // First hydration done: later client-side mounts read browser state directly.
   $effect(() => markAppHydrated());
 
-  // The interface language changed without a document load (signing in to an
-  // account with another saved language, or signing out): everything already
-  // rendered is in the old language and the browser's locale comes from
-  // <html lang> (src/hooks.client.ts), so load the page again.
+  // The language on screen. When the server's locale for the page changes
+  // without a document load (Settings › Language saved and refreshed the data,
+  // or signing in to / out of an account with another language), switch in
+  // place: <html lang> changes and the keyed subtree below renders again in the
+  // new language (src/lib/svelte/locale-switch.ts).
+  // Switches run one at a time and always aim at the latest locale the data
+  // asked for, so a change that arrives while a cross-fade is in flight is
+  // applied right after it, and a stale one is never applied.
+  let shown = $state(untrack(() => data.locale));
+  let requested = untrack(() => data.locale);
+  let switching = false;
+  async function reconcile() {
+    if (switching) return;
+    switching = true;
+    try {
+      while (requested !== shown) {
+        const next = toAppLocale(requested);
+        if (!next) break;
+        await switchLocale(
+          () => toAppLocale(requested) ?? next,
+          (locale) => (shown = locale),
+        );
+      }
+    } finally {
+      switching = false;
+    }
+  }
   $effect(() => {
-    if (data.locale !== document.documentElement.lang) location.reload();
+    requested = data.locale;
+    void reconcile();
   });
 
-  const description = $derived(m.auth_site_description());
+  // Re-read when the language on screen changes (this layout isn't re-keyed).
+  const description = $derived.by(() => {
+    void shown;
+    return m.auth_site_description();
+  });
 </script>
 
 <svelte:head>
@@ -43,10 +73,14 @@
 </svelte:head>
 
 <ThemeProvider>
-  <TooltipProvider>{@render children()}</TooltipProvider>
+  <TooltipProvider>
+    {#key shown}
+      {@render children()}
+      <OfflineBanner />
+    {/key}
+  </TooltipProvider>
   <!-- Single app-wide Toaster (the React app mounted it in TopbarChrome). -->
   <Toaster position="bottom-right" />
 </ThemeProvider>
 
 <RegisterServiceWorker />
-<OfflineBanner />
