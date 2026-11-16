@@ -1,5 +1,6 @@
 <!-- Accept form inside AcceptDialog. -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { untrack } from 'svelte';
   import LoaderCircle from '@lucide/svelte/icons/loader-circle';
 
@@ -38,12 +39,12 @@
   let assigneeId = $state(untrack(() => issue.assignee?.id ?? UNASSIGNED));
 
   const selectedState = $derived(options.find((s) => s.id === stateId));
-  const selectedMember = $derived(data.members.find((m) => m.id === assigneeId));
+  const selectedMember = $derived(data.members.find((member) => member.id === assigneeId));
   const stateItems = $derived(options.map((s) => ({ value: s.id, label: s.name })));
   const priorityItems = PRIORITY_ORDER.map((p) => ({ value: p, label: PRIORITY_LABEL[p] }));
   const assigneeItems = $derived([
-    { value: UNASSIGNED, label: 'Unassigned' },
-    ...data.members.map((m) => ({ value: m.id, label: m.name })),
+    { value: UNASSIGNED, label: m.issues_unassigned() },
+    ...data.members.map((member) => ({ value: member.id, label: member.name })),
   ]);
 
   function submit(event: SubmitEvent) {
@@ -55,20 +56,20 @@
 
 <form class="flex flex-col gap-4" onsubmit={submit}>
   <DialogHeader>
-    <DialogTitle>Accept {issue.key}</DialogTitle>
+    <DialogTitle>{m.issues_triage_accept_title({ key: issue.key })}</DialogTitle>
     <DialogDescription class="truncate">{issue.title}</DialogDescription>
   </DialogHeader>
   <div class="grid grid-cols-[5rem_1fr] items-center gap-x-3 gap-y-3">
-    <Label for="accept-state" class="text-xs text-muted-foreground">Status</Label>
+    <Label for="accept-state" class="text-xs text-muted-foreground">{m.common_status()}</Label>
     <Select items={stateItems} bind:value={stateId}>
       <SelectTrigger id="accept-state" class="w-full">
-        <SelectValue placeholder="Pick a status">
+        <SelectValue placeholder={m.issues_triage_pick_status()}>
           {#snippet children()}
             {#if selectedState}
               <StateIcon state={selectedState} size={14} />
               {selectedState.name}
             {:else}
-              Pick a status
+              {m.issues_triage_pick_status()}
             {/if}
           {/snippet}
         </SelectValue>
@@ -82,7 +83,7 @@
         {/each}
       </SelectContent>
     </Select>
-    <Label for="accept-priority" class="text-xs text-muted-foreground">Priority</Label>
+    <Label for="accept-priority" class="text-xs text-muted-foreground">{m.common_priority()}</Label>
     <Select items={priorityItems} bind:value={() => priority, (v) => (priority = v as Priority)}>
       <SelectTrigger id="accept-priority" class="w-full">
         <SelectValue>
@@ -101,7 +102,7 @@
         {/each}
       </SelectContent>
     </Select>
-    <Label for="accept-assignee" class="text-xs text-muted-foreground">Assignee</Label>
+    <Label for="accept-assignee" class="text-xs text-muted-foreground">{m.common_assignee()}</Label>
     <Select items={assigneeItems} bind:value={assigneeId}>
       <SelectTrigger id="accept-assignee" class="w-full">
         <SelectValue>
@@ -110,17 +111,17 @@
               <Avatar name={selectedMember.name} src={selectedMember.image} size={20} />
               {selectedMember.name}
             {:else}
-              Unassigned
+              {m.issues_unassigned()}
             {/if}
           {/snippet}
         </SelectValue>
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value={UNASSIGNED}>Unassigned</SelectItem>
-        {#each data.members as m (m.id)}
-          <SelectItem value={m.id} label={m.name}>
-            <Avatar name={m.name} src={m.image} size={20} />
-            {m.name}
+        <SelectItem value={UNASSIGNED}>{m.issues_unassigned()}</SelectItem>
+        {#each data.members as member (member.id)}
+          <SelectItem value={member.id} label={member.name}>
+            <Avatar name={member.name} src={member.image} size={20} />
+            {member.name}
           </SelectItem>
         {/each}
       </SelectContent>
@@ -128,15 +129,15 @@
   </div>
   {#if options.length === 0}
     <p class="text-sm text-destructive">
-      This project has no backlog, unstarted or started states to accept into.
+      {m.issues_triage_no_states()}
     </p>
   {/if}
   <DialogFooter>
-    <Button type="button" variant="outline" onclick={onCancel}>Cancel</Button>
+    <Button type="button" variant="outline" onclick={onCancel}>{m.common_cancel()}</Button>
     <!-- svelte-ignore a11y_autofocus -->
     <Button type="submit" disabled={pending || !stateId} autofocus>
       {#if pending}<LoaderCircle class="animate-spin" />{/if}
-      Accept
+      {m.issues_triage_accept()}
     </Button>
   </DialogFooter>
 </form>

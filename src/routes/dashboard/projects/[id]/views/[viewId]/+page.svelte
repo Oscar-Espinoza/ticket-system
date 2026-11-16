@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import ChevronLeftIcon from '@lucide/svelte/icons/chevron-left';
   import UsersIcon from '@lucide/svelte/icons/users';
 
@@ -22,7 +23,7 @@
   <div class="mb-3 flex items-start gap-2">
     <a
       href={`/dashboard/projects/${params.id}/views`}
-      aria-label="All views"
+      aria-label={m.issues_views_all()}
       class="mt-0.5 rounded-md p-0.5 text-muted-foreground outline-none hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
     >
       <ChevronLeftIcon class="size-4" />
@@ -31,9 +32,9 @@
       <h2 class="flex items-center gap-2 truncate text-base font-medium">
         {view.name}
         {#if view.shared}
-          <span class="flex items-center gap-1 text-xs font-normal text-muted-foreground" title="Shared with project members">
+          <span class="flex items-center gap-1 text-xs font-normal text-muted-foreground" title={m.issues_views_shared_title()}>
             <UsersIcon class="size-3.5" />
-            Shared
+            {m.issues_views_shared()}
           </span>
         {/if}
       </h2>
@@ -41,7 +42,7 @@
         <p class="truncate text-sm text-muted-foreground">{view.description}</p>
       {/if}
       {#if !view.isOwner && view.ownerName}
-        <p class="text-xs text-muted-foreground">Created by {view.ownerName}</p>
+        <p class="text-xs text-muted-foreground">{m.issues_views_created_by({ name: view.ownerName })}</p>
       {/if}
     </div>
     <FavoriteButton targetType="view" targetId={view.id} initial={data.favorited} />

@@ -6,6 +6,7 @@
   it closes the issue, so it stays an explicit click.
 -->
 <script module lang="ts">
+  import { m } from '@/lib/i18n';
   import type { IssuePatch, IssueRow } from '@/lib/issue-model';
   import type { SuggestionSource, TriageSuggestions as Suggestions } from '@/lib/triage';
 
@@ -13,7 +14,9 @@
 
   function basedOn(sources: SuggestionSource[]): string {
     const keys = sources.slice(0, MAX_SOURCES).map((s) => s.key);
-    return `Based on ${keys.join(', ')}${sources.length > MAX_SOURCES ? '…' : ''}`;
+    return sources.length > MAX_SOURCES
+      ? m.issues_triage_based_on_more({ keys: keys.join(', ') })
+      : m.issues_triage_based_on({ keys: keys.join(', ') });
   }
 
   /** Drop what the issue already has (after an apply or a manual edit). */
@@ -104,8 +107,8 @@
     return registerHotkeys([
       {
         key: 'a',
-        scope: 'Triage',
-        description: 'Apply suggestions',
+        scope: m.issues_triage_scope(),
+        description: m.issues_triage_apply_suggestions(),
         when: (event) => !event.shiftKey,
         handler: () => applyAll(),
       },
@@ -145,12 +148,12 @@
 {#if open && (patch || open.duplicate)}
   <div
     role="group"
-    aria-label="Suggestions for {issue.key}"
+    aria-label={m.issues_triage_suggestions_for({ key: issue.key })}
     class="mb-3 flex flex-wrap items-center gap-1.5 rounded-md border border-dashed border-border px-2 py-1.5"
   >
     <span class="flex items-center gap-1.5 pr-1 text-xs text-muted-foreground">
       <Lightbulb class="size-3.5" />
-      Suggested
+      {m.issues_triage_suggested()}
     </span>
 
     {#each open.labels as s (s.label.id)}
@@ -161,9 +164,9 @@
         </LabelChip>
       {/snippet}
       {@render chip(
-        `${basedOn(s.basedOn)} · ${pct(s.confidence)} of similar issues`,
+        m.issues_triage_hint_similar({ basedOn: basedOn(s.basedOn), pct: pct(s.confidence) }),
         () => mutations.update(issue, { addLabelIds: [s.label.id] }),
-        `Add label ${s.label.name}`,
+        m.issues_triage_add_label({ name: s.label.name }),
         labelContent,
       )}
     {/each}
@@ -175,9 +178,9 @@
         <span class="truncate">{assignee.user.name}</span>
       {/snippet}
       {@render chip(
-        `${basedOn(assignee.basedOn)} · ${pct(assignee.confidence)} of similar issues`,
+        m.issues_triage_hint_similar({ basedOn: basedOn(assignee.basedOn), pct: pct(assignee.confidence) }),
         () => mutations.update(issue, { assigneeId: assignee.user.id }),
-        `Assign to ${assignee.user.name}`,
+        m.issues_triage_assign_to({ name: assignee.user.name }),
         assigneeContent,
       )}
     {/if}
@@ -189,9 +192,9 @@
         {PRIORITY_LABEL[suggested.priority]}
       {/snippet}
       {@render chip(
-        `${basedOn(suggested.basedOn)} · ${pct(suggested.confidence)} of similar issues`,
+        m.issues_triage_hint_similar({ basedOn: basedOn(suggested.basedOn), pct: pct(suggested.confidence) }),
         () => mutations.update(issue, { priority: suggested.priority }),
-        `Set priority to ${PRIORITY_LABEL[suggested.priority]}`,
+        m.issues_triage_set_priority_to({ priority: PRIORITY_LABEL[suggested.priority] }),
         priorityContent,
       )}
     {/if}
@@ -200,14 +203,14 @@
       {@const duplicate = open.duplicate}
       {#snippet duplicateContent()}
         <CopyIcon class="size-3 text-muted-foreground" />
-        Duplicate of
+        {m.issues_triage_duplicate_of()}
         <StateIcon state={duplicate.issue.state} size={14} />
         <span class="font-mono">{duplicate.issue.key}</span>
       {/snippet}
       {@render chip(
-        `${duplicate.issue.title} · ${pct(duplicate.confidence)} match`,
+        m.issues_triage_dup_hint({ title: duplicate.issue.title, pct: pct(duplicate.confidence) }),
         () => onDuplicate(duplicate.issue),
-        `Mark as duplicate of ${duplicate.issue.key}`,
+        m.issues_triage_mark_dup_of({ key: duplicate.issue.key }),
         duplicateContent,
       )}
     {/if}
@@ -218,7 +221,7 @@
 
     {#if patch}
       <Button size="xs" variant="ghost" class="ml-auto" disabled={pending} onclick={applyAll}>
-        Apply all
+        {m.issues_triage_apply_all()}
         <kbd class="ml-1 rounded border border-border px-1 font-mono text-[10px] text-muted-foreground">A</kbd>
       </Button>
     {/if}

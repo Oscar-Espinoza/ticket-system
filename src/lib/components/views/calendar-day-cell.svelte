@@ -1,7 +1,7 @@
 <!-- One calendar day: drop target + up to MAX_CHIPS chips, the rest behind "+N more".
      Renders inside the DragDropProvider. -->
 <script lang="ts">
-  import { pluralize } from '@/lib/format';
+  import { m, dateFormat } from '@/lib/i18n';
   import { createDroppable } from '@dnd-kit/svelte';
 
   import { Popover, PopoverContent, PopoverTrigger } from '@/lib/components/ui/popover';
@@ -11,7 +11,7 @@
   import CalendarDraggableChip from './calendar-draggable-chip.svelte';
 
   const MAX_CHIPS = 4;
-  const dayFormat = new Intl.DateTimeFormat('en', { weekday: 'long', month: 'long', day: 'numeric' });
+  const dayFormat = dateFormat({ weekday: 'long', month: 'long', day: 'numeric' });
 
   let {
     date,
@@ -43,7 +43,7 @@
 <div
   {@attach droppable.attach}
   role="gridcell"
-  aria-label={`${label}, ${pluralize(issues.length, 'issue')}`}
+  aria-label={m.issues_cal_day_aria({ day: label, issues: m.common_issue_count({ count: issues.length }) })}
   class={cn(
     'flex min-h-28 min-w-0 flex-col gap-1 border-r border-b border-border p-1 transition-colors',
     !inMonth && 'bg-muted/30',
@@ -70,7 +70,7 @@
             type="button"
             class="rounded px-1.5 text-left text-xs text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
           >
-            +{rest.length} more
+            {m.issues_cal_more({ count: rest.length })}
           </button>
         {/snippet}
       </PopoverTrigger>

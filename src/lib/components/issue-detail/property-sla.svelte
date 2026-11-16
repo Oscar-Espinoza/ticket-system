@@ -4,7 +4,7 @@
   state; hover for the per-state history).
 -->
 <script lang="ts">
-  import { m } from '@/lib/i18n';
+  import { m, dateFormat } from '@/lib/i18n';
   import TimerIcon from '@lucide/svelte/icons/timer';
 
   import PropertyRow from '@/lib/components/issue-detail/property-row.svelte';
@@ -13,7 +13,6 @@
   import TimeInStatus from '@/lib/components/sla/time-in-status.svelte';
   import { useMinuteNow } from '@/lib/components/sla/use-now.svelte';
   import type { IssueRow } from '@/lib/issue-model';
-  import { dateFormat } from '@/lib/i18n';
   import { slaStatus } from '@/lib/sla';
   import { cn } from '@/lib/utils';
 

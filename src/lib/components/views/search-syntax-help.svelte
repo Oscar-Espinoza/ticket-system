@@ -5,6 +5,7 @@
 -->
 
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import CircleHelpIcon from '@lucide/svelte/icons/circle-question-mark';
 
   import { Popover, PopoverContent, PopoverTrigger } from '@/lib/components/ui/popover';
@@ -29,8 +30,8 @@
       <button
         {...props}
         type="button"
-        aria-label="Search syntax"
-        title="Search syntax"
+        aria-label={m.issues_syntax()}
+        title={m.issues_syntax()}
         class={cn(
           'flex size-6 shrink-0 items-center justify-center rounded text-muted-foreground outline-none hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring',
           className,
@@ -42,10 +43,9 @@
   </PopoverTrigger>
   <PopoverContent align="start" class="w-[22rem] gap-0 p-0">
     <div class="border-b border-border px-3 py-2">
-      <p class="text-sm font-medium">Search syntax</p>
+      <p class="text-sm font-medium">{m.issues_syntax()}</p>
       <p class="text-xs text-muted-foreground">
-        {note ?? 'Combine filters with free text.'} Quote values with spaces, separate
-        alternatives with commas, prefix with - to exclude.
+        {note ?? m.issues_syntax_default_note()} {m.issues_syntax_rules()}
       </p>
     </div>
     <dl class="max-h-80 overflow-y-auto px-1 py-1 text-xs">

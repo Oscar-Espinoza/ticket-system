@@ -3,6 +3,7 @@
   Keyboard: j/k (↑/↓) move, 1 accept, 2 duplicate, 3 decline, a apply suggestions.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import CircleCheck from '@lucide/svelte/icons/circle-check';
   import Copy from '@lucide/svelte/icons/copy';
   import InboxIcon from '@lucide/svelte/icons/inbox';
@@ -84,10 +85,10 @@
       try {
         result = await action();
       } catch {
-        result = { ok: false, error: 'Something went wrong — nothing was changed.' };
+        result = { ok: false, error: m.issues_triage_failed() };
       }
       if (!result.ok) {
-        toast.error(actionErrorText(result.error, "You don't have permission to triage."));
+        toast.error(actionErrorText(result.error, m.issues_triage_no_permission()));
         return;
       }
       dialog = null;
@@ -112,19 +113,19 @@
           priority: choice.priority,
           assigneeId: choice.assigneeId,
         }),
-      `Accepted ${issue.key}`,
+      m.issues_triage_accepted({ key: issue.key }),
     );
   const decline = (issue: IssueRow, reason: string) =>
     run(
       issue,
       () => declineTriageIssue({ projectId: issue.projectId, id: issue.id, reason }),
-      `Declined ${issue.key}`,
+      m.issues_triage_declined({ key: issue.key }),
     );
   const duplicate = (issue: IssueRow, original: { id: string; key: string }) =>
     run(
       issue,
       () => markTriageDuplicate({ projectId: issue.projectId, id: issue.id, originalId: original.id }),
-      `Marked ${issue.key} as a duplicate of ${original.key}`,
+      m.issues_relations_marked_duplicate({ key: issue.key, other: original.key }),
     );
 
   // Reads the latest state when a key fires (useEffectEvent).
@@ -143,16 +144,16 @@
     if (!hasIssues) return;
     const key = (k: string, description: string) => ({
       key: k,
-      scope: 'Triage',
+      scope: m.issues_triage_scope(),
       description,
       handler: () => onKey(k),
     });
     return registerHotkeys([
-      key('j', 'Next issue'),
-      key('k', 'Previous issue'),
-      key('1', 'Accept'),
-      key('2', 'Mark as duplicate'),
-      key('3', 'Decline'),
+      key('j', m.issues_triage_next()),
+      key('k', m.issues_triage_previous()),
+      key('1', m.issues_triage_accept()),
+      key('2', m.issues_mark_duplicate()),
+      key('3', m.issues_triage_decline()),
     ]);
   });
 
@@ -177,30 +178,30 @@
 {#if !hasIssues}
   <EmptyState
     icon={inboxIcon}
-    title="Triage is clear"
-    description="New issues from the intake form, the API and people outside the project land here for review."
+    title={m.issues_triage_empty()}
+    description={m.issues_triage_empty_description()}
   />
 {:else}
   <div class="flex min-h-0 flex-1 flex-col">
     <div class="mb-3 flex flex-wrap items-center gap-2">
       <p class="text-sm text-muted-foreground">
-        {list.length} {list.length === 1 ? 'issue' : 'issues'} to triage
+        {m.issues_triage_to_triage({ count: list.length })}
       </p>
       {#if canWrite.current && selected}
-        <div class="ml-auto flex items-center gap-1.5" aria-label="Triage {selected.key}" role="group">
+        <div class="ml-auto flex items-center gap-1.5" aria-label={m.issues_triage_aria({ key: selected.key })} role="group">
           <Button size="sm" onclick={() => (dialog = 'accept')} disabled={pending}>
             <CircleCheck />
-            Accept
+            {m.issues_triage_accept()}
             {@render kbd('1')}
           </Button>
           <Button size="sm" variant="outline" onclick={() => (dialog = 'duplicate')} disabled={pending}>
             <Copy />
-            Duplicate
+            {m.issues_triage_duplicate()}
             {@render kbd('2')}
           </Button>
           <Button size="sm" variant="outline" onclick={() => (dialog = 'decline')} disabled={pending}>
             <CircleX />
-            Decline
+            {m.issues_triage_decline()}
             {@render kbd('3')}
           </Button>
         </div>
@@ -218,7 +219,7 @@
     {/if}
 
     <div class="flex min-h-0 flex-1">
-      <ul aria-label="Triage issues" class="flex min-w-0 flex-1 flex-col self-start">
+      <ul aria-label={m.issues_triage_list()} class="flex min-w-0 flex-1 flex-col self-start">
         {#each list as issue (issue.id)}
           <li>
             <div
@@ -243,7 +244,7 @@
               {#if issue.creator}
                 <Avatar name={issue.creator.name} src={issue.creator.image} size={20} />
               {:else}
-                <span class="text-xs text-muted-foreground">External</span>
+                <span class="text-xs text-muted-foreground">{m.issues_triage_external()}</span>
               {/if}
               <span class="w-20 shrink-0 text-right text-xs text-muted-foreground">
                 {relativeTime(issue.createdAt)}

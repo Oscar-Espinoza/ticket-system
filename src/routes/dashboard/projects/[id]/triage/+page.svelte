@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import InboxIcon from '@lucide/svelte/icons/inbox';
 
   import FeatureOffState from '@/lib/components/cycles/feature-off.svelte';
@@ -8,7 +9,7 @@
   let { data }: PageProps = $props();
 </script>
 
-<svelte:head><title>Triage</title></svelte:head>
+<svelte:head><title>{m.issues_triage_scope()}</title></svelte:head>
 
 {#snippet icon()}<InboxIcon />{/snippet}
 
@@ -16,8 +17,8 @@
   <FeatureOffState
     projectId={data.projectId}
     {icon}
-    title="Triage is off"
-    description="Route new issues from the intake form, the API and people outside the project through a review queue before they reach the backlog."
+    title={m.issues_triage_off()}
+    description={m.issues_triage_off_description()}
     canEnable={data.canEnable}
   />
 {:else}
