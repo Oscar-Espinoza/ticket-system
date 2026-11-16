@@ -20,7 +20,7 @@
   import OfflineBanner from '@/lib/components/pwa/offline-banner.svelte';
   import RegisterServiceWorker from '@/lib/components/pwa/register-sw.svelte';
 
-  let { children, data }: { children: Snippet; data: { locale: string } } = $props();
+  let { children, data }: { children: Snippet; data: { locale: string; userId: string | null } } = $props();
 
   // First hydration done: later client-side mounts read browser state directly.
   $effect(() => markAppHydrated());
@@ -36,7 +36,7 @@
   // Settings › Language shows a choice at once and saves it in the background
   // (src/lib/svelte/language-controller.svelte.ts): its `held` locale wins over
   // the page data until the save has settled.
-  const language = new LanguageController();
+  const language = new LanguageController(untrack(() => data.userId));
   setLanguageController(language);
 
   let shown = $state(untrack(() => data.locale));
@@ -58,6 +58,14 @@
       switching = false;
     }
   }
+  $effect(() => {
+    const userId = data.userId;
+    const locale = data.locale;
+    untrack(() => {
+      language.accountChanged(userId);
+      language.pageData(locale);
+    });
+  });
   $effect(() => {
     requested = language.held ?? data.locale;
     void reconcile();

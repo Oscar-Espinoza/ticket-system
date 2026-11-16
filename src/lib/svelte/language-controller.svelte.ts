@@ -37,6 +37,13 @@ export function browserLocale(): AppLocale {
   return BASE_LOCALE;
 }
 
+/** How long to wait for the page data after a save before unlocking (the data still applies when it comes). */
+const REFRESH_WAIT_MS = 8000;
+/** After that, how long a confirmed choice keeps overriding page data that never caught up. */
+const HOLD_FALLBACK_MS = 30000;
+
+const sleep = (ms: number) => new Promise<'timeout'>((resolve) => setTimeout(() => resolve('timeout'), ms));
+
 export class LanguageController {
   /** The language to show while a choice is being saved (null: follow the page data). */
   held = $state<AppLocale | null>(null);
@@ -47,6 +54,33 @@ export class LanguageController {
   #saving = false;
   #pending: LanguageChoice | null = null;
   #statusTimer: ReturnType<typeof setTimeout> | undefined;
+  #holdTimer: ReturnType<typeof setTimeout> | undefined;
+  /** Saved, but the page data hadn't caught up in time: clear `held` once it shows this. */
+  #awaitingData: AppLocale | null = null;
+  /** The signed-in account; a save sequence only continues for the account that started it. */
+  #user: string | null;
+  /** Bumped on reset: a running sequence from an older generation stops at its next step. */
+  #generation = 0;
+
+  constructor(user: string | null) {
+    this.#user = user;
+  }
+
+  /**
+   * The signed-in account changed (sign-in, sign-out, another account): drop
+   * whatever was shown or queued for the previous one. A request already sent
+   * finishes for that account (its session sent it); nothing more is sent.
+   */
+  accountChanged(user: string | null) {
+    if (user === this.#user) return;
+    this.#user = user;
+    this.#reset();
+  }
+
+  /** New page data arrived (root layout): ends a hold that was waiting for it. */
+  pageData(locale: string) {
+    if (this.#awaitingData && !this.#saving && locale === this.#awaitingData) this.#settle();
+  }
 
   /**
    * Shows `next` now and saves it in the background. `saved` is what the
@@ -56,6 +90,8 @@ export class LanguageController {
   async choose(next: LanguageChoice, saved: LanguageChoice): Promise<void> {
     this.choice = next;
     this.held = toAppLocale(next) ?? browserLocale();
+    this.#awaitingData = null;
+    clearTimeout(this.#holdTimer);
     if (this.#saving) {
       this.#pending = next;
       return;
@@ -65,6 +101,8 @@ export class LanguageController {
       return;
     }
 
+    const generation = this.#generation;
+    const live = () => generation === this.#generation;
     this.#saving = true;
     clearTimeout(this.#statusTimer);
     this.status = 'saving';
@@ -75,6 +113,7 @@ export class LanguageController {
       const locale = toAppLocale(target);
       // A network failure throws instead of answering { ok: false }.
       const result = await updateLanguage(locale).catch(() => ({ ok: false as const, error: undefined }));
+      if (!live()) return;
       if (!result.ok) {
         failed = true;
         this.#pending = null;
@@ -93,10 +132,16 @@ export class LanguageController {
     }
 
     // Fresh page data in the saved language (server-formatted text, the
-    // profile's saved value). Nothing to refresh when nothing was saved: a
+    // profile's saved value), waited for at most REFRESH_WAIT_MS so a stuck
+    // load can't lock the form. Nothing to refresh when nothing was saved: a
     // failed save (e.g. offline) just goes back to the language on record,
     // and a refresh would fail too (Kit then falls back to a full navigation).
-    if (anySaved) await refreshAfterWrite().catch(() => {});
+    let refreshed = true;
+    if (anySaved) {
+      const outcome = await Promise.race([refreshAfterWrite().catch(() => undefined), sleep(REFRESH_WAIT_MS)]);
+      if (!live()) return;
+      refreshed = outcome !== 'timeout';
+    }
     this.#saving = false;
 
     const late = this.#pending;
@@ -105,19 +150,38 @@ export class LanguageController {
       await this.choose(late, saved);
       return;
     }
-    this.#settle();
     if (failed) {
+      this.#settle();
       this.status = 'idle';
-    } else {
-      this.status = 'saved';
-      this.#statusTimer = setTimeout(() => (this.status = 'idle'), SAVED_VISIBLE_MS);
+      return;
     }
+    if (refreshed) {
+      this.#settle();
+    } else {
+      // Saved, but the page data is late: keep showing the saved choice until
+      // it arrives (pageData), or give up holding after a while.
+      this.#awaitingData = this.held;
+      this.#holdTimer = setTimeout(() => this.#settle(), HOLD_FALLBACK_MS);
+    }
+    this.status = 'saved';
+    this.#statusTimer = setTimeout(() => (this.status = 'idle'), SAVED_VISIBLE_MS);
   }
 
   /** Back to showing what the page data says. */
   #settle() {
     this.held = null;
     this.choice = null;
+    this.#awaitingData = null;
+    clearTimeout(this.#holdTimer);
+  }
+
+  #reset() {
+    this.#generation += 1;
+    this.#saving = false;
+    this.#pending = null;
+    clearTimeout(this.#statusTimer);
+    this.status = 'idle';
+    this.#settle();
   }
 }
 
