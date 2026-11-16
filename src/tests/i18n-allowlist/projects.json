@@ -1,12 +1,5 @@
 {
   "files": {
-    "src/lib/components/initiatives/add-epic-picker.svelte": "pending translation (area projects, 2 strings)",
-    "src/lib/components/initiatives/create-initiative-dialog.svelte": "pending translation (area projects, 8 strings)",
-    "src/lib/components/initiatives/initiative-description.svelte": "pending translation (area projects, 3 strings)",
-    "src/lib/components/initiatives/initiative-detail.svelte": "pending translation (area projects, 11 strings)",
-    "src/lib/components/initiatives/initiative-name.svelte": "pending translation (area projects, 1 strings)",
-    "src/lib/components/initiatives/initiative-status-options.svelte": "pending translation (area projects, 1 strings)",
-    "src/lib/components/initiatives/initiatives-list.svelte": "pending translation (area projects, 5 strings)",
     "src/lib/components/invite-panel-pending-row.svelte": "pending translation (area projects, 2 strings)",
     "src/lib/components/invite-panel.svelte": "pending translation (area projects, 3 strings)",
     "src/lib/components/join-project-button.svelte": "pending translation (area projects, 1 strings)",
@@ -20,8 +13,6 @@
     "src/lib/components/recurring/recurring-editor.svelte": "pending translation (area projects, 9 strings)",
     "src/lib/components/recurring/recurring-row.svelte": "pending translation (area projects, 2 strings)",
     "src/lib/components/recurring/recurring-settings.svelte": "pending translation (area projects, 3 strings)",
-    "src/lib/components/roadmap/roadmap-view.svelte": "pending translation (area projects, 4 strings)",
-    "src/lib/components/roadmap/timeline.svelte": "pending translation (area projects, 2 strings)",
     "src/lib/components/sla/sla-chip.svelte": "pending translation (area projects, 1 strings)",
     "src/lib/components/sla/sla-settings-form.svelte": "pending translation (area projects, 4 strings)",
     "src/lib/components/sla/time-in-status.svelte": "pending translation (area projects, 1 strings)",

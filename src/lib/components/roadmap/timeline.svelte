@@ -12,13 +12,29 @@
   red when the blocked item starts on or before its blocker's target date.
 -->
 <script module lang="ts">
+  import { m } from '@/lib/i18n';
   import type { EpicStatus, Progress } from '@/lib/epic-model';
 
   export type Zoom = 'weeks' | 'months' | 'quarters';
   export const ZOOMS: { id: Zoom; label: string }[] = [
-    { id: 'weeks', label: 'Weeks' },
-    { id: 'months', label: 'Months' },
-    { id: 'quarters', label: 'Quarters' },
+    {
+      id: 'weeks',
+      get label() {
+        return m.projects_zoom_weeks();
+      },
+    },
+    {
+      id: 'months',
+      get label() {
+        return m.projects_zoom_months();
+      },
+    },
+    {
+      id: 'quarters',
+      get label() {
+        return m.projects_zoom_quarters();
+      },
+    },
   ];
 
   export interface TimelineItem {
@@ -392,7 +408,7 @@
         class="sticky left-0 z-30 shrink-0 border-r border-border bg-background px-3 py-1.5 text-xs text-muted-foreground"
         style="width: {ROADMAP_NAME_COLUMN}px"
       >
-        Epic
+        {m.projects_timeline_epic()}
       </div>
       <div class="relative" style="width: {width}px; height: {zoom === 'quarters' ? 28 : 44}px">
         {#each months as month (month.key)}
@@ -416,14 +432,14 @@
             class="absolute bottom-0 z-10 -translate-x-1/2 rounded bg-primary px-1 text-[10px] leading-4 text-primary-foreground"
             style="left: {todayIndex * px + px / 2}px"
           >
-            Today
+            {m.projects_timeline_today()}
           </div>
         {/if}
       </div>
     </div>
 
     <!-- Rows -->
-    <div class="relative" role="list" aria-label="Timeline">
+    <div class="relative" role="list" aria-label={m.projects_timeline()}>
       <!-- Grid: month boundaries + today line. -->
       <div
         aria-hidden="true"
@@ -488,9 +504,19 @@
         {@const editable = item.editable && Boolean(onChangeDates)}
         {@const color = item.color ?? 'var(--color-primary)'}
         {@const muted = isClosedEpic(item.status)}
-        {@const label =
-          `${item.name}: ${formatDueDate(start)} – ${formatDueDate(endDate)}, ${percent}% complete` +
-          (blockers ? `. Starts before ${blockers.join(', ')} ${blockers.length > 1 ? 'end' : 'ends'}` : '')}
+        {@const baseLabel = m.projects_timeline_item_label({
+          name: item.name,
+          start: formatDueDate(start),
+          end: formatDueDate(endDate),
+          percent,
+        })}
+        {@const label = blockers
+          ? m.projects_timeline_starts_before({
+              label: baseLabel,
+              blockers: blockers.join(', '),
+              count: blockers.length,
+            })
+          : baseLabel}
         <div
           role="listitem"
           class="flex border-b border-border last:border-b-0"
@@ -517,7 +543,7 @@
                 ? 'ArrowLeft ArrowRight Shift+ArrowLeft Shift+ArrowRight Enter'
                 : 'Enter'}
               title={editable
-                ? `${label}\nDrag to reschedule · ←/→ move a week · Shift+←/→ change target`
+                ? m.projects_timeline_hint({ label })
                 : label}
               class={cn(
                 'group absolute top-1.5 flex h-6 items-center overflow-hidden rounded-md text-xs outline-none select-none',

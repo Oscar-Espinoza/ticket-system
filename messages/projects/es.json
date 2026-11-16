@@ -491,5 +491,106 @@
   "projects_update": "Actualización",
   "projects_update_placeholder": "¿Qué ha cambiado desde la última actualización? Admite Markdown.",
   "projects_update_shortcut": "⌘Enter para publicar",
-  "projects_post_update": "Publicar actualización"
+  "projects_post_update": "Publicar actualización",
+  "projects_add_epic_placeholder": "Añadir épica…",
+  "projects_add_epic_moves": " · se mueve",
+  "projects_initiative_created": "Iniciativa «{name}» creada",
+  "projects_initiative_new": "Iniciativa nueva",
+  "projects_initiative_new_desc": "Un objetivo que agrupa épicas de los proyectos de este espacio de trabajo.",
+  "projects_initiative_name_placeholder": "Nombre de la iniciativa",
+  "projects_initiative_description_placeholder": "¿Por qué es importante? Admite Markdown.",
+  "projects_initiative_owner_chip": "Propietario: {name}",
+  "projects_initiative_owner_none": "ninguno",
+  "projects_initiative_owner": "Propietario",
+  "projects_initiative_set_owner": "Asignar propietario…",
+  "projects_initiative_no_owner": "Sin propietario",
+  "projects_initiative_create": "Crear iniciativa",
+  "projects_edit_description": "Editar descripción",
+  "projects_initiative_name": "Nombre de la iniciativa",
+  "projects_initiative_deleted": "Iniciativa eliminada",
+  "projects_initiative_properties": "Propiedades de la iniciativa",
+  "projects_progress_epic_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Progreso · {count} épica",
+        "countPlural=other": "Progreso · {count} épicas"
+      }
+    }
+  ],
+  "projects_initiatives": "Iniciativas",
+  "projects_initiative_actions": "Acciones de la iniciativa",
+  "projects_initiative_delete": "Eliminar iniciativa",
+  "projects_add_epic": "Añadir épica",
+  "projects_no_epics_linked": "Sin épicas vinculadas",
+  "projects_no_epics_linked_add": "Añade épicas de los proyectos de este espacio de trabajo para seguirlas juntas.",
+  "projects_no_epics_linked_none": "Aquí se pueden añadir épicas de los proyectos de este espacio de trabajo en los que puedes editar.",
+  "projects_remove_epic_from_initiative": "Quitar {name} de la iniciativa",
+  "projects_remove_from_initiative": "Quitar de la iniciativa",
+  "projects_timeline": "Cronograma",
+  "projects_zoom": "Zoom",
+  "projects_initiative_delete_title": "¿Eliminar «{name}»?",
+  "projects_initiative_delete_desc": "Sus épicas se quedan en sus proyectos y solo se desvinculan. Esta acción no se puede deshacer.",
+  "projects_initiative_new_palette": "Iniciativa nueva",
+  "projects_initiatives_section": "Iniciativas",
+  "projects_hotkey_next_initiative": "Iniciativa siguiente",
+  "projects_hotkey_prev_initiative": "Iniciativa anterior",
+  "projects_initiatives_filter_by_status": "Filtrar iniciativas por estado",
+  "projects_initiatives_empty_title": "Aún no hay iniciativas",
+  "projects_initiatives_empty_desc": "Las iniciativas agrupan épicas de los proyectos de este espacio de trabajo bajo un mismo objetivo y reúnen su progreso.",
+  "projects_initiatives_here_title": "No hay iniciativas aquí",
+  "projects_initiatives_none_status": "No hay iniciativas con el estado «{status}».",
+  "projects_show_all": "Mostrar todas",
+  "projects_initiative_owner_title": "Propietario: {name}",
+  "projects_zoom_weeks": "Semanas",
+  "projects_zoom_months": "Meses",
+  "projects_zoom_quarters": "Trimestres",
+  "projects_timeline_epic": "Épica",
+  "projects_timeline_today": "Hoy",
+  "projects_timeline_item_label": "{name}: {start} – {end}, {percent}% completado",
+  "projects_timeline_starts_before": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{label}. Empieza antes de que termine {blockers}",
+        "countPlural=other": "{label}. Empieza antes de que terminen {blockers}"
+      }
+    }
+  ],
+  "projects_timeline_hint": "{label}\nArrastra para reprogramar · ←/→ mueve una semana · Mayús+←/→ cambia el objetivo",
+  "projects_roadmap_empty_title": "Aún no hay nada en la hoja de ruta",
+  "projects_roadmap_empty_desc": "Crea épicas con fechas de inicio y objetivo para verlas en un cronograma.",
+  "projects_go_to_epics": "Ir a épicas",
+  "projects_roadmap_drag_hint": "Arrastra las barras o sus bordes para reprogramar (se ajusta a semanas)",
+  "projects_roadmap_conflict_title": "{blocked} empieza antes de que termine {blocker}",
+  "projects_roadmap_conflicts": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} conflicto de fechas",
+        "countPlural=other": "{count} conflictos de fechas"
+      }
+    }
+  ],
+  "projects_roadmap_no_dated_title": "No hay épicas con fechas",
+  "projects_roadmap_no_dated_desc": "Asigna una fecha de inicio o de objetivo a una épica para situarla en el cronograma.",
+  "projects_roadmap_no_dates": "Sin fechas · {count}"
 }

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import PlusIcon from '@lucide/svelte/icons/plus';
   import SearchXIcon from '@lucide/svelte/icons/search-x';
   import TargetIcon from '@lucide/svelte/icons/target';
@@ -54,8 +55,8 @@
     registerPaletteCommands([
       {
         id: 'new-initiative',
-        label: 'New initiative',
-        section: 'Initiatives',
+        label: m.projects_initiative_new_palette(),
+        section: m.projects_initiatives_section(),
         keywords: ['create', 'goal'],
         run: () => (creating = true),
       },
@@ -71,8 +72,8 @@
       rows[Math.max(0, Math.min(rows.length - 1, next))]?.focus();
     };
     return registerHotkeys([
-      { key: 'j', description: 'Next initiative', scope: 'Initiatives', handler: () => move(1) },
-      { key: 'k', description: 'Previous initiative', scope: 'Initiatives', handler: () => move(-1) },
+      { key: 'j', description: m.projects_hotkey_next_initiative(), scope: m.projects_initiatives_section(), handler: () => move(1) },
+      { key: 'k', description: m.projects_hotkey_prev_initiative(), scope: m.projects_initiatives_section(), handler: () => move(-1) },
     ]);
   });
 
@@ -85,7 +86,7 @@
       {workspace.name}
     </a>
   </div>
-  <h1 class="mb-4 text-xl font-medium">Initiatives</h1>
+  <h1 class="mb-4 text-xl font-medium">{m.projects_initiatives()}</h1>
   <div class="mb-3 flex flex-wrap items-center gap-2">
     <ToggleGroup
       type="single"
@@ -93,11 +94,11 @@
       variant="outline"
       spacing={0}
       bind:value={() => filter, (value: string) => value && setFilter(value)}
-      aria-label="Filter initiatives by status"
+      aria-label={m.projects_initiatives_filter_by_status()}
     >
       {#each FILTERS as f (f)}
         <ToggleGroupItem value={f} class="gap-1.5 px-2.5 text-xs">
-          {f === 'all' ? 'All' : INITIATIVE_STATUS_LABEL[f]}
+          {f === 'all' ? m.projects_filter_all() : INITIATIVE_STATUS_LABEL[f]}
           <span class="text-muted-foreground tabular-nums">
             {f === 'all' ? initiatives.length : initiatives.filter((i) => i.status === f).length}
           </span>
@@ -106,35 +107,35 @@
     </ToggleGroup>
     <Button size="sm" class="ml-auto" onclick={() => (creating = true)}>
       <PlusIcon />
-      New initiative
+      {m.projects_initiative_new()}
     </Button>
   </div>
 
   {#if initiatives.length === 0}
     <EmptyState
-      title="No initiatives yet"
-      description="Initiatives group epics from this workspace’s projects under one goal and roll up their progress."
+      title={m.projects_initiatives_empty_title()}
+      description={m.projects_initiatives_empty_desc()}
     >
       {#snippet icon()}<TargetIcon />{/snippet}
       {#snippet action()}
         <Button size="sm" onclick={() => (creating = true)}>
           <PlusIcon />
-          New initiative
+          {m.projects_initiative_new()}
         </Button>
       {/snippet}
     </EmptyState>
   {:else if shown.length === 0}
     <EmptyState
-      title="No initiatives here"
-      description={`No ${INITIATIVE_STATUS_LABEL[filter as InitiativeStatus]?.toLowerCase()} initiatives.`}
+      title={m.projects_initiatives_here_title()}
+      description={m.projects_initiatives_none_status({ status: INITIATIVE_STATUS_LABEL[filter as InitiativeStatus]?.toLowerCase() })}
     >
       {#snippet icon()}<SearchXIcon />{/snippet}
       {#snippet action()}
-        <Button size="sm" variant="outline" onclick={() => setFilter('all')}>Show all</Button>
+        <Button size="sm" variant="outline" onclick={() => setFilter('all')}>{m.projects_show_all()}</Button>
       {/snippet}
     </EmptyState>
   {:else}
-    <div role="list" aria-label="Initiatives" class="flex flex-col border-t border-border">
+    <div role="list" aria-label={m.projects_initiatives()} class="flex flex-col border-t border-border">
       {#each shown as initiative (initiative.id)}
         <!-- svelte-ignore a11y_no_interactive_element_to_noninteractive_role -->
         <a
@@ -146,11 +147,11 @@
           <TargetIcon class="size-4 shrink-0 text-muted-foreground" />
           <span class="min-w-0 flex-1 truncate font-medium">{initiative.name}</span>
           <span class="hidden w-12 text-xs text-muted-foreground tabular-nums sm:block">
-            {initiative.epicCount} {initiative.epicCount === 1 ? 'epic' : 'epics'}
+            {m.projects_label_epic_count({ count: initiative.epicCount })}
           </span>
           <span
             class="hidden w-6 md:block"
-            title={initiative.owner ? `Owner: ${initiative.owner.name}` : 'No owner'}
+            title={initiative.owner ? m.projects_initiative_owner_title({ name: initiative.owner.name }) : m.projects_initiative_no_owner()}
           >
             {#if initiative.owner}
               <Avatar name={initiative.owner.name} src={initiative.owner.image} size={20} />

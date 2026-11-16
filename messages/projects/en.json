@@ -491,5 +491,106 @@
   "projects_update": "Update",
   "projects_update_placeholder": "What changed since the last update? Markdown supported.",
   "projects_update_shortcut": "⌘Enter to post",
-  "projects_post_update": "Post update"
+  "projects_post_update": "Post update",
+  "projects_add_epic_placeholder": "Add epic…",
+  "projects_add_epic_moves": " · moves",
+  "projects_initiative_created": "Created initiative “{name}”",
+  "projects_initiative_new": "New initiative",
+  "projects_initiative_new_desc": "A goal that groups epics across this workspace’s projects.",
+  "projects_initiative_name_placeholder": "Initiative name",
+  "projects_initiative_description_placeholder": "Why does this matter? Markdown supported.",
+  "projects_initiative_owner_chip": "Owner: {name}",
+  "projects_initiative_owner_none": "none",
+  "projects_initiative_owner": "Owner",
+  "projects_initiative_set_owner": "Set owner…",
+  "projects_initiative_no_owner": "No owner",
+  "projects_initiative_create": "Create initiative",
+  "projects_edit_description": "Edit description",
+  "projects_initiative_name": "Initiative name",
+  "projects_initiative_deleted": "Initiative deleted",
+  "projects_initiative_properties": "Initiative properties",
+  "projects_progress_epic_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Progress · {count} epic",
+        "countPlural=other": "Progress · {count} epics"
+      }
+    }
+  ],
+  "projects_initiatives": "Initiatives",
+  "projects_initiative_actions": "Initiative actions",
+  "projects_initiative_delete": "Delete initiative",
+  "projects_add_epic": "Add epic",
+  "projects_no_epics_linked": "No epics linked",
+  "projects_no_epics_linked_add": "Add epics from this workspace’s projects to track them together.",
+  "projects_no_epics_linked_none": "Epics from projects in this workspace (where you can edit) can be added here.",
+  "projects_remove_epic_from_initiative": "Remove {name} from initiative",
+  "projects_remove_from_initiative": "Remove from initiative",
+  "projects_timeline": "Timeline",
+  "projects_zoom": "Zoom",
+  "projects_initiative_delete_title": "Delete “{name}”?",
+  "projects_initiative_delete_desc": "Its epics stay in their projects and are simply unlinked. This can’t be undone.",
+  "projects_initiative_new_palette": "New initiative",
+  "projects_initiatives_section": "Initiatives",
+  "projects_hotkey_next_initiative": "Next initiative",
+  "projects_hotkey_prev_initiative": "Previous initiative",
+  "projects_initiatives_filter_by_status": "Filter initiatives by status",
+  "projects_initiatives_empty_title": "No initiatives yet",
+  "projects_initiatives_empty_desc": "Initiatives group epics from this workspace’s projects under one goal and roll up their progress.",
+  "projects_initiatives_here_title": "No initiatives here",
+  "projects_initiatives_none_status": "No {status} initiatives.",
+  "projects_show_all": "Show all",
+  "projects_initiative_owner_title": "Owner: {name}",
+  "projects_zoom_weeks": "Weeks",
+  "projects_zoom_months": "Months",
+  "projects_zoom_quarters": "Quarters",
+  "projects_timeline_epic": "Epic",
+  "projects_timeline_today": "Today",
+  "projects_timeline_item_label": "{name}: {start} – {end}, {percent}% complete",
+  "projects_timeline_starts_before": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{label}. Starts before {blockers} ends",
+        "countPlural=other": "{label}. Starts before {blockers} end"
+      }
+    }
+  ],
+  "projects_timeline_hint": "{label}\nDrag to reschedule · ←/→ move a week · Shift+←/→ change target",
+  "projects_roadmap_empty_title": "Nothing on the roadmap yet",
+  "projects_roadmap_empty_desc": "Create epics with start and target dates to see them on a timeline.",
+  "projects_go_to_epics": "Go to epics",
+  "projects_roadmap_drag_hint": "Drag bars or their edges to reschedule (snaps to weeks)",
+  "projects_roadmap_conflict_title": "{blocked} starts before {blocker} ends",
+  "projects_roadmap_conflicts": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} scheduling conflict",
+        "countPlural=other": "{count} scheduling conflicts"
+      }
+    }
+  ],
+  "projects_roadmap_no_dated_title": "No dated epics",
+  "projects_roadmap_no_dated_desc": "Give an epic a start or target date to place it on the timeline.",
+  "projects_roadmap_no_dates": "No dates · {count}"
 }
