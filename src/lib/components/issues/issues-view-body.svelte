@@ -1,5 +1,6 @@
 <!-- Everything below the filter / display providers. -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import LayersIcon from '@lucide/svelte/icons/layers-2';
   import ListTodoIcon from '@lucide/svelte/icons/list-todo';
   import PlusIcon from '@lucide/svelte/icons/plus';
@@ -84,8 +85,8 @@
     return registerPaletteCommands([
       {
         id: 'new-issue',
-        label: 'New issue',
-        section: 'Issues',
+        label: m.issues_new_issue(),
+        section: m.issues_scope(),
         keywords: ['create', 'ticket'],
         run: () => openCreate(),
       },
@@ -181,7 +182,7 @@
 {#snippet newIssueAction()}
   <Button size="sm" onclick={() => openCreate()}>
     <PlusIcon />
-    New issue
+    {m.issues_new_issue()}
   </Button>
 {/snippet}
 
@@ -191,17 +192,17 @@
       {@render emptyState()}
     {:else}
       <EmptyState
-        title="No issues yet"
-        description="Create the first issue for this project."
+        title={m.issues_empty_title()}
+        description={m.issues_empty_description()}
         icon={listTodoIcon}
         action={canWrite.current ? newIssueAction : undefined}
       />
     {/if}
   {:else if listed.length === 0 && filtered && view.showsFilteredEmpty}
-    <EmptyState title="No matching issues" description="No issues match the current filters.">
+    <EmptyState title={m.issues_nomatch_title()} description={m.issues_nomatch_description()}>
       {#snippet icon()}<SearchXIcon />{/snippet}
       {#snippet action()}
-        <Button size="sm" variant="outline" onclick={() => setFilters({ ...EMPTY_FILTERS })}>Clear filters</Button>
+        <Button size="sm" variant="outline" onclick={() => setFilters({ ...EMPTY_FILTERS })}>{m.issues_clear_filters()}</Button>
       {/snippet}
     </EmptyState>
   {:else}
@@ -225,12 +226,12 @@
         {#if savedView}
           <span
             class="inline-flex h-7 max-w-48 items-center gap-1.5 rounded-md bg-secondary px-2 text-xs font-medium"
-            title={dirty ? `${savedView.name} (unsaved changes)` : savedView.name}
+            title={dirty ? m.issues_view_unsaved_title({ name: savedView.name }) : savedView.name}
           >
             <LayersIcon class="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
             <span class="truncate">{savedView.name}</span>
             {#if dirty}
-              <span class="size-1.5 shrink-0 rounded-full bg-primary" aria-label="Unsaved changes"></span>
+              <span class="size-1.5 shrink-0 rounded-full bg-primary" aria-label={m.issues_unsaved_changes()}></span>
             {/if}
           </span>
         {/if}
@@ -241,7 +242,7 @@
           {#if canWrite.current}
             <Button size="sm" onclick={() => openCreate()}>
               <PlusIcon />
-              New issue
+              {m.issues_new_issue()}
             </Button>
           {/if}
         </div>

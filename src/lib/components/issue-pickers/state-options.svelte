@@ -1,5 +1,6 @@
 <!-- Bare state list (type to filter, 1–9 picks the nth state) for dialogs / palette. -->
 <script module lang="ts">
+  import { m } from '@/lib/i18n';
   import type { WorkflowState } from '@/lib/issue-model';
 
   export interface StateOptionsProps {
@@ -32,9 +33,9 @@
     return Boolean(state);
   })}
 >
-  <CommandInput bind:value={search} placeholder="Change status…" />
+  <CommandInput bind:value={search} placeholder={m.issues_status_change_placeholder()} />
   <CommandList>
-    <CommandEmpty>No status found.</CommandEmpty>
+    <CommandEmpty>{m.issues_status_none_found()}</CommandEmpty>
     {#each list as state, index (state.id)}
       <CommandItem
         value={state.id}

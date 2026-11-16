@@ -3,6 +3,7 @@
   (The filter state and provider live in issue-filters.svelte.ts.)
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import type { ComponentProps } from 'svelte';
   import SearchIcon from '@lucide/svelte/icons/search';
   import XIcon from '@lucide/svelte/icons/x';
@@ -38,8 +39,8 @@
     registerHotkeys([
       {
         key: 'f',
-        scope: 'Issues',
-        description: 'Filter issues',
+        scope: m.issues_scope(),
+        description: m.issues_filter_issues(),
         when: (event) => !event.shiftKey,
         handler: () => {
           menu = { open: true, property: null };
@@ -126,9 +127,9 @@
         type="search"
         bind:value={draft}
         {onkeydown}
-        placeholder="Filter… (label:bug)"
-        aria-label="Filter issues by title, ID or query (label:bug, assignee:me)"
-        title={syntax ? 'Press Enter to turn filters into chips' : undefined}
+        placeholder={m.issues_filter_placeholder()}
+        aria-label={m.issues_filter_aria()}
+        title={syntax ? m.issues_filter_enter_hint() : undefined}
         class={cn(
           'h-7 w-44 rounded-md border border-transparent bg-transparent pr-2 pl-7 text-xs outline-none transition-[width] placeholder:text-muted-foreground hover:border-border focus-visible:w-64 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 [&::-webkit-search-cancel-button]:hidden',
           syntax && 'w-64 font-mono',
@@ -136,7 +137,7 @@
       />
     </label>
     <SearchSyntaxHelp
-      note="Free text matches titles and IDs."
+      note={m.issues_filter_free_text()}
       onInsert={(token: string) => (draft = appendToken(draft, token))}
     />
   </div>
@@ -148,7 +149,7 @@
       class="text-muted-foreground"
     >
       <XIcon />
-      Clear
+      {m.issues_filter_clear()}
     </Button>
   {/if}
 </div>

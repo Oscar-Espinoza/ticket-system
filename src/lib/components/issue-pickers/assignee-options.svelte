@@ -1,4 +1,5 @@
 <script module lang="ts">
+  import { m } from '@/lib/i18n';
   import type { IssueUser } from '@/lib/issue-model';
 
   export interface AssigneeOptionsProps {
@@ -22,7 +23,7 @@
   import { viewerFirst } from './option-builders';
   import { keywordFilter } from './picker-utils';
 
-  let { value, onSelect, placeholder = 'Assign to…', noneLabel = 'No assignee' }: AssigneeOptionsProps = $props();
+  let { value, onSelect, placeholder = m.issues_assign_to_placeholder(), noneLabel = m.issues_no_assignee() }: AssigneeOptionsProps = $props();
 
   const data = useProjectData();
   const ordered = $derived(viewerFirst(data.members, data.viewer.id));
@@ -31,11 +32,11 @@
 <Command filter={keywordFilter}>
   <CommandInput {placeholder} />
   <CommandList>
-    <CommandEmpty>No member found.</CommandEmpty>
+    <CommandEmpty>{m.issues_member_none_found()}</CommandEmpty>
     <CommandGroup>
       <CommandItem
         value={NO_ASSIGNEE}
-        keywords={[noneLabel, 'Unassigned', 'None']}
+        keywords={[noneLabel, m.issues_unassigned_keyword(), m.common_none()]}
         data-checked={value === null}
         onSelect={() => onSelect(null, null)}
       >
@@ -52,7 +53,7 @@
           <Avatar name={member.name} src={member.image} size={20} />
           <span class="truncate">{member.name}</span>
           {#if member.id === data.viewer.id}
-            <span class="text-xs text-muted-foreground">(you)</span>
+            <span class="text-xs text-muted-foreground">{m.issues_you_paren()}</span>
           {/if}
         </CommandItem>
       {/each}

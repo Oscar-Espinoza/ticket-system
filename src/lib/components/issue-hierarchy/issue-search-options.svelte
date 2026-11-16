@@ -2,6 +2,7 @@
   Bare searchable issue list, for popovers / dialogs.
 -->
 <script module lang="ts">
+  import { m } from '@/lib/i18n';
   import type { IssueRow } from '@/lib/issue-model';
 
   export type IssueRef = Pick<IssueRow, 'id' | 'key' | 'title' | 'state'>;
@@ -55,8 +56,8 @@
     exclude,
     value,
     onClear,
-    clearLabel = 'Clear',
-    placeholder = 'Search issues…',
+    clearLabel = m.issues_clear(),
+    placeholder = m.issues_search_issues_placeholder(),
   }: IssueSearchOptionsProps<T> = $props();
 
   let query = $state('');
@@ -70,7 +71,7 @@
 <Command shouldFilter={false}>
   <CommandInput bind:value={query} {placeholder} />
   <CommandList>
-    <CommandEmpty>No issues found.</CommandEmpty>
+    <CommandEmpty>{m.issues_search_none()}</CommandEmpty>
     {#if onClear && !query}
       <CommandGroup>
         <CommandItem value="__clear" onSelect={onClear}>
