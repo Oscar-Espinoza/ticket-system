@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { DATE_MEDIUM_LOCAL_FORMAT } from '@/lib/format';
   import KeyRoundIcon from '@lucide/svelte/icons/key-round';
   import PlusIcon from '@lucide/svelte/icons/plus';
@@ -44,7 +45,7 @@
     if (!result) return;
     if (result.ok) {
       keys = keys.filter((k) => k.id !== key.id);
-      toast.success('API key revoked');
+      toast.success(m.settings_int_api_key_revoked_toast());
     } else toast.error(result.error);
   }
 </script>
@@ -52,7 +53,7 @@
 {#snippet createButton()}
   <Button size="sm" onclick={() => (creating = true)}>
     <PlusIcon />
-    Create key
+    {m.settings_int_create_key()}
   </Button>
 {/snippet}
 
@@ -60,8 +61,8 @@
   {#if keys.length === 0}
     <EmptyState
       class="rounded-lg border border-dashed border-border py-10"
-      title="No API keys"
-      description="Create a key to script issues from CI, bots or your own tools."
+      title={m.settings_int_no_api_keys()}
+      description={m.settings_int_no_api_keys_hint()}
       action={createButton}
     >
       {#snippet icon()}<KeyRoundIcon />{/snippet}
@@ -72,12 +73,12 @@
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Key</TableHead>
-            <TableHead>Created</TableHead>
-            <TableHead>Last used</TableHead>
+            <TableHead>{m.common_name()}</TableHead>
+            <TableHead>{m.settings_int_col_key()}</TableHead>
+            <TableHead>{m.settings_int_col_created()}</TableHead>
+            <TableHead>{m.settings_int_col_last_used()}</TableHead>
             <TableHead class="w-0">
-              <span class="sr-only">Actions</span>
+              <span class="sr-only">{m.settings_int_col_actions()}</span>
             </TableHead>
           </TableRow>
         </TableHeader>
@@ -90,7 +91,7 @@
                 {DATE_MEDIUM_LOCAL_FORMAT.format(new Date(key.createdAt))}
               </TableCell>
               <TableCell class="text-muted-foreground">
-                {key.lastUsedAt ? relativeTime(new Date(key.lastUsedAt)) : 'Never'}
+                {key.lastUsedAt ? relativeTime(new Date(key.lastUsedAt)) : m.settings_int_never()}
               </TableCell>
               <TableCell>
                 <Button
@@ -99,7 +100,7 @@
                   class="text-destructive hover:text-destructive"
                   onclick={() => (revoking = key)}
                 >
-                  Revoke
+                  {m.settings_int_revoke()}
                 </Button>
               </TableCell>
             </TableRow>
@@ -127,17 +128,16 @@
   >
     <DialogContent>
       <DialogHeader>
-        <DialogTitle>Copy your API key</DialogTitle>
+        <DialogTitle>{m.settings_int_copy_key_title()}</DialogTitle>
         <DialogDescription>
-          This is the only time the key is shown. Store it somewhere safe — anyone with it can act as
-          you in every project you belong to.
+          {m.settings_int_copy_key_desc()}
         </DialogDescription>
       </DialogHeader>
       {#if created}
-        <CopyField value={created} label="API key" />
+        <CopyField value={created} label={m.settings_int_api_key_label()} />
       {/if}
       <DialogFooter>
-        <Button onclick={() => (created = null)}>Done</Button>
+        <Button onclick={() => (created = null)}>{m.common_done()}</Button>
       </DialogFooter>
     </DialogContent>
   </Dialog>
@@ -149,20 +149,20 @@
   >
     <AlertDialogContent size="sm">
       <AlertDialogHeader>
-        <AlertDialogTitle>Revoke “{revoking?.name}”?</AlertDialogTitle>
+        <AlertDialogTitle>{m.settings_int_revoke_title({ name: revoking?.name ?? '' })}</AlertDialogTitle>
         <AlertDialogDescription>
-          Requests using this key will fail immediately. This can’t be undone.
+          {m.settings_int_revoke_desc()}
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>
-        <AlertDialogCancel>Cancel</AlertDialogCancel>
+        <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
         <AlertDialogAction
           variant="destructive"
           onclick={() => {
             if (revoking) void revoke(revoking);
           }}
         >
-          Revoke
+          {m.settings_int_revoke()}
         </AlertDialogAction>
       </AlertDialogFooter>
     </AlertDialogContent>

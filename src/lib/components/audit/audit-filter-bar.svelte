@@ -12,6 +12,7 @@
 </script>
 
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import DownloadIcon from '@lucide/svelte/icons/download';
@@ -45,7 +46,7 @@
   } = $props();
 
   const ALL = 'all';
-  const SYSTEM_LABEL = 'System & integrations';
+  const systemLabel = $derived(m.settings_audit_system());
 
   // Navigations in flight: a superseded goto resolves early, so a single flag
   // would hide the spinner while the newer one still loads (the pending flag
@@ -59,11 +60,11 @@
   const active = $derived(['actor', 'category', 'from', 'to', 'issue'].some((name) => value(name)));
 
   const actorItems = $derived([
-    { value: ALL, label: 'Anyone' },
-    { value: systemActor, label: SYSTEM_LABEL },
+    { value: ALL, label: m.settings_audit_anyone() },
+    { value: systemActor, label: systemLabel },
     ...actors.map((actor) => ({ value: actor.id, label: actor.name })),
   ]);
-  const categoryItems = $derived([{ value: ALL, label: 'All events' }, ...categories]);
+  const categoryItems = $derived([{ value: ALL, label: m.settings_audit_all_events() }, ...categories]);
   const selectedActor = $derived(actors.find((actor) => actor.id === value('actor')));
 
   async function update(changes: Record<string, string | null>) {
@@ -96,8 +97,8 @@
     items={actorItems}
     bind:value={() => value('actor') || ALL, (v) => update({ actor: v === ALL ? null : v })}
   >
-    <SelectTrigger size="sm" class="min-w-36" aria-label="Actor">
-      <SelectValue placeholder="Anyone">
+    <SelectTrigger size="sm" class="min-w-36" aria-label={m.settings_audit_actor()}>
+      <SelectValue placeholder={m.settings_audit_anyone()}>
         {#snippet children()}
           {#if selectedActor}
             <Avatar name={selectedActor.name} src={selectedActor.image} size={20} />
@@ -109,8 +110,8 @@
       </SelectValue>
     </SelectTrigger>
     <SelectContent>
-      <SelectItem value={ALL}>Anyone</SelectItem>
-      <SelectItem value={systemActor}>{SYSTEM_LABEL}</SelectItem>
+      <SelectItem value={ALL}>{m.settings_audit_anyone()}</SelectItem>
+      <SelectItem value={systemActor}>{systemLabel}</SelectItem>
       {#if actors.length > 0}<SelectSeparator />{/if}
       {#each actors as actor (actor.id)}
         <SelectItem value={actor.id} label={actor.name}>
@@ -125,11 +126,11 @@
     items={categoryItems}
     bind:value={() => value('category') || ALL, (v) => update({ category: v === ALL ? null : v })}
   >
-    <SelectTrigger size="sm" class="min-w-36" aria-label="Event type">
-      <SelectValue placeholder="All events" />
+    <SelectTrigger size="sm" class="min-w-36" aria-label={m.settings_audit_event_type()}>
+      <SelectValue placeholder={m.settings_audit_all_events()} />
     </SelectTrigger>
     <SelectContent>
-      <SelectItem value={ALL}>All events</SelectItem>
+      <SelectItem value={ALL}>{m.settings_audit_all_events()}</SelectItem>
       <SelectSeparator />
       {#each categories as category (category.value)}
         <SelectItem value={category.value}>{category.label}</SelectItem>
@@ -140,7 +141,7 @@
   <div class="flex items-center gap-1">
     <Input
       type="date"
-      aria-label="From date"
+      aria-label={m.settings_audit_from_date()}
       class="h-7 w-36 text-xs"
       value={value('from')}
       max={value('to') || undefined}
@@ -149,7 +150,7 @@
     <span class="text-xs text-muted-foreground">–</span>
     <Input
       type="date"
-      aria-label="To date"
+      aria-label={m.settings_audit_to_date()}
       class="h-7 w-36 text-xs"
       value={value('to')}
       min={value('from') || undefined}
@@ -158,8 +159,8 @@
   </div>
 
   <Input
-    aria-label="Issue key"
-    placeholder="Issue, e.g. APP-12"
+    aria-label={m.settings_audit_issue_key()}
+    placeholder={m.settings_audit_issue_placeholder()}
     class="h-7 w-36 font-mono text-xs"
     bind:value={issue}
     onblur={applyIssue}
@@ -178,21 +179,21 @@
       }}
     >
       <XIcon />
-      Clear
+      {m.settings_audit_clear()}
     </Button>
   {/if}
   {#if pending}
-    <LoaderCircleIcon aria-label="Loading" class="size-3.5 animate-spin text-muted-foreground" />
+    <LoaderCircleIcon aria-label={m.settings_audit_loading()} class="size-3.5 animate-spin text-muted-foreground" />
   {/if}
 
   <div class="ml-auto flex items-center gap-1">
     <Button variant="outline" size="sm" href="{exportHref}&format=csv" download data-sveltekit-reload>
       <DownloadIcon />
-      CSV
+      CSV <!-- i18n-ignore -->
     </Button>
     <Button variant="outline" size="sm" href="{exportHref}&format=json" download data-sveltekit-reload>
       <DownloadIcon />
-      JSON
+      JSON <!-- i18n-ignore -->
     </Button>
   </div>
 </div>

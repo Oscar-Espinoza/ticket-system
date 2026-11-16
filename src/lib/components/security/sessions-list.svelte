@@ -17,6 +17,7 @@
 </script>
 
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { DATE_MEDIUM_LOCAL_FORMAT } from '@/lib/format';
   import { untrack } from 'svelte';
   import LaptopIcon from '@lucide/svelte/icons/laptop';
@@ -44,7 +45,7 @@
     pendingId = null;
     if (result.ok) {
       sessions = sessions.filter((s) => s.id !== id);
-      toast.success('Session signed out');
+      toast.success(m.settings_sec_session_signed_out_toast());
     } else toast.error(result.error);
   }
 
@@ -54,7 +55,7 @@
       const result = await revokeOtherSessions();
       if (result.ok) {
         sessions = sessions.filter((s) => s.id === currentId);
-        toast.success('Signed out of all other sessions');
+        toast.success(m.settings_sec_all_signed_out_toast());
       } else toast.error(result.error);
     } finally {
       pendingAll = false;
@@ -72,13 +73,15 @@
         <div class="min-w-0 flex-1">
           <p class="flex items-center gap-2 truncate text-sm">
             {describeUserAgent(session.userAgent)}
-            {#if current}<LabelChip color="primary">This device</LabelChip>{/if}
+            {#if current}<LabelChip color="primary">{m.settings_sec_this_device()}</LabelChip>{/if}
           </p>
           <p class="truncate text-xs text-muted-foreground">
             {[
               session.ipAddress,
-              current ? 'Active now' : `Active ${relativeTime(new Date(session.updatedAt))}`,
-              `Signed in ${DATE_MEDIUM_LOCAL_FORMAT.format(new Date(session.createdAt))}`,
+              current
+                ? m.settings_sec_active_now()
+                : m.settings_sec_active_when({ when: relativeTime(new Date(session.updatedAt)) }),
+              m.settings_sec_signed_in({ date: DATE_MEDIUM_LOCAL_FORMAT.format(new Date(session.createdAt)) }),
             ]
               .filter(Boolean)
               .join(' · ')}
@@ -92,18 +95,18 @@
             onclick={() => revoke(session.id)}
           >
             {#if pendingId === session.id}<Loader2Icon class="animate-spin" />{/if}
-            Sign out
+            {m.settings_sec_sign_out()}
           </Button>
         {/if}
       </li>
     {/each}
   </ul>
   <div class="flex items-center justify-between gap-4">
-    <p class="text-xs text-muted-foreground">Signed-out devices lose access within 5 minutes.</p>
+    <p class="text-xs text-muted-foreground">{m.settings_sec_sessions_note()}</p>
     {#if others.length > 0}
       <Button variant="outline" size="sm" disabled={pendingAll} onclick={revokeAll}>
         {#if pendingAll}<Loader2Icon class="animate-spin" />{/if}
-        Sign out other sessions
+        {m.settings_sec_sign_out_others()}
       </Button>
     {/if}
   </div>

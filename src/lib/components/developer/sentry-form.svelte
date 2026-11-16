@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
   import { toast } from 'svelte-sonner';
 
@@ -33,7 +34,7 @@
         error = result.error;
         return;
       }
-      toast.success('Sentry connected');
+      toast.success(m.settings_dev_sentry_connected_toast());
       secret = '';
       token = '';
       onDone();
@@ -46,8 +47,8 @@
 <form onsubmit={submit} class="flex max-w-xl flex-col gap-4">
   <Field
     id="sentry-secret"
-    label="Client secret"
-    hint="Verifies that webhooks really come from your Sentry integration."
+    label={m.settings_dev_sentry_secret()}
+    hint={m.settings_dev_sentry_secret_hint()}
   >
     <Input
       id="sentry-secret"
@@ -60,8 +61,8 @@
   </Field>
   <Field
     id="sentry-token"
-    label="Auth token (optional)"
-    hint="The integration's token. Lets new issues include the Sentry short ID and event / user counts."
+    label={m.settings_dev_sentry_token()}
+    hint={m.settings_dev_sentry_token_hint()}
   >
     <Input
       id="sentry-token"
@@ -77,10 +78,10 @@
   <div class="flex gap-2">
     <Button type="submit" disabled={pending || !secret.trim()}>
       {#if pending}<Loader2Icon class="animate-spin" />{/if}
-      Connect Sentry
+      {m.settings_dev_sentry_connect()}
     </Button>
     {#if onCancel}
-      <Button type="button" variant="ghost" onclick={onCancel} disabled={pending}>Cancel</Button>
+      <Button type="button" variant="ghost" onclick={onCancel} disabled={pending}>{m.common_cancel()}</Button>
     {/if}
   </div>
 </form>

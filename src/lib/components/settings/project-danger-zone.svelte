@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
 
   import { deleteProject, type ProjectSettingsState } from '@/lib/actions/project-settings';
@@ -20,16 +21,15 @@
   let { projectId, name }: { projectId: string; name: string } = $props();
 
   const form = createActionState<ProjectSettingsState>(deleteProject, {});
-  useResultToast(() => form.state, 'Project deleted');
+  useResultToast(() => form.state, m.settings_project_deleted_toast());
   let confirm = $state('');
 </script>
 
 <section class="flex flex-col gap-3">
   <div>
-    <h2 class="text-base font-medium text-destructive">Delete project</h2>
+    <h2 class="text-base font-medium text-destructive">{m.settings_project_delete_title()}</h2>
     <p class="mt-1 text-sm text-muted-foreground">
-      Permanently deletes the project with all of its issues, comments, cycles and settings. Members
-      lose access immediately.
+      {m.settings_project_delete_desc()}
     </p>
   </div>
   <AlertDialog
@@ -39,20 +39,20 @@
   >
     <AlertDialogTrigger>
       {#snippet child({ props })}
-        <Button {...props} variant="destructive" class="w-fit">Delete project…</Button>
+        <Button {...props} variant="destructive" class="w-fit">{m.settings_project_delete_menu()}</Button>
       {/snippet}
     </AlertDialogTrigger>
     <AlertDialogContent>
       <form onsubmit={form.onsubmit} class="contents">
         <input type="hidden" name="projectId" value={projectId} />
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete {name}?</AlertDialogTitle>
+          <AlertDialogTitle>{m.settings_project_delete_confirm_title({ name })}</AlertDialogTitle>
           <AlertDialogDescription>
-            This can&rsquo;t be undone. Type <strong class="text-foreground">{name}</strong> to
-            confirm.
+            {@const parts = m.settings_project_delete_confirm_desc({ name: '\u0000' }).split('\u0000')}
+            {parts[0]}<strong class="text-foreground">{name}</strong>{parts[1]}
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <Field id="delete-confirm" label="Project name" error={form.state.errors?.confirm}>
+        <Field id="delete-confirm" label={m.settings_project_name_field()} error={form.state.errors?.confirm}>
           <Input
             id="delete-confirm"
             name="confirm"
@@ -62,14 +62,14 @@
           />
         </Field>
         <AlertDialogFooter>
-          <AlertDialogCancel type="button">Cancel</AlertDialogCancel>
+          <AlertDialogCancel type="button">{m.common_cancel()}</AlertDialogCancel>
           <Button
             type="submit"
             variant="destructive"
             disabled={form.pending || confirm.trim() !== name}
           >
             {#if form.pending}<Loader2Icon class="animate-spin" />{/if}
-            Delete project
+            {m.settings_project_delete_title()}
           </Button>
         </AlertDialogFooter>
       </form>

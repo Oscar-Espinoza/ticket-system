@@ -6,6 +6,7 @@
 // Team structure: parent team (sub-teams) and visibility (private teams)
 // are admin settings.
 
+import { m } from '@/lib/i18n';
 import { redirect } from '@/lib/kit/request';
 import { and, eq, sql } from 'drizzle-orm';
 
@@ -41,7 +42,7 @@ async function authorize(
 ): Promise<{ userId: string; role: ProjectRole } | { error: ProjectSettingsState }> {
   const authz = await authorizeProjectAction(projectId, 'admin');
   if (!authz.ok) return { error: { errors: { server: authz.error } } };
-  if (need === 'owner' && authz.role !== 'owner') return { error: { errors: { server: 'Forbidden' } } };
+  if (need === 'owner' && authz.role !== 'owner') return { error: { errors: { server: m.settings_err_forbidden() } } };
   return { userId: authz.userId, role: authz.role };
 }
 
@@ -61,9 +62,9 @@ export async function updateProjectDetails(
   const nameError = projectNameError(name);
   if (nameError) errors.name = nameError;
   if (description.length > 2000) {
-    errors.description = 'Description must be 2000 characters or fewer.';
+    errors.description = m.settings_err_description_max();
   }
-  if (!isEstimateScale(estimateScale)) errors.estimateScale = 'Pick an estimate scale.';
+  if (!isEstimateScale(estimateScale)) errors.estimateScale = m.settings_err_estimate_scale();
   if (Object.keys(errors).length > 0) return { errors };
 
   await db
@@ -96,7 +97,7 @@ export async function changeProjectKey(
       .where(eq(projects.id, projectId));
   } catch (err) {
     if (isUniqueViolation(err)) {
-      return { errors: { ticketKey: 'This key is already in use. Choose a different one.' } };
+      return { errors: { ticketKey: m.settings_err_key_in_use() } };
     }
     throw err;
   }
@@ -118,10 +119,10 @@ export async function deleteProject(
     .from(projects)
     .where(eq(projects.id, projectId))
     .limit(1);
-  if (!project) return { errors: { server: 'Project not found.' } };
+  if (!project) return { errors: { server: m.settings_err_project_not_found() } };
   // Re-checked here, not just in the dialog, so a replayed request can't skip it.
   if (field(formData, 'confirm') !== project.name) {
-    return { errors: { confirm: 'Type the project name exactly to confirm.' } };
+    return { errors: { confirm: m.settings_err_type_name() } };
   }
 
   // ticket.state_id is ON DELETE RESTRICT, so letting the project cascade
@@ -159,7 +160,7 @@ export async function updateProjectParent(
   const parentId = field(formData, 'parentId') || null;
 
   if (parentId) {
-    if (parentId === projectId) return { errors: { parentId: "A team can't be its own parent." } };
+    if (parentId === projectId) return { errors: { parentId: m.settings_err_own_parent() } };
     const [child] = await db
       .select({ workspaceId: projects.workspaceId })
       .from(projects)
@@ -175,10 +176,10 @@ export async function updateProjectParent(
       .where(eq(projects.id, parentId))
       .limit(1);
     if (!child?.workspaceId) {
-      return { errors: { parentId: 'Add this project to a workspace first.' } };
+      return { errors: { parentId: m.settings_err_add_to_workspace() } };
     }
     if (!parent || parent.workspaceId !== child.workspaceId) {
-      return { errors: { parentId: 'Pick a team in the same workspace.' } };
+      return { errors: { parentId: m.settings_err_same_workspace() } };
     }
     // Walk up from the candidate parent; meeting this project means a cycle.
     const [cycle] = await db
@@ -200,7 +201,7 @@ export async function updateProjectParent(
         ),
       )
       .limit(1);
-    if (cycle) return { errors: { parentId: "A team can't be nested under its own sub-team." } };
+    if (cycle) return { errors: { parentId: m.settings_err_nested() } };
   }
 
   await db
@@ -221,7 +222,7 @@ export async function updateProjectVisibility(
   if ('error' in gate) return gate.error;
   const visibility = field(formData, 'visibility');
   if (!(PROJECT_VISIBILITIES as readonly string[]).includes(visibility)) {
-    return { errors: { visibility: 'Pick a visibility.' } };
+    return { errors: { visibility: m.settings_err_visibility() } };
   }
 
   await db

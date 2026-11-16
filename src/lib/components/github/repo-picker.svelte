@@ -3,6 +3,7 @@
   Typing a literal "owner/name" offers it too, for repos outside the first 100.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import ChevronsUpDownIcon from '@lucide/svelte/icons/chevrons-up-down';
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
   import LockIcon from '@lucide/svelte/icons/lock';
@@ -83,7 +84,7 @@
         class="w-full max-w-sm justify-between font-normal"
       >
         <span class={value ? 'truncate font-mono text-xs' : 'text-muted-foreground'}>
-          {value ?? 'Select a repository…'}
+          {value ?? m.settings_github_select_repo()}
         </span>
         <ChevronsUpDownIcon class="text-muted-foreground" />
       </Button>
@@ -94,19 +95,19 @@
       <CommandInput
         value={search}
         onValueChange={(next) => (search = next)}
-        placeholder="Search repositories or type owner/name…"
+        placeholder={m.settings_github_search_repos()}
       />
       <CommandList>
         {#if !repos && !error}
           <div class="flex items-center gap-2 px-3 py-6 text-sm text-muted-foreground">
-            <Loader2Icon class="size-4 animate-spin" /> Loading repositories…
+            <Loader2Icon class="size-4 animate-spin" /> {m.settings_github_loading_repos()}
           </div>
         {/if}
         {#if error}
           <p class="px-3 py-6 text-sm text-destructive">{error}</p>
         {/if}
         {#if repos}
-          <CommandEmpty>No repository matches.</CommandEmpty>
+          <CommandEmpty>{m.settings_github_no_repo_match()}</CommandEmpty>
         {/if}
         {#if offerLiteral}
           <CommandGroup>
@@ -115,12 +116,12 @@
               keywords={[literal]}
               onSelect={() => pick(literal)}
             >
-              Use <span class="font-mono text-xs">{literal}</span>
+              {m.settings_github_use_literal({ name: literal })}
             </CommandItem>
           </CommandGroup>
         {/if}
         {#if repos && repos.length > 0}
-          <CommandGroup heading="Recently pushed">
+          <CommandGroup heading={m.settings_github_recent()}>
             {#each repos as repo (repo.fullName)}
               <CommandItem
                 value={repo.fullName}
@@ -130,10 +131,10 @@
               >
                 <span class="truncate font-mono text-xs">{repo.fullName}</span>
                 {#if repo.private}
-                  <LockIcon class="size-3 text-muted-foreground" aria-label="Private" />
+                  <LockIcon class="size-3 text-muted-foreground" aria-label={m.settings_github_private()} />
                 {/if}
                 {#if !repo.admin}
-                  <span class="ml-auto text-xs text-muted-foreground">no admin</span>
+                  <span class="ml-auto text-xs text-muted-foreground">{m.settings_github_no_admin()}</span>
                 {/if}
               </CommandItem>
             {/each}

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import WorkflowSettings from '@/lib/components/settings/workflow/workflow-settings.svelte';
   import type { PageProps } from './$types';
 
@@ -6,14 +7,11 @@
 </script>
 
 <svelte:head>
-  <title>Workflow · {data.projectName}</title>
+  <title>{m.settings_page_workflow_title({ name: data.projectName })}</title>
 </svelte:head>
 
-<h1 class="text-xl font-medium">Workflow</h1>
+<h1 class="text-xl font-medium">{m.settings_page_workflow()}</h1>
 <p class="mt-1 mb-8 text-sm text-muted-foreground">
-  The states issues move through, grouped by type. The type decides how a state behaves: started
-  states set a start date, completed and canceled states close the issue.{!data.canEdit
-    ? ' Only admins can change the workflow.'
-    : ''}
+  {m.settings_page_workflow_desc()}{!data.canEdit ? ` ${m.settings_page_workflow_admins()}` : ''}
 </p>
 <WorkflowSettings projectId={data.projectId} counts={data.counts} canEdit={data.canEdit} />

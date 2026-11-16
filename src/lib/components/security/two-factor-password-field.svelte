@@ -1,5 +1,6 @@
 <!-- Password input for the two-factor dialogs. -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import Field from '@/lib/components/settings/field.svelte';
   import { Input } from '@/lib/components/ui/input';
 
@@ -14,7 +15,7 @@
   } = $props();
 </script>
 
-<Field id="two-factor-password" label="Password" {error}>
+<Field id="two-factor-password" label={m.settings_sec_password()} {error}>
   <Input
     id="two-factor-password"
     type="password"

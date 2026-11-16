@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { untrack } from 'svelte';
   import { toast } from 'svelte-sonner';
 
@@ -43,7 +44,7 @@
         prMergeStateId: fromValue(next.merge),
       });
       if (result.ok) {
-        toast.success('Automation updated');
+        toast.success(m.settings_github_automation_updated());
       } else {
         open = previous.open;
         merge = previous.merge;
@@ -57,13 +58,13 @@
 
 <section class="flex flex-col gap-5" aria-labelledby="github-automation">
   <SectionHeading
-    title="Pull request automation"
-    description={`Move issues when a linked pull request changes. Issues are linked by their ID in the branch name or PR title, or with magic words like “Fixes ${example}” in the description. Issues only move forward — never out of a completed or canceled state.`}
+    title={m.settings_github_automation_title()}
+    description={m.settings_github_automation_desc({ example })}
   />
   <Field
     id="github-pr-open"
-    label="When a pull request is opened"
-    hint="Drafts wait until they're marked ready for review."
+    label={m.settings_github_pr_open()}
+    hint={m.settings_github_pr_open_hint()}
   >
     <GithubStateSelect
       id="github-pr-open"
@@ -76,8 +77,8 @@
   </Field>
   <Field
     id="github-pr-merge"
-    label="When a pull request is merged"
-    hint={`Also applies to commits on the default branch that say “Fixes ${example}”. “Ref ${example}” or “Part of ${example}” only link.`}
+    label={m.settings_github_pr_merge()}
+    hint={m.settings_github_pr_merge_hint({ example })}
   >
     <GithubStateSelect
       id="github-pr-merge"

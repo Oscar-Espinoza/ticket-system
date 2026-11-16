@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { untrack } from 'svelte';
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
 
@@ -15,12 +16,12 @@
 
   const VISIBILITY_COPY: Record<ProjectVisibility, { label: string; hint: string }> = {
     private: {
-      label: 'Private',
-      hint: 'Only members can see this team. Others join by invitation.',
+      label: m.settings_project_vis_private(),
+      hint: m.settings_project_vis_private_hint(),
     },
     workspace: {
-      label: 'Workspace',
-      hint: 'Everyone in the workspace can find this team and join it as a member.',
+      label: m.settings_project_vis_workspace(),
+      hint: m.settings_project_vis_workspace_hint(),
     },
   };
 
@@ -29,7 +30,7 @@
   let { projectId, visibility, workspaceId, canEdit }: ProjectGeneralFormProps = $props();
 
   const form = createActionState<ProjectSettingsState>(updateProjectVisibility, {});
-  useResultToast(() => form.state, 'Visibility updated');
+  useResultToast(() => form.state, m.settings_project_visibility_updated_toast());
   let value = $state<ProjectVisibility>(untrack(() => visibility));
   const disabled = $derived(!canEdit || !workspaceId);
 </script>
@@ -38,7 +39,7 @@
   <input type="hidden" name="projectId" value={projectId} />
   <input type="hidden" name="visibility" {value} />
   <fieldset class="flex flex-col gap-2" {disabled}>
-    <legend class="mb-2 text-sm font-medium">Visibility</legend>
+    <legend class="mb-2 text-sm font-medium">{m.settings_project_visibility()}</legend>
     <RadioGroup
       {value}
       onValueChange={(next) => (value = next as ProjectVisibility)}
@@ -67,7 +68,7 @@
     <div>
       <Button type="submit" variant="outline" disabled={form.pending || value === visibility}>
         {#if form.pending}<Loader2Icon class="animate-spin" />{/if}
-        Save visibility
+        {m.settings_project_save_visibility()}
       </Button>
     </div>
   {/if}

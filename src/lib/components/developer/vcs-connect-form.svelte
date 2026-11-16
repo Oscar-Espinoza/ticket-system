@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
   import { toast } from 'svelte-sonner';
 
@@ -34,8 +35,8 @@
         error = result.error;
         return;
       }
-      if (result.webhook === 'registered') toast.success(`Connected ${result.repo}`);
-      else toast.warning(result.warning ?? 'Webhook not registered.');
+      if (result.webhook === 'registered') toast.success(m.settings_dev_connected_repo_toast({ repo: result.repo }));
+      else toast.warning(result.warning ?? m.settings_dev_webhook_not_registered());
       token = '';
     } finally {
       pending = false;
@@ -45,23 +46,18 @@
 
 {#snippet tokenHint()}
   {#if provider === 'gitlab'}
-    A personal, group or project access token with the <span class="font-mono text-xs">api</span>
-    scope, from someone with the Maintainer role (needed to add the webhook). It&apos;s encrypted and
-    only used to manage the webhook.
+    {m.settings_dev_vcs_token_hint_gitlab()}
   {:else}
-    A repository or workspace access token with <span class="font-mono text-xs">webhook</span> and
-    <span class="font-mono text-xs">pullrequest</span> read access — or an API token / app password
-    together with your username below. It&apos;s encrypted and used for the webhook and build
-    statuses.
+    {m.settings_dev_vcs_token_hint_bitbucket()}
   {/if}
 {/snippet}
 
 <form onsubmit={submit} class="flex max-w-xl flex-col gap-4">
   {#if copy.baseUrlField}
-    <Field id="{id}-url" label="GitLab URL" hint="Leave empty for gitlab.com.">
+    <Field id="{id}-url" label={m.settings_dev_gitlab_url()} hint={m.settings_dev_gitlab_url_hint()}>
       <Input
         id="{id}-url"
-        placeholder="https://gitlab.com"
+        placeholder={'https://gitlab.com'}
         bind:value={baseUrl}
         autocomplete="off"
         disabled={pending}
@@ -78,7 +74,7 @@
       disabled={pending}
     />
   </Field>
-  <Field id="{id}-token" label="Access token" hint={tokenHint}>
+  <Field id="{id}-token" label={m.settings_dev_access_token()} hint={tokenHint}>
     <Input
       id="{id}-token"
       type="password"
@@ -91,8 +87,8 @@
   {#if copy.usernameField}
     <Field
       id="{id}-user"
-      label="Username (optional)"
-      hint="Only for API tokens (your Atlassian email) or app passwords (your Bitbucket username)."
+      label={m.settings_dev_username_optional()}
+      hint={m.settings_dev_username_hint()}
     >
       <Input id="{id}-user" bind:value={username} autocomplete="off" disabled={pending} />
     </Field>
@@ -103,7 +99,7 @@
   <div>
     <Button type="submit" disabled={pending || !repo.trim() || !token.trim()}>
       {#if pending}<Loader2Icon class="animate-spin" />{/if}
-      Connect {copy.name}
+      {m.settings_dev_connect_host({ name: copy.name })}
     </Button>
   </div>
 </form>

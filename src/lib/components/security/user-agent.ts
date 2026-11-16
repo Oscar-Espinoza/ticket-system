@@ -1,3 +1,4 @@
+import { m } from '@/lib/i18n';
 // "Chrome on macOS" from a user-agent string — good enough to recognise your
 // own devices in the sessions list; no UA-parsing dependency.
 
@@ -19,10 +20,10 @@ const SYSTEMS: [RegExp, string][] = [
 ];
 
 export function describeUserAgent(ua: string | null | undefined): string {
-  if (!ua) return 'Unknown device';
+  if (!ua) return m.settings_sec_unknown_device();
   const browser = BROWSERS.find(([re]) => re.test(ua))?.[1];
   const system = SYSTEMS.find(([re]) => re.test(ua))?.[1];
-  if (browser && system) return `${browser} on ${system}`;
+  if (browser && system) return m.settings_sec_browser_on_system({ browser, system });
   return browser ?? system ?? (ua.length > 40 ? `${ua.slice(0, 39)}…` : ua);
 }
 

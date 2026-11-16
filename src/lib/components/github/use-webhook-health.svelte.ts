@@ -3,6 +3,7 @@
 // with the viewer's own token; 'unknown' (no access) shows nothing.
 // Call during component init; `enabled` is read reactively.
 
+import { m } from '@/lib/i18n';
 import { toast } from 'svelte-sonner';
 
 import { getGithubWebhookHealth, updateGithubWebhookEvents } from '@/lib/actions/developer';
@@ -33,7 +34,7 @@ export function useWebhookHealth(projectId: () => string, enabled: () => boolean
       const result = await updateGithubWebhookEvents(projectId());
       if (result.ok) {
         status = 'current';
-        toast.success('Webhook updated');
+        toast.success(m.settings_github_webhook_updated_toast());
       } else {
         toast.error(result.error);
       }

@@ -2,6 +2,7 @@
 // cooldown, triage, auto-archive / auto-close. Saving cycle settings schedules cycles right away
 // instead of waiting for the next daily automation run.
 
+import { m } from '@/lib/i18n';
 import { eq } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
@@ -44,15 +45,15 @@ export async function updatePlanningSettings(
 
   const duration = input.durationWeeks;
   if (!Number.isInteger(duration) || duration < MIN_CYCLE_WEEKS || duration > MAX_CYCLE_WEEKS) {
-    return fail(`Cycle duration must be ${MIN_CYCLE_WEEKS} to ${MAX_CYCLE_WEEKS} weeks.`);
+    return fail(m.settings_err_cycle_duration({ min: MIN_CYCLE_WEEKS, max: MAX_CYCLE_WEEKS }));
   }
   const weekday = input.startWeekday;
   if (!Number.isInteger(weekday) || weekday < 0 || weekday >= WEEKDAYS.length) {
-    return fail('Invalid start day.');
+    return fail(m.settings_err_start_day());
   }
   const cooldown = input.cooldownWeeks ?? 0;
   if (!Number.isInteger(cooldown) || cooldown < 0 || cooldown > MAX_COOLDOWN_WEEKS) {
-    return fail(`Cooldown must be 0 to ${MAX_COOLDOWN_WEEKS} weeks.`);
+    return fail(m.settings_err_cooldown({ max: MAX_COOLDOWN_WEEKS }));
   }
   const cyclesEnabled = input.cyclesEnabled === true;
   const autoCreate = input.autoCreate === true;
@@ -69,7 +70,7 @@ export async function updatePlanningSettings(
       .limit(1),
     getProjectCycles(projectId),
   ]);
-  if (!before) return fail('Project not found.');
+  if (!before) return fail(m.settings_err_project_not_found());
 
   await db
     .update(projects)
@@ -118,7 +119,7 @@ export async function updateAutomationSettings(input: {
   const authz = await authorizeProjectAction(input?.projectId, 'admin');
   if (!authz.ok) return authz;
   if (!validMonths(input.autoArchiveMonths) || !validMonths(input.autoCloseMonths)) {
-    return fail('Invalid period.');
+    return fail(m.settings_err_period());
   }
   await db
     .update(projects)

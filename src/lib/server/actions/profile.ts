@@ -47,7 +47,7 @@ export async function updateProfile(
   formData: FormData,
 ): Promise<ProfileState> {
   const session = await getSession();
-  if (!session?.user) return { errors: { server: 'Not authenticated' } };
+  if (!session?.user) return { errors: { server: m.error_not_authenticated() } };
 
   const name = field(formData, 'name');
   const image = field(formData, 'image');
@@ -56,15 +56,15 @@ export async function updateProfile(
   const timezone = field(formData, 'timezone');
 
   const errors: NonNullable<ProfileState['errors']> = {};
-  if (!name) errors.name = 'Name is required.';
+  if (!name) errors.name = m.settings_err_name_required();
   else if (!validUserName(name)) errors.name = NAME_RULE_MESSAGE;
   // Only http(s): the value lands in <img src> for every teammate.
   if (image && (image.length > 2048 || !isHttpUrl(image))) {
-    errors.image = 'Enter an http(s) image URL.';
+    errors.image = m.settings_err_image_url();
   }
-  if (title.length > 100) errors.title = 'Title must be 100 characters or fewer.';
-  if (bio.length > 1000) errors.bio = 'Bio must be 1000 characters or fewer.';
-  if (timezone && !isTimeZone(timezone)) errors.timezone = 'Unknown timezone.';
+  if (title.length > 100) errors.title = m.settings_err_title_max();
+  if (bio.length > 1000) errors.bio = m.settings_err_bio_max();
+  if (timezone && !isTimeZone(timezone)) errors.timezone = m.settings_err_timezone();
   if (Object.keys(errors).length > 0) return { errors };
 
   // Through Better Auth (not a raw UPDATE) so it rewrites the session cookie
@@ -76,7 +76,7 @@ export async function updateProfile(
         headers: await headers(),
       });
     } catch {
-      return { errors: { server: 'Could not update your account. Try again.' } };
+      return { errors: { server: m.settings_err_update_account() } };
     }
   }
 

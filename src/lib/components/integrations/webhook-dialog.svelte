@@ -18,6 +18,7 @@
   import { Input } from '@/lib/components/ui/input';
   import { Label } from '@/lib/components/ui/label';
   import { Switch } from '@/lib/components/ui/switch';
+  import { m } from '@/lib/i18n';
   import { WEBHOOK_EVENT_TYPES } from '@/lib/integrations/event-types';
 
   let {
@@ -57,7 +58,7 @@
         else toast.error(result.error);
         return;
       }
-      toast.success(hook ? 'Webhook updated' : 'Webhook created');
+      toast.success(hook ? m.settings_wh_updated_toast() : m.settings_wh_created_toast());
       onSaved(result.webhook, result.secret);
     } finally {
       pending = false;
@@ -76,21 +77,20 @@
   <DialogContent>
     <form onsubmit={submit} novalidate class="flex flex-col gap-5">
       <DialogHeader>
-        <DialogTitle>{hook ? 'Edit webhook' : 'Add webhook'}</DialogTitle>
+        <DialogTitle>{hook ? m.settings_wh_edit_title() : m.settings_wh_add()}</DialogTitle>
         <DialogDescription>
-          Deliveries time out after 5 seconds. Failures are retried after 1 min, 5 min, 30 min, 2 h and
-          12 h.
+          {m.settings_wh_dialog_desc()}
         </DialogDescription>
       </DialogHeader>
 
-      <Field id="webhook-url" label="Payload URL" {error}>
+      <Field id="webhook-url" label={m.settings_wh_payload_url()} {error}>
         <Input
           id="webhook-url"
           bind:value={() => url, (v) => {
             url = v;
             error = undefined;
           }}
-          placeholder="https://example.com/hooks/tickets"
+          placeholder={'https://example.com/hooks/tickets'}
           autocomplete="off"
           spellcheck={false}
           autofocus
@@ -101,9 +101,11 @@
       </Field>
 
       <fieldset class="flex flex-col gap-2">
-        <legend class="mb-1 text-sm font-medium">Events</legend>
+        <legend class="mb-1 text-sm font-medium">{m.settings_wh_events()}</legend>
         <p class="mb-1 text-xs text-muted-foreground">
-          {events.length === 0 ? 'None selected — every event is sent.' : `${events.length} selected.`}
+          {events.length === 0
+            ? m.settings_wh_none_selected()
+            : m.settings_wh_n_selected({ count: events.length })}
         </p>
         <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {#each WEBHOOK_EVENT_TYPES as { type, label } (type)}
@@ -121,14 +123,14 @@
 
       <div class="flex items-center gap-3">
         <Switch id="webhook-enabled" size="sm" bind:checked={enabled} />
-        <Label for="webhook-enabled" class="font-normal">Active</Label>
+        <Label for="webhook-enabled" class="font-normal">{m.settings_wh_active()}</Label>
       </div>
 
       <DialogFooter>
-        <Button type="button" variant="ghost" onclick={onClose}>Cancel</Button>
+        <Button type="button" variant="ghost" onclick={onClose}>{m.common_cancel()}</Button>
         <Button type="submit" disabled={pending || !url.trim()}>
           {#if pending}<LoaderCircleIcon class="animate-spin" />{/if}
-          {hook ? 'Save' : 'Add webhook'}
+          {hook ? m.common_save() : m.settings_wh_add()}
         </Button>
       </DialogFooter>
     </form>

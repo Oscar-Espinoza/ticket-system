@@ -5,6 +5,7 @@
   two-factor-regenerate-dialog.svelte.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { untrack } from 'svelte';
   import KeyRoundIcon from '@lucide/svelte/icons/key-round';
   import ShieldCheckIcon from '@lucide/svelte/icons/shield-check';
@@ -30,8 +31,7 @@
 
 {#if !hasPassword}
   <div class="rounded-lg border border-border px-4 py-3 text-sm text-muted-foreground">
-    Two-factor authentication protects password sign-in. You sign in with GitHub, Google or single sign-on,
-    so the two-factor settings of that account apply.
+    {m.settings_sec_2fa_no_password()}
   </div>
 {:else}
   <div class="flex flex-col gap-3 rounded-lg border border-border px-4 py-3">
@@ -44,24 +44,24 @@
       </span>
       <div class="min-w-0 flex-1">
         <p class="flex items-center gap-2 text-sm font-medium">
-          Authenticator app
-          {#if enabled}<LabelChip color="done">Enabled</LabelChip>{:else}<LabelChip>Off</LabelChip>{/if}
+          {m.settings_sec_authenticator_app()}
+          {#if enabled}<LabelChip color="done">{m.settings_sec_enabled()}</LabelChip>{:else}<LabelChip>{m.settings_sec_off()}</LabelChip>{/if}
         </p>
         <p class="mt-0.5 text-sm text-muted-foreground">
           {enabled
-            ? 'Password sign-ins ask for a 6-digit code from your authenticator app, or a backup code.'
-            : 'Ask for a 6-digit code from an app like 1Password, Google Authenticator or Authy after your password.'}
+            ? m.settings_sec_2fa_on_desc()
+            : m.settings_sec_2fa_off_desc()}
         </p>
       </div>
       {#if !enabled}
-        <Button size="sm" onclick={() => (mode = 'enable')}>Enable</Button>
+        <Button size="sm" onclick={() => (mode = 'enable')}>{m.settings_sec_enable()}</Button>
       {/if}
     </div>
     {#if enabled}
       <div class="flex flex-wrap gap-2 pl-11">
         <Button variant="outline" size="sm" onclick={() => (mode = 'regenerate')}>
           <KeyRoundIcon />
-          Regenerate backup codes
+          {m.settings_sec_regen_codes()}
         </Button>
         <Button
           variant="ghost"
@@ -69,7 +69,7 @@
           class="text-destructive hover:text-destructive"
           onclick={() => (mode = 'disable')}
         >
-          Disable
+          {m.settings_sec_disable()}
         </Button>
       </div>
     {/if}
@@ -87,9 +87,9 @@
     {/if}
     {#if mode === 'disable'}
       <PasswordDialog
-        title="Disable two-factor authentication?"
-        description="Password sign-ins will no longer ask for a code. Your backup codes stop working."
-        confirmLabel="Disable"
+        title={m.settings_sec_disable_title()}
+        description={m.settings_sec_disable_desc()}
+        confirmLabel={m.settings_sec_disable()}
         destructive
         onClose={() => (mode = null)}
         onConfirm={async (password) => {
@@ -97,7 +97,7 @@
           if (error) return errorMessage(error);
           enabled = false;
           mode = null;
-          toast.success('Two-factor authentication disabled');
+          toast.success(m.settings_sec_2fa_disabled_toast());
           void refreshAfterWrite();
           return null;
         }}

@@ -3,7 +3,7 @@
   list, register, rotate secret, delete, and the one-time credential reveal.
 -->
 <script lang="ts">
-  import { pluralize } from '@/lib/format';
+  import { m } from '@/lib/i18n';
   import { untrack } from 'svelte';
   import AppWindowIcon from '@lucide/svelte/icons/app-window';
   import CopyIcon from '@lucide/svelte/icons/copy';
@@ -62,9 +62,9 @@
   async function copy(text: string, what: string) {
     try {
       await navigator.clipboard.writeText(text);
-      toast.success(`${what} copied`);
+      toast.success(m.settings_oauth_copied_toast({ what }));
     } catch {
-      toast.error('Copy failed');
+      toast.error(m.settings_oauth_copy_failed());
     }
   }
 
@@ -78,7 +78,7 @@
     const result = await deleteOAuthApp({ clientId: app.clientId });
     if (result.ok) {
       apps = apps.filter((a) => a.clientId !== app.clientId);
-      toast.success(`Deleted ${app.name}`);
+      toast.success(m.settings_oauth_deleted_toast({ name: app.name }));
     } else toast.error(result.error);
   }
 </script>
@@ -86,16 +86,16 @@
 {#snippet registerButton()}
   <Button size="sm" onclick={() => (creating = true)}>
     <PlusIcon />
-    Register app
+    {m.settings_oauth_register_app()}
   </Button>
 {/snippet}
 
 <section class="flex flex-col gap-4">
   <div class="flex items-start justify-between gap-4">
     <div>
-      <h2 class="text-base font-medium">Your apps</h2>
+      <h2 class="text-base font-medium">{m.settings_oauth_your_apps()}</h2>
       <p class="mt-1 text-sm text-muted-foreground">
-        Apps you built that other people can connect to their account.
+        {m.settings_oauth_your_apps_desc()}
       </p>
     </div>
     {#if apps.length > 0}{@render registerButton()}{/if}
@@ -104,8 +104,8 @@
   {#if apps.length === 0}
     <EmptyState
       class="rounded-lg border border-dashed border-border py-10"
-      title="No OAuth apps"
-      description="Register an app to get a client ID for the OAuth authorization flow."
+      title={m.settings_oauth_none()}
+      description={m.settings_oauth_none_hint()}
       action={registerButton}
     >
       {#snippet icon()}<AppWindowIcon />{/snippet}
@@ -121,46 +121,46 @@
               <span
                 class="shrink-0 rounded border border-border px-1 text-[0.65rem] font-normal text-muted-foreground uppercase"
               >
-                {app.isPublic ? 'Public' : 'Confidential'}
+                {app.isPublic ? m.settings_oauth_public() : m.settings_oauth_confidential()}
               </span>
               {#if app.disabled}
                 <span
                   class="shrink-0 rounded border border-amber-500/40 px-1 text-[0.65rem] font-normal text-amber-700 uppercase dark:text-amber-400"
-                  title="This app can't be used. Delete it and register it again if you need it."
+                  title={m.settings_oauth_disabled_hint()}
                 >
-                  Disabled
+                  {m.settings_oauth_disabled()}
                 </span>
               {/if}
             </p>
             <p class="mt-0.5 truncate font-mono text-xs text-muted-foreground">
               {app.clientId}<span class="font-sans"
-                >{' · '}{pluralize(app.redirectUris.length, 'redirect URI')}</span
+                >{' · '}{m.settings_oauth_redirect_count({ count: app.redirectUris.length })}</span
               >
             </p>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger>
               {#snippet child({ props })}
-                <Button {...props} variant="ghost" size="icon-sm" aria-label={`${app.name} actions`}>
+                <Button {...props} variant="ghost" size="icon-sm" aria-label={m.settings_oauth_actions({ name: app.name })}>
                   <MoreHorizontalIcon />
                 </Button>
               {/snippet}
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onSelect={() => copy(app.clientId, 'Client ID')}>
+              <DropdownMenuItem onSelect={() => copy(app.clientId, m.settings_oauth_client_id())}>
                 <CopyIcon />
-                Copy client ID
+                {m.settings_oauth_copy_client_id()}
               </DropdownMenuItem>
               {#if !app.isPublic}
                 <DropdownMenuItem onSelect={() => (confirm = { kind: 'rotate', app })}>
                   <KeyRoundIcon />
-                  Rotate secret
+                  {m.settings_oauth_rotate_secret()}
                 </DropdownMenuItem>
               {/if}
               <DropdownMenuSeparator />
               <DropdownMenuItem variant="destructive" onSelect={() => (confirm = { kind: 'delete', app })}>
                 <Trash2Icon />
-                Delete
+                {m.common_delete()}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -184,42 +184,42 @@
     <DialogContent>
       <DialogHeader>
         <DialogTitle>
-          {reveal?.rotated ? 'New client secret' : `${reveal?.app.name ?? 'App'} registered`}
+          {reveal?.rotated
+            ? m.settings_oauth_new_secret()
+            : m.settings_oauth_registered({ name: reveal?.app.name ?? m.settings_oauth_default_app_name() })}
         </DialogTitle>
         <DialogDescription>
           {reveal?.secret
-            ? 'Copy the secret now — it is shown only once and only a hash is stored.'
-            : 'Public apps have no secret: use PKCE (S256) on every authorization.'}{reveal?.rotated
-            ? ' The previous secret stopped working.'
-            : ''}
+            ? m.settings_oauth_secret_once()
+            : m.settings_oauth_public_no_secret()}{reveal?.rotated ? m.settings_oauth_secret_rotated() : ''}
         </DialogDescription>
       </DialogHeader>
       {#if reveal}
         <div class="flex flex-col gap-4">
           {#if !reveal.rotated}
-            <Field id="oauth-client-id" label="Client ID">
-              <CopyField id="oauth-client-id" value={reveal.app.clientId} label="Client ID" />
+            <Field id="oauth-client-id" label={m.settings_oauth_client_id()}>
+              <CopyField id="oauth-client-id" value={reveal.app.clientId} label={m.settings_oauth_client_id()} />
             </Field>
           {/if}
           {#if reveal.secret}
-            <Field id="oauth-client-secret" label="Client secret">
-              <CopyField id="oauth-client-secret" value={reveal.secret} label="Client secret" />
+            <Field id="oauth-client-secret" label={m.settings_oauth_client_secret()}>
+              <CopyField id="oauth-client-secret" value={reveal.secret} label={m.settings_oauth_client_secret()} />
             </Field>
           {/if}
           {#if !reveal.rotated}
             <dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
-              <dt class="text-muted-foreground">Authorize</dt>
-              <dd class="truncate font-mono">{origin}/api/auth/oauth2/authorize</dd>
-              <dt class="text-muted-foreground">Token</dt>
-              <dd class="truncate font-mono">{origin}/api/auth/oauth2/token</dd>
-              <dt class="text-muted-foreground">Scopes</dt>
-              <dd class="font-mono">read write offline_access</dd>
+              <dt class="text-muted-foreground">{m.settings_oauth_authorize()}</dt>
+              <dd class="truncate font-mono">{origin}/api/auth/oauth2/authorize</dd> <!-- i18n-ignore -->
+              <dt class="text-muted-foreground">{m.settings_oauth_token()}</dt>
+              <dd class="truncate font-mono">{origin}/api/auth/oauth2/token</dd> <!-- i18n-ignore -->
+              <dt class="text-muted-foreground">{m.settings_oauth_scopes()}</dt>
+              <dd class="font-mono">read write offline_access</dd> <!-- i18n-ignore -->
             </dl>
           {/if}
         </div>
       {/if}
       <DialogFooter>
-        <Button onclick={() => (reveal = null)}>Done</Button>
+        <Button onclick={() => (reveal = null)}>{m.common_done()}</Button>
       </DialogFooter>
     </DialogContent>
   </Dialog>
@@ -228,16 +228,18 @@
     <AlertDialogContent size="sm">
       <AlertDialogHeader>
         <AlertDialogTitle>
-          {confirm?.kind === 'rotate' ? 'Rotate client secret?' : `Delete ${confirm?.app.name}?`}
+          {confirm?.kind === 'rotate'
+            ? m.settings_oauth_rotate_title()
+            : m.settings_oauth_delete_title({ name: confirm?.app.name ?? '' })}
         </AlertDialogTitle>
         <AlertDialogDescription>
           {confirm?.kind === 'rotate'
-            ? 'The current secret stops working immediately; update your app with the new one.'
-            : 'Everyone who connected this app loses access and its tokens are revoked. This can’t be undone.'}
+            ? m.settings_oauth_rotate_desc()
+            : m.settings_oauth_delete_desc()}
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>
-        <AlertDialogCancel>Cancel</AlertDialogCancel>
+        <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
         <AlertDialogAction
           variant={confirm?.kind === 'delete' ? 'destructive' : 'default'}
           onclick={() => {
@@ -246,7 +248,7 @@
             else void remove(confirm.app);
           }}
         >
-          {confirm?.kind === 'rotate' ? 'Rotate' : 'Delete'}
+          {confirm?.kind === 'rotate' ? m.settings_oauth_rotate() : m.common_delete()}
         </AlertDialogAction>
       </AlertDialogFooter>
     </AlertDialogContent>

@@ -4,6 +4,7 @@
   filters and the page cursor live in the URL.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import BotIcon from '@lucide/svelte/icons/bot';
   import ScrollTextIcon from '@lucide/svelte/icons/scroll-text';
 
@@ -41,10 +42,10 @@
   {#if data.rows.length === 0}
     <EmptyState
       class="rounded-lg border border-dashed border-border py-10"
-      title={data.filtered ? 'No matching events' : 'No events yet'}
+      title={data.filtered ? m.settings_audit_no_matching() : m.settings_audit_no_events()}
       description={data.filtered
-        ? 'Try a wider date range or clear the filters.'
-        : 'Issue changes, member and role changes, and security events will show up here.'}
+        ? m.settings_audit_no_matching_hint()
+        : m.settings_audit_no_events_hint()}
     >
       {#snippet icon()}<ScrollTextIcon />{/snippet}
     </EmptyState>
@@ -53,11 +54,11 @@
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead class="w-28">Time</TableHead>
-            <TableHead class="w-44">Actor</TableHead>
-            <TableHead>Event</TableHead>
-            {#if data.showTeam}<TableHead class="w-20">Team</TableHead>{/if}
-            <TableHead class="w-24">Issue</TableHead>
+            <TableHead class="w-28">{m.settings_audit_col_time()}</TableHead>
+            <TableHead class="w-44">{m.settings_audit_actor()}</TableHead>
+            <TableHead>{m.settings_audit_col_event()}</TableHead>
+            {#if data.showTeam}<TableHead class="w-20">{m.settings_audit_col_team()}</TableHead>{/if}
+            <TableHead class="w-24">{m.common_issue()}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -75,7 +76,7 @@
                 {:else}
                   <span class="flex items-center gap-2 text-muted-foreground">
                     <BotIcon aria-hidden="true" class="size-4" />
-                    System
+                    {m.settings_audit_system_actor()}
                   </span>
                 {/if}
               </TableCell>
@@ -119,10 +120,10 @@
   {#if data.olderHref || data.newestHref}
     <div class="flex items-center justify-end gap-2">
       {#if data.newestHref}
-        <Button variant="ghost" size="sm" href={data.newestHref}>Newest</Button>
+        <Button variant="ghost" size="sm" href={data.newestHref}>{m.settings_audit_newest()}</Button>
       {/if}
       {#if data.olderHref}
-        <Button variant="outline" size="sm" href={data.olderHref}>Older events</Button>
+        <Button variant="outline" size="sm" href={data.olderHref}>{m.settings_audit_older()}</Button>
       {/if}
     </div>
   {/if}

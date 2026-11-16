@@ -5,6 +5,7 @@
   shows them again.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import CopyIcon from '@lucide/svelte/icons/copy';
   import DownloadIcon from '@lucide/svelte/icons/download';
   import { toast } from 'svelte-sonner';
@@ -18,15 +19,15 @@
   async function copy() {
     try {
       await navigator.clipboard.writeText(text);
-      toast.success('Backup codes copied');
+      toast.success(m.settings_sec_codes_copied_toast());
     } catch {
-      toast.error('Copy failed — select the codes and copy them manually');
+      toast.error(m.settings_sec_codes_copy_failed());
     }
   }
 
   function download() {
     const blob = new Blob(
-      [`Ticket System — two-factor backup codes\nEach code works once.\n\n${text}\n`],
+      [m.settings_sec_codes_file({ codes: text })],
       { type: 'text/plain' },
     );
     const url = URL.createObjectURL(blob);
@@ -40,7 +41,7 @@
 
 <div class="flex flex-col gap-3">
   <ul
-    aria-label="Backup codes"
+    aria-label={m.settings_sec_codes_label()}
     class="grid grid-cols-2 gap-x-6 gap-y-1.5 rounded-lg border border-border bg-muted/40 px-4 py-3 font-mono text-sm select-all"
   >
     {#each codes as code (code)}
@@ -50,11 +51,11 @@
   <div class="flex gap-2">
     <Button type="button" variant="outline" size="sm" onclick={copy}>
       <CopyIcon />
-      Copy all
+      {m.settings_sec_copy_all()}
     </Button>
     <Button type="button" variant="outline" size="sm" onclick={download}>
       <DownloadIcon />
-      Download
+      {m.settings_sec_download()}
     </Button>
   </div>
 </div>

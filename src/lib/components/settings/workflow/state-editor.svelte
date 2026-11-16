@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { untrack } from 'svelte';
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
   import { toast } from 'svelte-sonner';
@@ -49,7 +50,11 @@
         if (!result.field) toast.error(result.error);
         return;
       }
-      toast.success(workflowState ? 'State updated' : `Added “${name.trim()}”`);
+      toast.success(
+        workflowState
+          ? m.settings_workflow_state_updated_toast()
+          : m.settings_workflow_added_toast({ name: name.trim() }),
+      );
       onDone();
     } finally {
       isPending = false;
@@ -70,30 +75,30 @@
     class="flex flex-col gap-2 sm:flex-row sm:items-center"
   >
     <div class="flex flex-1 items-center gap-2">
-      <ColorPicker value={color} onChange={(next) => (color = next)} label="State color" />
+      <ColorPicker value={color} onChange={(next) => (color = next)} label={m.settings_workflow_state_color()} />
       <!-- Svelte's autofocus only works when nothing has focus; focus on mount instead. -->
       <Input
         {@attach focusOnMount}
         bind:value={name}
-        placeholder="State name"
+        placeholder={m.settings_workflow_state_name()}
         maxlength={40}
-        aria-label="State name"
+        aria-label={m.settings_workflow_state_name()}
         aria-invalid={error?.field === 'name' ? true : undefined}
         class="h-7 w-40"
       />
       <Input
         bind:value={description}
-        placeholder="Description (optional)"
+        placeholder={m.settings_labels_description_optional()}
         maxlength={200}
-        aria-label="Description"
+        aria-label={m.common_description()}
         class="h-7 min-w-0 flex-1"
       />
     </div>
     <div class="flex justify-end gap-1.5">
-      <Button type="button" variant="ghost" size="sm" onclick={onDone}>Cancel</Button>
+      <Button type="button" variant="ghost" size="sm" onclick={onDone}>{m.common_cancel()}</Button>
       <Button type="submit" size="sm" disabled={isPending || !name.trim()}>
         {#if isPending}<Loader2Icon class="animate-spin" />{/if}
-        {workflowState ? 'Save' : 'Add state'}
+        {workflowState ? m.common_save() : m.settings_workflow_add_state()}
       </Button>
     </div>
   </form>

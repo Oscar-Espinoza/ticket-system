@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { ACCOUNT_SETTINGS_NAV } from '@/lib/components/app-shell/routes';
   import SettingsFrame from '@/lib/components/app-shell/settings-frame.svelte';
   import SettingsNav from '@/lib/components/app-shell/settings-nav.svelte';
@@ -14,7 +15,7 @@
 
 <SettingsFrame>
   {#snippet nav()}
-    <SettingsNav label="Account" {items} />
+    <SettingsNav label={m.settings_nav_account()} {items} />
   {/snippet}
   {@render children()}
 </SettingsFrame>

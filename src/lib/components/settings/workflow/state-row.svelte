@@ -18,7 +18,7 @@
     DropdownMenuTrigger,
   } from '@/lib/components/ui/dropdown-menu';
   import type { WorkflowState } from '@/lib/issue-model';
-  import { pluralize } from '@/lib/format';
+  import { m } from '@/lib/i18n';
 
   let {
     projectId,
@@ -67,17 +67,17 @@
     {/if}
   </button>
   <span class="shrink-0 text-xs text-muted-foreground tabular-nums">
-    {pluralize(count, 'issue')}
+    {m.common_issue_count({ count })}
   </span>
   {#if canEdit}
     <div class="flex shrink-0 items-center gap-0.5">
       {#if isPending}
-        <Loader2Icon class="size-3.5 animate-spin text-muted-foreground" aria-label="Saving" />
+        <Loader2Icon class="size-3.5 animate-spin text-muted-foreground" aria-label={m.settings_workflow_saving()} />
       {:else}
         <Button
           variant="ghost"
           size="icon-xs"
-          aria-label="Move {workflowState.name} up"
+          aria-label={m.settings_workflow_move_up({ name: workflowState.name })}
           disabled={isFirst}
           onclick={() => move('up')}
           class="opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 disabled:opacity-0"
@@ -87,7 +87,7 @@
         <Button
           variant="ghost"
           size="icon-xs"
-          aria-label="Move {workflowState.name} down"
+          aria-label={m.settings_workflow_move_down({ name: workflowState.name })}
           disabled={isLast}
           onclick={() => move('down')}
           class="opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 disabled:opacity-0"
@@ -98,7 +98,7 @@
       <DropdownMenu>
         <DropdownMenuTrigger>
           {#snippet child({ props })}
-            <Button {...props} variant="ghost" size="icon-xs" aria-label="Actions for {workflowState.name}">
+            <Button {...props} variant="ghost" size="icon-xs" aria-label={m.settings_workflow_actions({ name: workflowState.name })}>
               <EllipsisIcon />
             </Button>
           {/snippet}
@@ -106,12 +106,12 @@
         <DropdownMenuContent align="end">
           <DropdownMenuItem onSelect={onEdit}>
             <PencilIcon />
-            Edit
+            {m.common_edit()}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem variant="destructive" onSelect={onDelete}>
             <Trash2Icon />
-            Delete…
+            {m.settings_labels_delete_menu()}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

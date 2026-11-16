@@ -6,7 +6,7 @@
 -->
 <script lang="ts">
   import { untrack } from 'svelte';
-  import { pluralize } from '@/lib/format';
+  import { m } from '@/lib/i18n';
   import KeyRoundIcon from '@lucide/svelte/icons/key-round';
   import PencilIcon from '@lucide/svelte/icons/pencil';
   import { toast } from 'svelte-sonner';
@@ -75,7 +75,7 @@
     void transition(async () => {
       const result = await setSsoEnforced({ workspaceId, enforced: next });
       if (result.ok) {
-        toast.success(next ? 'SSO is now required' : 'SSO is no longer required');
+        toast.success(next ? m.settings_sec_sso_required_toast() : m.settings_sec_sso_not_required_toast());
       } else {
         enforced = !next;
         toast.error(result.error);
@@ -87,7 +87,7 @@
     void transition(async () => {
       const result = await removeWorkspaceSso({ workspaceId });
       if (result.ok) {
-        toast.success('Single sign-on removed');
+        toast.success(m.settings_sec_sso_removed_toast());
         enforced = false;
       } else toast.error(result.error);
     });
@@ -115,15 +115,14 @@
         </p>
         <p class="mt-0.5 text-xs text-muted-foreground">
           {ssoMemberCount === 0
-            ? 'No members have signed in with SSO yet.'
-            : `${ssoMemberCount} ${ssoMemberCount === 1 ? 'member has' : 'members have'} signed in with SSO.`}
-          Existing accounts link on first SSO sign-in; a password set up without a verified email is
-          removed then.
+            ? m.settings_sec_sso_no_members()
+            : m.settings_sec_sso_members_count({ count: ssoMemberCount })}
+          {m.settings_sec_sso_link_note()}
         </p>
       </div>
       <Button variant="outline" size="sm" onclick={() => (editing = true)}>
         <PencilIcon />
-        Edit
+        {m.common_edit()}
       </Button>
       <Button
         variant="ghost"
@@ -131,18 +130,17 @@
         class="text-destructive hover:text-destructive"
         onclick={() => (removing = true)}
       >
-        Remove
+        {m.common_remove()}
       </Button>
     </div>
 
     <div class="flex items-start justify-between gap-6 rounded-lg border border-border px-4 py-3">
       <div>
         <Label for="sso-enforced" class="text-sm font-medium">
-          Require SSO for @{provider.domain}
+          {m.settings_sec_require_sso({ domain: provider.domain })}
         </Label>
         <p class="mt-0.5 text-sm text-muted-foreground">
-          People with @{provider.domain} emails can’t sign in or sign up with a password or GitHub —
-          only through your identity provider.
+          {m.settings_sec_require_sso_desc({ domain: provider.domain })}
         </p>
       </div>
       <Switch id="sso-enforced" bind:checked={() => enforced, toggleEnforced} disabled={pending} />
@@ -154,12 +152,9 @@
         class="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm"
       >
         <span class="font-medium">
-          {pluralize(unverifiedDomainMemberCount, 'member')} on @{provider.domain}
-          {unverifiedDomainMemberCount === 1 ? 'hasn’t' : 'haven’t'} verified their email.
+          {m.settings_sec_unverified({ count: unverifiedDomainMemberCount, domain: provider.domain })}
         </span>
-        Their first SSO sign-in secures the account: it removes their password, two-factor, API keys, connected
-        apps, linked Google/GitHub sign-ins, Slack link, push subscriptions and pending invitations (they get an
-        email listing what went). Ask them to sign in with their password and verify their email first.
+        {m.settings_sec_unverified_note()}
       </p>
     {/if}
   {/if}
@@ -167,8 +162,8 @@
   {#if !provider && !editing}
     <EmptyState
       class="rounded-lg border border-dashed border-border py-6"
-      title="Single sign-on is off"
-      description="Connect Okta, Microsoft Entra, Google Workspace, Keycloak or any SAML 2.0 / OIDC identity provider below."
+      title={m.settings_sec_sso_off()}
+      description={m.settings_sec_sso_off_desc()}
     >
       {#snippet icon()}<KeyRoundIcon />{/snippet}
     </EmptyState>
@@ -190,15 +185,14 @@
   <AlertDialog bind:open={removing}>
     <AlertDialogContent size="sm">
       <AlertDialogHeader>
-        <AlertDialogTitle>Remove single sign-on?</AlertDialogTitle>
+        <AlertDialogTitle>{m.settings_sec_sso_remove_title()}</AlertDialogTitle>
         <AlertDialogDescription>
-          Members can no longer sign in through your identity provider, and SSO stops being
-          required. People who only ever used SSO can’t sign in until it’s set up again.
+          {m.settings_sec_sso_remove_desc()}
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>
-        <AlertDialogCancel>Cancel</AlertDialogCancel>
-        <AlertDialogAction variant="destructive" onclick={remove}>Remove</AlertDialogAction>
+        <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
+        <AlertDialogAction variant="destructive" onclick={remove}>{m.common_remove()}</AlertDialogAction>
       </AlertDialogFooter>
     </AlertDialogContent>
   </AlertDialog>

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import ExternalLinkIcon from '@lucide/svelte/icons/external-link';
   import LoaderCircleIcon from '@lucide/svelte/icons/loader-circle';
   import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw';
@@ -54,6 +55,8 @@
     }
   }
 
+  const customersParts = $derived(m.settings_int_intake_customers({ link: '\u0000' }).split('\u0000'));
+
   const embed = $derived(
     url
       ? `<iframe src="${url}" title="Submit a request" width="100%" height="720" style="border:0"></iframe>`
@@ -69,35 +72,30 @@
       bind:checked={() => !!url, (on) =>
         run(
           () => setIntakeEnabled({ projectId, enabled: on }),
-          on ? 'Intake form enabled' : 'Intake form turned off',
+          on ? m.settings_int_intake_enabled_toast() : m.settings_int_intake_off_toast(),
         )}
       disabled={!canEdit || pending}
       class="mt-0.5"
     />
     <div>
-      <Label for="intake-enabled">Accept requests</Label>
+      <Label for="intake-enabled">{m.settings_int_intake_accept()}</Label>
       <p class="mt-1 text-sm text-muted-foreground">
-        Anyone with the link can submit a request without an account. Requests arrive as issues in
-        {triageEnabled ? 'Triage' : 'your default state'}{triageEnabled
-          ? ''
-          : ' (turn on triage in Cycles & triage to review them first)'}.
+        {triageEnabled ? m.settings_int_intake_accept_triage() : m.settings_int_intake_accept_default()}
       </p>
       <p class="mt-1 text-sm text-muted-foreground">
-        When the submitter’s email domain matches one of your
-        <a href={customersPath(projectId)} class="underline-offset-2 hover:underline">customers</a>, the
-        request is linked to that customer automatically.
+        {customersParts[0]}<a href={customersPath(projectId)} class="underline-offset-2 hover:underline">{m.settings_int_intake_customers_link()}</a>{customersParts[1]}
       </p>
     </div>
   </div>
 
   {#if url}
     <div class="flex flex-col gap-1.5">
-      <Label for="intake-url">Public link</Label>
-      <CopyField id="intake-url" value={url} label="Link" />
+      <Label for="intake-url">{m.settings_int_public_link()}</Label>
+      <CopyField id="intake-url" value={url} label={m.settings_int_link_label()} />
       <div class="flex flex-wrap items-center gap-2 pt-1">
         <Button href={url} target="_blank" rel="noreferrer" variant="ghost" size="sm">
           <ExternalLinkIcon />
-          Open form
+          {m.settings_int_open_form()}
         </Button>
         {#if canEdit}
           <AlertDialog>
@@ -105,21 +103,21 @@
               {#snippet child({ props })}
                 <Button {...props} variant="ghost" size="sm" disabled={pending}>
                   {#if pending}<LoaderCircleIcon class="animate-spin" />{:else}<RefreshCwIcon />{/if}
-                  Rotate link
+                  {m.settings_int_rotate_link()}
                 </Button>
               {/snippet}
             </AlertDialogTrigger>
             <AlertDialogContent size="sm">
               <AlertDialogHeader>
-                <AlertDialogTitle>Rotate the public link?</AlertDialogTitle>
+                <AlertDialogTitle>{m.settings_int_rotate_title()}</AlertDialogTitle>
                 <AlertDialogDescription>
-                  The current link and any embedded forms stop working immediately.
+                  {m.settings_int_rotate_desc()}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onclick={() => run(() => rotateIntakeToken({ projectId }), 'New link generated')}>
-                  Rotate link
+                <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
+                <AlertDialogAction onclick={() => run(() => rotateIntakeToken({ projectId }), m.settings_int_new_link_toast())}>
+                  {m.settings_int_rotate_link()}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
@@ -128,8 +126,8 @@
       </div>
     </div>
     <div class="flex flex-col gap-1.5">
-      <Label for="intake-embed">Embed on your site</Label>
-      <CopyField id="intake-embed" value={embed} label="Snippet" multiline />
+      <Label for="intake-embed">{m.settings_int_embed()}</Label>
+      <CopyField id="intake-embed" value={embed} label={m.settings_int_snippet_label()} multiline />
     </div>
   {/if}
 </section>

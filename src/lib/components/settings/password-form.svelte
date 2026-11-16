@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
   import { toast } from 'svelte-sonner';
 
@@ -20,11 +21,11 @@
     const confirm = String(data.get('confirmPassword') ?? '');
 
     const nextErrors: typeof errors = {};
-    if (!currentPassword) nextErrors.current = 'Enter your current password.';
+    if (!currentPassword) nextErrors.current = m.settings_password_enter_current();
     if (newPassword.length < MIN_PASSWORD_LENGTH) {
-      nextErrors.next = `Use at least ${MIN_PASSWORD_LENGTH} characters.`;
+      nextErrors.next = m.settings_password_min({ min: MIN_PASSWORD_LENGTH });
     }
-    if (confirm !== newPassword) nextErrors.confirm = "Passwords don't match.";
+    if (confirm !== newPassword) nextErrors.confirm = m.settings_password_mismatch();
     errors = nextErrors;
     if (Object.keys(nextErrors).length > 0) return;
 
@@ -40,19 +41,19 @@
 
     if (error) {
       if (error.code === 'INVALID_PASSWORD') {
-        errors = { current: 'Current password is incorrect.' };
+        errors = { current: m.settings_password_incorrect() };
       } else {
-        toast.error(error.message ?? 'Could not change your password.');
+        toast.error(error.message ?? m.settings_password_change_failed());
       }
       return;
     }
     formEl?.reset();
-    toast.success('Password changed. Other sessions were signed out.');
+    toast.success(m.settings_password_changed_toast());
   }
 </script>
 
 <form bind:this={formEl} {onsubmit} class="mt-4 flex flex-col gap-5" novalidate>
-  <Field id="current-password" label="Current password" error={errors.current}>
+  <Field id="current-password" label={m.settings_password_current()} error={errors.current}>
     <Input
       id="current-password"
       name="currentPassword"
@@ -63,8 +64,8 @@
   </Field>
   <Field
     id="new-password"
-    label="New password"
-    hint={`At least ${MIN_PASSWORD_LENGTH} characters.`}
+    label={m.settings_password_new()}
+    hint={m.settings_password_hint({ min: MIN_PASSWORD_LENGTH })}
     error={errors.next}
   >
     <Input
@@ -75,7 +76,7 @@
       aria-invalid={!!errors.next}
     />
   </Field>
-  <Field id="confirm-password" label="Confirm new password" error={errors.confirm}>
+  <Field id="confirm-password" label={m.settings_password_confirm()} error={errors.confirm}>
     <Input
       id="confirm-password"
       name="confirmPassword"
@@ -87,7 +88,7 @@
   <div>
     <Button type="submit" variant="outline" disabled={pending}>
       {#if pending}<Loader2Icon class="animate-spin" />{/if}
-      Change password
+      {m.settings_password_change()}
     </Button>
   </div>
 </form>
