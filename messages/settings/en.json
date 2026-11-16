@@ -934,5 +934,7 @@
   "settings_workflow_state_name": "State name",
   "settings_workflow_state_updated_toast": "State updated",
   "settings_workflow_triage_on": "Triage is on for this project. Turn it off in Cycles & triage settings before deleting the triage state.",
-  "settings_workflow_unused": "No issues use this state."
+  "settings_workflow_unused": "No issues use this state.",
+  "settings_language_saving": "Saving…",
+  "settings_language_saved": "Saved"
 }

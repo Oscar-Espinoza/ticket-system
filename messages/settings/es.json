@@ -934,5 +934,7 @@
   "settings_workflow_state_name": "Nombre del estado",
   "settings_workflow_state_updated_toast": "Estado actualizado",
   "settings_workflow_triage_on": "La clasificación está activada en este proyecto. Desactívala en la configuración de Ciclos y clasificación antes de eliminar el estado de clasificación.",
-  "settings_workflow_unused": "Ningún ticket usa este estado."
+  "settings_workflow_unused": "Ningún ticket usa este estado.",
+  "settings_language_saving": "Guardando…",
+  "settings_language_saved": "Guardado"
 }
