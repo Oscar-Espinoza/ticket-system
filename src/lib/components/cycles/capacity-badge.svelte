@@ -2,6 +2,7 @@
 <script lang="ts">
   import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
 
+  import { m as msg } from '@/lib/i18n';
   import { cn } from '@/lib/utils';
   import type { CycleCapacity, CycleTotals } from '@/lib/cycle-utils';
   import { amount, measure, unitLabel } from './cycle-capacity';
@@ -26,5 +27,5 @@
 >
   {#if m.over}<TriangleAlert class="size-3.5" aria-hidden="true" />{/if}
   <span class="sr-only">{m.over ? 'Over capacity: ' : 'Capacity: '}</span>
-  {amount(m.scope)}/{amount(m.limit)}{m.unit === 'points' ? ' pts' : ''}
+  {amount(m.scope)}/{amount(m.limit)}{m.unit === 'points' ? ` ${msg.projects_cycle_points_short()}` : ''}
 </span>

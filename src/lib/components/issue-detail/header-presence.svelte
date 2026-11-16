@@ -5,14 +5,10 @@
 -->
 <script module lang="ts">
   const MAX_AVATARS = 3;
-
-  function names(list: string[]): string {
-    if (list.length <= 2) return list.join(' and ');
-    return `${list.slice(0, -1).join(', ')} and ${list.at(-1)}`;
-  }
 </script>
 
 <script lang="ts">
+  import { formatList, m } from '@/lib/i18n';
   import { Avatar } from '@/lib/components/ui-icons';
   import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/lib/components/ui/tooltip';
   import { useProjectPresence } from '@/lib/components/project/slots/live-updates.svelte.ts';
@@ -28,7 +24,7 @@
   );
   const viewers = $derived(pending ? [] : everyone.current.filter((u) => u.ticketId === issue.id));
   const label = $derived(
-    `${names(viewers.map((v) => v.name))} ${viewers.length === 1 ? 'is' : 'are'} also viewing`,
+    m.shared_presence_viewing({ count: viewers.length, names: formatList(viewers.map((v) => v.name)) }),
   );
   const extra = $derived(viewers.length - MAX_AVATARS);
 </script>

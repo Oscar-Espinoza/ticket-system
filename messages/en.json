@@ -177,6 +177,9 @@
   "shared_customer_find_or_create": "Find or create customer…",
   "shared_customer_none_found": "No customers found.",
   "shared_customer_type_to_create": "Type a name to create a customer.",
+  "shared_cycle_completed": "Completed",
+  "shared_cycle_scope": "Scope",
+  "shared_cycle_started": "Started",
   "shared_date_in_two_weeks": "In two weeks",
   "shared_date_next_week": "Next week",
   "shared_deselect_all_issues": "Deselect all issues",
@@ -201,6 +204,21 @@
   "shared_greeting_morning": "Good morning",
   "shared_greeting_named": "{greeting}, {name}",
   "shared_greeting_welcome": "Welcome back",
+  "shared_issue_noun": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "issue",
+        "countPlural=other": "issues"
+      }
+    }
+  ],
   "shared_login_account_not_linked": "An account with this email already exists, but its address isn’t verified yet, so Google or GitHub couldn’t be connected to it.",
   "shared_login_account_not_linked_password": "Sign in with your password instead, or ask your admin to verify your address.",
   "shared_login_account_not_linked_sso": "Using single sign-on? Ask your admin to add an email_verified attribute in the identity provider.",
@@ -210,6 +228,21 @@
   "shared_login_signup_disabled": "Sign-ups through single sign-on are disabled.",
   "shared_login_sso_required": "Your workspace requires single sign-on. Continue with SSO.",
   "shared_name_rule": "Name must be 1 to {max} characters on one line.",
+  "shared_point_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} point",
+        "countPlural=other": "{count} points"
+      }
+    }
+  ],
   "shared_pr_approved": "Approved",
   "shared_pr_changes_requested": "Changes requested",
   "shared_pr_checks_failing": "Checks failing",
@@ -220,6 +253,38 @@
   "shared_pr_merged": "Merged",
   "shared_pr_open": "Open",
   "shared_pr_review_required": "Review required",
+  "shared_presence_editing": [
+    {
+      "declarations": [
+        "input count",
+        "input names",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{names} is editing",
+        "countPlural=other": "{names} are editing"
+      }
+    }
+  ],
+  "shared_presence_viewing": [
+    {
+      "declarations": [
+        "input count",
+        "input names",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{names} is also viewing",
+        "countPlural=other": "{names} are also viewing"
+      }
+    }
+  ],
   "shared_rel_blocked_by": "Blocked by",
   "shared_rel_blocked_by_add": "Blocked by…",
   "shared_rel_blocking": "Blocking",

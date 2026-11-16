@@ -1,5 +1,6 @@
 <!-- Presentational cycle numbers shared by the list and detail pages. -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { cn } from '@/lib/utils';
   import { percent, type CycleTotals } from '@/lib/cycle-utils';
 
@@ -16,6 +17,7 @@
 
 {#snippet stat(
   label: string,
+  isScope: boolean,
   count: number,
   points: number,
   total: number,
@@ -29,19 +31,19 @@
     <span class="text-sm">
       <span class="font-medium tabular-nums">{count}</span>
       <span class="text-muted-foreground">
-        {' '}{count === 1 ? 'issue' : 'issues'}{#if total > 0 && label !== 'Scope'}{` · ${percent(count, total)}%`}{/if}
+        {' '}{m.shared_issue_noun({ count })}{#if total > 0 && !isScope}{` · ${percent(count, total)}%`}{/if}
       </span>
     </span>
     {#if showPoints}
       <span class="text-xs text-muted-foreground tabular-nums">
-        {points} {points === 1 ? 'point' : 'points'}
+        {m.shared_point_count({ count: points })}
       </span>
     {/if}
   </div>
 {/snippet}
 
 <div class={cn('flex flex-wrap gap-x-8 gap-y-3', className)}>
-  {@render stat('Scope', totals.scope, totals.scopePoints, totals.scope, 'bg-muted-foreground/40')}
-  {@render stat('Started', totals.started, totals.startedPoints, totals.scope, 'bg-amber-500/70')}
-  {@render stat('Completed', totals.completed, totals.completedPoints, totals.scope, 'bg-primary')}
+  {@render stat(m.shared_cycle_scope(), true, totals.scope, totals.scopePoints, totals.scope, 'bg-muted-foreground/40')}
+  {@render stat(m.shared_cycle_started(), false, totals.started, totals.startedPoints, totals.scope, 'bg-amber-500/70')}
+  {@render stat(m.shared_cycle_completed(), false, totals.completed, totals.completedPoints, totals.scope, 'bg-primary')}
 </div>

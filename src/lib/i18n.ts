@@ -26,6 +26,7 @@ export function currentLocale(): AppLocale {
 const dateFormats = new Map<string, Intl.DateTimeFormat>();
 const numberFormats = new Map<string, Intl.NumberFormat>();
 const relativeFormats = new Map<string, Intl.RelativeTimeFormat>();
+const listFormats = new Map<string, Intl.ListFormat>();
 
 function cached<T>(map: Map<string, T>, locale: string, options: object, make: () => T): T {
   const key = `${locale}|${JSON.stringify(options)}`;
@@ -62,4 +63,9 @@ export function formatDate(
 
 export function formatNumber(value: number, options?: Intl.NumberFormatOptions, locale?: AppLocale): string {
   return numberFormat(options, locale).format(value);
+}
+
+/** "Ana, Bob and Carol" / "Ana, Bob y Carol". */
+export function formatList(items: string[], locale: AppLocale = currentLocale()): string {
+  return cached(listFormats, locale, {}, () => new Intl.ListFormat(locale, { style: 'long', type: 'conjunction' })).format(items);
 }

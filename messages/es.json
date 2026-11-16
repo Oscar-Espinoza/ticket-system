@@ -177,6 +177,9 @@
   "shared_customer_find_or_create": "Busca o crea un cliente…",
   "shared_customer_none_found": "No se encontraron clientes.",
   "shared_customer_type_to_create": "Escribe un nombre para crear un cliente.",
+  "shared_cycle_completed": "Completados",
+  "shared_cycle_scope": "Alcance",
+  "shared_cycle_started": "Iniciados",
   "shared_date_in_two_weeks": "En dos semanas",
   "shared_date_next_week": "La próxima semana",
   "shared_deselect_all_issues": "Deseleccionar todos los tickets",
@@ -201,6 +204,21 @@
   "shared_greeting_morning": "Buenos días",
   "shared_greeting_named": "{greeting}, {name}",
   "shared_greeting_welcome": "Hola de nuevo",
+  "shared_issue_noun": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "ticket",
+        "countPlural=other": "tickets"
+      }
+    }
+  ],
   "shared_login_account_not_linked": "Ya existe una cuenta con este correo, pero su dirección aún no está verificada, así que no se pudo conectar Google ni GitHub.",
   "shared_login_account_not_linked_password": "Inicia sesión con tu contraseña, o pide a tu administrador que verifique tu dirección.",
   "shared_login_account_not_linked_sso": "¿Usas inicio de sesión único? Pide a tu administrador que añada un atributo email_verified en el proveedor de identidad.",
@@ -210,6 +228,21 @@
   "shared_login_signup_disabled": "El registro mediante inicio de sesión único está desactivado.",
   "shared_login_sso_required": "Tu espacio de trabajo requiere inicio de sesión único. Continúa con SSO.",
   "shared_name_rule": "El nombre debe tener entre 1 y {max} caracteres en una sola línea.",
+  "shared_point_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} punto",
+        "countPlural=other": "{count} puntos"
+      }
+    }
+  ],
   "shared_pr_approved": "Aprobado",
   "shared_pr_changes_requested": "Cambios solicitados",
   "shared_pr_checks_failing": "Comprobaciones fallidas",
@@ -220,6 +253,38 @@
   "shared_pr_merged": "Fusionado",
   "shared_pr_open": "Abierto",
   "shared_pr_review_required": "Revisión pendiente",
+  "shared_presence_editing": [
+    {
+      "declarations": [
+        "input count",
+        "input names",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{names} está editando",
+        "countPlural=other": "{names} están editando"
+      }
+    }
+  ],
+  "shared_presence_viewing": [
+    {
+      "declarations": [
+        "input count",
+        "input names",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{names} también está viendo esto",
+        "countPlural=other": "{names} también están viendo esto"
+      }
+    }
+  ],
   "shared_rel_blocked_by": "Bloqueado por",
   "shared_rel_blocked_by_add": "Bloqueado por…",
   "shared_rel_blocking": "Bloquea a",

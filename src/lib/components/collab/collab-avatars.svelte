@@ -3,6 +3,7 @@
   each person's caret color.
 -->
 <script lang="ts">
+  import { formatList, m } from '@/lib/i18n';
   import { Avatar } from '@/lib/components/ui-icons';
   import { Tooltip, TooltipContent, TooltipTrigger } from '@/lib/components/ui/tooltip';
   import { cn } from '@/lib/utils';
@@ -10,14 +11,10 @@
 
   const MAX = 4;
 
-  function names(list: string[]): string {
-    if (list.length <= 2) return list.join(' and ');
-    return `${list.slice(0, -1).join(', ')} and ${list.at(-1)}`;
-  }
 
   let { peers, class: className }: { peers: CollabPeer[]; class?: string } = $props();
 
-  const label = $derived(`${names(peers.map((p) => p.name))} ${peers.length === 1 ? 'is' : 'are'} editing`);
+  const label = $derived(m.shared_presence_editing({ count: peers.length, names: formatList(peers.map((p) => p.name)) }));
   const extra = $derived(peers.length - MAX);
 </script>
 
