@@ -8,6 +8,7 @@
 import { toast } from 'svelte-sonner';
 
 import { registerHotkeys } from '@/lib/svelte/hotkeys.svelte';
+import { m } from '@/lib/i18n';
 
 export interface UndoEntry {
   id: string;
@@ -46,7 +47,7 @@ export function undoLast(): UndoEntry | null {
 
 /** svelte-sonner `action` for a success toast. */
 export function undoToastAction(id: string) {
-  return { label: 'Undo', onClick: () => void runUndo(id) };
+  return { label: m.issues_undo(), onClick: () => void runUndo(id) };
 }
 
 const openDialog = () =>
@@ -66,13 +67,13 @@ export function retainUndoHotkey(): () => void {
       {
         mod: true,
         key: 'z',
-        description: 'Undo last issue change',
+        description: m.issues_undo_hotkey(),
         // ⌘⇧Z is redo elsewhere; an open dialog owns its own keys.
         when: (event) => !event.shiftKey && !openDialog(),
         handler: () => {
           const entry = undoLast();
-          if (entry) toast.success(`Undid ${entry.label}`);
-          else toast('Nothing to undo');
+          if (entry) toast.success(m.issues_undid({ label: entry.label }));
+          else toast(m.issues_undo_nothing());
         },
       },
     ]);

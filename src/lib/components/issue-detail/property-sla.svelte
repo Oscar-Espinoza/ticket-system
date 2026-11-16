@@ -18,8 +18,8 @@
 
   let { issue }: { issue: IssueRow; mutations: IssueMutations } = $props();
 
-  const dueText = (iso: string) =>
-    dateFormat({ month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(iso));
+  const dueText = (value: string | Date) =>
+    dateFormat({ month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(value));
 
   const minuteNow = useMinuteNow();
   const now = $derived(minuteNow.current);

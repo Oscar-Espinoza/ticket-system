@@ -23,6 +23,7 @@ import { hasOpenLayer, isEditableTarget, registerHotkeys } from '@/lib/svelte/ho
 import type { IssueRow } from '@/lib/issue-model';
 import { ISSUE_ITEM, VIEW_SCOPE, issueIdOf } from './issue-dom';
 import { isPendingIssue } from './use-issue-mutations.svelte';
+import { m } from '@/lib/i18n';
 
 export { hasOpenLayer, isEditableTarget };
 
@@ -206,8 +207,8 @@ export function setIssueSelectionContext(issues: () => IssueRow[]): IssueSelecti
     const unregister = registerHotkeys([
       {
         key: 'x',
-        scope: 'Issues',
-        description: 'Select / deselect focused issue',
+        scope: m.issues_scope(),
+        description: m.issues_sel_toggle(),
         when: () => focusedIssueItem() !== null,
         handler: () => {
           const id = focusedIssueItem();
@@ -217,15 +218,15 @@ export function setIssueSelectionContext(issues: () => IssueRow[]): IssueSelecti
       {
         key: 'a',
         mod: true,
-        scope: 'Issues',
-        description: 'Select all issues',
+        scope: m.issues_scope(),
+        description: m.issues_sel_all(),
         when: () => !hasOpenLayer() && !!document.activeElement?.closest(VIEW_SCOPE),
         handler: () => {
           const scope = document.activeElement?.closest(VIEW_SCOPE);
           if (scope) selection.set(orderedIssueIds(scope));
         },
       },
-      { key: 'Esc', scope: 'Issues', description: 'Clear selection', passive: true },
+      { key: 'Esc', scope: m.issues_scope(), description: m.issues_bulk_clear(), passive: true },
     ]);
 
     // Capture phase: with a selection, Esc clears it before anything else (e.g.

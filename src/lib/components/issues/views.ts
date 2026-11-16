@@ -22,6 +22,7 @@ import { COLUMN_WIDTH_CLASS } from '@/lib/components/board/board-layout';
 import ListView from './list-view.svelte';
 import type { ViewCapabilities } from './view-capabilities';
 import type { IssueMutations } from './use-issue-mutations.svelte';
+import { m } from '@/lib/i18n';
 
 export interface IssueViewProps {
   /** Every group, empty ones included — each view decides what to hide. */
@@ -76,7 +77,9 @@ export function preloadViews() {
 export const ISSUE_VIEWS: IssueViewDefinition[] = [
   {
     id: 'list',
-    label: 'List',
+    get label() {
+      return m.issues_view_list();
+    },
     icon: ListIcon,
     caps: { grouped: true, subGrouping: true, swimlanes: false, ordered: true, displayProperties: true },
     showsFilteredEmpty: true,
@@ -84,7 +87,9 @@ export const ISSUE_VIEWS: IssueViewDefinition[] = [
   },
   {
     id: 'board',
-    label: 'Board',
+    get label() {
+      return m.issues_view_board();
+    },
     icon: KanbanIcon,
     caps: { grouped: true, subGrouping: true, swimlanes: true, ordered: true, displayProperties: true },
     showsFilteredEmpty: true,
@@ -92,7 +97,9 @@ export const ISSUE_VIEWS: IssueViewDefinition[] = [
   },
   {
     id: 'table',
-    label: 'Table',
+    get label() {
+      return m.issues_view_table();
+    },
     icon: SheetIcon,
     caps: { grouped: false, subGrouping: false, swimlanes: false, ordered: true, displayProperties: true },
     showsFilteredEmpty: true,
@@ -101,7 +108,9 @@ export const ISSUE_VIEWS: IssueViewDefinition[] = [
   // Client only: "today" and the visible month depend on the viewer's timezone.
   {
     id: 'calendar',
-    label: 'Calendar',
+    get label() {
+      return m.issues_view_calendar();
+    },
     icon: CalendarDaysIcon,
     caps: { grouped: false, subGrouping: false, swimlanes: false, ordered: false, displayProperties: false },
     showsFilteredEmpty: false,
@@ -110,7 +119,9 @@ export const ISSUE_VIEWS: IssueViewDefinition[] = [
   // Client only too: "today", the zoom (localStorage) and scroll position.
   {
     id: 'timeline',
-    label: 'Timeline',
+    get label() {
+      return m.issues_view_timeline();
+    },
     icon: GanttChartIcon,
     caps: { grouped: true, subGrouping: false, swimlanes: false, ordered: true, displayProperties: false },
     showsFilteredEmpty: true,

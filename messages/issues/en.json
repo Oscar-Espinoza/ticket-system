@@ -546,5 +546,240 @@
   "issues_views_empty": "No saved views yet",
   "issues_views_empty_description": "Filter and arrange a project's issues, then choose “Save view” in the toolbar. Views shared by teammates show up here too.",
   "issues_views_yours": "Your views",
-  "issues_views_shared_with_you": "Shared with you"
+  "issues_views_shared_with_you": "Shared with you",
+  "issues_copied_what": "Copied {what}",
+  "issues_copy_failed": "Could not copy to the clipboard.",
+  "issues_copy_what_link": "link",
+  "issues_due_end_of_week": "End of this week",
+  "issues_due_in_week": "In one week",
+  "issues_due_in_two_weeks": "In two weeks",
+  "issues_prop_id": "ID",
+  "issues_prop_milestone": "Milestone",
+  "issues_prop_pull_requests": "Pull requests",
+  "issues_sel_toggle": "Select / deselect focused issue",
+  "issues_sel_all": "Select all issues",
+  "issues_view_list": "List",
+  "issues_view_board": "Board",
+  "issues_view_table": "Table",
+  "issues_view_calendar": "Calendar",
+  "issues_view_timeline": "Timeline",
+  "issues_switch_to_manual": "Switch ordering to Manual to reorder issues.",
+  "issues_fp_me": "Me",
+  "issues_fp_any_type": "Any {type}",
+  "issues_fp_creator": "Creator",
+  "issues_fp_no_label": "No label",
+  "issues_fp_no_cycle": "No cycle",
+  "issues_fp_cycle_number": "Cycle {number}",
+  "issues_fp_no_epic": "No epic",
+  "issues_fp_unknown": "Unknown",
+  "issues_group_label": "Label",
+  "issues_group_none": "No grouping",
+  "issues_order_manual": "Manual",
+  "issues_group_no_label": "No label",
+  "issues_group_all": "All issues",
+  "issues_est_none": "Not in use",
+  "issues_est_linear": "Linear (1, 2, 3, 4, 5)",
+  "issues_est_fibonacci": "Fibonacci (0, 1, 2, 3, 5, 8)",
+  "issues_est_exponential": "Exponential (1, 2, 4, 8, 16)",
+  "issues_est_tshirt": "T-shirt (XS, S, M, L, XL)",
+  "issues_mine_tab_assigned": "Assigned",
+  "issues_mine_tab_created": "Created",
+  "issues_mine_tab_subscribed": "Subscribed",
+  "issues_mine_tab_activity": "Activity",
+  "issues_undo": "Undo",
+  "issues_undo_hotkey": "Undo last issue change",
+  "issues_undid": "Undid {label}",
+  "issues_undo_nothing": "Nothing to undo",
+  "issues_outbox_other_account": "You’re signed in as a different account in another tab — reload to continue.",
+  "issues_outbox_discarded": "Couldn't sync {label} — the change was discarded.",
+  "issues_outbox_waiting_account": "Offline changes are waiting for their account — sign in as that user to sync them.",
+  "issues_outbox_sync_failed": "Couldn't sync {label}: {reason}",
+  "issues_outbox_no_permission": "you don't have permission to do that in this project",
+  "issues_outbox_synced": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Synced {count} offline change",
+        "countPlural=other": "Synced {count} offline changes"
+      }
+    }
+  ],
+  "issues_fw_title": "title",
+  "issues_fw_description": "description",
+  "issues_fw_status": "status",
+  "issues_fw_priority": "priority",
+  "issues_fw_estimate": "estimate",
+  "issues_fw_start_date": "start date",
+  "issues_fw_due_date": "due date",
+  "issues_fw_assignee": "assignee",
+  "issues_fw_waiting_on": "waiting on",
+  "issues_fw_follow_up": "follow-up",
+  "issues_fw_parent": "parent",
+  "issues_fw_cycle": "cycle",
+  "issues_fw_epic": "epic",
+  "issues_fw_milestone": "milestone",
+  "issues_fw_order": "order",
+  "issues_fw_labels": "labels",
+  "issues_mut_change_of": "{words} change",
+  "issues_mut_change": "change",
+  "issues_mut_on_issue": "{what} on {key}",
+  "issues_mut_on_issues": [
+    {
+      "declarations": [
+        "input count",
+        "input what",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{what} on {count} issue",
+        "countPlural=other": "{what} on {count} issues"
+      }
+    }
+  ],
+  "issues_mut_save_failed": "Something went wrong — the change was not saved.",
+  "issues_mut_updated_many": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Updated {count} issue",
+        "countPlural=other": "Updated {count} issues"
+      }
+    }
+  ],
+  "issues_mut_archiving": "archiving {key}",
+  "issues_mut_unarchiving": "unarchiving {key}",
+  "issues_mut_trashing": "moving {key} to trash",
+  "issues_mut_restoring": "restoring {key}",
+  "issues_mut_archived": "Archived {key}",
+  "issues_mut_trashed": "Moved {key} to trash",
+  "issues_mut_archiving_many": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "archiving {count} issue",
+        "countPlural=other": "archiving {count} issues"
+      }
+    }
+  ],
+  "issues_mut_unarchiving_many": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "unarchiving {count} issue",
+        "countPlural=other": "unarchiving {count} issues"
+      }
+    }
+  ],
+  "issues_mut_trashing_many": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "moving {count} issue to trash",
+        "countPlural=other": "moving {count} issues to trash"
+      }
+    }
+  ],
+  "issues_mut_restoring_many": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "restoring {count} issue",
+        "countPlural=other": "restoring {count} issues"
+      }
+    }
+  ],
+  "issues_mut_archived_many": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Archived {count} issue",
+        "countPlural=other": "Archived {count} issues"
+      }
+    }
+  ],
+  "issues_mut_trashed_many": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Moved {count} issue to trash",
+        "countPlural=other": "Moved {count} issues to trash"
+      }
+    }
+  ],
+  "issues_mut_creating_titled": "creating “{title}”",
+  "issues_mut_creating": "creating {key}",
+  "issues_mut_created": "Created {key}",
+  "issues_mut_queued": "Saved offline — the issue will be created when you reconnect.",
+  "issues_mut_issue_created": "Issue created",
+  "issues_mut_create_failed": "Something went wrong — the issue was not created.",
+  "issues_err_issue_not_found": "Issue not found.",
+  "issues_err_invalid_draft": "Invalid draft.",
+  "issues_err_draft_not_found": "Draft not found.",
+  "issues_err_template_not_found": "Template not found.",
+  "issues_err_invalid_title": "Invalid title.",
+  "issues_err_invalid_favorite": "Invalid favorite.",
+  "issues_err_view_share": "Only members who can edit issues can share views.",
+  "issues_err_view_name": "Give the view a name.",
+  "issues_err_view_settings": "Invalid view settings.",
+  "issues_err_view_not_found": "View not found.",
+  "issues_err_view_owner": "Only the owner can change this view.",
+  "issues_err_not_in_triage": "{key} is no longer in triage.",
+  "issues_err_pick_state": "Pick an open workflow state.",
+  "issues_err_invalid_priority": "Invalid priority.",
+  "issues_err_reason_length": "Keep the reason under {max} characters.",
+  "issues_err_no_canceled": "This project has no canceled state.",
+  "issues_err_pick_original": "Pick the original issue.",
+  "issues_err_self_duplicate": "An issue can't duplicate itself.",
+  "issues_err_move_forbidden": "You can't create issues in that project."
 }

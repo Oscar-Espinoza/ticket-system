@@ -29,6 +29,8 @@ import {
 } from '@/lib/svelte/outbox.svelte';
 import { pushUndo, retainUndoHotkey, undoToastAction } from '@/lib/svelte/undo.svelte';
 import { defaultNewIssueState, stateTransitionTimestamps } from '@/lib/workflow';
+import { lazyLabels } from '@/lib/lazy-labels';
+import { m } from '@/lib/i18n';
 
 const TEMP_PREFIX = 'temp-';
 
@@ -225,26 +227,26 @@ type Result = { ok: true } | { ok: false; error: string };
 /** A queueable server call; `userId` is filled in by the hook. */
 type Call<N extends OutboxActionName> = Omit<OutboxCall<N>, 'userId'>;
 
-const FIELD_WORDS: Record<IssueField, string> = {
-  title: 'title',
-  description: 'description',
-  stateId: 'status',
-  priority: 'priority',
-  estimate: 'estimate',
-  startDate: 'start date',
-  dueDate: 'due date',
-  assigneeId: 'assignee',
-  waitingOnId: 'waiting on',
-  followUp: 'follow-up',
-  parentId: 'parent',
-  cycleId: 'cycle',
-  epicId: 'epic',
-  milestoneId: 'milestone',
-  sortOrder: 'order',
-  labelIds: 'labels',
-  addLabelIds: 'labels',
-  removeLabelIds: 'labels',
-};
+const FIELD_WORDS: Record<IssueField, string> = lazyLabels({
+  title: m.issues_fw_title,
+  description: m.issues_fw_description,
+  stateId: m.issues_fw_status,
+  priority: m.issues_fw_priority,
+  estimate: m.issues_fw_estimate,
+  startDate: m.issues_fw_start_date,
+  dueDate: m.issues_fw_due_date,
+  assigneeId: m.issues_fw_assignee,
+  waitingOnId: m.issues_fw_waiting_on,
+  followUp: m.issues_fw_follow_up,
+  parentId: m.issues_fw_parent,
+  cycleId: m.issues_fw_cycle,
+  epicId: m.issues_fw_epic,
+  milestoneId: m.issues_fw_milestone,
+  sortOrder: m.issues_fw_order,
+  labelIds: m.issues_fw_labels,
+  addLabelIds: m.issues_fw_labels,
+  removeLabelIds: m.issues_fw_labels,
+});
 
 function describePatch(patch: IssuePatch): string {
   const words = [
@@ -254,7 +256,7 @@ function describePatch(patch: IssuePatch): string {
         .map((field) => FIELD_WORDS[field]),
     ),
   ];
-  return words.length > 0 ? `${words.join(', ')} change` : 'change';
+  return words.length > 0 ? m.issues_mut_change_of({ words: words.join(', ') }) : m.issues_mut_change();
 }
 
 /** The patch that puts `issue`'s touched fields back (the undo of `patch`). */
@@ -355,7 +357,7 @@ export function useIssueMutations(
         if (!result.ok) toast.error(actionErrorText(result.error));
         else onSuccess?.();
       } catch {
-        toast.error('Something went wrong — the change was not saved.');
+        toast.error(m.issues_mut_save_failed());
       }
     });
   }
@@ -366,9 +368,9 @@ export function useIssueMutations(
     toast.success(message, { action: undoToastAction(id) });
   }
 
-  const patchLabel = (patch: IssuePatch, issue: IssueRow) => `${describePatch(patch)} on ${issue.key}`;
+  const patchLabel = (patch: IssuePatch, issue: IssueRow) => m.issues_mut_on_issue({ what: describePatch(patch), key: issue.key });
   const bulkLabel = (patch: IssuePatch, targets: IssueRow[]) =>
-    targets.length === 1 ? patchLabel(patch, targets[0]) : `${describePatch(patch)} on ${targets.length} issues`;
+    targets.length === 1 ? patchLabel(patch, targets[0]) : m.issues_mut_on_issues({ what: describePatch(patch), count: targets.length });
 
   /** Send `patch` for one issue (callers have already checked it is worth sending). */
   function sendPatch(issue: IssueRow, patch: IssuePatch, onSuccess?: () => void, source?: 'collab') {
@@ -458,7 +460,7 @@ export function useIssueMutations(
         groups.forEach((group) => bulkPatch(group.issues, group.patch)),
       );
       if (targets.length > 1) {
-        toast.success(`Updated ${targets.length} issues`, { action: undoToastAction(id) });
+        toast.success(m.issues_mut_updated_many({ count: targets.length }), { action: undoToastAction(id) });
       }
     });
   }
@@ -492,23 +494,23 @@ export function useIssueMutations(
   }
 
   const archiveUntracked = (issue: IssueRow, onSuccess?: () => void) =>
-    setLifecycle(issue, { archivedAt: new Date() }, 'archiveIssue', `archiving ${issue.key}`, onSuccess);
+    setLifecycle(issue, { archivedAt: new Date() }, 'archiveIssue', m.issues_mut_archiving({ key: issue.key }), onSuccess);
   const unarchiveUntracked = (issue: IssueRow, onSuccess?: () => void) =>
-    setLifecycle(issue, { archivedAt: null }, 'unarchiveIssue', `unarchiving ${issue.key}`, onSuccess);
+    setLifecycle(issue, { archivedAt: null }, 'unarchiveIssue', m.issues_mut_unarchiving({ key: issue.key }), onSuccess);
   const removeUntracked = (issue: IssueRow, onSuccess?: () => void) =>
-    setLifecycle(issue, { deletedAt: new Date() }, 'deleteTicket', `moving ${issue.key} to trash`, onSuccess);
+    setLifecycle(issue, { deletedAt: new Date() }, 'deleteTicket', m.issues_mut_trashing({ key: issue.key }), onSuccess);
   const restoreUntracked = (issue: IssueRow, onSuccess?: () => void) =>
     setLifecycle(
       issue,
       { archivedAt: null, deletedAt: null },
       'restoreIssue',
-      `restoring ${issue.key}`,
+      m.issues_mut_restoring({ key: issue.key }),
       onSuccess,
     );
 
   function archive(issue: IssueRow, onDone?: () => void) {
     archiveUntracked(issue, () => {
-      announce(`archiving ${issue.key}`, `Archived ${issue.key}`, () => unarchiveUntracked(issue));
+      announce(m.issues_mut_archiving({ key: issue.key }), m.issues_mut_archived({ key: issue.key }), () => unarchiveUntracked(issue));
       onDone?.();
     });
   }
@@ -516,14 +518,14 @@ export function useIssueMutations(
   function unarchive(issue: IssueRow, onDone?: () => void) {
     const unarchived = { ...issue, archivedAt: null };
     unarchiveUntracked(issue, () => {
-      pushUndo(`unarchiving ${issue.key}`, () => archiveUntracked(unarchived));
+      pushUndo(m.issues_mut_unarchiving({ key: issue.key }), () => archiveUntracked(unarchived));
       onDone?.();
     });
   }
 
   function remove(issue: IssueRow, onDone?: () => void) {
     removeUntracked(issue, () => {
-      announce(`moving ${issue.key} to trash`, `Moved ${issue.key} to trash`, () => restoreUntracked(issue));
+      announce(m.issues_mut_trashing({ key: issue.key }), m.issues_mut_trashed({ key: issue.key }), () => restoreUntracked(issue));
       onDone?.();
     });
   }
@@ -532,9 +534,9 @@ export function useIssueMutations(
     const restored = { ...issue, archivedAt: null, deletedAt: null };
     restoreUntracked(issue, () => {
       if (issue.deletedAt) {
-        pushUndo(`restoring ${issue.key}`, () => removeUntracked(restored));
+        pushUndo(m.issues_mut_restoring({ key: issue.key }), () => removeUntracked(restored));
       } else if (issue.archivedAt) {
-        pushUndo(`restoring ${issue.key}`, () => archiveUntracked(restored));
+        pushUndo(m.issues_mut_restoring({ key: issue.key }), () => archiveUntracked(restored));
       }
       onDone?.();
     });
@@ -570,10 +572,10 @@ export function useIssueMutations(
       if (targets[0]) archive(targets[0], onDone);
       return;
     }
-    const label = `archiving ${targets.length} issues`;
+    const label = m.issues_mut_archiving_many({ count: targets.length });
     lifecycleMany(targets, { archivedAt: new Date() }, 'archiveIssues', label, () => {
-      announce(label, `Archived ${targets.length} issues`, () =>
-        lifecycleMany(targets, { archivedAt: null }, 'unarchiveIssues', `unarchiving ${targets.length} issues`),
+      announce(label, m.issues_mut_archived_many({ count: targets.length }), () =>
+        lifecycleMany(targets, { archivedAt: null }, 'unarchiveIssues', m.issues_mut_unarchiving_many({ count: targets.length })),
       );
       onDone?.();
     });
@@ -585,15 +587,15 @@ export function useIssueMutations(
       if (targets[0]) remove(targets[0], onDone);
       return;
     }
-    const label = `moving ${targets.length} issues to trash`;
+    const label = m.issues_mut_trashing_many({ count: targets.length });
     lifecycleMany(targets, { deletedAt: new Date() }, 'deleteTickets', label, () => {
       // Like `remove`'s undo: restore clears the archive flag too.
-      announce(label, `Moved ${targets.length} issues to trash`, () =>
+      announce(label, m.issues_mut_trashed_many({ count: targets.length }), () =>
         lifecycleMany(
           targets,
           { archivedAt: null, deletedAt: null },
           'restoreIssues',
-          `restoring ${targets.length} issues`,
+          m.issues_mut_restoring_many({ count: targets.length }),
         ),
       );
       onDone?.();
@@ -658,12 +660,12 @@ export function useIssueMutations(
           action: 'createTicket',
           args: { projectId: data.project.id, ...input },
           overlay: placeholder ? { kind: 'add', issue: placeholder } : null,
-          label: `creating “${input.title.trim()}”`,
+          label: m.issues_mut_creating_titled({ title: input.title.trim() }),
         });
         if (isQueued(result)) {
           // No server id yet, so no undo; the placeholder stays until it syncs.
           if (placeholder) onSuccess?.(placeholder);
-          toast('Saved offline — the issue will be created when you reconnect.');
+          toast(m.issues_mut_queued());
           return;
         }
         if (!result.ok) {
@@ -672,13 +674,13 @@ export function useIssueMutations(
         }
         const ticket = result.ticket;
         if (!ticket) {
-          toast.success('Issue created');
+          toast.success(m.issues_mut_issue_created());
           return;
         }
         onSuccess?.(ticket);
-        announce(`creating ${ticket.key}`, `Created ${ticket.key}`, () => removeUntracked(ticket));
+        announce(m.issues_mut_creating({ key: ticket.key }), m.issues_mut_created({ key: ticket.key }), () => removeUntracked(ticket));
       } catch {
-        fail('Something went wrong — the issue was not created.');
+        fail(m.issues_mut_create_failed());
       }
     });
   }

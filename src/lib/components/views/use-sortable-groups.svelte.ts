@@ -21,6 +21,7 @@ import { toast } from 'svelte-sonner';
 import type { IssueMutations } from '@/lib/components/issues/use-issue-mutations.svelte';
 import { sortOrderBetween } from '@/lib/issue-grouping';
 import type { IssuePatch, IssueRow } from '@/lib/issue-model';
+import { m } from '@/lib/i18n';
 
 export interface SortableContainer {
   id: string;
@@ -145,7 +146,7 @@ export class SortableGroups {
     if (!moved && index === base[state.from].indexOf(source)) {
       const target = event.operation.target;
       if (!manual && target && String(target.id) !== source && containerOf(base, String(target.id)) === into) {
-        toast('Switch ordering to Manual to reorder issues.');
+        toast(m.issues_switch_to_manual());
       }
       return;
     }

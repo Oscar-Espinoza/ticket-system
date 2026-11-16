@@ -9,6 +9,7 @@ import { authorizeProjectAction } from '@/lib/action-auth';
 import { moveIssue } from '@/lib/issue-service';
 import { rolesAllowing } from '@/lib/roles';
 import { fail, refreshesData, type ActionResult } from '@/lib/server/action-kit';
+import { m } from '@/lib/i18n';
 
 export interface MoveTarget {
   id: string;
@@ -53,8 +54,8 @@ export async function moveIssueToProject(input: {
   const from = await authorizeProjectAction(input?.projectId, 'write');
   if (!from.ok) return from;
   const to = await authorizeProjectAction(input.toProjectId, 'write');
-  if (!to.ok) return fail("You can't create issues in that project.");
-  if (typeof input.id !== 'string' || !input.id) return fail('Issue not found.');
+  if (!to.ok) return fail(m.issues_err_move_forbidden());
+  if (typeof input.id !== 'string' || !input.id) return fail(m.issues_err_issue_not_found());
 
   const result = await moveIssue({ userId: from.userId }, input.projectId, input.id, input.toProjectId);
   if (!result.ok) return fail(result.error);

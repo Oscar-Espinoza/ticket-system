@@ -546,5 +546,240 @@
   "issues_views_empty": "Aún no hay vistas guardadas",
   "issues_views_empty_description": "Filtra y ordena los tickets de un proyecto y elige «Guardar vista» en la barra de herramientas. Las vistas que comparta tu equipo también aparecen aquí.",
   "issues_views_yours": "Tus vistas",
-  "issues_views_shared_with_you": "Compartidas contigo"
+  "issues_views_shared_with_you": "Compartidas contigo",
+  "issues_copied_what": "Copiado: {what}",
+  "issues_copy_failed": "No se pudo copiar al portapapeles.",
+  "issues_copy_what_link": "enlace",
+  "issues_due_end_of_week": "Final de esta semana",
+  "issues_due_in_week": "En una semana",
+  "issues_due_in_two_weeks": "En dos semanas",
+  "issues_prop_id": "ID",
+  "issues_prop_milestone": "Hito",
+  "issues_prop_pull_requests": "Pull requests",
+  "issues_sel_toggle": "Seleccionar o deseleccionar el ticket enfocado",
+  "issues_sel_all": "Seleccionar todos los tickets",
+  "issues_view_list": "Lista",
+  "issues_view_board": "Tablero",
+  "issues_view_table": "Tabla",
+  "issues_view_calendar": "Calendario",
+  "issues_view_timeline": "Cronología",
+  "issues_switch_to_manual": "Cambia el orden a Manual para reordenar los tickets.",
+  "issues_fp_me": "Yo",
+  "issues_fp_any_type": "Cualquier {type}",
+  "issues_fp_creator": "Creador",
+  "issues_fp_no_label": "Sin etiqueta",
+  "issues_fp_no_cycle": "Sin ciclo",
+  "issues_fp_cycle_number": "Ciclo {number}",
+  "issues_fp_no_epic": "Sin épica",
+  "issues_fp_unknown": "Desconocido",
+  "issues_group_label": "Etiqueta",
+  "issues_group_none": "Sin agrupación",
+  "issues_order_manual": "Manual",
+  "issues_group_no_label": "Sin etiqueta",
+  "issues_group_all": "Todos los tickets",
+  "issues_est_none": "Sin usar",
+  "issues_est_linear": "Lineal (1, 2, 3, 4, 5)",
+  "issues_est_fibonacci": "Fibonacci (0, 1, 2, 3, 5, 8)",
+  "issues_est_exponential": "Exponencial (1, 2, 4, 8, 16)",
+  "issues_est_tshirt": "Tallas (XS, S, M, L, XL)",
+  "issues_mine_tab_assigned": "Asignados",
+  "issues_mine_tab_created": "Creados",
+  "issues_mine_tab_subscribed": "Suscritos",
+  "issues_mine_tab_activity": "Actividad",
+  "issues_undo": "Deshacer",
+  "issues_undo_hotkey": "Deshacer el último cambio de ticket",
+  "issues_undid": "Se deshizo: {label}",
+  "issues_undo_nothing": "No hay nada que deshacer",
+  "issues_outbox_other_account": "Iniciaste sesión con otra cuenta en otra pestaña: recarga para continuar.",
+  "issues_outbox_discarded": "No se pudo sincronizar {label}: se descartó el cambio.",
+  "issues_outbox_waiting_account": "Hay cambios sin conexión esperando a su cuenta: inicia sesión con ese usuario para sincronizarlos.",
+  "issues_outbox_sync_failed": "No se pudo sincronizar {label}: {reason}",
+  "issues_outbox_no_permission": "no tienes permiso para hacerlo en este proyecto",
+  "issues_outbox_synced": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Se sincronizó {count} cambio sin conexión",
+        "countPlural=other": "Se sincronizaron {count} cambios sin conexión"
+      }
+    }
+  ],
+  "issues_fw_title": "título",
+  "issues_fw_description": "descripción",
+  "issues_fw_status": "estado",
+  "issues_fw_priority": "prioridad",
+  "issues_fw_estimate": "estimación",
+  "issues_fw_start_date": "fecha de inicio",
+  "issues_fw_due_date": "fecha de vencimiento",
+  "issues_fw_assignee": "responsable",
+  "issues_fw_waiting_on": "en espera de",
+  "issues_fw_follow_up": "seguimiento",
+  "issues_fw_parent": "ticket padre",
+  "issues_fw_cycle": "ciclo",
+  "issues_fw_epic": "épica",
+  "issues_fw_milestone": "hito",
+  "issues_fw_order": "orden",
+  "issues_fw_labels": "etiquetas",
+  "issues_mut_change_of": "cambio de {words}",
+  "issues_mut_change": "cambio",
+  "issues_mut_on_issue": "el {what} en {key}",
+  "issues_mut_on_issues": [
+    {
+      "declarations": [
+        "input count",
+        "input what",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "el {what} en {count} ticket",
+        "countPlural=other": "el {what} en {count} tickets"
+      }
+    }
+  ],
+  "issues_mut_save_failed": "Algo salió mal: no se guardó el cambio.",
+  "issues_mut_updated_many": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Se actualizó {count} ticket",
+        "countPlural=other": "Se actualizaron {count} tickets"
+      }
+    }
+  ],
+  "issues_mut_archiving": "el archivado de {key}",
+  "issues_mut_unarchiving": "el desarchivado de {key}",
+  "issues_mut_trashing": "el traslado de {key} a la papelera",
+  "issues_mut_restoring": "la restauración de {key}",
+  "issues_mut_archived": "{key} archivado",
+  "issues_mut_trashed": "{key} movido a la papelera",
+  "issues_mut_archiving_many": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "el archivado de {count} ticket",
+        "countPlural=other": "el archivado de {count} tickets"
+      }
+    }
+  ],
+  "issues_mut_unarchiving_many": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "el desarchivado de {count} ticket",
+        "countPlural=other": "el desarchivado de {count} tickets"
+      }
+    }
+  ],
+  "issues_mut_trashing_many": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "el traslado de {count} ticket a la papelera",
+        "countPlural=other": "el traslado de {count} tickets a la papelera"
+      }
+    }
+  ],
+  "issues_mut_restoring_many": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "la restauración de {count} ticket",
+        "countPlural=other": "la restauración de {count} tickets"
+      }
+    }
+  ],
+  "issues_mut_archived_many": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Se archivó {count} ticket",
+        "countPlural=other": "Se archivaron {count} tickets"
+      }
+    }
+  ],
+  "issues_mut_trashed_many": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Se movió {count} ticket a la papelera",
+        "countPlural=other": "Se movieron {count} tickets a la papelera"
+      }
+    }
+  ],
+  "issues_mut_creating_titled": "la creación de «{title}»",
+  "issues_mut_creating": "la creación de {key}",
+  "issues_mut_created": "{key} creado",
+  "issues_mut_queued": "Guardado sin conexión: el ticket se creará cuando vuelvas a conectarte.",
+  "issues_mut_issue_created": "Ticket creado",
+  "issues_mut_create_failed": "Algo salió mal: no se creó el ticket.",
+  "issues_err_issue_not_found": "Ticket no encontrado.",
+  "issues_err_invalid_draft": "Borrador no válido.",
+  "issues_err_draft_not_found": "Borrador no encontrado.",
+  "issues_err_template_not_found": "Plantilla no encontrada.",
+  "issues_err_invalid_title": "Título no válido.",
+  "issues_err_invalid_favorite": "Favorito no válido.",
+  "issues_err_view_share": "Solo los miembros que pueden editar tickets pueden compartir vistas.",
+  "issues_err_view_name": "Ponle un nombre a la vista.",
+  "issues_err_view_settings": "Configuración de vista no válida.",
+  "issues_err_view_not_found": "Vista no encontrada.",
+  "issues_err_view_owner": "Solo el propietario puede cambiar esta vista.",
+  "issues_err_not_in_triage": "{key} ya no está en clasificación.",
+  "issues_err_pick_state": "Elige un estado de flujo abierto.",
+  "issues_err_invalid_priority": "Prioridad no válida.",
+  "issues_err_reason_length": "Mantén el motivo en menos de {max} caracteres.",
+  "issues_err_no_canceled": "Este proyecto no tiene un estado cancelado.",
+  "issues_err_pick_original": "Elige el ticket original.",
+  "issues_err_self_duplicate": "Un ticket no puede ser duplicado de sí mismo.",
+  "issues_err_move_forbidden": "No puedes crear tickets en ese proyecto."
 }

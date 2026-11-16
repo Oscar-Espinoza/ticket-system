@@ -148,7 +148,7 @@
           {/snippet}
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" class="w-56">
-          <DropdownMenuItem onSelect={() => copyToClipboard(issueUrl(data.project.id, issue.key), 'link')}>
+          <DropdownMenuItem onSelect={() => copyToClipboard(issueUrl(data.project.id, issue.key), m.issues_copy_what_link())}>
             <Link2Icon />
             {m.issues_copy_link()}
             <DropdownMenuShortcut>{formatHotkey(COPY_LINK_KEY)}</DropdownMenuShortcut>

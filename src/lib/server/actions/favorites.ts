@@ -14,6 +14,7 @@ import {
 } from '@/lib/server/action-kit';
 import { getSession } from '@/lib/session';
 import { isFavoriteTarget as isTarget, type FavoriteTarget } from '@/lib/favorite-targets';
+import { m } from '@/lib/i18n';
 
 export type FavoriteResult = ActionResult<{ favorited: boolean }>;
 
@@ -24,7 +25,7 @@ export async function toggleFavorite(input: {
   const session = await getSession();
   if (!session?.user) return NOT_AUTHENTICATED;
   if (!isTarget(input.targetType) || typeof input.targetId !== 'string' || !input.targetId) {
-    return fail('Invalid favorite.');
+    return fail(m.issues_err_invalid_favorite());
   }
   const userId = session.user.id;
   const match = and(

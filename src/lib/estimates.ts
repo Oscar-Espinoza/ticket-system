@@ -1,6 +1,9 @@
 // Estimate scales (project.estimate_scale). Values are stored as integers;
 // t-shirt sizes map onto fibonacci-ish points so velocity math still works.
 
+import { m } from '@/lib/i18n';
+import { lazyLabels } from '@/lib/lazy-labels';
+
 export type EstimateScale = 'none' | 'linear' | 'fibonacci' | 'exponential' | 'tshirt';
 
 export interface EstimateOption {
@@ -16,13 +19,13 @@ export const ESTIMATE_SCALES: EstimateScale[] = [
   'tshirt',
 ];
 
-export const ESTIMATE_SCALE_LABEL: Record<EstimateScale, string> = {
-  none: 'Not in use',
-  linear: 'Linear (1, 2, 3, 4, 5)',
-  fibonacci: 'Fibonacci (0, 1, 2, 3, 5, 8)',
-  exponential: 'Exponential (1, 2, 4, 8, 16)',
-  tshirt: 'T-shirt (XS, S, M, L, XL)',
-};
+export const ESTIMATE_SCALE_LABEL: Record<EstimateScale, string> = lazyLabels({
+  none: m.issues_est_none,
+  linear: m.issues_est_linear,
+  fibonacci: m.issues_est_fibonacci,
+  exponential: m.issues_est_exponential,
+  tshirt: m.issues_est_tshirt,
+});
 
 const points = (values: number[]): EstimateOption[] =>
   values.map((value) => ({ value, label: String(value) }));
