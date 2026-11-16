@@ -2,6 +2,9 @@
 // which role. Client-safe — the UI hides what the server would refuse, and the
 // server enforces the same tables (authorizeProjectAction, members/invite actions).
 
+import { m } from '@/lib/i18n';
+import { lazyLabels } from '@/lib/lazy-labels';
+
 export type ProjectRole = 'owner' | 'admin' | 'member' | 'guest';
 
 export type AccessLevel = 'read' | 'comment' | 'write' | 'admin';
@@ -28,19 +31,19 @@ export function rolesAllowing(level: AccessLevel): ProjectRole[] {
 //   others → nothing
 export type AssignableRole = Exclude<ProjectRole, 'owner'>;
 
-export const PROJECT_ROLE_LABEL: Record<ProjectRole, string> = {
-  owner: 'Owner',
-  admin: 'Admin',
-  member: 'Member',
-  guest: 'Guest',
-};
+export const PROJECT_ROLE_LABEL: Record<ProjectRole, string> = lazyLabels({
+  owner: m.common_role_owner,
+  admin: m.common_role_admin,
+  member: m.common_role_member,
+  guest: m.common_role_guest,
+});
 
-export const PROJECT_ROLE_DESCRIPTION: Record<ProjectRole, string> = {
-  owner: 'Full control, including deleting the project',
-  admin: 'Manage settings, members and invitations',
-  member: 'Create and edit issues',
-  guest: 'View and comment only',
-};
+export const PROJECT_ROLE_DESCRIPTION: Record<ProjectRole, string> = lazyLabels({
+  owner: m.common_role_owner_desc,
+  admin: m.common_role_admin_desc,
+  member: m.common_role_member_desc,
+  guest: m.common_role_guest_desc,
+});
 
 const ASSIGNABLE: Record<ProjectRole, readonly AssignableRole[]> = {
   owner: ['admin', 'member', 'guest'],

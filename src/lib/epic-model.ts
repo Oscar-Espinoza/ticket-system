@@ -1,6 +1,8 @@
 // Epic / milestone / update shapes and constants shared by the server reads
 // (src/lib/epics.ts), the actions and the client. Client-safe: no DB imports.
 
+import { m } from '@/lib/i18n';
+import { lazyLabels } from '@/lib/lazy-labels';
 import type { IssueUser, StateType } from '@/lib/issue-model';
 import type { EpicStatus } from '@/lib/project-data-types';
 
@@ -15,14 +17,14 @@ export const EPIC_STATUSES = [
   'canceled',
 ] as const satisfies readonly EpicStatus[];
 
-export const EPIC_STATUS_LABEL: Record<EpicStatus, string> = {
-  backlog: 'Backlog',
-  planned: 'Planned',
-  started: 'In progress',
-  paused: 'Paused',
-  completed: 'Completed',
-  canceled: 'Canceled',
-};
+export const EPIC_STATUS_LABEL: Record<EpicStatus, string> = lazyLabels({
+  backlog: m.common_state_type_backlog,
+  planned: m.common_epic_status_planned,
+  started: m.common_epic_status_started,
+  paused: m.common_epic_status_paused,
+  completed: m.common_epic_status_completed,
+  canceled: m.common_epic_status_canceled,
+});
 
 /** Epic statuses reuse the workflow glyphs; paused = a half pie in amber. */
 export const EPIC_STATUS_GLYPH: Record<EpicStatus, { type: StateType; color?: string }> = {
@@ -44,11 +46,11 @@ export const isClosedEpic = (status: EpicStatus) => status === 'completed' || st
 export const HEALTHS = ['on_track', 'at_risk', 'off_track'] as const;
 export type Health = (typeof HEALTHS)[number];
 
-export const HEALTH_LABEL: Record<Health, string> = {
-  on_track: 'On track',
-  at_risk: 'At risk',
-  off_track: 'Off track',
-};
+export const HEALTH_LABEL: Record<Health, string> = lazyLabels({
+  on_track: m.common_health_on_track,
+  at_risk: m.common_health_at_risk,
+  off_track: m.common_health_off_track,
+});
 
 export const HEALTH_COLOR: Record<Health, string> = {
   on_track: '#4cb782',
@@ -187,11 +189,11 @@ export type EpicRelationKind = 'blocks' | 'blocked_by' | 'related';
 
 export const EPIC_RELATION_KINDS: EpicRelationKind[] = ['blocked_by', 'blocks', 'related'];
 
-export const EPIC_RELATION_LABEL: Record<EpicRelationKind, string> = {
-  blocked_by: 'Blocked by',
-  blocks: 'Blocking',
-  related: 'Related',
-};
+export const EPIC_RELATION_LABEL: Record<EpicRelationKind, string> = lazyLabels({
+  blocked_by: m.common_epic_relation_blocked_by,
+  blocks: m.common_epic_relation_blocks,
+  related: m.common_epic_relation_related,
+});
 
 export function isEpicRelationKind(value: unknown): value is EpicRelationKind {
   return value === 'blocks' || value === 'blocked_by' || value === 'related';

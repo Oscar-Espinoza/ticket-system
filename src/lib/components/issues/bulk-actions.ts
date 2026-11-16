@@ -3,6 +3,7 @@
 
 import { copyToClipboard } from '@/lib/components/clipboard';
 import { copyIssueId, copyIssueLink } from '@/lib/components/productivity/issue-actions';
+import { m } from '@/lib/i18n';
 import { issueUrl } from '@/lib/issue-links';
 import type { IssuePatch, IssueRow } from '@/lib/issue-model';
 import type { IssueMutations } from './use-issue-mutations.svelte';
@@ -36,10 +37,10 @@ export function toggleLabel(mutations: IssueMutations, issues: IssueRow[], label
 /** Copy one issue's key or a comma-separated list. */
 export function copyIds(issues: IssueRow[]) {
   if (issues.length === 1) return copyIssueId(issues[0]);
-  return copyToClipboard(issues.map((i) => i.key).join(', '), `${issues.length} IDs`);
+  return copyToClipboard(issues.map((i) => i.key).join(', '), m.common_copy_what_ids({ count: issues.length }));
 }
 
 export function copyLinks(issues: IssueRow[]) {
   if (issues.length === 1) return copyIssueLink(issues[0]);
-  return copyToClipboard(issues.map((i) => issueUrl(i.projectId, i.key)).join('\n'), `${issues.length} links`);
+  return copyToClipboard(issues.map((i) => issueUrl(i.projectId, i.key)).join('\n'), m.common_copy_what_links({ count: issues.length }));
 }

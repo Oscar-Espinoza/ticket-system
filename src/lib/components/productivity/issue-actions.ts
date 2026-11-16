@@ -1,5 +1,6 @@
 // Small issue actions shared by the shortcuts, the palette and the `…` menu.
 
+import { m } from '@/lib/i18n';
 import { copyToClipboard } from '@/lib/components/clipboard';
 import { issueUrl } from '@/lib/issue-links';
 import type { CreateIssueInput, IssueRow } from '@/lib/issue-model';
@@ -7,12 +8,12 @@ import type { CreateIssueInput, IssueRow } from '@/lib/issue-model';
 export const copyIssueId = (issue: IssueRow) => copyToClipboard(issue.key, issue.key);
 
 export const copyIssueLink = (issue: IssueRow) =>
-  copyToClipboard(issueUrl(issue.projectId, issue.key), 'link');
+  copyToClipboard(issueUrl(issue.projectId, issue.key), m.common_copy_what_link());
 
 export const copyIssueMarkdown = (issue: IssueRow) =>
   copyToClipboard(
     `[${issue.key}: ${issue.title.replace(/[[\]]/g, '\\$&')}](${issueUrl(issue.projectId, issue.key)})`,
-    'markdown link',
+    m.common_copy_what_markdown_link(),
   );
 
 /**

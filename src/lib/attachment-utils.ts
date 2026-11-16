@@ -1,6 +1,7 @@
 // Client-safe attachment helpers, shared by the section UI, the server DAL
 // (src/lib/attachments.ts) and the upload / download routes.
 
+import { formatNumber } from '@/lib/i18n';
 import type { IssueUser } from '@/lib/issue-model';
 
 /**
@@ -86,5 +87,7 @@ export function formatBytes(bytes: number): string {
     value /= 1024;
     unit += 1;
   }
-  return `${unit === 0 ? value : value.toFixed(value < 10 ? 1 : 0)} ${UNITS[unit]}`;
+  const digits = unit === 0 ? 0 : value < 10 ? 1 : 0;
+  const text = formatNumber(value, { minimumFractionDigits: digits, maximumFractionDigits: digits, useGrouping: false });
+  return `${text} ${UNITS[unit]}`;
 }

@@ -2,6 +2,7 @@
 // previews, and user-facing errors for the provider's HTTP failures.
 // Client-safe types; describeImportError is used server-side.
 
+import { m } from '@/lib/i18n';
 import type { ImportRecord } from './records';
 
 export interface ExternalFetchResult {
@@ -29,16 +30,16 @@ export function summarize(records: ImportRecord[], truncated: boolean): External
 export function describeImportError(provider: string, status: number | undefined, message: string): string {
   switch (status) {
     case 0:
-      return `Couldn't reach ${provider}. Try again.`;
+      return m.common_import_unreachable({ provider });
     case 401:
-      return `${provider} rejected the token. Check it's a valid personal access token.`;
+      return m.common_import_token_rejected({ provider });
     case 403:
-      return `${provider} denied access with this token.`;
+      return m.common_import_denied({ provider });
     case 404:
-      return `Not found on ${provider}, or the token can't see it.`;
+      return m.common_import_not_found({ provider });
     case 429:
-      return `${provider} rate-limited the import. Wait a minute and try again.`;
+      return m.common_import_rate_limited({ provider });
     default:
-      return `${provider} error${status ? ` (${status})` : ''}: ${message}`;
+      return status ? m.common_import_error_status({ provider, status, message }) : m.common_import_error({ provider, message });
   }
 }
