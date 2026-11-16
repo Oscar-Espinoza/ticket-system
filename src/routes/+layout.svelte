@@ -14,6 +14,7 @@
   import { markAppHydrated } from '@/lib/svelte/hydration';
   import ThemeProvider from '@/lib/svelte/theme-provider.svelte';
   import { switchLocale } from '@/lib/svelte/locale-switch';
+  import { LanguageController, setLanguageController } from '@/lib/svelte/language-controller.svelte';
   import { toAppLocale } from '@/lib/i18n-locales';
   // Lane L1 (PWA)
   import OfflineBanner from '@/lib/components/pwa/offline-banner.svelte';
@@ -32,6 +33,12 @@
   // Switches run one at a time and always aim at the latest locale the data
   // asked for, so a change that arrives while a cross-fade is in flight is
   // applied right after it, and a stale one is never applied.
+  // Settings › Language shows a choice at once and saves it in the background
+  // (src/lib/svelte/language-controller.svelte.ts): its `held` locale wins over
+  // the page data until the save has settled.
+  const language = new LanguageController();
+  setLanguageController(language);
+
   let shown = $state(untrack(() => data.locale));
   let requested = untrack(() => data.locale);
   let switching = false;
@@ -52,7 +59,7 @@
     }
   }
   $effect(() => {
-    requested = data.locale;
+    requested = language.held ?? data.locale;
     void reconcile();
   });
 

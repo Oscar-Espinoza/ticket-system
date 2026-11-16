@@ -1,82 +1,32 @@
 <script lang="ts">
-  // Settings › Profile › Language. Saved on the account (every device, and
-  // emails); the page data is refreshed and the root layout switches the
-  // interface in place (src/lib/svelte/locale-switch.ts), no reload.
-  import { untrack } from 'svelte';
-  import { toast } from 'svelte-sonner';
+  // Settings › Profile › Language. The page switches to the chosen language at
+  // once; saving it on the account (every device, and emails) runs in the
+  // background with a small status line (src/lib/svelte/language-controller.svelte.ts).
+  import CheckIcon from '@lucide/svelte/icons/check';
+  import LoaderCircleIcon from '@lucide/svelte/icons/loader-circle';
   import { Label } from '@/lib/components/ui/label';
   import { RadioGroup, RadioGroupItem } from '@/lib/components/ui/radio-group';
-  import { updateLanguage } from '@/lib/actions/profile';
-  import { LOCALES, LOCALE_NAMES, m, toAppLocale, type AppLocale } from '@/lib/i18n';
-  import { writeLocaleCookie } from '@/lib/svelte/locale-switch';
-  import { refreshAfterWrite } from '@/lib/svelte/refresh.svelte';
+  import { LOCALES, LOCALE_NAMES, m, type AppLocale } from '@/lib/i18n';
+  import { getLanguageController, type LanguageChoice } from '@/lib/svelte/language-controller.svelte';
   import { cn } from '@/lib/utils';
 
   let { locale }: { locale: AppLocale | null } = $props();
 
   const AUTO = 'auto';
-  // Starts from the saved language; afterwards it follows the radios.
-  let value = $state(untrack(() => locale) ?? AUTO);
-  let saving = $state(false);
-  /** What the account has saved; `value` is what the radios show. */
-  let saved = untrack(() => locale) ?? AUTO;
-  /** A choice made while a save was in flight: saved right after it. */
-  let pending: string | null = null;
+  const language = getLanguageController();
 
-  // The saved language can change under the form without a re-render (a late
-  // choice saved Automatic while the screen stays English): follow the page
-  // data whenever nothing is being saved.
-  $effect(() => {
-    const current = locale ?? AUTO;
-    untrack(() => {
-      if (saving || pending !== null) return;
-      saved = current;
-      value = current;
-    });
-  });
+  /** What the account has saved, from the page data. */
+  const saved = $derived<LanguageChoice>(locale ?? AUTO);
+  /** While a choice is being saved the radios show it; otherwise the saved one. */
+  const value = $derived(language.choice ?? saved);
 
   const options = $derived([
     { value: AUTO, label: m.settings_language_auto(), hint: m.settings_language_auto_hint() },
     ...LOCALES.map((l) => ({ value: l, label: LOCALE_NAMES[l], hint: '' })),
   ]);
 
-  async function choose(next: string) {
-    value = next;
-    if (saving) {
-      pending = next;
-      return;
-    }
-    if (next === saved) return;
-    saving = true;
-    let target = next;
-    for (;;) {
-      const chosen = toAppLocale(target);
-      const result = await updateLanguage(chosen);
-      if (!result.ok) {
-        pending = null;
-        value = saved;
-        toast.error(result.error ?? m.settings_language_save_failed());
-        break;
-      }
-      saved = target;
-      // This browser's cookie follows the choice (it is what a signed-out page
-      // uses); Automatic removes it.
-      writeLocaleCookie(chosen);
-      const again = pending;
-      pending = null;
-      if (again === null || again === saved) break;
-      target = again;
-    }
-    // The refreshed page data carries the saved locale; the root layout
-    // switches to it in place. When the language shown doesn't change
-    // (Automatic and the browser already says English), nothing re-renders and
-    // the radios simply stay as chosen.
-    await refreshAfterWrite();
-    saving = false;
-    // A choice made while the page data was refreshing: save it now.
-    const late = pending;
-    pending = null;
-    if (late !== null && late !== saved) void choose(late);
+  function choose(next: string) {
+    void language.choose(next as LanguageChoice, saved);
   }
 </script>
 
@@ -87,7 +37,7 @@
     aria-label={m.settings_language_title()}
     {value}
     onValueChange={choose}
-    aria-busy={saving}
+    aria-busy={language.status === 'saving'}
     class="grid-cols-1 sm:grid-cols-3"
   >
     {#each options as option (option.value)}
@@ -109,4 +59,14 @@
       </Label>
     {/each}
   </RadioGroup>
+  <!-- Fixed height: the line appearing must not move the page. -->
+  <p class="mt-2 flex h-4 items-center gap-1.5 text-xs text-muted-foreground" role="status" aria-live="polite">
+    {#if language.status === 'saving'}
+      <LoaderCircleIcon class="size-3.5 animate-spin" aria-hidden="true" />
+      {m.settings_language_saving()}
+    {:else if language.status === 'saved'}
+      <CheckIcon class="size-3.5 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+      {m.settings_language_saved()}
+    {/if}
+  </p>
 </section>
