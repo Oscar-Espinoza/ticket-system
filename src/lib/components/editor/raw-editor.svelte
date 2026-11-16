@@ -31,6 +31,7 @@
 </script>
 
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { afterFrame, focusOnMount } from '@/lib/svelte/focus';
   import { formatMention } from '@/lib/mentions';
   import type { IssueUser } from '@/lib/issue-model';
@@ -271,7 +272,7 @@
   <ul
     id={listId}
     role="listbox"
-    aria-label="Mention a teammate"
+    aria-label={m.editor_ed_mention_list()}
     style="left: {current.left}px; top: {current.top}px; width: {MENU_WIDTH}px"
     class={MENU_CLASS}
   >

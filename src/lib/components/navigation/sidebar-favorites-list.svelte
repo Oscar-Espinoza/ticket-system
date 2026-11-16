@@ -3,6 +3,7 @@
   refreshes the dashboard layout, which re-renders this list from the server.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import BoxIcon from '@lucide/svelte/icons/box';
   import FolderKanbanIcon from '@lucide/svelte/icons/folder-kanban';
   import LayersIcon from '@lucide/svelte/icons/layers';
@@ -51,7 +52,7 @@
 </script>
 
 {#if shown.length > 0}
-  <SidebarSection title="Favorites">
+  <SidebarSection title={m.editor_fav_title()}>
     {#each shown as item (item.id)}
       {@const TypeIcon = TYPE_ICON[item.targetType]}
       <div class="group/fav relative">
@@ -66,8 +67,8 @@
         </SidebarLink>
         <button
           type="button"
-          aria-label={`Remove ${item.label} from favorites`}
-          title="Remove from favorites"
+          aria-label={m.editor_fav_remove_named({ name: item.label })}
+          title={m.editor_fav_remove()}
           onclick={() => remove(item)}
           class="absolute top-1/2 right-1 flex size-5 -translate-y-1/2 items-center justify-center rounded text-muted-foreground opacity-0 outline-none hover:bg-sidebar-accent hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring group-hover/fav:opacity-100 [&_svg]:size-3.5"
         >

@@ -21,6 +21,7 @@
   // Called without the wrapper's refreshAfterWrite(): that would rerun this route's load for
   // the dashboard just deleted (404 flash). We navigate away with refreshAll instead.
   import { deleteDashboard } from '@/lib/remote/dashboards.remote';
+  import { m } from '@/lib/i18n';
   import FavoriteButton from '@/lib/components/navigation/favorite-button.svelte';
   import {
     AlertDialog,
@@ -128,7 +129,7 @@
 
   const addWidget = (type: WidgetType) => {
     if (widgets.length >= MAX_WIDGETS) {
-      toast.error(`A dashboard holds up to ${MAX_WIDGETS} widgets.`);
+      toast.error(m.editor_dash_max_widgets({ max: MAX_WIDGETS }));
       return;
     }
     const widget = newWidget(type);
@@ -155,7 +156,7 @@
         shared = !value;
         toast.error(result.error);
       } else {
-        toast.success(value ? 'Shared with project members' : 'Dashboard is now private');
+        toast.success(value ? m.editor_dash_shared_tip() : m.editor_dash_private_toast());
       }
     });
   };
@@ -165,7 +166,7 @@
       const result = await duplicateDashboard({ id: dashboard.id });
       if (!result.ok) toast.error(result.error);
       else {
-        toast.success('Dashboard duplicated');
+        toast.success(m.editor_dash_duplicated());
         await goto(dashboardHref(result.id));
       }
     });
@@ -175,8 +176,8 @@
     return registerPaletteCommands([
       {
         id: 'dashboard-add-widget',
-        label: 'Add widget to dashboard',
-        section: 'Dashboards',
+        label: m.editor_dash_add_widget_cmd(),
+        section: m.editor_nav_dashboards(),
         keywords: ['chart', 'number', 'insights'],
         run: () => addWidget('number'),
       },
@@ -190,7 +191,7 @@
       {#snippet child({ props })}
         <Button {...props} size="sm">
           <PlusIcon />
-          Add widget
+          {m.editor_dash_add_widget()}
         </Button>
       {/snippet}
     </DropdownMenuTrigger>
@@ -208,8 +209,8 @@
 <div class="flex flex-col gap-4 pb-10">
   <header class="flex flex-wrap items-start gap-3">
     <div class="flex min-w-0 flex-1 flex-col gap-0.5">
-      <nav aria-label="Breadcrumb" class="text-xs text-muted-foreground">
-        <a href="/dashboard/dashboards" class="hover:text-foreground">Dashboards</a>
+      <nav aria-label={m.editor_nav_breadcrumb()} class="text-xs text-muted-foreground">
+        <a href="/dashboard/dashboards" class="hover:text-foreground">{m.editor_nav_dashboards()}</a>
       </nav>
       <h1 class="flex items-center gap-2 truncate text-xl font-medium">
         <LayoutDashboardIcon class="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
@@ -217,15 +218,15 @@
         <FavoriteButton targetType="dashboard" targetId={dashboard.id} />
       </h1>
       <p class="truncate text-xs text-muted-foreground">
-        {dashboard.projectName ?? 'All your projects'}{!isOwner
-          ? ` · shared by ${dashboard.ownerName ?? 'a former member'}`
+        {dashboard.projectName ?? m.editor_dash_all_your_projects()}{!isOwner
+          ? ` · ${m.editor_dash_shared_by({ name: dashboard.ownerName ?? m.editor_dash_former_member() })}`
           : ''}{dashboard.description ? ` · ${dashboard.description}` : ''}
       </p>
     </div>
 
     <div class={cn('flex items-center gap-2 transition-opacity', pending && 'opacity-70')}>
       {#if isOwner && dashboard.projectId}
-        <div class="flex items-center gap-2" title={canShare ? undefined : 'Needs edit access to the project'}>
+        <div class="flex items-center gap-2" title={canShare ? undefined : m.editor_dash_needs_edit()}>
           <Switch
             id="dashboard-shared"
             size="sm"
@@ -234,7 +235,7 @@
           />
           <Label for="dashboard-shared" class="flex items-center gap-1 text-xs font-normal text-muted-foreground">
             <UsersIcon class="size-3.5" aria-hidden="true" />
-            Shared
+            {m.editor_dash_shared()}
           </Label>
         </div>
       {/if}
@@ -242,7 +243,7 @@
       <DropdownMenu>
         <DropdownMenuTrigger>
           {#snippet child({ props })}
-            <Button {...props} variant="ghost" size="icon-sm" aria-label="Dashboard actions">
+            <Button {...props} variant="ghost" size="icon-sm" aria-label={m.editor_dash_actions()}>
               <MoreHorizontalIcon />
             </Button>
           {/snippet}
@@ -251,18 +252,18 @@
           {#if isOwner}
             <DropdownMenuItem onSelect={() => (details = true)}>
               <PencilIcon />
-              Rename…
+              {m.editor_rename_ellipsis()}
             </DropdownMenuItem>
           {/if}
           <DropdownMenuItem onSelect={duplicate}>
             <CopyIcon />
-            Duplicate
+            {m.editor_duplicate()}
           </DropdownMenuItem>
           {#if isOwner}
             <DropdownMenuSeparator />
             <DropdownMenuItem variant="destructive" onSelect={() => (confirmDelete = true)}>
               <Trash2Icon />
-              Delete…
+              {m.editor_delete_ellipsis()}
             </DropdownMenuItem>
           {/if}
         </DropdownMenuContent>
@@ -272,16 +273,16 @@
 
   {#if dataset.truncated}
     <p class="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
-      Showing the most recent 5,000 issues — older issues aren’t counted.
+      {m.editor_dash_truncated()}
     </p>
   {/if}
 
   {#if widgets.length === 0}
     <EmptyState
-      title="No widgets yet"
+      title={m.editor_dash_no_widgets()}
       description={isOwner
-        ? 'Add numbers, charts and issue lists built from filters.'
-        : 'The owner hasn’t added any widgets yet.'}
+        ? m.editor_dash_no_widgets_owner()
+        : m.editor_dash_no_widgets_viewer()}
       action={isOwner ? addMenu : undefined}
     >
       {#snippet icon()}<LayoutDashboardIcon />{/snippet}
@@ -322,7 +323,7 @@
                 }}
                 onMove={(delta) => move(widget, delta)}
                 onDuplicate={() => {
-                  const copy = { ...widget, id: crypto.randomUUID(), title: `${widget.title} (copy)` };
+                  const copy = { ...widget, id: crypto.randomUUID(), title: m.editor_dash_copy_title({ title: widget.title }) };
                   const next = [...widgets];
                   next.splice(index + 1, 0, copy);
                   save(next);
@@ -361,13 +362,13 @@
   <AlertDialog bind:open={confirmDelete}>
     <AlertDialogContent>
       <AlertDialogHeader>
-        <AlertDialogTitle>Delete “{dashboard.name}”?</AlertDialogTitle>
+        <AlertDialogTitle>{m.editor_dash_delete_title({ name: dashboard.name })}</AlertDialogTitle>
         <AlertDialogDescription>
-          {shared ? 'Project members will lose access too. ' : ''}This can’t be undone.
+          {shared ? m.editor_dash_delete_body_shared() : m.editor_dash_delete_body()}
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>
-        <AlertDialogCancel>Cancel</AlertDialogCancel>
+        <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
         <AlertDialogAction
           variant="destructive"
           onclick={() =>
@@ -379,12 +380,12 @@
               }
               if (!out.value.ok) toast.error(out.value.error);
               else {
-                toast.success('Dashboard deleted');
+                toast.success(m.editor_dash_deleted());
                 await goto('/dashboard/dashboards', { refreshAll: true });
               }
             })}
         >
-          Delete
+          {m.common_delete()}
         </AlertDialogAction>
       </AlertDialogFooter>
     </AlertDialogContent>

@@ -10,6 +10,7 @@
   import Clock from '@lucide/svelte/icons/clock';
   import MailOpen from '@lucide/svelte/icons/mail-open';
 
+  import { formatDate, m } from '@/lib/i18n';
   import { Button } from '@/lib/components/ui/button';
   import Markdown from '@/lib/components/editor/markdown.svelte';
   import { Avatar, PriorityIcon, StateIcon } from '@/lib/components/ui-icons';
@@ -23,9 +24,7 @@
   import NotificationGlyph, { notificationSentence } from './notification-glyph.svelte';
   import WhenPicker from './when-picker.svelte';
 
-  const absolute = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' });
-
-  let {
+    let {
     group,
     issue,
     onToggleRead,
@@ -44,7 +43,7 @@
 
   const latest = $derived(group.latest);
   const key = $derived(issue?.key ?? latest.data.key ?? '');
-  const title = $derived(issue?.title ?? latest.data.title ?? 'Notification');
+  const title = $derived(issue?.title ?? latest.data.title ?? m.editor_inbox_notification());
   const href = $derived(issue ? issuePath(issue.projectId, issue.key) : null);
   // Pulse and other project-level notifications have no issue; they may carry a link.
   const standalone = $derived(!group.ticketId);
@@ -53,7 +52,7 @@
 
 <div class="flex min-h-full flex-col">
   <div class="sticky top-0 z-10 flex h-11 items-center gap-1 border-b border-border bg-background px-3">
-    <Button variant="ghost" size="icon-sm" class="md:hidden" aria-label="Back to inbox" onclick={onBack}>
+    <Button variant="ghost" size="icon-sm" class="md:hidden" aria-label={m.editor_inbox_back()} onclick={onBack}>
       <ArrowLeft />
     </Button>
     <span class="truncate font-mono text-xs text-muted-foreground">{key}</span>
@@ -65,14 +64,14 @@
         variant="ghost"
         size="icon-sm"
         onclick={onToggleRead}
-        aria-label={group.unread ? 'Mark as read (U)' : 'Mark as unread (U)'}
-        title={group.unread ? 'Mark as read (U)' : 'Mark as unread (U)'}
+        aria-label={group.unread ? m.editor_inbox_mark_read_tip() : m.editor_inbox_mark_unread_tip()}
+        title={group.unread ? m.editor_inbox_mark_read_tip() : m.editor_inbox_mark_unread_tip()}
       >
         {#if group.unread}<MailOpen />{:else}<BellDot />{/if}
       </Button>
       <PickerPopover align="end" class="w-auto min-w-64">
         {#snippet children({ props })}
-          <Button {...props} variant="ghost" size="icon-sm" aria-label="Snooze" title="Snooze">
+          <Button {...props} variant="ghost" size="icon-sm" aria-label={m.editor_inbox_snooze()} title={m.editor_inbox_snooze()}>
             <Clock />
           </Button>
         {/snippet}
@@ -86,18 +85,18 @@
           />
         {/snippet}
       </PickerPopover>
-      <Button variant="ghost" size="icon-sm" onclick={onArchive} aria-label="Archive (E)" title="Archive (E)">
+      <Button variant="ghost" size="icon-sm" onclick={onArchive} aria-label={m.editor_inbox_archive_tip()} title={m.editor_inbox_archive_tip()}>
         <Archive />
       </Button>
       {#if href}
         <Button href={href} variant="outline" size="sm" class="ml-1">
-          Open issue
+          {m.editor_inbox_open_issue()}
           <ArrowUpRight />
         </Button>
       {/if}
       {#if standaloneHref && standaloneHref !== '/dashboard/inbox'}
         <Button href={standaloneHref} variant="outline" size="sm" class="ml-1">
-          Open
+          {m.common_open()}
           <ArrowUpRight />
         </Button>
       {/if}
@@ -108,7 +107,7 @@
     {#if standalone && latest.data.title}
       <h2 class="text-lg font-medium leading-snug">{latest.data.title}</h2>
     {/if}
-    <ol class="flex flex-col gap-3" aria-label="Notifications">
+    <ol class="flex flex-col gap-3" aria-label={m.editor_inbox_notifications()}>
       {#each group.items as item (item.id)}
         <li class="flex gap-3">
           <NotificationGlyph notification={item} size={20} />
@@ -119,7 +118,7 @@
               </span>
               <time
                 datetime={new Date(item.at).toISOString()}
-                title={absolute.format(new Date(item.at))}
+                title={formatDate(item.at, { dateStyle: 'medium', timeStyle: 'short' })}
                 class="ml-2 text-xs text-muted-foreground"
               >
                 {item.type === 'reminder' ? formatWhen(new Date(item.at)) : relativeTime(item.at)}
@@ -161,12 +160,11 @@
               source={issue.description}
             />
           {:else}
-            <p class="text-sm text-muted-foreground">No description.</p>
+            <p class="text-sm text-muted-foreground">{m.editor_inbox_no_description()}</p>
           {/if}
         {:else}
           <p class="text-sm text-muted-foreground">
-            This issue is no longer available — it was deleted, or you are no longer a member of its
-            project.
+            {m.editor_inbox_issue_gone()}
           </p>
         {/if}
       </article>
@@ -176,31 +174,31 @@
 
 {#snippet issueFacts(issue: IssueRow)}
   <dl
-    class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground [&>div]:flex [&>div]:items-center [&>div]:gap-1.5"
+    class={'flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground [&>div]:flex [&>div]:items-center [&>div]:gap-1.5'}
   >
     <div>
-      <dt class="sr-only">Status</dt>
+      <dt class="sr-only">{m.common_status()}</dt>
       <StateIcon state={issue.state} size={14} />
       <dd class="text-foreground">{issue.state.name}</dd>
     </div>
     <div>
-      <dt class="sr-only">Priority</dt>
+      <dt class="sr-only">{m.common_priority()}</dt>
       <PriorityIcon priority={issue.priority} size={14} />
       <dd>{PRIORITY_LABEL[issue.priority]}</dd>
     </div>
     <div>
-      <dt class="sr-only">Assignee</dt>
+      <dt class="sr-only">{m.common_assignee()}</dt>
       {#if issue.assignee}
         <Avatar name={issue.assignee.name} src={issue.assignee.image} size={20} />
         <dd>{issue.assignee.name}</dd>
       {:else}
-        <dd>Unassigned</dd>
+        <dd>{m.editor_unassigned()}</dd>
       {/if}
     </div>
     {#if issue.archivedAt || issue.deletedAt}
       <div>
-        <dt class="sr-only">Visibility</dt>
-        <dd class="rounded bg-muted px-1.5 py-0.5">{issue.deletedAt ? 'In trash' : 'Archived'}</dd>
+        <dt class="sr-only">{m.editor_inbox_visibility()}</dt>
+        <dd class="rounded bg-muted px-1.5 py-0.5">{issue.deletedAt ? m.editor_inbox_in_trash() : m.editor_inbox_archived_badge()}</dd>
       </div>
     {/if}
   </dl>

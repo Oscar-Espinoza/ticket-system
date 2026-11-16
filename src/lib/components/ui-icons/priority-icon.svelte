@@ -15,6 +15,7 @@
 </script>
 
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { cn } from '@/lib/utils';
   import { PRIORITY_LABEL } from '@/lib/issue-model';
 
@@ -53,7 +54,7 @@
     viewBox="0 0 16 16"
     fill="none"
     role="img"
-    aria-label="Urgent"
+    aria-label={m.editor_priority_urgent()}
     class={cn('shrink-0', PRIORITY_CLASS[priority], className)}
     {...rest}
   >

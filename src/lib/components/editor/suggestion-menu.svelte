@@ -10,10 +10,15 @@
   ./suggestion-entries.ts; MemberOption is ./member-option.svelte.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import EntryOption from './entry-option.svelte';
   import { MENU_CLASS, MENU_WIDTH, entryKey, type SuggestionEntry } from './suggestion-entries';
 
-  const LABELS = { member: 'Mention a teammate', issue: 'Reference an issue', command: 'Insert block' };
+  const LABELS = {
+    get member() { return m.editor_ed_mention_list(); },
+    get issue() { return m.editor_ed_issue_list(); },
+    get command() { return m.editor_ed_block_list(); },
+  };
 
   let {
     id,
@@ -42,7 +47,7 @@
 
 <ul {id} role="listbox" aria-label={LABELS[kind]} style="width: {MENU_WIDTH}px; {style}" class={MENU_CLASS}>
   {#if entries.length === 0 && loading}
-    <li role="presentation" class="px-2 py-1.5 text-muted-foreground">Searching…</li>
+    <li role="presentation" class="px-2 py-1.5 text-muted-foreground">{m.editor_ed_searching()}</li>
   {/if}
   {#each entries as entry, i (entryKey(entry))}
     <EntryOption

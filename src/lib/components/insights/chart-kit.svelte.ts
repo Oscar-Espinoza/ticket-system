@@ -1,9 +1,15 @@
+import { formatDate, formatNumber, m } from '@/lib/i18n';
+
 // Tiny shared pieces for the hand-rolled SVG charts: nice axis maxima, index-based hover
 // (pointer + arrow keys), week / duration formatting. The visual parts are
 //   chart-tooltip.svelte  (ChartTooltip, content as children)
 //   series-key.svelte     (SeriesKey)
 //   sr-table.svelte       (SrTable)
 // `useChartWidth` is `<div bind:clientWidth={width}>` (render nothing while 0).
+
+/** One decimal, in the current language's number format. */
+export const fixed1 = (value: number) =>
+  formatNumber(value, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
 /** 1, 2, 5 × 10ⁿ ceiling, so gridlines land on round numbers. */
 export function niceMax(value: number): number {
@@ -57,18 +63,16 @@ export function useIndexHover(count: () => number, indexAt: (x: number) => numbe
   return new IndexHover(count, indexAt);
 }
 
-const weekFormat = new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric', timeZone: 'UTC' });
-
 /** "Mar 4" for a YYYY-MM-DD week start. */
 export function formatWeek(week: string): string {
-  return weekFormat.format(new Date(`${week}T00:00:00Z`));
+  return formatDate(`${week}T00:00:00Z`, { month: 'short', day: 'numeric', timeZone: 'UTC' });
 }
 
 /** 5h · 2.5d · 3.1w */
 export function formatHours(hours: number | null): string {
   if (hours === null) return '—';
-  if (hours < 24) return `${Math.max(1, Math.round(hours))}h`;
+  if (hours < 24) return m.editor_days_hours({ n: Math.max(1, Math.round(hours)) });
   const days = hours / 24;
-  if (days < 14) return `${days < 10 ? days.toFixed(1) : Math.round(days)}d`;
-  return `${(days / 7).toFixed(1)}w`;
+  if (days < 14) return m.editor_days_days({ n: days < 10 ? fixed1(days) : Math.round(days) });
+  return m.editor_days_weeks({ n: fixed1(days / 7) });
 }

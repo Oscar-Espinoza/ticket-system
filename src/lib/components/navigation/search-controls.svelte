@@ -12,6 +12,7 @@
 </script>
 
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import Loader2Icon from '@lucide/svelte/icons/loader-circle';
@@ -50,7 +51,7 @@
   $effect(() => debounce.cancel);
 
   const projectItems = $derived([
-    { value: ALL, label: 'All projects' },
+    { value: ALL, label: m.editor_dash_all_projects() },
     ...projects.map((project) => ({ value: project.id, label: project.name })),
   ]);
 
@@ -98,9 +99,9 @@
       <InputGroupInput
         type="search"
         name="q"
-        aria-label="Search issues"
+        aria-label={m.editor_search_issues()}
         bind:ref={inputRef}
-        placeholder="Search issues and comments — try label:bug assignee:me, or a key like APP-12"
+        placeholder={m.editor_search_placeholder()}
         autofocus
         autocomplete="off"
         bind:value={() => text, (v) => onType(String(v ?? ''))}
@@ -113,7 +114,7 @@
       />
       <InputGroupAddon align="inline-end">
         <SearchSyntaxHelp
-          note="Free text matches titles, descriptions and comments."
+          note={m.editor_search_syntax_note()}
           onInsert={(token: string) => {
             onType(appendToken(text, token));
             inputRef?.focus();
@@ -129,11 +130,11 @@
       items={projectItems}
       bind:value={() => projectId ?? ALL, (value) => void navigate({ project: value === ALL ? null : value })}
     >
-      <SelectTrigger size="sm" aria-label="Project" class="min-w-40">
+      <SelectTrigger size="sm" aria-label={m.common_project()} class="min-w-40">
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value={ALL}>All projects</SelectItem>
+        <SelectItem value={ALL}>{m.editor_dash_all_projects()}</SelectItem>
         {#each projects as project (project.id)}
           <SelectItem value={project.id}>{project.name}</SelectItem>
         {/each}
@@ -146,7 +147,7 @@
         size="sm"
         bind:checked={() => includeArchived, (checked) => void navigate({ archived: checked })}
       />
-      <Label for="search-archived" class="text-xs font-normal text-muted-foreground">Include archived</Label>
+      <Label for="search-archived" class="text-xs font-normal text-muted-foreground">{m.editor_search_include_archived()}</Label>
     </div>
   </div>
 </div>

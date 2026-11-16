@@ -5,6 +5,7 @@
 <script lang="ts">
   import Clock from '@lucide/svelte/icons/clock';
 
+  import { formatDate, m } from '@/lib/i18n';
   import { Button } from '@/lib/components/ui/button';
   import { Calendar } from '@/lib/components/ui/calendar';
   import { Input } from '@/lib/components/ui/input';
@@ -14,7 +15,7 @@
     presets,
     onPick,
     withTime = false,
-    submitLabel = 'Set',
+    submitLabel = m.editor_when_set(),
   }: {
     presets: WhenPreset[];
     onPick: (date: Date) => void;
@@ -29,7 +30,7 @@
     return date;
   }
 
-  const hint = new Intl.DateTimeFormat(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit' });
+  const hintOptions: Intl.DateTimeFormatOptions = { weekday: 'short', hour: 'numeric', minute: '2-digit' };
 
   let day = $state<Date | undefined>();
   let time = $state('09:00');
@@ -47,13 +48,13 @@
     event.preventDefault();
     if (!day) return;
     const date = withClock(day, time);
-    if (date.getTime() <= Date.now()) error = 'Pick a time in the future.';
+    if (date.getTime() <= Date.now()) error = m.editor_err_future_time();
     else onPick(date);
   }
 </script>
 
 <div class="flex flex-col">
-  <div role="group" aria-label="Quick options" class="flex flex-col p-1">
+  <div role="group" aria-label={m.editor_when_quick()} class="flex flex-col p-1">
     {#each presets as preset (preset.id)}
       <button
         type="button"
@@ -62,7 +63,7 @@
       >
         <Clock />
         {preset.label}
-        <span class="ml-auto text-xs text-muted-foreground">{hint.format(preset.date)}</span>
+        <span class="ml-auto text-xs text-muted-foreground">{formatDate(preset.date, hintOptions)}</span>
       </button>
     {/each}
   </div>
@@ -89,7 +90,7 @@
           time = v;
           error = null;
         }}
-        aria-label="Time"
+        aria-label={m.editor_when_time()}
         class="h-7"
         required
       />

@@ -24,6 +24,7 @@
 </script>
 
 <script lang="ts">
+  import { formatDate, m } from '@/lib/i18n';
   import LabelChips from '@/lib/components/issues/label-chips.svelte';
   import { Avatar, LabelChip, PriorityIcon, StateIcon } from '@/lib/components/ui-icons';
   import { issuePath } from '@/lib/issue-links';
@@ -33,7 +34,7 @@
 
   let { issue, title, below, project, time, actions }: NavIssueRowProps = $props();
 
-  const stamp = $derived(time ?? { date: issue.updatedAt, label: 'Updated' });
+  const stamp = $derived(time ?? { date: issue.updatedAt, label: m.editor_nav_row_updated() });
 </script>
 
 <div class="group flex items-center gap-2 rounded-md hover:bg-accent/40 focus-within:bg-accent/40">
@@ -69,7 +70,7 @@
       <!-- Hydration keeps the server text. -->
       <time
         datetime={new Date(stamp.date).toISOString()}
-        title={`${stamp.label} ${new Date(stamp.date).toLocaleString()}`}
+        title={m.editor_nav_row_time_title({ label: stamp.label, date: formatDate(stamp.date, { dateStyle: 'medium', timeStyle: 'short' }) })}
         class="hidden w-16 shrink-0 text-right text-xs tabular-nums text-muted-foreground sm:block"
       >
         {relativeTime(stamp.date)}

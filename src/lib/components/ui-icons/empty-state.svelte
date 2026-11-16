@@ -26,7 +26,7 @@
   {#if icon}
     <span
       aria-hidden="true"
-      class="flex size-9 items-center justify-center rounded-full bg-muted text-muted-foreground [&>svg]:size-4"
+      class={'flex size-9 items-center justify-center rounded-full bg-muted text-muted-foreground [&>svg]:size-4'}
     >
       {@render icon()}
     </span>

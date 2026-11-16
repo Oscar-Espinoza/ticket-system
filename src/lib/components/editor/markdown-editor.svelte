@@ -10,6 +10,7 @@
 <script module lang="ts">
   import type { Snippet } from 'svelte';
   import { createSubscriber } from 'svelte/reactivity';
+  import { m } from '@/lib/i18n';
   import { afterFrame } from '@/lib/svelte/focus';
   import { readStorage, writeStorage } from '@/lib/svelte/storage';
   import type { AnyExtension, Editor } from '@tiptap/core';
@@ -29,15 +30,15 @@
   import type { EditorIssue } from './context.svelte';
 
   const TOOLBAR: { format: MarkdownFormat; label: string; icon: LucideIcon; shortcut?: string }[] = [
-    { format: 'bold', label: 'Bold', icon: Bold, shortcut: 'B' },
-    { format: 'italic', label: 'Italic', icon: Italic, shortcut: 'I' },
-    { format: 'code', label: 'Inline code', icon: Code, shortcut: 'E' },
-    { format: 'link', label: 'Link', icon: Link, shortcut: 'K' },
-    { format: 'bullet', label: 'Bulleted list', icon: List },
-    { format: 'numbered', label: 'Numbered list', icon: ListOrdered },
-    { format: 'task', label: 'Checklist', icon: ListTodo },
-    { format: 'quote', label: 'Quote', icon: Quote },
-    { format: 'codeblock', label: 'Code block', icon: SquareCode },
+    { format: 'bold', get label() { return m.editor_ed_bold(); }, icon: Bold, shortcut: 'B' },
+    { format: 'italic', get label() { return m.editor_ed_italic(); }, icon: Italic, shortcut: 'I' },
+    { format: 'code', get label() { return m.editor_ed_inline_code(); }, icon: Code, shortcut: 'E' },
+    { format: 'link', get label() { return m.editor_ed_link(); }, icon: Link, shortcut: 'K' },
+    { format: 'bullet', get label() { return m.editor_ed_bulleted(); }, icon: List },
+    { format: 'numbered', get label() { return m.editor_ed_numbered(); }, icon: ListOrdered },
+    { format: 'task', get label() { return m.editor_ed_checklist(); }, icon: ListTodo },
+    { format: 'quote', get label() { return m.editor_ed_quote(); }, icon: Quote },
+    { format: 'codeblock', get label() { return m.editor_ed_code_block(); }, icon: SquareCode },
   ];
 
   const RICH_ACTIVE: Record<MarkdownFormat, string> = {
@@ -283,7 +284,7 @@
     if (!editor || link === null) return;
     const href = normalizeHref(link);
     if (href === null) {
-      linkInput?.setCustomValidity('Enter a web or email address.');
+      linkInput?.setCustomValidity(m.editor_ed_link_invalid());
       linkInput?.reportValidity();
       return;
     }
@@ -377,7 +378,7 @@
 
   {#if lossy && mode === 'markdown'}
     <p class="px-2.5 pb-1 text-xs text-muted-foreground">
-      This text uses Markdown the rich editor can’t show (tables, HTML…), so it’s edited as Markdown.
+      {m.editor_ed_lossy()}
     </p>
   {/if}
 
@@ -387,8 +388,8 @@
       <input
         bind:this={linkInput}
         value={link}
-        aria-label="Link address"
-        placeholder="Paste a link…"
+        aria-label={m.editor_ed_link_address()}
+        placeholder={m.editor_ed_link_placeholder()}
         oninput={(e) => {
           e.currentTarget.setCustomValidity('');
           link = e.currentTarget.value;
@@ -410,33 +411,33 @@
         onclick={applyLink}
         class="h-6 rounded-md px-2 text-xs font-medium text-foreground hover:bg-muted"
       >
-        {link.trim() ? 'Apply' : 'Remove'}
+        {link.trim() ? m.editor_ed_link_apply() : m.common_remove()}
       </button>
     </div>
   {:else if toolbar || actions}
     <div class="flex flex-wrap items-center gap-1 px-1.5 pb-1.5">
       {#if toolbar}
         {#if rawAllowed}
-          <div role="tablist" aria-label="Editor mode" class="flex items-center rounded-md bg-muted/60 p-0.5 text-xs">
+          <div role="tablist" aria-label={m.editor_ed_mode()} class="flex items-center rounded-md bg-muted/60 p-0.5 text-xs">
             {#each MODES as option (option)}
               {@const selected = option === mode}
               <button
                 type="button"
                 role="tab"
                 aria-selected={selected}
-                title={option === 'rich' ? 'Rich text editor' : 'Edit the raw Markdown'}
+                title={option === 'rich' ? m.editor_ed_mode_rich_tip() : m.editor_ed_mode_markdown_tip()}
                 onclick={() => !selected && switchMode(option)}
                 class={cn(
                   'rounded px-2 py-0.5 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
                   selected && 'bg-background text-foreground shadow-xs',
                 )}
               >
-                {option === 'rich' ? 'Editor' : 'Markdown'}
+                {option === 'rich' ? m.editor_ed_mode_rich() : 'Markdown'}
               </button>
             {/each}
           </div>
         {/if}
-        <div role="toolbar" aria-label="Formatting" class="flex items-center">
+        <div role="toolbar" aria-label={m.editor_ed_formatting()} class="flex items-center">
           {#each TOOLBAR as { format: kind, label, icon: Icon, shortcut } (kind)}
             <ToolbarButton
               {label}
@@ -449,7 +450,7 @@
             </ToolbarButton>
           {/each}
           {#if canUploadImages}
-            <ToolbarButton label="Image" title="Image (or paste / drop one)" onClick={() => rich?.pickImage()}>
+            <ToolbarButton label={m.editor_ed_image()} title={m.editor_ed_image_tip()} onClick={() => rich?.pickImage()}>
               <ImageIcon />
             </ToolbarButton>
           {/if}

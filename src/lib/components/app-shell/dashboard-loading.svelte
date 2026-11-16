@@ -1,10 +1,11 @@
 <!-- Dashboard home skeleton. -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { Skeleton } from '@/lib/components/ui-icons';
 </script>
 
-<div class="mt-8" role="status" aria-label="Loading dashboard">
-  <span class="sr-only">Loading dashboard…</span>
+<div class="mt-8" role="status" aria-label={m.editor_loading_dashboard()}>
+  <span class="sr-only">{m.editor_loading_dashboard_sr()}</span>
 
   <!-- Greeting line (text-xl) + GitHub chip (h-5) -->
   <Skeleton class="h-6 w-56" />

@@ -1,5 +1,6 @@
 <!-- Form half of widget-editor.svelte (one instance per edited widget). -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { Button } from '@/lib/components/ui/button';
   import { DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/lib/components/ui/dialog';
   import { Input } from '@/lib/components/ui/input';
@@ -58,7 +59,7 @@
   const matching = $derived(widgetIssues(draft, dataset, now).length);
 
   const projectItems = $derived([
-    { value: ALL, label: 'All projects' },
+    { value: ALL, label: m.editor_dash_all_projects() },
     ...dataset.projects.map((p) => ({ value: p.project.id, label: p.project.name })),
   ]);
 
@@ -82,14 +83,14 @@
   }}
 >
   <DialogHeader>
-    <DialogTitle>Edit widget</DialogTitle>
+    <DialogTitle>{m.editor_widget_edit_title()}</DialogTitle>
     <DialogDescription>
-      {matching === 1 ? '1 issue matches' : `${matching} issues match`} the current filters.
+      {m.editor_widget_matches({ count: matching })}
     </DialogDescription>
   </DialogHeader>
 
   <div class="grid gap-3 sm:grid-cols-2">
-    <WidgetField label="Title" htmlFor="widget-title">
+    <WidgetField label={m.editor_field_title()} htmlFor="widget-title">
       <Input
         id="widget-title"
         bind:value={() => draft.title, (title) => (draft = { ...draft, title })}
@@ -97,20 +98,20 @@
       />
     </WidgetField>
     <WidgetChoice
-      label="Type"
+      label={m.editor_field_type()}
       value={draft.type}
       options={WIDGET_TYPES}
       format={(type) => WIDGET_TYPE_LABEL[type]}
       onChange={(type) => (draft = { ...draft, type })}
     />
     {#if !scopeProjectId && dataset.projects.length > 1}
-      <WidgetField label="Project">
+      <WidgetField label={m.common_project()}>
         <Select type="single" value={config.projectId ?? ALL} items={projectItems} onValueChange={setProject}>
-          <SelectTrigger size="sm" aria-label="Project" class="w-full">
+          <SelectTrigger size="sm" aria-label={m.common_project()} class="w-full">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ALL}>All projects</SelectItem>
+            <SelectItem value={ALL}>{m.editor_dash_all_projects()}</SelectItem>
             {#each dataset.projects as p (p.project.id)}
               <SelectItem value={p.project.id}>{p.project.name}</SelectItem>
             {/each}
@@ -119,7 +120,7 @@
       </WidgetField>
     {/if}
     <WidgetChoice
-      label="Size"
+      label={m.editor_field_size()}
       value={sizeOf(draft)}
       options={WIDGET_SIZES.map((s) => s.id)}
       format={(id) => WIDGET_SIZES.find((s) => s.id === id)!.label}
@@ -130,17 +131,17 @@
     />
   </div>
 
-  <WidgetField label="Filter" htmlFor="widget-query">
+  <WidgetField label={m.editor_field_filter()} htmlFor="widget-query">
     <div class="flex items-center gap-1">
       <Input
         id="widget-query"
         bind:value={() => config.filters.q, (q) => setConfig({ filters: { ...config.filters, q } })}
         maxlength={200}
-        placeholder="is:open label:bug assignee:me"
+        placeholder={'is:open label:bug assignee:me'}
         class="font-mono text-xs"
       />
       <SearchSyntaxHelp
-        note="Free text matches titles and IDs."
+        note={m.editor_widget_filter_help()}
         onInsert={(token: string) =>
           setConfig({ filters: { ...config.filters, q: appendToken(config.filters.q, token) } })}
       />
@@ -154,7 +155,7 @@
 
   {#if draft.type === 'bar'}
     <WidgetChoice
-      label="Group by"
+      label={m.editor_widget_group_by()}
       value={config.groupBy}
       options={BAR_GROUPS.filter((g) => g !== 'project' || !project)}
       format={(g) => BAR_GROUP_LABEL[g]}
@@ -163,43 +164,45 @@
   {/if}
   {#if draft.type === 'line'}
     <WidgetChoice
-      label="Range"
+      label={m.editor_widget_range()}
       value={config.weeks}
       options={LINE_WEEKS}
-      format={(w) => `Last ${w} weeks`}
+      format={(w) => m.editor_widget_last_weeks({ weeks: w })}
       onChange={(weeks) => setConfig({ weeks })}
     />
   {/if}
   {#if draft.type === 'list'}
     <div class="grid gap-3 sm:grid-cols-2">
       <WidgetChoice
-        label="Order"
+        label={m.editor_widget_order()}
         value={config.orderBy}
         options={LIST_ORDERS}
         format={(o) => LIST_ORDER_LABEL[o]}
         onChange={(orderBy) => setConfig({ orderBy })}
       />
       <WidgetChoice
-        label="Show"
+        label={m.editor_widget_show()}
         value={config.limit}
         options={LIST_LIMITS}
-        format={(n) => `${n} issues`}
+        format={(n) => m.editor_widget_n_issues({ count: n })}
         onChange={(limit) => setConfig({ limit })}
       />
     </div>
   {/if}
   {#if draft.type === 'epic' && project}
     <WidgetChoice
-      label="Epic"
+      label={m.editor_noun_epic()}
       value={config.epicId ?? ALL}
       options={[ALL, ...project.epics.map((e) => e.id)]}
-      format={(id) => (id === ALL ? 'All epics' : (project.epics.find((e) => e.id === id)?.name ?? 'Unknown epic'))}
+      format={(id) => (id === ALL
+          ? m.editor_widget_all_epics()
+          : (project.epics.find((e) => e.id === id)?.name ?? m.editor_widget_unknown_epic()))}
       onChange={(id) => setConfig({ epicId: id === ALL ? null : id })}
     />
   {/if}
 
   <DialogFooter>
-    <Button type="button" variant="ghost" onclick={onCancel}>Cancel</Button>
-    <Button type="submit">Save widget</Button>
+    <Button type="button" variant="ghost" onclick={onCancel}>{m.common_cancel()}</Button>
+    <Button type="submit">{m.editor_widget_save()}</Button>
   </DialogFooter>
 </form>

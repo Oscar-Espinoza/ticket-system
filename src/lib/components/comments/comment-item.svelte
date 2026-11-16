@@ -44,6 +44,7 @@
     DropdownMenuTrigger,
   } from '@/lib/components/ui/dropdown-menu';
   import { Avatar } from '@/lib/components/ui-icons';
+  import { m } from '@/lib/i18n';
   import { cn } from '@/lib/utils';
   import CommentComposer from './comment-composer.svelte';
   import ReactionBar from './reaction-bar.svelte';
@@ -79,16 +80,16 @@
   async function copyLink() {
     try {
       await navigator.clipboard.writeText(handlers.permalink(comment));
-      toast.success('Copied comment link');
+      toast.success(m.editor_comment_copied_link());
     } catch {
-      toast.error('Could not copy to the clipboard.');
+      toast.error(m.editor_comment_copy_failed());
     }
   }
 </script>
 
 <article
   id={commentAnchor(comment.id)}
-  aria-label={`Comment by ${comment.author?.name ?? 'deleted user'}`}
+  aria-label={m.editor_comment_by({ name: comment.author?.name ?? m.editor_comment_deleted_user().toLowerCase() })}
   class={cn(
     'group/comment scroll-mt-16 rounded-md transition-colors duration-700 data-[highlighted=true]:bg-primary/10',
     reply ? 'pl-7' : '',
@@ -96,11 +97,11 @@
   )}
 >
   <header class="flex items-center gap-2">
-    <Avatar name={comment.author?.name ?? 'Deleted user'} src={comment.author?.image} size={20} />
-    <span class="truncate text-sm font-medium">{comment.author?.name ?? 'Deleted user'}</span>
+    <Avatar name={comment.author?.name ?? m.editor_comment_deleted_user()} src={comment.author?.image} size={20} />
+    <span class="truncate text-sm font-medium">{comment.author?.name ?? m.editor_comment_deleted_user()}</span>
     <span class="text-xs text-muted-foreground">
       <Timestamp date={comment.createdAt} />
-      {#if comment.editedAt}<span> · edited</span>{/if}
+      {#if comment.editedAt}<span> {m.editor_comment_edited()}</span>{/if}
     </span>
     {#if !pending}
       <div
@@ -110,14 +111,14 @@
           <ReactionPicker onPick={(emoji) => handlers.onReact(comment, emoji)} />
         {/if}
         {#if !reply && canComment && handlers.onReply}
-          <Button variant="ghost" size="icon-xs" aria-label="Reply" onclick={() => handlers.onReply?.(comment)}>
+          <Button variant="ghost" size="icon-xs" aria-label={m.editor_comment_reply()} onclick={() => handlers.onReply?.(comment)}>
             <Reply />
           </Button>
         {/if}
         <DropdownMenu>
           <DropdownMenuTrigger>
             {#snippet child({ props })}
-              <Button {...props} variant="ghost" size="icon-xs" aria-label="Comment actions">
+              <Button {...props} variant="ghost" size="icon-xs" aria-label={m.editor_comment_actions()}>
                 <MoreHorizontal />
               </Button>
             {/snippet}
@@ -125,19 +126,19 @@
           <DropdownMenuContent align="end" class="w-44">
             <DropdownMenuItem onSelect={copyLink}>
               <Link2 />
-              Copy link
+              {m.editor_comment_copy_link()}
             </DropdownMenuItem>
             {#if canEdit}
               <DropdownMenuItem onSelect={() => (editing = true)}>
                 <Pencil />
-                Edit
+                {m.common_edit()}
               </DropdownMenuItem>
             {/if}
             {#if canDelete}
               <DropdownMenuSeparator />
               <DropdownMenuItem variant="destructive" onSelect={() => (confirming = true)}>
                 <Trash2 />
-                Delete
+                {m.common_delete()}
               </DropdownMenuItem>
             {/if}
           </DropdownMenuContent>
@@ -150,8 +151,8 @@
     {#if editing}
       <CommentComposer
         initialValue={comment.body}
-        placeholder="Edit comment…"
-        submitLabel="Save"
+        placeholder={m.editor_comment_edit_placeholder()}
+        submitLabel={m.common_save()}
         autoFocus
         onCancel={() => (editing = false)}
         onSubmit={(body) => {
@@ -177,17 +178,17 @@
   <AlertDialog open={confirming} onOpenChange={(open) => (confirming = open)}>
     <AlertDialogContent>
       <AlertDialogHeader>
-        <AlertDialogTitle>Delete comment?</AlertDialogTitle>
+        <AlertDialogTitle>{m.editor_comment_delete_title()}</AlertDialogTitle>
         <AlertDialogDescription>
           {reply
-            ? 'This reply will be permanently deleted.'
-            : 'This comment and any replies to it will be permanently deleted.'}
+            ? m.editor_comment_delete_reply_body()
+            : m.editor_comment_delete_body()}
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>
-        <AlertDialogCancel>Cancel</AlertDialogCancel>
+        <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
         <AlertDialogAction variant="destructive" onclick={() => void handlers.onDelete(comment)}>
-          Delete
+          {m.common_delete()}
         </AlertDialogAction>
       </AlertDialogFooter>
     </AlertDialogContent>

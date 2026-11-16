@@ -25,8 +25,9 @@
 </script>
 
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import ChartTooltip from './chart-tooltip.svelte';
-  import { niceMax, useIndexHover } from './chart-kit.svelte.ts';
+  import { fixed1, niceMax, useIndexHover } from './chart-kit.svelte.ts';
   import SrTable from './sr-table.svelte';
 
   let {
@@ -66,7 +67,7 @@
       {width}
       height={HEIGHT}
       role="img"
-      aria-label={`${caption}. Use arrow keys to read each column.`}
+      aria-label={m.editor_ins_use_arrows({ caption })}
       class="block rounded outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
       {...hover.handlers}
     >
@@ -102,7 +103,7 @@
             class="stroke-muted-foreground"
           />
           <text x={M.left + plotW} y={y(average) - 4} text-anchor="end" class="fill-muted-foreground text-[10px]">
-            avg {average.toFixed(1)}
+            {m.editor_ins_avg({ value: fixed1(average) })}
           </text>
         </g>
       {/if}

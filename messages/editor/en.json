@@ -1,3 +1,812 @@
 {
-  "$schema": "https://inlang.com/schema/inlang-message-format"
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "editor_nav_my_issues": "My issues",
+  "editor_nav_views": "Views",
+  "editor_nav_drafts": "Drafts",
+  "editor_nav_dashboards": "Dashboards",
+  "editor_nav_project_templates": "Project templates",
+  "editor_nav_issues": "Issues",
+  "editor_nav_triage": "Triage",
+  "editor_nav_cycles": "Cycles",
+  "editor_nav_epics": "Epics",
+  "editor_nav_roadmap": "Roadmap",
+  "editor_nav_docs": "Docs",
+  "editor_nav_customers": "Customers",
+  "editor_nav_insights": "Insights",
+  "editor_nav_archive": "Archive",
+  "editor_nav_trash": "Trash",
+  "editor_nav_profile": "Profile",
+  "editor_nav_appearance": "Appearance",
+  "editor_nav_notifications": "Notifications",
+  "editor_nav_security": "Security",
+  "editor_nav_api_keys": "API keys",
+  "editor_nav_oauth_apps": "OAuth apps",
+  "editor_nav_general": "General",
+  "editor_nav_workflow": "Workflow",
+  "editor_nav_templates": "Templates",
+  "editor_nav_planning": "Cycles & triage",
+  "editor_nav_automations": "Automations",
+  "editor_nav_sla": "SLAs",
+  "editor_nav_recurring": "Recurring issues",
+  "editor_nav_developer": "GitLab, Bitbucket & Sentry",
+  "editor_nav_integrations": "Slack & webhooks",
+  "editor_nav_intake": "Intake form",
+  "editor_nav_import_export": "Import / export",
+  "editor_nav_audit_log": "Audit log",
+  "editor_nav_projects": "Projects",
+  "editor_nav_people": "People",
+  "editor_nav_unknown_project": "Unknown project",
+  "editor_nav_initiatives": "Initiatives",
+  "editor_nav_workspaces": "Workspaces",
+  "editor_nav_breadcrumb": "Breadcrumb",
+  "editor_noun_epic": "Epic",
+  "editor_noun_initiative": "Initiative",
+  "editor_noun_doc": "Doc",
+  "editor_noun_customer": "Customer",
+  "editor_noun_dashboard": "Dashboard",
+  "editor_loading_dashboard": "Loading dashboard",
+  "editor_loading_dashboard_sr": "Loading dashboard…",
+  "editor_loading_page": "Loading page",
+  "editor_loading_issues": "Loading issues",
+  "editor_loading_issues_sr": "Loading issues…",
+  "editor_shell_collapse_sidebar": "Collapse sidebar",
+  "editor_shell_expand_sidebar": "Expand sidebar",
+  "editor_shell_primary_nav": "Primary",
+  "editor_shell_your_projects": "Your projects",
+  "editor_shell_no_projects": "No projects yet.",
+  "editor_shell_user_menu": "User menu",
+  "editor_shell_account": "Account",
+  "editor_shell_profile": "Profile",
+  "editor_shell_light_mode": "Light mode",
+  "editor_shell_dark_mode": "Dark mode",
+  "editor_shell_log_out": "Log out",
+  "editor_shell_page_title": "{page} · Ticket System",
+  "editor_shell_hotkeys_title": "Keyboard shortcuts",
+  "editor_shell_hotkeys_description": "Shortcuts currently registered in this session.",
+  "editor_shell_hotkeys_global": "Global",
+  "editor_shell_open_palette": "Open command palette",
+  "editor_palette_section_projects": "Projects",
+  "editor_palette_section_navigation": "Navigation",
+  "editor_palette_section_current_project": "Current project",
+  "editor_palette_section_actions": "Actions",
+  "editor_palette_go_to": "Go to {page}",
+  "editor_palette_go_to_search": "Go to search",
+  "editor_palette_appearance_settings": "Appearance settings",
+  "editor_palette_new_project": "New project",
+  "editor_palette_switch_to_light": "Switch to light mode",
+  "editor_palette_switch_to_dark": "Switch to dark mode",
+  "editor_hotkey_open_palette": "Open command palette",
+  "editor_hotkey_focus_search": "Focus palette search",
+  "editor_hotkey_show_shortcuts": "Show keyboard shortcuts",
+  "editor_hotkey_create_issue": "Create issue",
+  "editor_hotkey_create_project": "Create project",
+  "editor_hotkey_scope_issues": "Issues",
+  "editor_hotkey_scope_issue": "Issue",
+  "editor_hotkey_scope_board": "Board",
+  "editor_hotkey_scope_lists": "Lists",
+  "editor_hotkey_scope_epics": "Epics",
+  "editor_hotkey_scope_customers": "Customers",
+  "editor_hotkey_scope_initiatives": "Initiatives",
+  "editor_nav_cmd_search": "Search issues…",
+  "editor_nav_cmd_created": "Issues I created",
+  "editor_nav_cmd_subscribed": "Issues I’m subscribed to",
+  "editor_activity_system": "System",
+  "editor_activity_unknown": "unknown",
+  "editor_activity_cycle_n": "Cycle {number}",
+  "editor_activity_a_cycle": "a cycle",
+  "editor_activity_its_cycle": "its cycle",
+  "editor_activity_an_epic": "an epic",
+  "editor_activity_a_milestone": "a milestone",
+  "editor_activity_another_issue": "another issue",
+  "editor_activity_created": "created the issue",
+  "editor_activity_archived": "archived the issue",
+  "editor_activity_unarchived": "restored the issue from the archive",
+  "editor_activity_deleted": "moved the issue to the trash",
+  "editor_activity_restored": "restored the issue",
+  "editor_activity_status": "changed status from {from} to {to}",
+  "editor_activity_priority_removed": "removed the priority",
+  "editor_activity_priority_set": "set priority to {value}",
+  "editor_activity_unassigned_name": "unassigned {name}",
+  "editor_activity_unassigned": "unassigned the issue",
+  "editor_activity_self_assigned": "self-assigned the issue",
+  "editor_activity_reassigned": "reassigned from {from} to {to}",
+  "editor_activity_assigned": "assigned the issue to {to}",
+  "editor_activity_labels_and": " and ",
+  "editor_activity_estimate_set": "set the estimate to {value}",
+  "editor_activity_estimate_removed": "removed the estimate",
+  "editor_activity_due_set": "set the due date to {date}",
+  "editor_activity_due_removed": "removed the due date",
+  "editor_activity_waiting_set": "set waiting on to {name}",
+  "editor_activity_waiting_stopped": "stopped waiting on {name}",
+  "editor_activity_waiting_removed": "removed waiting on",
+  "editor_activity_followup_set": "set the follow-up date to {date}",
+  "editor_activity_followup_removed": "removed the follow-up date",
+  "editor_activity_start_set": "set the start date to {date}",
+  "editor_activity_start_removed": "removed the start date",
+  "editor_activity_parent_set": "set the parent issue to {name}",
+  "editor_activity_parent_removed": "removed the parent issue",
+  "editor_activity_cycle_added": "added the issue to {name}",
+  "editor_activity_cycle_removed": "removed the issue from {name}",
+  "editor_activity_epic_set": "moved the issue to epic {name}",
+  "editor_activity_epic_removed": "removed the issue from epic {name}",
+  "editor_activity_milestone_set": "set the milestone to {name}",
+  "editor_activity_milestone_removed": "removed the milestone",
+  "editor_activity_title": "changed the title to {title}",
+  "editor_activity_description": "updated the description",
+  "editor_activity_updated": "updated the issue",
+  "editor_activity_labels_added": [
+    {
+      "declarations": [
+        "input count",
+        "input names",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "added label {names}",
+        "countPlural=other": "added labels {names}"
+      }
+    }
+  ],
+  "editor_activity_labels_removed": [
+    {
+      "declarations": [
+        "input count",
+        "input names",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "removed label {names}",
+        "countPlural=other": "removed labels {names}"
+      }
+    }
+  ],
+  "editor_comment_placeholder": "Leave a comment…",
+  "editor_comment_submit": "Comment",
+  "editor_comment_submit_hint": "Submit (⌘Enter)",
+  "editor_comment_edit_placeholder": "Edit comment…",
+  "editor_comment_reply_placeholder": "Leave a reply…",
+  "editor_comment_reply": "Reply",
+  "editor_comment_copied_link": "Copied comment link",
+  "editor_comment_copy_failed": "Could not copy to the clipboard.",
+  "editor_comment_actions": "Comment actions",
+  "editor_comment_copy_link": "Copy link",
+  "editor_comment_edited": "· edited",
+  "editor_comment_by": "Comment by {name}",
+  "editor_comment_deleted_user": "Deleted user",
+  "editor_comment_delete_title": "Delete comment?",
+  "editor_comment_delete_reply_body": "This reply will be permanently deleted.",
+  "editor_comment_delete_body": "This comment and any replies to it will be permanently deleted.",
+  "editor_comment_add_reaction": "Add reaction",
+  "editor_comment_react_with": "React with {emoji}",
+  "editor_comment_you": "You",
+  "editor_comment_former_member": "Former member",
+  "editor_comment_two_people": "{a} and {b}",
+  "editor_comment_three_people": "{list} and {last}",
+  "editor_comment_and_others": [
+    {
+      "declarations": [
+        "input count",
+        "input list",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{list} and {count} other",
+        "countPlural=other": "{list} and {count} others"
+      }
+    }
+  ],
+  "editor_activity_title_heading": "Activity",
+  "editor_activity_loading": "Loading activity",
+  "editor_activity_load_failed": "Could not load activity.",
+  "editor_activity_post_failed": "Could not post the comment.",
+  "editor_activity_save_failed": "Could not save the comment.",
+  "editor_activity_delete_failed": "Could not delete the comment.",
+  "editor_activity_reaction_failed": "Could not save the reaction.",
+  "editor_activity_empty": "No activity yet.",
+  "editor_activity_show_more": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Show {count} more",
+        "countPlural=other": "Show {count} more"
+      }
+    }
+  ],
+  "editor_retry": "Retry",
+  "editor_duplicate": "Duplicate",
+  "editor_delete_ellipsis": "Delete…",
+  "editor_edit_ellipsis": "Edit…",
+  "editor_rename_ellipsis": "Rename…",
+  "editor_unassigned": "Unassigned",
+  "editor_field_title": "Title",
+  "editor_field_type": "Type",
+  "editor_field_size": "Size",
+  "editor_field_filter": "Filter",
+  "editor_field_label": "Label",
+  "editor_field_scope": "Scope",
+  "editor_dash_rename_title": "Rename dashboard",
+  "editor_dash_new_title": "New dashboard",
+  "editor_dash_intro": "Starts with a few widgets you can edit. Project dashboards can be shared with the project.",
+  "editor_dash_name_placeholder": "Team health",
+  "editor_dash_scope_personal": "All my projects (personal)",
+  "editor_dash_create": "Create dashboard",
+  "editor_dash_deleted": "Dashboard deleted",
+  "editor_dash_shared_tip": "Shared with project members",
+  "editor_dash_shared": "Shared",
+  "editor_dash_all_projects": "All projects",
+  "editor_dash_widgets": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} widget",
+        "countPlural=other": "{count} widgets"
+      }
+    }
+  ],
+  "editor_dash_you": "You",
+  "editor_dash_updated": "Updated {date}",
+  "editor_dash_actions_for": "Actions for {name}",
+  "editor_dash_empty_title": "No dashboards yet",
+  "editor_dash_empty_body": "Build numbers, charts and issue lists from filters — for one project or across all of yours.",
+  "editor_dash_yours": "Your dashboards",
+  "editor_dash_shared_with_you": "Shared with you",
+  "editor_dash_delete_title": "Delete “{name}”?",
+  "editor_dash_delete_body": "This can’t be undone.",
+  "editor_dash_delete_body_shared": "Project members will lose access too. This can’t be undone.",
+  "editor_dash_max_widgets": "A dashboard holds up to {max} widgets.",
+  "editor_dash_private_toast": "Dashboard is now private",
+  "editor_dash_duplicated": "Dashboard duplicated",
+  "editor_dash_add_widget_cmd": "Add widget to dashboard",
+  "editor_dash_add_widget": "Add widget",
+  "editor_dash_all_your_projects": "All your projects",
+  "editor_dash_shared_by": "shared by {name}",
+  "editor_dash_former_member": "a former member",
+  "editor_dash_needs_edit": "Needs edit access to the project",
+  "editor_dash_actions": "Dashboard actions",
+  "editor_dash_truncated": "Showing the most recent 5,000 issues — older issues aren’t counted.",
+  "editor_dash_no_widgets": "No widgets yet",
+  "editor_dash_no_widgets_owner": "Add numbers, charts and issue lists built from filters.",
+  "editor_dash_no_widgets_viewer": "The owner hasn’t added any widgets yet.",
+  "editor_dash_copy_title": "{title} (copy)",
+  "editor_pulse_last_days": "Last 7 days",
+  "editor_pulse_empty": "No issues created or completed in your projects this week.",
+  "editor_pulse_completed": "completed",
+  "editor_pulse_created": "created",
+  "editor_pulse_updates": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "update",
+        "countPlural=other": "updates"
+      }
+    }
+  ],
+  "editor_pulse_epic_updates": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Epic updates · last {count} day",
+        "countPlural=other": "Epic updates · last {count} days"
+      }
+    }
+  ],
+  "editor_pulse_no_updates": "No epic updates yet",
+  "editor_pulse_no_updates_body": "Post an update on an epic (health + a short note) and it shows up here and in everyone's weekly pulse.",
+  "editor_pulse_changed_to": "changed to",
+  "editor_widget_inaccessible": "This widget uses a project you can’t access.",
+  "editor_widget_issue_word": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "issue",
+        "countPlural=other": "issues"
+      }
+    }
+  ],
+  "editor_widget_no_customers": "No issues are linked to customers yet.",
+  "editor_widget_no_matching": "No matching issues.",
+  "editor_widget_no_cycle": "No active cycle.",
+  "editor_widget_last_day": "Last day",
+  "editor_widget_days_left": "{days}d left",
+  "editor_widget_cycle_stats": "{percent}% · {completed} done · {started} in progress · {rest} not started",
+  "editor_widget_no_epics": "No epics in scope.",
+  "editor_widget_no_open": "No open issues.",
+  "editor_widget_issue_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} issue",
+        "countPlural=other": "{count} issues"
+      }
+    }
+  ],
+  "editor_widget_status_tip": "{issues} · median {median} · longest {longest}",
+  "editor_days_hours": "{n}h",
+  "editor_days_days": "{n}d",
+  "editor_days_weeks": "{n}w",
+  "editor_widget_edit_title": "Edit widget",
+  "editor_widget_matches": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} issue matches the current filters.",
+        "countPlural=other": "{count} issues match the current filters."
+      }
+    }
+  ],
+  "editor_widget_filter_help": "Free text matches titles and IDs.",
+  "editor_widget_group_by": "Group by",
+  "editor_widget_range": "Range",
+  "editor_widget_last_weeks": "Last {weeks} weeks",
+  "editor_widget_order": "Order",
+  "editor_widget_show": "Show",
+  "editor_widget_n_issues": "{count} issues",
+  "editor_widget_all_epics": "All epics",
+  "editor_widget_unknown_epic": "Unknown epic",
+  "editor_widget_save": "Save widget",
+  "editor_widget_move_earlier": "Move earlier",
+  "editor_widget_move_later": "Move later",
+  "editor_widget_type_number": "Number",
+  "editor_widget_type_bar": "Bar chart",
+  "editor_widget_type_line": "Created vs completed",
+  "editor_widget_type_list": "Issue list",
+  "editor_widget_type_cycle": "Cycle progress",
+  "editor_widget_type_epic": "Epic progress",
+  "editor_widget_type_status": "Time in status",
+  "editor_widget_desc_number": "Count of issues matching filters",
+  "editor_widget_desc_bar": "Issues grouped by a property",
+  "editor_widget_desc_line": "Issues created and completed per week",
+  "editor_widget_desc_list": "The top issues matching filters",
+  "editor_widget_desc_cycle": "Progress of the current cycle",
+  "editor_widget_desc_epic": "Done vs total per epic",
+  "editor_widget_desc_status": "How long open issues sit in each status",
+  "editor_widget_size_s": "Small",
+  "editor_widget_size_m": "Medium",
+  "editor_widget_size_l": "Large",
+  "editor_widget_size_xl": "Full width",
+  "editor_widget_order_updated": "Last updated",
+  "editor_widget_order_created": "Newest",
+  "editor_widget_default_number": "Open issues",
+  "editor_widget_default_bar": "Open issues by status",
+  "editor_widget_default_list": "Recently updated",
+  "editor_widget_default_cycle": "Current cycle",
+  "editor_ed_heading_1": "Heading 1",
+  "editor_ed_heading_2": "Heading 2",
+  "editor_ed_heading_3": "Heading 3",
+  "editor_ed_bulleted": "Bulleted list",
+  "editor_ed_numbered": "Numbered list",
+  "editor_ed_checklist": "Checklist",
+  "editor_ed_quote": "Quote",
+  "editor_ed_code_block": "Code block",
+  "editor_ed_divider": "Divider",
+  "editor_ed_image": "Image",
+  "editor_ed_mention": "Mention",
+  "editor_ed_issue_ref": "Issue reference",
+  "editor_ed_bold": "Bold",
+  "editor_ed_italic": "Italic",
+  "editor_ed_inline_code": "Inline code",
+  "editor_ed_link": "Link",
+  "editor_ed_link_address": "Link address",
+  "editor_ed_link_placeholder": "Paste a link…",
+  "editor_ed_link_apply": "Apply",
+  "editor_ed_mode": "Editor mode",
+  "editor_ed_mode_rich": "Editor",
+  "editor_ed_mode_rich_tip": "Rich text editor",
+  "editor_ed_mode_markdown_tip": "Edit the raw Markdown",
+  "editor_ed_formatting": "Formatting",
+  "editor_ed_image_tip": "Image (or paste / drop one)",
+  "editor_ed_lossy": "This text uses Markdown the rich editor can’t show (tables, HTML…), so it’s edited as Markdown.",
+  "editor_ed_mention_list": "Mention a teammate",
+  "editor_ed_issue_list": "Reference an issue",
+  "editor_ed_block_list": "Insert block",
+  "editor_ed_searching": "Searching…",
+  "editor_ed_uploading": "Uploading image…",
+  "editor_ed_task_done": "Completed task",
+  "editor_ed_task_open": "Open task",
+  "editor_ed_upload_type": "Only PNG, JPEG, GIF, WebP, AVIF or BMP images can be added.",
+  "editor_ed_upload_size": "Images can be at most {max}.",
+  "editor_ed_upload_failed": "Upload failed.",
+  "editor_ed_upload_denied": "You can't upload images here.",
+  "editor_ed_upload_offline": "Upload failed — check your connection.",
+  "editor_notif_pref_assigned": "Assigned to me",
+  "editor_notif_pref_assigned_desc": "Someone assigns an issue to you.",
+  "editor_notif_pref_mentioned": "Mentions",
+  "editor_notif_pref_mentioned_desc": "Someone @mentions you in a comment or description.",
+  "editor_notif_pref_commented": "Comments",
+  "editor_notif_pref_commented_desc": "New comments on issues you subscribe to.",
+  "editor_notif_pref_status": "Status changes",
+  "editor_notif_pref_status_desc": "An issue you subscribe to changes status.",
+  "editor_notif_pref_completed": "Completed",
+  "editor_notif_pref_completed_desc": "An issue you subscribe to is completed or canceled.",
+  "editor_notif_pref_github": "Pull requests",
+  "editor_notif_pref_github_desc": "A pull request linked to a subscribed issue is merged.",
+  "editor_notif_pref_sla": "SLA breaches",
+  "editor_notif_pref_sla_desc": "An issue you follow misses its SLA deadline.",
+  "editor_notif_pref_follow_up": "Follow-ups",
+  "editor_notif_pref_follow_up_desc": "The follow-up date of an issue assigned to you arrives.",
+  "editor_notif_pref_pulse": "Pulse",
+  "editor_notif_pref_pulse_desc": "A weekly summary of activity in your projects.",
+  "editor_notif_automation": "Automation",
+  "editor_notif_assigned": "{who} assigned you",
+  "editor_notif_mentioned_comment": "{who} mentioned you in a comment",
+  "editor_notif_mentioned": "{who} mentioned you",
+  "editor_notif_commented": "{who} commented",
+  "editor_notif_moved": "{who} moved it to {state}",
+  "editor_notif_status_changed": "{who} changed the status",
+  "editor_notif_marked": "{who} marked it {state}",
+  "editor_notif_completed": "{who} completed it",
+  "editor_notif_reminder": "Reminder",
+  "editor_notif_pr_merged": "Pull request merged",
+  "editor_notif_sla_breached": "SLA breached",
+  "editor_notif_follow_up": "Follow-up date reached",
+  "editor_notif_recurring": "Created from a recurring schedule",
+  "editor_notif_pulse": "Your weekly pulse",
+  "editor_notif_updated": "{who} updated the issue",
+  "editor_notif_push_more": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} more notification",
+        "countPlural=other": "{count} more notifications"
+      }
+    }
+  ],
+  "editor_notif_push_more_body": "Open your inbox to see them all.",
+  "editor_notif_slack_more": [
+    {
+      "declarations": [
+        "input count",
+        "input url",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "_and {count} more in <{url}|your inbox>_",
+        "countPlural=other": "_and {count} more in <{url}|your inbox>_"
+      }
+    }
+  ],
+  "editor_err_issue_not_found": "Issue not found.",
+  "editor_err_file_empty": "The file is empty.",
+  "editor_err_files_max": "Files can be at most {max}.",
+  "editor_err_url_invalid": "Enter a valid http(s) URL.",
+  "editor_err_attachment_not_found": "Attachment not found.",
+  "editor_err_attachment_delete_denied": "Only the uploader or a project admin can delete this.",
+  "editor_err_upload_type": "Only PNG, JPEG, GIF, WebP, AVIF or BMP images can be uploaded.",
+  "editor_err_invalid_widgets": "Invalid widgets.",
+  "editor_err_widgets_too_large": "These widgets are too large to save.",
+  "editor_err_widget_project": "Unknown project in a widget.",
+  "editor_err_dash_name": "Give the dashboard a name.",
+  "editor_err_dash_not_found": "Dashboard not found.",
+  "editor_err_dash_owner_only": "Only the owner can change this dashboard.",
+  "editor_err_dash_project_only": "Only project dashboards can be shared.",
+  "editor_err_dash_share_denied": "Only members who can edit issues can share dashboards.",
+  "editor_err_invalid_request": "Invalid request",
+  "editor_err_future_time": "Pick a time in the future.",
+  "editor_inbox_something_wrong": "Something went wrong",
+  "editor_inbox_archived": "Archived",
+  "editor_inbox_undo": "Undo",
+  "editor_inbox_snoozed_until": "Snoozed until {when}",
+  "editor_inbox_nothing_read": "Nothing read to archive",
+  "editor_inbox_archived_read": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Archived {count} read notification",
+        "countPlural=other": "Archived {count} read notifications"
+      }
+    }
+  ],
+  "editor_inbox_hk_next": "Next notification",
+  "editor_inbox_hk_prev": "Previous notification",
+  "editor_inbox_hk_open": "Open issue",
+  "editor_inbox_hk_toggle_read": "Mark as read / unread",
+  "editor_inbox_hk_archive": "Archive notification",
+  "editor_inbox_notification": "Notification",
+  "editor_inbox_unread": "Unread",
+  "editor_inbox_notifications": "Notifications",
+  "editor_inbox_filter": "Filter notifications",
+  "editor_inbox_all": "All",
+  "editor_inbox_actions": "Inbox actions",
+  "editor_inbox_mark_all_read": "Mark all as read",
+  "editor_inbox_archive_all_read": "Archive all read",
+  "editor_inbox_empty_unread": "No unread notifications",
+  "editor_inbox_empty": "Inbox zero",
+  "editor_inbox_caught_up": "You are all caught up.",
+  "editor_inbox_empty_body": "Assignments, mentions, comments and status changes on issues you follow show up here.",
+  "editor_inbox_details": "Notification details",
+  "editor_inbox_none_selected": "No notification selected",
+  "editor_inbox_none_selected_body": "Pick one from the list, or use J / K to move and U / E to mark read or archive.",
+  "editor_inbox_back": "Back to inbox",
+  "editor_inbox_mark_read_tip": "Mark as read (U)",
+  "editor_inbox_mark_unread_tip": "Mark as unread (U)",
+  "editor_inbox_snooze": "Snooze",
+  "editor_inbox_archive_tip": "Archive (E)",
+  "editor_inbox_open_issue": "Open issue",
+  "editor_inbox_no_description": "No description.",
+  "editor_inbox_issue_gone": "This issue is no longer available — it was deleted, or you are no longer a member of its project.",
+  "editor_inbox_in_trash": "In trash",
+  "editor_inbox_archived_badge": "Archived",
+  "editor_inbox_visibility": "Visibility",
+  "editor_when_in_1_hour": "In 1 hour",
+  "editor_when_in_3_hours": "In 3 hours",
+  "editor_when_next_week": "Next week",
+  "editor_when_quick": "Quick options",
+  "editor_when_time": "Time",
+  "editor_when_set": "Set",
+  "editor_inbox_unread_count": "{count} unread",
+  "editor_prefs_save_failed": "Could not save your settings",
+  "editor_prefs_test_failed": "Could not send the test email",
+  "editor_prefs_test_sent": "Test email sent to {email}",
+  "editor_prefs_not_configured": "Email delivery is not configured on this server",
+  "editor_prefs_not_configured_body": "Set RESEND_API_KEY and EMAIL_FROM. The message was written to the server log.",
+  "editor_prefs_digest_off": "Off",
+  "editor_prefs_digest_daily": "Daily",
+  "editor_prefs_digest_weekly": "Weekly (Mondays)",
+  "editor_prefs_email": "Email",
+  "editor_prefs_email_intro": "Notifications are always in your inbox. Email copies go to {email}.",
+  "editor_prefs_email_me": "Email me about notifications",
+  "editor_prefs_email_me_body": "One email per batch of updates, linking back to the issue.",
+  "editor_prefs_digest": "Email digest",
+  "editor_prefs_digest_body": "Bundle updates into one email. Assignments and mentions still email you right away.",
+  "editor_prefs_sending": "Sending…",
+  "editor_prefs_send_test": "Send test email",
+  "editor_prefs_push": "Push",
+  "editor_prefs_push_body": "System notifications on this computer or phone, even when the app isn’t open.",
+  "editor_prefs_notify_when": "Notify me when",
+  "editor_prefs_notify_when_body": "Turning a type off stops its inbox item, email and push. Reminders you set are always delivered.",
+  "editor_ins_date_range": "Date range",
+  "editor_ins_last_weeks": "Last {count} weeks",
+  "editor_ins_all_labels": "All labels",
+  "editor_ins_since": "Since {week} · UTC weeks",
+  "editor_ins_nothing": "Nothing to chart yet",
+  "editor_ins_nothing_label": "No issues with this label in the selected range.",
+  "editor_ins_nothing_body": "Create and complete a few issues and their flow shows up here.",
+  "editor_ins_open_issues": "Open issues",
+  "editor_ins_created": "Created",
+  "editor_ins_completed": "Completed",
+  "editor_ins_last_n_weeks": "last {count} weeks",
+  "editor_ins_per_week": "{avg} per week",
+  "editor_ins_median_cycle": "Median cycle time",
+  "editor_ins_started_done": "started → done",
+  "editor_ins_median_lead": "Median lead time",
+  "editor_ins_created_done": "created → done",
+  "editor_ins_created_vs_completed": "Created vs completed",
+  "editor_ins_created_vs_completed_body": "Issues per week — is the backlog growing?",
+  "editor_ins_throughput": "Throughput",
+  "editor_ins_completed_per_week": "Issues completed per week",
+  "editor_ins_unit_completed": "completed",
+  "editor_ins_unit_issues": "issues",
+  "editor_ins_week_of": "Week of {week}",
+  "editor_ins_by_status": "Open by status",
+  "editor_ins_by_priority": "Open by priority",
+  "editor_ins_by_assignee": "Open by assignee",
+  "editor_ins_by_label": "Open by label",
+  "editor_ins_no_labelled": "No labelled open issues.",
+  "editor_ins_cycle_time": "Cycle time",
+  "editor_ins_cycle_body": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Started → done · {count} issue completed in range",
+        "countPlural=other": "Started → done · {count} issues completed in range"
+      }
+    }
+  ],
+  "editor_ins_cycle_dist": "Cycle time distribution",
+  "editor_ins_lead_time": "Lead time",
+  "editor_ins_lead_body": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "Created → done · {count} issue completed in range",
+        "countPlural=other": "Created → done · {count} issues completed in range"
+      }
+    }
+  ],
+  "editor_ins_lead_dist": "Lead time distribution",
+  "editor_ins_use_arrows": "{caption}. Use arrow keys to read each column.",
+  "editor_ins_avg": "avg {value}",
+  "editor_ins_trend_aria": "Issues created and completed per week over the last {count} weeks. Use arrow keys to read each week.",
+  "editor_ins_trend_caption": "Issues created and completed per week",
+  "editor_ins_show_less": "Show less",
+  "editor_ins_show_more": "Show {count} more",
+  "editor_ins_no_open": "No open issues.",
+  "editor_ins_hours": "{n}h",
+  "editor_view_deleted": "Deleted “{name}”",
+  "editor_view_delete_title": "Delete “{name}”?",
+  "editor_view_delete_shared": "This view is shared — it disappears for everyone in the project. Issues are not affected.",
+  "editor_view_delete_private": "The view is removed. Issues are not affected.",
+  "editor_view_delete": "Delete view",
+  "editor_view_updated": "View updated",
+  "editor_view_edit_title": "Edit view",
+  "editor_view_edit_desc": "Rename or re-describe this view.",
+  "editor_view_share": "Share with project",
+  "editor_view_saved": "Saved view “{name}”",
+  "editor_view_name_placeholder": "e.g. My open bugs",
+  "editor_view_save_title": "Save view",
+  "editor_view_save_desc": "Keeps the current filters, grouping, ordering and visible properties.",
+  "editor_view_description_optional": "Description (optional)",
+  "editor_view_share_body": "Every project member can open this view.",
+  "editor_view_edit_details": "Edit details",
+  "editor_bin_unarchived": "Unarchived {key}",
+  "editor_bin_restored": "Restored {key}",
+  "editor_bin_purged": "Deleted {key} permanently",
+  "editor_bin_admin_only": "Only admins can delete issues permanently.",
+  "editor_bin_purge_failed": "Something went wrong — the issue was not deleted.",
+  "editor_bin_no_archived": "No archived issues",
+  "editor_bin_no_archived_body": "Archive issues you no longer need in the list. They stay searchable here and can be unarchived any time.",
+  "editor_bin_empty": "Trash is empty",
+  "editor_bin_empty_body": "Deleted issues stay here for 30 days before they are removed for good.",
+  "editor_bin_search_archived": "Search archived issues",
+  "editor_bin_search_deleted": "Search deleted issues",
+  "editor_bin_filter_placeholder": "Filter by key or title…",
+  "editor_bin_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} issue",
+        "countPlural=other": "{count} issues"
+      }
+    }
+  ],
+  "editor_bin_count_trash": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} issue · permanently deleted 30 days after being moved to the trash",
+        "countPlural=other": "{count} issues · permanently deleted 30 days after being moved to the trash"
+      }
+    }
+  ],
+  "editor_bin_no_match": "No matching issues",
+  "editor_bin_no_match_body": "Nothing matches “{query}”.",
+  "editor_bin_unarchive": "Unarchive",
+  "editor_bin_restore": "Restore",
+  "editor_bin_purge": "Delete permanently",
+  "editor_bin_time_archived": "Archived",
+  "editor_bin_time_deleted": "Deleted",
+  "editor_bin_purge_title": "Delete {key} permanently?",
+  "editor_bin_purge_body": "“{title}” and its comments, attachments and history are removed for good. This can’t be undone.",
+  "editor_groups_hide_completed": "Hide completed",
+  "editor_groups_all_closed": "Every issue here is completed or canceled.",
+  "editor_peek": "Peek",
+  "editor_peek_hint": "Enter to open · Space to close",
+  "editor_peek_sr": "Preview of {key}. Press Enter to open it, Space or Escape to close.",
+  "editor_peek_full_page": "Full page",
+  "editor_groups_in_progress": "In progress",
+  "editor_groups_todo": "Todo",
+  "editor_fav_title": "Favorites",
+  "editor_fav_remove_named": "Remove {name} from favorites",
+  "editor_fav_remove": "Remove from favorites",
+  "editor_fav_add": "Add to favorites",
+  "editor_view_name_required": "Give the view a name.",
+  "editor_search_issues": "Search issues",
+  "editor_search_placeholder": "Search issues and comments — try label:bug assignee:me, or a key like APP-12",
+  "editor_search_syntax_note": "Free text matches titles, descriptions and comments.",
+  "editor_search_include_archived": "Include archived",
+  "editor_nav_row_updated": "Updated",
+  "editor_nav_row_time_title": "{label} {date}",
+  "editor_cal_nav": "Navigation bar",
+  "editor_cal_prev": "Go to the Previous Month",
+  "editor_cal_next": "Go to the Next Month",
+  "editor_cal_month": "Choose the Month",
+  "editor_cal_year": "Choose the Year",
+  "editor_priority_urgent": "Urgent",
+  "editor_dash_sections": "Dashboards sections",
+  "editor_dash_tab_pulse": "Pulse",
+  "editor_collab_connecting": "Connecting…",
+  "editor_collab_offline": "Offline — changes will sync",
+  "editor_collab_unavailable": "Live editing unavailable",
+  "editor_collab_offline_tip": "Your changes are kept and sync when the connection is back.",
+  "editor_hotkey_go_to_arm": "Go to… (then a key below)",
+  "editor_hotkey_next_issue": "Next issue",
+  "editor_hotkey_prev_issue": "Previous issue",
+  "editor_ed_link_invalid": "Enter a web or email address.",
+  "editor_sync_pending": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} change pending sync",
+        "countPlural=other": "{count} changes pending sync"
+      }
+    }
+  ],
+  "editor_sync_offline": "Offline · {pending}",
+  "editor_sync_retry": "{details}\n\nClick to retry now"
 }

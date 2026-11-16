@@ -24,6 +24,7 @@
   import { useProjectData, useProjectPermission } from '@/lib/components/project/project-data.svelte';
   import { TooltipProvider } from '@/lib/components/ui/tooltip';
   import { Skeleton } from '@/lib/components/ui-icons';
+  import { m } from '@/lib/i18n';
   import { issueUrl } from '@/lib/issue-links';
   import type { IssueRow } from '@/lib/issue-model';
   import { buildTimeline, type CommentReaction, type TimelineComment } from '@/lib/timeline';
@@ -81,7 +82,7 @@
           loaded =
             prev.issueId === issueId && prev.timeline
               ? prev
-              : { issueId, timeline: null, error: 'Could not load activity.' };
+              : { issueId, timeline: null, error: m.editor_activity_load_failed() };
         }
       }
     }, delay);
@@ -150,7 +151,7 @@
       return true;
     } catch (err) {
       setComments(issueId, (list) => list.filter((c) => c.id !== temp.id));
-      toast.error(err instanceof Error && err.message ? err.message : 'Could not post the comment.');
+      toast.error(err instanceof Error && err.message ? err.message : m.editor_activity_post_failed());
       return false;
     }
   }
@@ -169,7 +170,7 @@
         if (!result.ok) throw new Error(actionErrorText(result.error));
       } catch (err) {
         setComments(issueId, (list) => list.map((c) => (c.id === comment.id ? comment : c)));
-        toast.error(err instanceof Error && err.message ? err.message : 'Could not save the comment.');
+        toast.error(err instanceof Error && err.message ? err.message : m.editor_activity_save_failed());
       }
     },
     onDelete: async (comment) => {
@@ -183,7 +184,7 @@
         if (!result.ok) throw new Error(actionErrorText(result.error));
       } catch (err) {
         setComments(issueId, (list) => [...list, ...removed]);
-        toast.error(err instanceof Error && err.message ? err.message : 'Could not delete the comment.');
+        toast.error(err instanceof Error && err.message ? err.message : m.editor_activity_delete_failed());
       }
     },
     onReact: (comment, emoji: CommentReaction) => {
@@ -201,7 +202,7 @@
         })
         .catch((err: unknown) => {
           setComments(issueId, flip);
-          toast.error(err instanceof Error && err.message ? err.message : 'Could not save the reaction.');
+          toast.error(err instanceof Error && err.message ? err.message : m.editor_activity_reaction_failed());
         });
     },
   };
@@ -209,10 +210,10 @@
 
 <TooltipProvider delayDuration={300}>
   <section aria-labelledby={`activity-${issue.id}`} class="flex flex-col gap-3">
-    <h2 id={`activity-${issue.id}`} class="text-sm font-medium">Activity</h2>
+    <h2 id={`activity-${issue.id}`} class="text-sm font-medium">{m.editor_activity_title_heading()}</h2>
 
     {#if !current}
-      <div class="flex flex-col gap-2" aria-busy="true" aria-label="Loading activity">
+      <div class="flex flex-col gap-2" aria-busy="true" aria-label={m.editor_activity_loading()}>
         <Skeleton class="h-5 w-2/3" />
         <Skeleton class="h-5 w-1/2" />
         <Skeleton variant="card" class="h-16" />
@@ -228,11 +229,11 @@
             reload += 1;
           }}
         >
-          Retry
+          {m.editor_retry()}
         </button>
       </p>
     {:else if items.length === 0}
-      <p class="text-xs text-muted-foreground">No activity yet.</p>
+      <p class="text-xs text-muted-foreground">{m.editor_activity_empty()}</p>
     {:else}
       <ol class="flex flex-col gap-1">
         {#each items as item (item.kind === 'activity' ? `a:${item.activity.id}` : item.kind === 'collapsed' ? `x:${item.id}` : `c:${item.comment.id}`)}
@@ -252,7 +253,7 @@
                 class="flex items-center gap-2 py-1 pl-0.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
               >
                 <ChevronsUpDown class="size-4" aria-hidden="true" />
-                Show {item.count} more
+                {m.editor_activity_show_more({ count: item.count })}
               </button>
             </li>
           {:else}
@@ -280,8 +281,8 @@
               {#if replyTo === threadRoot.id && canComment.current}
                 <div class="pl-7">
                   <CommentComposer
-                    placeholder="Leave a reply…"
-                    submitLabel="Reply"
+                    placeholder={m.editor_comment_reply_placeholder()}
+                    submitLabel={m.editor_comment_reply()}
                     autoFocus
                     onCancel={() => (replyTo = null)}
                     onSubmit={async (body) => {

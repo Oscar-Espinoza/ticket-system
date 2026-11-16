@@ -6,6 +6,7 @@
   import ActivityIcon from '@lucide/svelte/icons/activity';
   import ArrowRightIcon from '@lucide/svelte/icons/arrow-right';
 
+  import { formatDate, m } from '@/lib/i18n';
   import { epicPath } from '@/lib/epic-model';
   import EpicIcon from '@/lib/components/epics/epic-icon.svelte';
   import HealthChip from '@/lib/components/epics/health-chip.svelte';
@@ -20,9 +21,9 @@
 
 <div class="flex flex-col gap-6">
   <section aria-labelledby="pulse-week" class="flex flex-col gap-2">
-    <h2 id="pulse-week" class="px-2 text-xs font-medium text-muted-foreground">Last 7 days</h2>
+    <h2 id="pulse-week" class="px-2 text-xs font-medium text-muted-foreground">{m.editor_pulse_last_days()}</h2>
     {#if active.length === 0}
-      <p class="px-2 text-sm text-muted-foreground">No issues created or completed in your projects this week.</p>
+      <p class="px-2 text-sm text-muted-foreground">{m.editor_pulse_empty()}</p>
     {:else}
       <ul class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {#each active as project (project.projectId)}
@@ -37,14 +38,14 @@
               </span>
               <span class="flex gap-4 text-xs text-muted-foreground">
                 <span>
-                  <span class="text-base font-medium text-foreground tabular-nums">{project.completed}</span> completed
+                  <span class="text-base font-medium text-foreground tabular-nums">{project.completed}</span> {m.editor_pulse_completed()}
                 </span>
                 <span>
-                  <span class="text-base font-medium text-foreground tabular-nums">{project.created}</span> created
+                  <span class="text-base font-medium text-foreground tabular-nums">{project.created}</span> {m.editor_pulse_created()}
                 </span>
                 <span>
                   <span class="text-base font-medium text-foreground tabular-nums">{project.updates}</span>{' '}
-                  {project.updates === 1 ? 'update' : 'updates'}
+                  {m.editor_pulse_updates({ count: project.updates })}
                 </span>
               </span>
             </a>
@@ -56,12 +57,12 @@
 
   <section aria-labelledby="pulse-updates" class="flex flex-col gap-2">
     <h2 id="pulse-updates" class="px-2 text-xs font-medium text-muted-foreground">
-      Epic updates · last {days} days
+      {m.editor_pulse_epic_updates({ count: days })}
     </h2>
     {#if pulse.updates.length === 0}
       <EmptyState
-        title="No epic updates yet"
-        description="Post an update on an epic (health + a short note) and it shows up here and in everyone's weekly pulse."
+        title={m.editor_pulse_no_updates()}
+        description={m.editor_pulse_no_updates_body()}
       >
         {#snippet icon()}<ActivityIcon />{/snippet}
       </EmptyState>
@@ -70,7 +71,7 @@
         {#each pulse.updates as update (update.id)}
           <li class="flex gap-3 border-b border-border/60 px-2 py-3 last:border-b-0">
             <Avatar
-              name={update.authorName ?? 'Former member'}
+              name={update.authorName ?? m.editor_comment_former_member()}
               src={update.authorImage}
               size={24}
               class="mt-0.5 shrink-0"
@@ -87,12 +88,12 @@
                 <span class="font-mono text-xs text-muted-foreground">{update.projectKey}</span>
                 {#if update.previousHealth && update.previousHealth !== update.health}
                   <HealthChip health={update.previousHealth} class="opacity-60" />
-                  <ArrowRightIcon class="size-3 text-muted-foreground" aria-label="changed to" />
+                  <ArrowRightIcon class="size-3 text-muted-foreground" aria-label={m.editor_pulse_changed_to()} />
                 {/if}
                 <HealthChip health={update.health} />
                 <time
                   datetime={new Date(update.createdAt).toISOString()}
-                  title={new Date(update.createdAt).toLocaleString()}
+                  title={formatDate(update.createdAt, { dateStyle: 'medium', timeStyle: 'short' })}
                   class="ml-auto text-xs text-muted-foreground tabular-nums"
                 >
                   {relativeTime(update.createdAt)}
@@ -101,7 +102,7 @@
               {#if update.excerpt}
                 <p class="line-clamp-3 text-sm text-muted-foreground">{update.excerpt}</p>
               {/if}
-              <p class="text-xs text-muted-foreground">{update.authorName ?? 'Former member'}</p>
+              <p class="text-xs text-muted-foreground">{update.authorName ?? m.editor_comment_former_member()}</p>
             </div>
           </li>
         {/each}

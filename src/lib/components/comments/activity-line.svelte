@@ -6,6 +6,8 @@
 -->
 <script module lang="ts">
   import type { IssueChange } from '@/lib/events';
+  import { m } from '@/lib/i18n';
+  import type { Priority } from '@/lib/issue-model';
   import type { TimelineActivity } from '@/lib/timeline';
 
   export interface ActivityLineItem extends TimelineActivity {
@@ -36,13 +38,20 @@
     return (items ?? []).map((item) => asNamed(item)?.name).filter(Boolean) as string[];
   }
 
-  const FIXED: Record<string, string> = {
-    'issue.created': 'created the issue',
-    'issue.archived': 'archived the issue',
-    'issue.unarchived': 'restored the issue from the archive',
-    'issue.deleted': 'moved the issue to the trash',
-    'issue.restored': 'restored the issue',
+  const FIXED: Record<string, () => string> = {
+    'issue.created': () => m.editor_activity_created(),
+    'issue.archived': () => m.editor_activity_archived(),
+    'issue.unarchived': () => m.editor_activity_unarchived(),
+    'issue.deleted': () => m.editor_activity_deleted(),
+    'issue.restored': () => m.editor_activity_restored(),
   };
+
+  // Messages are built with placeholder tokens for the highlighted values
+  // (names, dates, icons), then split back into text and rich parts, so word
+  // order stays up to each language.
+  type Slot = { text: string; list?: unknown[]; state?: Named | null; priority?: Priority };
+  const SLOT_SPLIT = /\uE000(\w+)\uE000/;
+  const tok = (name: string) => `\uE000${name}\uE000`;
 </script>
 
 <script lang="ts">
@@ -60,14 +69,14 @@
   const data = useProjectData();
   const actorName = $derived(
     line.actor?.name ??
-      (typeof line.data.actorName === 'string' && line.data.actorName ? line.data.actorName : 'System'),
+      (typeof line.data.actorName === 'string' && line.data.actorName ? line.data.actorName : m.editor_activity_system()),
   );
 
   function cycleName(cycle: Named | null): string | null {
     if (!cycle) return null;
     if (cycle.name) return cycle.name;
     const known = data.cycles.find((c) => c.id === cycle.id);
-    return known ? `Cycle ${known.number}` : 'a cycle';
+    return known ? m.editor_activity_cycle_n({ number: known.number }) : m.editor_activity_a_cycle();
   }
 </script>
 
@@ -92,96 +101,130 @@
   {/if}
 {/snippet}
 
+{#snippet fmt(template: string, slots: Record<string, Slot>)}
+  {#each template.split(SLOT_SPLIT) as part, i (i)}
+    {#if i % 2 === 0}{part}{:else}
+      {@const slot = slots[part]}
+      {#if slot.state}{@render glyph(slot.state)}{/if}
+      {#if slot.priority}<PriorityIcon priority={slot.priority} size={14} class="mr-1 inline align-[-2px]" />{/if}
+      {#if slot.list}{@render names(slot.list)}{:else}{@render v(slot.text)}{/if}
+    {/if}
+  {/each}
+{/snippet}
+
 {#snippet describeChange(change: IssueChange, actorId: string | null)}
   {@const from = asNamed(change.from)}
   {@const to = asNamed(change.to)}
   {#if change.field === 'stateId'}
-    changed status from {@render glyph(from)}{@render v(from?.name ?? 'unknown')} to {@render glyph(to)}{@render v(
-      to?.name ?? 'unknown',
+    {@render fmt(
+      m.editor_activity_status({ from: tok('from'), to: tok('to') }),
+      {
+        from: { text: from?.name ?? m.editor_activity_unknown(), state: from },
+        to: { text: to?.name ?? m.editor_activity_unknown(), state: to },
+      },
     )}
   {:else if change.field === 'priority'}
     {@const value = change.to}
     {#if !isPriority(value) || value === 'none'}
-      removed the priority
+      {m.editor_activity_priority_removed()}
     {:else}
-      set priority to <PriorityIcon priority={value} size={14} class="mr-1 inline align-[-2px]" />{@render v(
-        PRIORITY_LABEL[value],
-      )}
+      {@render fmt(m.editor_activity_priority_set({ value: tok('value') }), {
+        value: { text: PRIORITY_LABEL[value], priority: value },
+      })}
     {/if}
   {:else if change.field === 'assigneeId'}
     {#if !to}
-      {#if from?.name}unassigned {@render v(from.name)}{:else}unassigned the issue{/if}
+      {#if from?.name}
+        {@render fmt(m.editor_activity_unassigned_name({ name: tok('name') }), { name: { text: from.name } })}
+      {:else}
+        {m.editor_activity_unassigned()}
+      {/if}
     {:else if to.id && to.id === actorId}
-      self-assigned the issue
+      {m.editor_activity_self_assigned()}
     {:else if from}
-      reassigned from {@render v(from.name)} to {@render v(to.name)}
+      {@render fmt(m.editor_activity_reassigned({ from: tok('from'), to: tok('to') }), {
+        from: { text: from.name ?? '' },
+        to: { text: to.name ?? '' },
+      })}
     {:else}
-      assigned the issue to {@render v(to.name)}
+      {@render fmt(m.editor_activity_assigned({ to: tok('to') }), { to: { text: to.name ?? '' } })}
     {/if}
   {:else if change.field === 'labelIds'}
     {@const added = change.added ?? []}
     {@const removed = change.removed ?? []}
-    {#if added.length > 0}added {added.length > 1 ? 'labels' : 'label'} {@render names(added)}{/if}{#if added.length > 0 && removed.length > 0}{' and '}{/if}{#if removed.length > 0}removed {removed.length > 1 ? 'labels' : 'label'} {@render names(removed)}{/if}
+    {#if added.length > 0}{@render fmt(m.editor_activity_labels_added({ count: added.length, names: tok('names') }), { names: { text: '', list: added } })}{/if}{#if added.length > 0 && removed.length > 0}{m.editor_activity_labels_and()}{/if}{#if removed.length > 0}{@render fmt(m.editor_activity_labels_removed({ count: removed.length, names: tok('names') }), { names: { text: '', list: removed } })}{/if}
   {:else if change.field === 'estimate'}
     {#if typeof change.to === 'number'}
-      set the estimate to {@render v(formatEstimate(data.project.estimateScale, change.to))}
+      {@render fmt(m.editor_activity_estimate_set({ value: tok('value') }), {
+        value: { text: formatEstimate(data.project.estimateScale, change.to) },
+      })}
     {:else}
-      removed the estimate
+      {m.editor_activity_estimate_removed()}
     {/if}
   {:else if change.field === 'dueDate'}
     {#if isDateString(change.to)}
-      set the due date to {@render v(formatDueDate(change.to))}
+      {@render fmt(m.editor_activity_due_set({ date: tok('date') }), { date: { text: formatDueDate(change.to) } })}
     {:else}
-      removed the due date
+      {m.editor_activity_due_removed()}
     {/if}
   {:else if change.field === 'waitingOnId'}
     {#if to?.name}
-      set waiting on to {@render v(to.name)}
+      {@render fmt(m.editor_activity_waiting_set({ name: tok('name') }), { name: { text: to.name } })}
+    {:else if from?.name}
+      {@render fmt(m.editor_activity_waiting_stopped({ name: tok('name') }), { name: { text: from.name } })}
     {:else}
-      {#if from?.name}stopped waiting on {@render v(from.name)}{:else}removed waiting on{/if}
+      {m.editor_activity_waiting_removed()}
     {/if}
   {:else if change.field === 'followUp'}
     {#if isDateString(change.to)}
-      set the follow-up date to {@render v(formatDueDate(change.to))}
+      {@render fmt(m.editor_activity_followup_set({ date: tok('date') }), { date: { text: formatDueDate(change.to) } })}
     {:else}
-      removed the follow-up date
+      {m.editor_activity_followup_removed()}
     {/if}
   {:else if change.field === 'startDate'}
     {#if isDateString(change.to)}
-      set the start date to {@render v(formatDueDate(change.to))}
+      {@render fmt(m.editor_activity_start_set({ date: tok('date') }), { date: { text: formatDueDate(change.to) } })}
     {:else}
-      removed the start date
+      {m.editor_activity_start_removed()}
     {/if}
   {:else if change.field === 'parentId'}
     {#if to}
-      set the parent issue to {@render v(to.key ? `${to.key} ${to.title ?? ''}`.trim() : 'another issue')}
+      {@render fmt(m.editor_activity_parent_set({ name: tok('name') }), {
+        name: { text: to.key ? `${to.key} ${to.title ?? ''}`.trim() : m.editor_activity_another_issue() },
+      })}
     {:else}
-      removed the parent issue
+      {m.editor_activity_parent_removed()}
     {/if}
   {:else if change.field === 'cycleId'}
     {#if to}
-      added the issue to {@render v(cycleName(to))}
+      {@render fmt(m.editor_activity_cycle_added({ name: tok('name') }), { name: { text: cycleName(to) ?? '' } })}
     {:else}
-      removed the issue from {@render v(cycleName(from) ?? 'its cycle')}
+      {@render fmt(m.editor_activity_cycle_removed({ name: tok('name') }), {
+        name: { text: cycleName(from) ?? m.editor_activity_its_cycle() },
+      })}
     {/if}
   {:else if change.field === 'epicId'}
     {#if to}
-      moved the issue to epic {@render v(to.name ?? 'an epic')}
+      {@render fmt(m.editor_activity_epic_set({ name: tok('name') }), {
+        name: { text: to.name ?? m.editor_activity_an_epic() },
+      })}
     {:else}
-      removed the issue from epic {@render v(from?.name ?? '')}
+      {@render fmt(m.editor_activity_epic_removed({ name: tok('name') }), { name: { text: from?.name ?? '' } })}
     {/if}
   {:else if change.field === 'milestoneId'}
     {#if to}
-      set the milestone to {@render v(to.name ?? 'a milestone')}
+      {@render fmt(m.editor_activity_milestone_set({ name: tok('name') }), {
+        name: { text: to.name ?? m.editor_activity_a_milestone() },
+      })}
     {:else}
-      removed the milestone
+      {m.editor_activity_milestone_removed()}
     {/if}
   {:else if change.field === 'title'}
-    changed the title to {@render v(String(change.to ?? ''))}
+    {@render fmt(m.editor_activity_title({ title: tok('title') }), { title: { text: String(change.to ?? '') } })}
   {:else if change.field === 'description'}
-    updated the description
+    {m.editor_activity_description()}
   {:else}
-    updated the issue
+    {m.editor_activity_updated()}
   {/if}
 {/snippet}
 
@@ -189,10 +232,10 @@
   {#if item.change}
     {@render describeChange(item.change, item.actor?.id ?? null)}
   {:else if FIXED[item.type]}
-    {FIXED[item.type]}
+    {FIXED[item.type]()}
   {:else}
     {@const summary = item.data.summary}
-    {typeof summary === 'string' && summary.trim() ? summary : 'updated the issue'}
+    {typeof summary === 'string' && summary.trim() ? summary : m.editor_activity_updated()}
   {/if}
 {/snippet}
 

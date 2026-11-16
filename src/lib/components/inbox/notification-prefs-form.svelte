@@ -4,6 +4,7 @@
   import Send from '@lucide/svelte/icons/send';
   import { toast } from 'svelte-sonner';
 
+  import { m } from '@/lib/i18n';
   import { Button } from '@/lib/components/ui/button';
   import { Label } from '@/lib/components/ui/label';
   import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/lib/components/ui/select';
@@ -18,15 +19,17 @@
   } from '@/lib/notifications/types';
   import SwitchRow from './switch-row.svelte';
 
-  const DIGEST_LABEL: Record<DigestFrequency, string> = {
-    off: 'Off',
-    daily: 'Daily',
-    weekly: 'Weekly (Mondays)',
+  const DIGEST_LABEL: Record<DigestFrequency, () => string> = {
+    off: () => m.editor_prefs_digest_off(),
+    daily: () => m.editor_prefs_digest_daily(),
+    weekly: () => m.editor_prefs_digest_weekly(),
   };
-  const digestItems = (Object.keys(DIGEST_LABEL) as DigestFrequency[]).map((value) => ({
-    value,
-    label: DIGEST_LABEL[value],
-  }));
+  const digestItems = $derived(
+    (Object.keys(DIGEST_LABEL) as DigestFrequency[]).map((value) => ({
+      value,
+      label: DIGEST_LABEL[value](),
+    })),
+  );
 
   let {
     email,
@@ -53,7 +56,7 @@
     const result = await updateNotificationPrefs(patch).catch(() => null);
     if (!result?.ok) {
       revert();
-      toast.error(result?.error ?? 'Could not save your settings');
+      toast.error(result?.error ?? m.editor_prefs_save_failed());
     }
   }
 
@@ -76,7 +79,7 @@
       .then((result) => {
         if (result?.ok) return;
         digest = previous;
-        toast.error(result?.error ?? 'Could not save your settings');
+        toast.error(result?.error ?? m.editor_prefs_save_failed());
       });
   }
 
@@ -84,11 +87,11 @@
     testing = true;
     try {
       const result = await sendTestEmail().catch(() => null);
-      if (!result?.ok) toast.error(result?.error ?? 'Could not send the test email');
-      else if (result.delivered) toast.success(`Test email sent to ${email}`);
+      if (!result?.ok) toast.error(result?.error ?? m.editor_prefs_test_failed());
+      else if (result.delivered) toast.success(m.editor_prefs_test_sent({ email }));
       else
-        toast.warning('Email delivery is not configured on this server', {
-          description: 'Set RESEND_API_KEY and EMAIL_FROM. The message was written to the server log.',
+        toast.warning(m.editor_prefs_not_configured(), {
+          description: m.editor_prefs_not_configured_body(),
         });
     } finally {
       testing = false;
@@ -98,22 +101,22 @@
 
 <div class="flex flex-col gap-10">
   <section>
-    <h2 class="mb-1 text-base font-medium">Email</h2>
+    <h2 class="mb-1 text-base font-medium">{m.editor_prefs_email()}</h2>
     <p class="mb-4 text-sm text-muted-foreground">
-      Notifications are always in your inbox. Email copies go to {email}.
+      {m.editor_prefs_email_intro({ email })}
     </p>
     <SwitchRow
       id="notify-email"
-      label="Email me about notifications"
-      description="One email per batch of updates, linking back to the issue."
+      label={m.editor_prefs_email_me()}
+      description={m.editor_prefs_email_me_body()}
       checked={emailEnabled}
       onChange={toggleEmail}
     />
     <div class="mt-4 flex items-center gap-4">
       <div class="flex min-w-0 flex-1 flex-col gap-0.5">
-        <Label for="notify-digest">Email digest</Label>
+        <Label for="notify-digest">{m.editor_prefs_digest()}</Label>
         <p class="text-xs text-muted-foreground">
-          Bundle updates into one email. Assignments and mentions still email you right away.
+          {m.editor_prefs_digest_body()}
         </p>
       </div>
       <Select
@@ -133,7 +136,7 @@
     </div>
     <Button variant="outline" size="sm" class="mt-4" onclick={test} disabled={testing}>
       <Send />
-      {testing ? 'Sending…' : 'Send test email'}
+      {testing ? m.editor_prefs_sending() : m.editor_prefs_send_test()}
     </Button>
   </section>
 
@@ -141,9 +144,9 @@
 
   {#if pushSection}
     <section>
-      <h2 class="mb-1 text-base font-medium">Push</h2>
+      <h2 class="mb-1 text-base font-medium">{m.editor_prefs_push()}</h2>
       <p class="mb-4 text-sm text-muted-foreground">
-        System notifications on this computer or phone, even when the app isn’t open.
+        {m.editor_prefs_push_body()}
       </p>
       {@render pushSection()}
     </section>
@@ -151,10 +154,9 @@
   {/if}
 
   <section>
-    <h2 class="mb-1 text-base font-medium">Notify me when</h2>
+    <h2 class="mb-1 text-base font-medium">{m.editor_prefs_notify_when()}</h2>
     <p class="mb-4 text-sm text-muted-foreground">
-      Turning a type off stops its inbox item, email and push. Reminders you set are always
-      delivered.
+      {m.editor_prefs_notify_when_body()}
     </p>
     <div class="flex flex-col divide-y divide-border rounded-lg border border-border">
       {#each NOTIFICATION_PREFS as pref (pref.type)}

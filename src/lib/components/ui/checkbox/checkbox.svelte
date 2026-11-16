@@ -54,7 +54,7 @@
     {#if isChecked || indeterminate}
       <div
         data-slot="checkbox-indicator"
-        class="grid place-content-center text-current transition-none [&>svg]:size-3.5"
+        class={'grid place-content-center text-current transition-none [&>svg]:size-3.5'}
       >
         <CheckIcon />
       </div>
