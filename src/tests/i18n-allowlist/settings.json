@@ -1,9 +1,5 @@
 {
   "files": {
-    "src/lib/components/slack/slack-app-settings.svelte": "pending translation (area settings, 1 strings)",
-    "src/lib/components/slack/slack-link-row.svelte": "pending translation (area settings, 2 strings)",
-    "src/lib/components/slack/slack-setup-guide.svelte": "pending translation (area settings, 3 strings)",
-    "src/lib/components/slack/slack-workspace-row.svelte": "pending translation (area settings, 2 strings)",
     "src/routes/dashboard/projects/[id]/settings/+layout.svelte": "pending translation (area settings, 1 strings)",
     "src/routes/dashboard/projects/[id]/settings/audit/+page.svelte": "pending translation (area settings, 2 strings)",
     "src/routes/dashboard/projects/[id]/settings/automations/+page.svelte": "pending translation (area settings, 1 strings)",

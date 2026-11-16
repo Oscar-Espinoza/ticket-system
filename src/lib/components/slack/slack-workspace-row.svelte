@@ -1,5 +1,6 @@
 <!-- One installed Slack workspace: where unlinked Asks land, uninstall. -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import LoaderCircleIcon from '@lucide/svelte/icons/loader-circle';
   import { toast } from 'svelte-sonner';
 
@@ -20,7 +21,7 @@
   import type { SlackAdminProject, SlackWorkspace } from './slack-types';
 
   const NONE = '__none';
-  const NONE_LABEL = 'Nowhere (linked users only)';
+  const noneLabel = $derived(m.settings_slack_nowhere_linked());
 
   let { workspace, adminProjects }: { workspace: SlackWorkspace; adminProjects: SlackAdminProject[] } = $props();
 
@@ -38,7 +39,7 @@
       : adminProjects;
   });
   const items = $derived([
-    { value: NONE, label: NONE_LABEL },
+    { value: NONE, label: noneLabel },
     ...options.map((p) => ({ value: p.id, label: p.name, disabled: p.disabled })),
   ]);
 
@@ -52,7 +53,9 @@
         projectId: next === NONE ? null : next,
       });
       if (!result) return;
-      if (result.ok) toast.success(next === NONE ? 'Asks from linked users only' : 'Default project updated');
+      if (result.ok) toast.success(
+          next === NONE ? m.settings_slack_asks_linked_only_toast() : m.settings_slack_default_updated_toast(),
+        );
       else {
         value = previous;
         toast.error(result.error);
@@ -67,7 +70,7 @@
     try {
       const result = await uninstallSlack({ teamId: workspace.teamId });
       if (!result) return;
-      if (result.ok) toast.success(`Removed from ${workspace.teamName}`);
+      if (result.ok) toast.success(m.settings_slack_removed_toast({ name: workspace.teamName }));
       else toast.error(result.error);
     } finally {
       removing = false;
@@ -81,14 +84,16 @@
   <div class="min-w-0 flex-1">
     <p class="truncate text-sm font-medium">{workspace.teamName}</p>
     <p class="truncate text-xs text-muted-foreground">
-      {workspace.installedByName ? `Installed by ${workspace.installedByName}` : 'Installed'}
+      {workspace.installedByName
+        ? m.settings_slack_installed_by({ name: workspace.installedByName })
+        : m.settings_slack_installed()}
     </p>
   </div>
   <div class="flex items-center gap-2">
     {#if workspace.canManage}
-      <Label for={selectId} class="text-xs font-normal text-muted-foreground">Unlinked Asks go to</Label>
+      <Label for={selectId} class="text-xs font-normal text-muted-foreground">{m.settings_slack_unlinked_go_to()}</Label>
     {:else}
-      <span class="text-xs text-muted-foreground">Unlinked Asks go to</span>
+      <span class="text-xs text-muted-foreground">{m.settings_slack_unlinked_go_to()}</span>
     {/if}
     {#if workspace.canManage}
       <Select {items} bind:value={() => value, (next) => change(next)} disabled={saving}>
@@ -96,14 +101,14 @@
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value={NONE}>{NONE_LABEL}</SelectItem>
+          <SelectItem value={NONE}>{noneLabel}</SelectItem>
           {#each options as project (project.id)}
             <SelectItem value={project.id} disabled={project.disabled ?? false}>{project.name}</SelectItem>
           {/each}
         </SelectContent>
       </Select>
     {:else}
-      <span class="text-sm">{workspace.defaultProject?.name ?? 'Nowhere'}</span>
+      <span class="text-sm">{workspace.defaultProject?.name ?? m.settings_slack_nowhere()}</span>
     {/if}
   </div>
   {#if workspace.canManage}
@@ -115,22 +120,21 @@
       disabled={removing}
     >
       {#if removing}<LoaderCircleIcon class="animate-spin" />{/if}
-      Uninstall
+      {m.settings_slack_uninstall()}
     </Button>
   {/if}
 
   <AlertDialog bind:open={confirming}>
     <AlertDialogContent size="sm">
       <AlertDialogHeader>
-        <AlertDialogTitle>Uninstall from {workspace.teamName}?</AlertDialogTitle>
+        <AlertDialogTitle>{m.settings_slack_uninstall_title({ name: workspace.teamName })}</AlertDialogTitle>
         <AlertDialogDescription>
-          /ask and the message shortcut stop working there, and everyone’s Slack link to this workspace
-          is removed. Existing issues stay.
+          {m.settings_slack_uninstall_desc()}
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>
-        <AlertDialogCancel>Cancel</AlertDialogCancel>
-        <AlertDialogAction variant="destructive" onclick={uninstall}>Uninstall</AlertDialogAction>
+        <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
+        <AlertDialogAction variant="destructive" onclick={uninstall}>{m.settings_slack_uninstall()}</AlertDialogAction>
       </AlertDialogFooter>
     </AlertDialogContent>
   </AlertDialog>
