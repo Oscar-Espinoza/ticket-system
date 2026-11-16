@@ -284,7 +284,7 @@
     if (!editor || link === null) return;
     const href = normalizeHref(link);
     if (href === null) {
-      linkInput?.setCustomValidity('Enter a web or email address.');
+      linkInput?.setCustomValidity(m.editor_ed_link_invalid());
       linkInput?.reportValidity();
       return;
     }

@@ -775,5 +775,38 @@
   "editor_search_syntax_note": "Free text matches titles, descriptions and comments.",
   "editor_search_include_archived": "Include archived",
   "editor_nav_row_updated": "Updated",
-  "editor_nav_row_time_title": "{label} {date}"
+  "editor_nav_row_time_title": "{label} {date}",
+  "editor_cal_nav": "Navigation bar",
+  "editor_cal_prev": "Go to the Previous Month",
+  "editor_cal_next": "Go to the Next Month",
+  "editor_cal_month": "Choose the Month",
+  "editor_cal_year": "Choose the Year",
+  "editor_priority_urgent": "Urgent",
+  "editor_dash_sections": "Dashboards sections",
+  "editor_dash_tab_pulse": "Pulse",
+  "editor_collab_connecting": "Connecting…",
+  "editor_collab_offline": "Offline — changes will sync",
+  "editor_collab_unavailable": "Live editing unavailable",
+  "editor_collab_offline_tip": "Your changes are kept and sync when the connection is back.",
+  "editor_hotkey_go_to_arm": "Go to… (then a key below)",
+  "editor_hotkey_next_issue": "Next issue",
+  "editor_hotkey_prev_issue": "Previous issue",
+  "editor_ed_link_invalid": "Enter a web or email address.",
+  "editor_sync_pending": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} change pending sync",
+        "countPlural=other": "{count} changes pending sync"
+      }
+    }
+  ],
+  "editor_sync_offline": "Offline · {pending}",
+  "editor_sync_retry": "{details}\n\nClick to retry now"
 }

@@ -1,5 +1,6 @@
 <!-- Nothing while synced; otherwise a quiet "Connecting…" / "Offline" note. -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import CloudOff from '@lucide/svelte/icons/cloud-off';
   import Loader2 from '@lucide/svelte/icons/loader-circle';
 
@@ -10,10 +11,10 @@
 
   const text = $derived(
     snapshot.status === 'connecting'
-      ? 'Connecting…'
+      ? m.editor_collab_connecting()
       : snapshot.status === 'offline'
-        ? 'Offline — changes will sync'
-        : 'Live editing unavailable',
+        ? m.editor_collab_offline()
+        : m.editor_collab_unavailable(),
   );
 </script>
 
@@ -21,7 +22,7 @@
   <span
     role="status"
     class={cn('flex items-center gap-1 text-xs text-muted-foreground', className)}
-    title={snapshot.status === 'offline' ? 'Your changes are kept and sync when the connection is back.' : undefined}
+    title={snapshot.status === 'offline' ? m.editor_collab_offline_tip() : undefined}
   >
     {#if snapshot.status === 'connecting'}
       <Loader2 class="size-3.5 animate-spin" aria-hidden="true" />

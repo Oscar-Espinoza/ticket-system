@@ -3,6 +3,7 @@
 </script>
 
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import { Dialog as SheetPrimitive, type WithoutChild, type WithoutChildrenOrChild } from 'bits-ui';
   import type { ComponentProps } from 'svelte';
   import XIcon from '@lucide/svelte/icons/x';
@@ -47,7 +48,7 @@
         {#snippet child({ props })}
           <Button variant="ghost" class="absolute top-3 right-3" size="icon-sm" {...props}>
             <XIcon />
-            <span class="sr-only">Close</span>
+            <span class="sr-only">{m.common_close()}</span>
           </Button>
         {/snippet}
       </SheetPrimitive.Close>

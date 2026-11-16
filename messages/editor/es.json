@@ -775,5 +775,38 @@
   "editor_search_syntax_note": "El texto libre coincide con títulos, descripciones y comentarios.",
   "editor_search_include_archived": "Incluir archivados",
   "editor_nav_row_updated": "Actualizado",
-  "editor_nav_row_time_title": "{label} {date}"
+  "editor_nav_row_time_title": "{label} {date}",
+  "editor_cal_nav": "Barra de navegación",
+  "editor_cal_prev": "Ir al mes anterior",
+  "editor_cal_next": "Ir al mes siguiente",
+  "editor_cal_month": "Elegir el mes",
+  "editor_cal_year": "Elegir el año",
+  "editor_priority_urgent": "Urgente",
+  "editor_dash_sections": "Secciones de paneles",
+  "editor_dash_tab_pulse": "Pulso",
+  "editor_collab_connecting": "Conectando…",
+  "editor_collab_offline": "Sin conexión: los cambios se sincronizarán",
+  "editor_collab_unavailable": "La edición en vivo no está disponible",
+  "editor_collab_offline_tip": "Tus cambios se conservan y se sincronizan cuando vuelva la conexión.",
+  "editor_hotkey_go_to_arm": "Ir a… (y luego una tecla de abajo)",
+  "editor_hotkey_next_issue": "Ticket siguiente",
+  "editor_hotkey_prev_issue": "Ticket anterior",
+  "editor_ed_link_invalid": "Escribe una dirección web o de correo.",
+  "editor_sync_pending": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} cambio pendiente de sincronizar",
+        "countPlural=other": "{count} cambios pendientes de sincronizar"
+      }
+    }
+  ],
+  "editor_sync_offline": "Sin conexión · {pending}",
+  "editor_sync_retry": "{details}\n\nHaz clic para reintentar ahora"
 }

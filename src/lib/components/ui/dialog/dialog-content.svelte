@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import type { ComponentProps, Snippet } from "svelte"
   import { Dialog as DialogPrimitive, type WithoutChildrenOrChild } from "bits-ui"
   import XIcon from "@lucide/svelte/icons/x"
@@ -38,7 +39,7 @@
         {#snippet child({ props })}
           <Button {...props} variant="ghost" class="absolute top-2 right-2" size="icon-sm">
             <XIcon />
-            <span class="sr-only">Close</span>
+            <span class="sr-only">{m.common_close()}</span>
           </Button>
         {/snippet}
       </DialogPrimitive.Close>

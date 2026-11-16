@@ -3,6 +3,7 @@
   update feed and this week's numbers across your projects.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import DashboardList from '@/lib/components/dashboards/dashboard-list.svelte';
   import NewDashboardButton from '@/lib/components/dashboards/new-dashboard-button.svelte';
   import PulseFeed from '@/lib/components/dashboards/pulse-feed.svelte';
@@ -19,32 +20,32 @@
 </script>
 
 <svelte:head>
-  <title>{data.pulse ? 'Pulse' : 'Dashboards'} · Ticket System</title>
+  <title>{m.editor_shell_page_title({ page: data.pulse ? m.editor_dash_tab_pulse() : m.editor_nav_dashboards() })}</title>
 </svelte:head>
 
 <div class="mx-auto flex w-full max-w-4xl flex-col gap-4">
   <div class="flex items-center gap-3">
-    <h1 class="text-xl font-medium">{data.pulse ? 'Pulse' : 'Dashboards'}</h1>
+    <h1 class="text-xl font-medium">{data.pulse ? m.editor_dash_tab_pulse() : m.editor_nav_dashboards()}</h1>
     {#if !data.pulse}
       <div class="ml-auto">
         <NewDashboardButton projects={data.projects} />
       </div>
     {/if}
   </div>
-  <nav aria-label="Dashboards sections" class="flex gap-4 border-b border-border">
+  <nav aria-label={m.editor_dash_sections()} class="flex gap-4 border-b border-border">
     <a
       href="/dashboard/dashboards"
       aria-current={!data.pulse ? 'page' : undefined}
       class={tabClass(!data.pulse)}
     >
-      Dashboards
+      {m.editor_nav_dashboards()}
     </a>
     <a
       href="/dashboard/dashboards?tab=pulse"
       aria-current={data.pulse ? 'page' : undefined}
       class={tabClass(data.pulse)}
     >
-      Pulse
+      {m.editor_dash_tab_pulse()}
     </a>
   </nav>
   {#if data.feed}

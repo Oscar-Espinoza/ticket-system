@@ -122,10 +122,10 @@
       };
     };
     const unregister = registerHotkeys([
-      { key: 'g', description: 'Go to… (then a key below)', scope: 'Navigation', handler: arm },
+      { key: 'g', description: m.editor_hotkey_go_to_arm(), scope: 'Navigation', handler: arm },
       ...GO_TO.map((t) => ({
         key: `G ${t.key.toUpperCase()}`,
-        description: `Go to ${t.label.toLowerCase()}`,
+        description: m.editor_palette_go_to({ page: t.label.toLowerCase() }),
         scope: 'Navigation',
         passive: true,
       })),

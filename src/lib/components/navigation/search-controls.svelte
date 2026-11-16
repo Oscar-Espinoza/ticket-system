@@ -51,7 +51,7 @@
   $effect(() => debounce.cancel);
 
   const projectItems = $derived([
-    { value: ALL, label: 'All projects' },
+    { value: ALL, label: m.editor_dash_all_projects() },
     ...projects.map((project) => ({ value: project.id, label: project.name })),
   ]);
 

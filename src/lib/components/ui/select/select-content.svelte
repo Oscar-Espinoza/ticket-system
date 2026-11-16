@@ -49,7 +49,7 @@
     <SelectPrimitive.Viewport
       data-position={position}
       class={cn(
-        // Radix sets the list's min-width to the trigger width in both modes.
+        // Radix sets the min-width of the list to the trigger width in both modes.
         'min-w-(--bits-select-anchor-width) data-[position=popper]:h-(--bits-select-anchor-height) data-[position=popper]:w-full',
       )}
     >

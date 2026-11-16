@@ -174,7 +174,7 @@
 
 {#snippet issueFacts(issue: IssueRow)}
   <dl
-    class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground [&>div]:flex [&>div]:items-center [&>div]:gap-1.5"
+    class={'flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground [&>div]:flex [&>div]:items-center [&>div]:gap-1.5'}
   >
     <div>
       <dt class="sr-only">{m.common_status()}</dt>

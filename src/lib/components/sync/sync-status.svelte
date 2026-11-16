@@ -7,6 +7,7 @@
   import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw';
   import { online as onlineState } from 'svelte/reactivity/window';
 
+  import { m } from '@/lib/i18n';
   import { flush, setSyncUser, useOutboxItems } from '@/lib/svelte/outbox.svelte';
   import { cn } from '@/lib/utils';
 
@@ -16,7 +17,7 @@
   const online = $derived(onlineState.current ?? true);
   const outbox = useOutboxItems();
   const pending = $derived(outbox.current.filter((item) => item.userId === userId));
-  const count = $derived(`${pending.length} ${pending.length === 1 ? 'change' : 'changes'} pending sync`);
+  const count = $derived(m.editor_sync_pending({ count: pending.length }));
   const details = $derived(pending.map((item) => item.label).join('\n'));
 </script>
 
@@ -30,7 +31,7 @@
   >
     <button
       type="button"
-      title={online ? `${details}\n\nClick to retry now` : details}
+      title={online ? m.editor_sync_retry({ details }) : details}
       disabled={!online}
       onclick={() => {
         setSyncUser(userId);
@@ -43,7 +44,7 @@
       {:else}
         <CloudOffIcon class="size-3.5 shrink-0" aria-hidden="true" />
       {/if}
-      <span class="truncate">{online ? count : `Offline · ${count}`}</span>
+      <span class="truncate">{online ? count : m.editor_sync_offline({ pending: count })}</span>
     </button>
   </div>
 {/if}
