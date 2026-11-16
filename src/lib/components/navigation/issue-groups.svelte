@@ -4,15 +4,13 @@
   collapsed; "Hide completed" drops them entirely.
 -->
 <script module lang="ts">
+  import { m } from '@/lib/i18n';
   import { STATE_TYPE_LABEL, type StateType } from '@/lib/issue-model';
 
   const GROUP_ORDER: StateType[] = ['started', 'unstarted', 'backlog', 'triage', 'completed', 'canceled'];
 
-  const GROUP_LABEL: Record<StateType, string> = {
-    ...STATE_TYPE_LABEL,
-    started: 'In progress',
-    unstarted: 'Todo',
-  };
+  const groupLabel = (type: StateType) =>
+    type === 'started' ? m.editor_groups_in_progress() : type === 'unstarted' ? m.editor_groups_todo() : STATE_TYPE_LABEL[type];
 </script>
 
 <script lang="ts">
@@ -48,11 +46,11 @@
 <div class="flex flex-col gap-3">
   <div class="flex items-center justify-end gap-2">
     <Switch id="hide-completed" size="sm" bind:checked={hideCompleted} />
-    <Label for="hide-completed" class="text-xs font-normal text-muted-foreground">Hide completed</Label>
+    <Label for="hide-completed" class="text-xs font-normal text-muted-foreground">{m.editor_groups_hide_completed()}</Label>
   </div>
 
   {#if groups.length === 0}
-    <p class="py-8 text-center text-sm text-muted-foreground">Every issue here is completed or canceled.</p>
+    <p class="py-8 text-center text-sm text-muted-foreground">{m.editor_groups_all_closed()}</p>
   {:else}
     <NavList class="flex flex-col gap-2">
       {#each groups as group (group.type)}
@@ -64,7 +62,7 @@
               class="size-3.5 text-muted-foreground transition-transform group-data-[state=open]/trigger:rotate-90"
             />
             <StatusIcon type={group.type} size={14} />
-            {GROUP_LABEL[group.type]}
+            {groupLabel(group.type)}
             <span class="text-xs font-normal tabular-nums text-muted-foreground">
               {group.issues.length}
             </span>

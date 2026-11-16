@@ -17,6 +17,7 @@
   import { Label } from '@/lib/components/ui/label';
   import { Switch } from '@/lib/components/ui/switch';
   import { Textarea } from '@/lib/components/ui/textarea';
+  import { m } from '@/lib/i18n';
   import type { ViewListItem } from './view-list.svelte';
 
   let { view, onClose }: { view: ViewListItem; onClose: () => void } = $props();
@@ -46,7 +47,7 @@
         error = result.error;
         return;
       }
-      toast.success('View updated');
+      toast.success(m.editor_view_updated());
       // The action wrapper already refreshed the page data.
       onClose();
     } finally {
@@ -58,8 +59,8 @@
 <Dialog open onOpenChange={(open) => !open && onClose()}>
   <DialogContent class="sm:max-w-md">
     <DialogHeader>
-      <DialogTitle>Edit view</DialogTitle>
-      <DialogDescription class="sr-only">Rename or re-describe this view.</DialogDescription>
+      <DialogTitle>{m.editor_view_edit_title()}</DialogTitle>
+      <DialogDescription class="sr-only">{m.editor_view_edit_desc()}</DialogDescription>
     </DialogHeader>
     <form
       class="flex flex-col gap-4"
@@ -69,7 +70,7 @@
       }}
     >
       <div class="flex flex-col gap-1.5">
-        <Label for={`${uid}-name`}>Name</Label>
+        <Label for={`${uid}-name`}>{m.common_name()}</Label>
         <!-- svelte-ignore a11y_autofocus -->
         <Input
           id={`${uid}-name`}
@@ -82,12 +83,12 @@
         />
       </div>
       <div class="flex flex-col gap-1.5">
-        <Label for={`${uid}-description`}>Description</Label>
+        <Label for={`${uid}-description`}>{m.common_description()}</Label>
         <Textarea id={`${uid}-description`} bind:value={description} maxlength={500} rows={2} />
       </div>
       {#if view.canShare || view.shared}
         <div class="flex items-center justify-between gap-4">
-          <Label for={`${uid}-shared`}>Share with project</Label>
+          <Label for={`${uid}-shared`}>{m.editor_view_share()}</Label>
           <Switch id={`${uid}-shared`} bind:checked={shared} disabled={!view.canShare} />
         </div>
       {/if}
@@ -95,10 +96,10 @@
         <p class="text-sm text-destructive">{error}</p>
       {/if}
       <DialogFooter>
-        <Button type="button" variant="outline" onclick={onClose}>Cancel</Button>
+        <Button type="button" variant="outline" onclick={onClose}>{m.common_cancel()}</Button>
         <Button type="submit" disabled={pending || !name.trim()}>
           {#if pending}<Loader2Icon class="animate-spin" />{/if}
-          Save
+          {m.common_save()}
         </Button>
       </DialogFooter>
     </form>

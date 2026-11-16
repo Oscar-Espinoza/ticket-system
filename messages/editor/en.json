@@ -689,5 +689,91 @@
   "editor_ins_show_less": "Show less",
   "editor_ins_show_more": "Show {count} more",
   "editor_ins_no_open": "No open issues.",
-  "editor_ins_hours": "{n}h"
+  "editor_ins_hours": "{n}h",
+  "editor_view_deleted": "Deleted “{name}”",
+  "editor_view_delete_title": "Delete “{name}”?",
+  "editor_view_delete_shared": "This view is shared — it disappears for everyone in the project. Issues are not affected.",
+  "editor_view_delete_private": "The view is removed. Issues are not affected.",
+  "editor_view_delete": "Delete view",
+  "editor_view_updated": "View updated",
+  "editor_view_edit_title": "Edit view",
+  "editor_view_edit_desc": "Rename or re-describe this view.",
+  "editor_view_share": "Share with project",
+  "editor_view_saved": "Saved view “{name}”",
+  "editor_view_name_placeholder": "e.g. My open bugs",
+  "editor_view_save_title": "Save view",
+  "editor_view_save_desc": "Keeps the current filters, grouping, ordering and visible properties.",
+  "editor_view_description_optional": "Description (optional)",
+  "editor_view_share_body": "Every project member can open this view.",
+  "editor_view_edit_details": "Edit details",
+  "editor_bin_unarchived": "Unarchived {key}",
+  "editor_bin_restored": "Restored {key}",
+  "editor_bin_purged": "Deleted {key} permanently",
+  "editor_bin_admin_only": "Only admins can delete issues permanently.",
+  "editor_bin_purge_failed": "Something went wrong — the issue was not deleted.",
+  "editor_bin_no_archived": "No archived issues",
+  "editor_bin_no_archived_body": "Archive issues you no longer need in the list. They stay searchable here and can be unarchived any time.",
+  "editor_bin_empty": "Trash is empty",
+  "editor_bin_empty_body": "Deleted issues stay here for 30 days before they are removed for good.",
+  "editor_bin_search_archived": "Search archived issues",
+  "editor_bin_search_deleted": "Search deleted issues",
+  "editor_bin_filter_placeholder": "Filter by key or title…",
+  "editor_bin_count": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} issue",
+        "countPlural=other": "{count} issues"
+      }
+    }
+  ],
+  "editor_bin_count_trash": [
+    {
+      "declarations": [
+        "input count",
+        "local countPlural = count: plural"
+      ],
+      "selectors": [
+        "countPlural"
+      ],
+      "match": {
+        "countPlural=one": "{count} issue · permanently deleted 30 days after being moved to the trash",
+        "countPlural=other": "{count} issues · permanently deleted 30 days after being moved to the trash"
+      }
+    }
+  ],
+  "editor_bin_no_match": "No matching issues",
+  "editor_bin_no_match_body": "Nothing matches “{query}”.",
+  "editor_bin_unarchive": "Unarchive",
+  "editor_bin_restore": "Restore",
+  "editor_bin_purge": "Delete permanently",
+  "editor_bin_time_archived": "Archived",
+  "editor_bin_time_deleted": "Deleted",
+  "editor_bin_purge_title": "Delete {key} permanently?",
+  "editor_bin_purge_body": "“{title}” and its comments, attachments and history are removed for good. This can’t be undone.",
+  "editor_groups_hide_completed": "Hide completed",
+  "editor_groups_all_closed": "Every issue here is completed or canceled.",
+  "editor_peek": "Peek",
+  "editor_peek_hint": "Enter to open · Space to close",
+  "editor_peek_sr": "Preview of {key}. Press Enter to open it, Space or Escape to close.",
+  "editor_peek_full_page": "Full page",
+  "editor_groups_in_progress": "In progress",
+  "editor_groups_todo": "Todo",
+  "editor_fav_title": "Favorites",
+  "editor_fav_remove_named": "Remove {name} from favorites",
+  "editor_fav_remove": "Remove from favorites",
+  "editor_fav_add": "Add to favorites",
+  "editor_view_name_required": "Give the view a name.",
+  "editor_search_issues": "Search issues",
+  "editor_search_placeholder": "Search issues and comments — try label:bug assignee:me, or a key like APP-12",
+  "editor_search_syntax_note": "Free text matches titles, descriptions and comments.",
+  "editor_search_include_archived": "Include archived",
+  "editor_nav_row_updated": "Updated",
+  "editor_nav_row_time_title": "{label} {date}"
 }

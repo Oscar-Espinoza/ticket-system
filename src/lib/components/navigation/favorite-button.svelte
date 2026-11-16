@@ -3,6 +3,7 @@
   knows the state; otherwise it's looked up once on mount.
 -->
 <script lang="ts">
+  import { m } from '@/lib/i18n';
   import StarIcon from '@lucide/svelte/icons/star';
   import { toast } from 'svelte-sonner';
 
@@ -56,7 +57,7 @@
     }
   }
 
-  const label = $derived(favorited ? 'Remove from favorites' : 'Add to favorites');
+  const label = $derived(favorited ? m.editor_fav_remove() : m.editor_fav_add());
 </script>
 
 <Button

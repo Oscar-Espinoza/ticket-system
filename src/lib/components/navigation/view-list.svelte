@@ -20,6 +20,7 @@
 </script>
 
 <script lang="ts">
+  import { formatDate, m } from '@/lib/i18n';
   import LayersIcon from '@lucide/svelte/icons/layers';
   import MoreHorizontalIcon from '@lucide/svelte/icons/ellipsis';
   import PencilIcon from '@lucide/svelte/icons/pencil';
@@ -73,18 +74,18 @@
           </LabelChip>
         {/if}
         {#if view.shared}
-          <span class="flex shrink-0 items-center gap-1 text-xs text-muted-foreground" title="Shared with project members">
+          <span class="flex shrink-0 items-center gap-1 text-xs text-muted-foreground" title={m.editor_dash_shared_tip()}>
             <UsersIcon class="size-3.5" />
-            <span class="hidden md:inline">Shared</span>
+            <span class="hidden md:inline">{m.editor_dash_shared()}</span>
           </span>
         {/if}
         <span class="hidden w-28 shrink-0 truncate text-right text-xs text-muted-foreground md:block">
-          {view.isOwner ? 'You' : (view.ownerName ?? 'Former member')}
+          {view.isOwner ? m.editor_dash_you() : (view.ownerName ?? m.editor_comment_former_member())}
         </span>
         <!-- Hydration keeps the server text. -->
         <time
           datetime={new Date(view.updatedAt).toISOString()}
-          title={`Updated ${new Date(view.updatedAt).toLocaleString()}`}
+          title={m.editor_dash_updated({ date: formatDate(view.updatedAt, { dateStyle: 'medium', timeStyle: 'short' }) })}
           class="hidden w-16 shrink-0 text-right text-xs tabular-nums text-muted-foreground sm:block"
         >
           {relativeTime(view.updatedAt)}
@@ -95,7 +96,7 @@
         <DropdownMenu>
           <DropdownMenuTrigger>
             {#snippet child({ props })}
-              <Button {...props} variant="ghost" size="icon-sm" aria-label={`Actions for ${view.name}`}>
+              <Button {...props} variant="ghost" size="icon-sm" aria-label={m.editor_dash_actions_for({ name: view.name })}>
                 <MoreHorizontalIcon />
               </Button>
             {/snippet}
@@ -103,12 +104,12 @@
           <DropdownMenuContent align="end" class="w-44">
             <DropdownMenuItem onSelect={() => (editing = view)}>
               <PencilIcon />
-              Edit details
+              {m.editor_view_edit_details()}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem variant="destructive" onSelect={() => (deleting = view)}>
               <Trash2Icon />
-              Delete view
+              {m.editor_view_delete()}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

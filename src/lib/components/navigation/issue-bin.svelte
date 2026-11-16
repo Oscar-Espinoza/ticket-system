@@ -38,6 +38,7 @@
     AlertDialogTitle,
   } from '@/lib/components/ui/alert-dialog';
   import { Button } from '@/lib/components/ui/button';
+  import { m } from '@/lib/i18n';
   import { Input } from '@/lib/components/ui/input';
   import { EmptyState } from '@/lib/components/ui-icons';
   import NavList from './list-navigation.svelte';
@@ -67,18 +68,18 @@
 
   const restore = (issue: IssueRow) =>
     mode === 'archive'
-      ? mutations.unarchive(issue, () => toast.success(`Unarchived ${issue.key}`))
-      : mutations.restore(issue, () => toast.success(`Restored ${issue.key}`));
+      ? mutations.unarchive(issue, () => toast.success(m.editor_bin_unarchived({ key: issue.key })))
+      : mutations.restore(issue, () => toast.success(m.editor_bin_restored({ key: issue.key })));
 
   async function purge(issue: IssueRow) {
     confirm = null;
     purged = [...purged, issue.id];
     try {
       const result = await purgeIssue({ projectId: issue.projectId, id: issue.id });
-      if (result.ok) toast.success(`Deleted ${issue.key} permanently`);
-      else toast.error(actionErrorText(result.error, 'Only admins can delete issues permanently.'));
+      if (result.ok) toast.success(m.editor_bin_purged({ key: issue.key }));
+      else toast.error(actionErrorText(result.error, m.editor_bin_admin_only()));
     } catch {
-      toast.error('Something went wrong — the issue was not deleted.');
+      toast.error(m.editor_bin_purge_failed());
     } finally {
       purged = purged.filter((id) => id !== issue.id);
     }
@@ -88,13 +89,13 @@
 {#if visible.length === 0}
   {#if mode === 'archive'}
     <EmptyState
-      title="No archived issues"
-      description="Archive issues you no longer need in the list. They stay searchable here and can be unarchived any time."
+      title={m.editor_bin_no_archived()}
+      description={m.editor_bin_no_archived_body()}
     >
       {#snippet icon()}<ArchiveIcon />{/snippet}
     </EmptyState>
   {:else}
-    <EmptyState title="Trash is empty" description="Deleted issues stay here for 30 days before they are removed for good.">
+    <EmptyState title={m.editor_bin_empty()} description={m.editor_bin_empty_body()}>
       {#snippet icon()}<Trash2Icon />{/snippet}
     </EmptyState>
   {/if}
@@ -103,19 +104,18 @@
     <div class="flex flex-wrap items-center gap-3">
       <Input
         type="search"
-        aria-label={mode === 'archive' ? 'Search archived issues' : 'Search deleted issues'}
-        placeholder="Filter by key or title…"
+        aria-label={mode === 'archive' ? m.editor_bin_search_archived() : m.editor_bin_search_deleted()}
+        placeholder={m.editor_bin_filter_placeholder()}
         bind:value={query}
         class="h-8 max-w-xs"
       />
       <p class="text-xs text-muted-foreground">
-        {visible.length}
-        {visible.length === 1 ? 'issue' : 'issues'}{#if mode === 'trash'}{' · permanently deleted 30 days after being moved to the trash'}{/if}
+        {mode === 'trash' ? m.editor_bin_count_trash({ count: visible.length }) : m.editor_bin_count({ count: visible.length })}
       </p>
     </div>
 
     {#if listed.length === 0}
-      <EmptyState title="No matching issues" description={`Nothing matches “${query.trim()}”.`}>
+      <EmptyState title={m.editor_bin_no_match()} description={m.editor_bin_no_match_body({ query: query.trim() })}>
         {#snippet icon()}<SearchXIcon />{/snippet}
       </EmptyState>
     {:else}
@@ -124,7 +124,7 @@
           {#snippet actions()}
             <Button size="xs" variant="outline" onclick={() => restore(issue)}>
               {#if mode === 'archive'}<ArchiveRestoreIcon />{:else}<Undo2Icon />{/if}
-              {mode === 'archive' ? 'Unarchive' : 'Restore'}
+              {mode === 'archive' ? m.editor_bin_unarchive() : m.editor_bin_restore()}
             </Button>
             {#if mode === 'trash' && isAdmin.current}
               <Button
@@ -133,15 +133,15 @@
                 class="text-destructive hover:text-destructive"
                 onclick={() => (confirm = issue)}
               >
-                Delete permanently
+                {m.editor_bin_purge()}
               </Button>
             {/if}
           {/snippet}
           <NavIssueRow
             {issue}
             time={mode === 'archive'
-              ? { date: issue.archivedAt ?? issue.updatedAt, label: 'Archived' }
-              : { date: issue.deletedAt ?? issue.updatedAt, label: 'Deleted' }}
+              ? { date: issue.archivedAt ?? issue.updatedAt, label: m.editor_bin_time_archived() }
+              : { date: issue.deletedAt ?? issue.updatedAt, label: m.editor_bin_time_deleted() }}
             actions={canWrite.current ? actions : undefined}
           />
         {/each}
@@ -151,15 +151,15 @@
     <AlertDialog open={confirm !== null} onOpenChange={(open) => !open && (confirm = null)}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete {confirm?.key} permanently?</AlertDialogTitle>
+          <AlertDialogTitle>{m.editor_bin_purge_title({ key: confirm?.key ?? '' })}</AlertDialogTitle>
           <AlertDialogDescription>
-            “{confirm?.title}” and its comments, attachments and history are removed for good. This can’t be undone.
+            {m.editor_bin_purge_body({ title: confirm?.title ?? '' })}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
           <AlertDialogAction variant="destructive" onclick={() => confirm && purge(confirm)}>
-            Delete permanently
+            {m.editor_bin_purge()}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
