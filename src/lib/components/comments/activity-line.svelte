@@ -50,8 +50,8 @@
   // (names, dates, icons), then split back into text and rich parts, so word
   // order stays up to each language.
   type Slot = { text: string; list?: unknown[]; state?: Named | null; priority?: Priority };
-  const SLOT_SPLIT = /\u0001(\w+)\u0001/;
-  const tok = (name: string) => `\u0001${name}\u0001`;
+  const SLOT_SPLIT = /\uE000(\w+)\uE000/;
+  const tok = (name: string) => `\uE000${name}\uE000`;
 </script>
 
 <script lang="ts">
